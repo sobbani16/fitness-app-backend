@@ -1,10 +1,18 @@
 const express = require('express');
+const { buildDailySummary } = require('../services/summaryService');
 
 const router = express.Router();
 
-// GET /summary/daily — stub for end-of-day AI summary.
-router.get('/daily', (req, res) => {
-  res.json({ stub: true, route: 'GET /summary/daily' });
+// POST /summary/daily
+// Body: { profile, meals?, caloriesBurnedExercise?, weather? }
+// Client sends its locally-stored meals; backend stays stateless for now.
+router.post('/daily', (req, res) => {
+  try {
+    const summary = buildDailySummary(req.body || {});
+    res.json(summary);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 module.exports = router;
