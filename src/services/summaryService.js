@@ -73,4 +73,70 @@ function buildInsight({ balance, meals, recommendation, weather }) {
   return parts.join(' ');
 }
 
-module.exports = { buildDailySummary };
+/**
+ * buildHistory
+ * @param {{
+ *   profile: { sex, weightKg, heightCm, age, activityLevel, goal },
+ *   days: Array<{ date: string, caloriesIn: number, caloriesBurnedExercise?: number, mealCount?: number }>
+ * }} input
+ */
+function buildHistory(input) {
+  const { profile, days = [] } = input || {};
+  if (!profile) throw new Error('profile is required');
+  if (!Array.isArray(days)) throw new Error('days must be an array');
+
+  const bmr = calculateBMR({
+    sex: profile.sex,
+    weightKg: profile.weightKg,
+    heightCm: profile.heightCm,
+    age: profile.age,
+  });
+  const tdee = calculateTDEE(bmr, profile.activityLevel || 'sedentary');
+
+  // Ascending by date so streak logic (ending at the latest day) is clear.
+  const sorted = days.slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+
+  const entries = sorted.map((d) => {
+    const caloriesIn = Number(d.caloriesIn) || 0;
+    const caloriesBurnedExercise = Number(d.caloriesBurnedExercise) || 0;
+    const mealCount = Number(d.mealCount) || 0;
+    const balance = computeDailyBalance({
+      caloriesIn,
+      caloriesBurnedExercise,
+      tdee,
+      goal: profile.goal || 'maintain',
+    });
+    return {
+      date: d.date,
+      caloriesIn,
+      caloriesBurnedExercise,
+      mealCount,
+      target: balance.target,
+      net: balance.net,
+      surplus: balance.surplus,
+      status: balance.status,
+      logged: mealCount > 0 || caloriesIn > 0,
+    };
+  });
+
+  // Streak = number of consecutive days ending at the most recent entry that were "logged".
+  // On-target streak = same but status === 'on_target'.
+  let loggedStreak = 0;
+  let onTargetStreak = 0;
+  for (let i = entries.length - 1; i >= 0; i--) {
+    if (entries[i].logged) loggedStreak++;
+    else break;
+  }
+  for (let i = entries.length - 1; i >= 0; i--) {
+    if (entries[i].status === 'on_target') onTargetStreak++;
+    else break;
+  }
+
+  return {
+    tdee: Math.round(tdee),
+    entries,
+    streaks: { logged: loggedStreak, onTarget: onTargetStreak },
+  };
+}
+
+module.exports = { buildDailySummary, buildHistory };
