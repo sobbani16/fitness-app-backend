@@ -5,6 +5,7 @@ const recommendations = require('./recommendations');
 const summary = require('./summary');
 const chat = require('./chat');
 const weather = require('./weather');
+const exercises = require('./exercises');
 
 const router = express.Router();
 
@@ -14,5 +15,6 @@ router.use('/recommendations', recommendations);
 router.use('/summary', summary);
 router.use('/chat', chat);
 router.use('/weather', weather);
+router.use('/exercises', exercises);
 
 module.exports = router;
