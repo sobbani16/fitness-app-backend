@@ -1,0 +1,292 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @default(uuid())
+  email           String   @unique
+
+  firstName       String?
+  lastName        String?
+
+  dateOfBirth     DateTime?
+
+  gender          String?
+
+  heightCm        Float?
+  currentWeightKg Float?
+
+  goalType        String?
+  activityLevel   String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  healthProfile   UserHealthProfile?
+  healthConditions UserHealthCondition[]
+  allergies       UserAllergy[]
+  weightEntries   WeightEntry[]
+  dailySteps      DailySteps[]
+  waterLogs       WaterLog[]
+  sleepLogs       SleepLog[]
+  foodLogs        FoodLog[]
+  workoutSessions WorkoutSession[]
+}
+
+model UserHealthProfile {
+  id               String   @id @default(uuid())
+
+  userId           String   @unique
+
+  smoker           Boolean  @default(false)
+  drinksAlcohol    Boolean  @default(false)
+
+  sleepGoalHours   Float?
+
+  waterGoalMl      Int?
+
+  notes            String?
+
+  updatedAt        DateTime @updatedAt
+
+  user             User     @relation(fields: [userId], references: [id])
+}
+
+model HealthCondition {
+  id          String @id @default(uuid())
+
+  name        String @unique
+
+  description String?
+
+  userConditions UserHealthCondition[]
+}
+
+model UserHealthCondition {
+  id            String @id @default(uuid())
+
+  userId        String
+
+  conditionId   String
+
+  severity      String?
+
+  active        Boolean @default(true)
+
+  user          User @relation(fields: [userId], references: [id])
+
+  condition     HealthCondition @relation(fields: [conditionId], references: [id])
+}
+
+model Allergy {
+  id        String @id @default(uuid())
+
+  name      String @unique
+
+  userAllergies UserAllergy[]
+}
+
+model UserAllergy {
+  id          String @id @default(uuid())
+
+  userId      String
+
+  allergyId   String
+
+  user         User @relation(fields: [userId], references: [id])
+
+  allergy      Allergy @relation(fields: [allergyId], references: [id])
+}
+
+model WeightEntry {
+  id           String   @id @default(uuid())
+
+  userId       String
+
+  weightKg     Float
+
+  recordedAt   DateTime @default(now())
+
+  user         User @relation(fields: [userId], references: [id])
+}
+
+model DailySteps {
+  id            String @id @default(uuid())
+
+  userId        String
+
+  date          DateTime
+
+  steps         Int
+
+  distanceKm    Float?
+
+  user          User @relation(fields: [userId], references: [id])
+}
+
+model WaterLog {
+  id            String @id @default(uuid())
+
+  userId        String
+
+  amountMl      Int
+
+  loggedAt      DateTime @default(now())
+
+  user          User @relation(fields: [userId], references: [id])
+}
+
+model SleepLog {
+  id            String @id @default(uuid())
+
+  userId        String
+
+  sleepStart    DateTime
+
+  sleepEnd      DateTime
+
+  hoursSlept    Float?
+
+  sleepScore    Float?
+
+  user          User @relation(fields: [userId], references: [id])
+}
+
+model FoodLog {
+  id              String @id @default(uuid())
+
+  userId          String
+
+  foodName        String
+
+  quantityG       Float
+
+  calories        Float
+
+  proteinG        Float
+
+  carbsG          Float
+
+  fatG            Float
+
+  mealType        String
+
+  loggedAt        DateTime @default(now())
+
+  user            User @relation(fields: [userId], references: [id])
+}
+
+model WorkoutSession {
+  id                  String @id @default(uuid())
+
+  userId              String
+
+  workoutType         String
+
+  durationMinutes     Int
+
+  caloriesBurned      Float?
+
+  startedAt           DateTime
+
+  endedAt             DateTime
+
+  user                User @relation(fields: [userId], references: [id])
+
+  exerciseSets        ExerciseSet[]
+}
+
+model ExerciseSet {
+  id                String @id @default(uuid())
+
+  workoutSessionId  String
+
+  exerciseName      String
+
+  reps              Int
+
+  weightLbs         Float?
+
+  setNumber         Int
+
+  workoutSession    WorkoutSession @relation(fields: [workoutSessionId], references: [id])
+}
+
+model Recipe {
+  id              String @id @default(uuid())
+
+  creatorId       String
+
+  recipeName      String
+
+  cuisine         String?
+
+  description     String?
+
+  servings        Int
+
+  createdAt       DateTime @default(now())
+}
+
+model RecipeIngredient {
+  id              String @id @default(uuid())
+
+  recipeId        String
+
+  ingredientName  String
+
+  amountG         Float
+
+  calories        Float?
+
+  proteinG        Float?
+
+  carbsG          Float?
+
+  fatG            Float?
+}
+
+model Recommendation {
+  id                 String @id @default(uuid())
+
+  userId             String
+
+  recommendationType String
+
+  recommendationText String
+
+  accepted           Boolean @default(false)
+
+  completed          Boolean @default(false)
+
+  createdAt          DateTime @default(now())
+}
+
+model UserInsight {
+  id            String @id @default(uuid())
+
+  userId        String
+
+  insight       String
+
+  confidence    Float
+
+  createdAt     DateTime @default(now())
+}
+
+model UserEvent {
+  id           String @id @default(uuid())
+
+  userId       String
+
+  eventType    String
+
+  eventData    Json?
+
+  createdAt    DateTime @default(now())
+}
