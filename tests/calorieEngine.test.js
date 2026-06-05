@@ -3,6 +3,7 @@ const {
   calculateTDEE,
   targetCalories,
   computeDailyBalance,
+  normalizeGoal,
 } = require('../src/services/calorieEngine');
 
 describe('calorieEngine', () => {
@@ -40,8 +41,31 @@ describe('calorieEngine', () => {
       expect(targetCalories(2500, 'maintain')).toBe(2500);
       expect(targetCalories(2500, 'gain')).toBe(3000);
     });
+    it('applies descriptive goal adjustments', () => {
+      expect(targetCalories(2500, 'weight_loss')).toBe(2000);
+      expect(targetCalories(2500, 'muscle_gain')).toBe(2900);
+      expect(targetCalories(2500, 'body_recomposition')).toBe(2500);
+    });
     it('throws on unknown goal', () => {
       expect(() => targetCalories(2500, 'bulk')).toThrow();
+    });
+  });
+
+  describe('normalizeGoal', () => {
+    it('passes through known descriptive goals', () => {
+      expect(normalizeGoal('weight_loss')).toBe('weight_loss');
+      expect(normalizeGoal('muscle_gain')).toBe('muscle_gain');
+      expect(normalizeGoal('body_recomposition')).toBe('body_recomposition');
+    });
+    it('normalizes spaces/case/hyphens', () => {
+      expect(normalizeGoal('Weight Loss')).toBe('weight_loss');
+      expect(normalizeGoal('body-recomposition')).toBe('body_recomposition');
+    });
+    it('keeps legacy aliases and defaults unknowns to maintain', () => {
+      expect(normalizeGoal('lose')).toBe('lose');
+      expect(normalizeGoal('gain')).toBe('gain');
+      expect(normalizeGoal('bogus')).toBe('maintain');
+      expect(normalizeGoal()).toBe('maintain');
     });
   });
 

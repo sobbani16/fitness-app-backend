@@ -290,3 +290,65 @@ model UserEvent {
 
   createdAt    DateTime @default(now())
 }
+
+model Supplement {
+  id          String   @id @default(uuid())
+
+  name        String   @unique
+
+  category    String?
+
+  defaultDose String?
+
+  // Seeded defaults shown first in the catalog; user-added entries are false.
+  isDefault   Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+}
+
+// Central ingredient catalog shared across all users. Populated on demand from
+// the USDA FoodData Central API and cached here so repeat lookups (by any user)
+// are served from the DB instead of re-hitting USDA.
+model Ingredient {
+  id              String   @id @default(uuid())
+
+  // USDA FoodData Central ID. Unique so upserts dedupe across users.
+  fdcId           String   @unique
+
+  name            String
+  // Lowercased name for case-insensitive contains lookups.
+  normalizedName  String
+
+  // Nutrition normalized to 100g so any portion can be derived client-side.
+  caloriesPer100g Float
+  proteinPer100g  Float
+  carbsPer100g    Float
+  fatPer100g      Float
+
+  source          String   @default("usda")
+
+  createdAt       DateTime @default(now())
+
+  userLinks       UserIngredient[]
+
+  @@index([normalizedName])
+}
+
+// Per-user ingredient table: the set of ingredients a given user has searched.
+// Lookups check this first, then the central Ingredient table, then USDA.
+model UserIngredient {
+  id             String   @id @default(uuid())
+
+  userId         String
+
+  ingredientId   String
+  ingredient     Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  searchCount    Int      @default(1)
+  lastSearchedAt DateTime @default(now())
+
+  createdAt      DateTime @default(now())
+
+  @@unique([userId, ingredientId])
+  @@index([userId])
+}

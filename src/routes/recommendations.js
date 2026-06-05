@@ -3,6 +3,7 @@ const {
   calculateBMR,
   calculateTDEE,
   computeDailyBalance,
+  normalizeGoal,
 } = require('../services/calorieEngine');
 const { recommendFromBalance } = require('../services/recommendationEngine');
 
@@ -26,7 +27,10 @@ router.get('/', (req, res) => {
       age: num(q.age, 30),
     };
     const activityLevel = q.activityLevel || 'sedentary';
-    const goal = q.goal || 'maintain';
+    // Accept descriptive goals (weight_loss / muscle_gain / body_recomposition)
+    // and legacy values (lose/maintain/gain); normalize to a known engine key.
+    const requestedGoal = q.goal || 'maintain';
+    const goal = normalizeGoal(requestedGoal);
     const caloriesIn = num(q.caloriesIn, 2200);
     const caloriesBurnedExercise = num(q.caloriesBurnedExercise, 0);
     const weather = q.weather ? { condition: q.weather } : undefined;

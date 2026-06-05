@@ -7,6 +7,8 @@ const chat = require('./chat');
 const weather = require('./weather');
 const exercises = require('./exercises');
 const recipes = require('./recipes');
+const supplements = require('./supplements');
+const ingredients = require('./ingredients');
 
 const router = express.Router();
 
@@ -18,5 +20,7 @@ router.use('/chat', chat);
 router.use('/weather', weather);
 router.use('/exercises', exercises);
 router.use('/recipes', recipes);
+router.use('/supplements', supplements);
+router.use('/ingredients', ingredients);
 
 module.exports = router;

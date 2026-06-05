@@ -13,11 +13,30 @@ const ACTIVITY_FACTORS = {
   very_active: 1.9,
 };
 
+// Daily calorie delta applied to TDEE per goal.
+// New descriptive goals are the primary taxonomy; legacy keys (lose/gain)
+// are kept as aliases for backward compatibility.
+//   weight_loss        -> moderate deficit
+//   muscle_gain        -> lean surplus
+//   body_recomposition -> maintenance (recomp relies on protein + training)
+//   maintain           -> no change
 const GOAL_ADJUSTMENT = {
-  lose: -500,
+  weight_loss: -500,
+  muscle_gain: 400,
+  body_recomposition: 0,
   maintain: 0,
+  // Legacy aliases
+  lose: -500,
   gain: 500,
 };
+
+// Maps any accepted goal string (including legacy values) to a known key.
+function normalizeGoal(goal) {
+  if (!goal) return 'maintain';
+  const g = String(goal).trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (g in GOAL_ADJUSTMENT) return g;
+  return 'maintain';
+}
 
 /**
  * Mifflin-St Jeor BMR.
@@ -93,6 +112,7 @@ function assertNonNegative(name, v) {
 module.exports = {
   ACTIVITY_FACTORS,
   GOAL_ADJUSTMENT,
+  normalizeGoal,
   calculateBMR,
   calculateTDEE,
   targetCalories,
