@@ -23,7 +23,8 @@ router.get('/search', async (req, res) => {
     const results = await searchIngredients({ userId, query });
     res.json({ results });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    const status = err.message && /required/i.test(err.message) ? 400 : 500;
+    res.status(status).json({ error: err.message });
   }
 });
 

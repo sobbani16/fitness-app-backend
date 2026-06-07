@@ -122,9 +122,9 @@ async function searchUsda(query, number = 8) {
   }
 
   if (!res.ok) {
-    // Auth / rate-limit issues (common with DEMO_KEY) → fall back to mock.
-    if ([401, 403, 429].includes(res.status)) return mockSearch(q);
-    throw new Error(`usda search failed: ${res.status}`);
+    // Any non-OK response (auth, rate-limit, bad request, server error) →
+    // degrade gracefully so the user still gets results.
+    return mockSearch(q);
   }
 
   const data = await res.json();
