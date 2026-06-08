@@ -55,8 +55,11 @@ describe('searchUsda', () => {
     expect(r[0].source).toMatch(/mock/);
   });
 
-  it('throws on unexpected non-ok status', async () => {
+  it('falls back to mock on unexpected non-ok status (e.g. 500)', async () => {
     usda.setFetch(async () => ({ ok: false, status: 500, json: async () => ({}) }));
-    await expect(usda.searchUsda('chicken')).rejects.toThrow(/500/);
+    const r = await usda.searchUsda('chicken');
+    expect(Array.isArray(r)).toBe(true);
+    expect(r.length).toBeGreaterThan(0);
+    expect(r[0].source).toMatch(/mock/);
   });
 });

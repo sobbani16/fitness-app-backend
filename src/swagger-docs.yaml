@@ -1,0 +1,534 @@
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: Server is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  time:
+                    type: string
+                    example: '2026-06-08T12:00:00.000Z'
+
+  /supplements:
+    get:
+      tags: [Supplements]
+      summary: List all supplements in the catalog
+      responses:
+        '200':
+          description: Supplement catalog
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  supplements:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Supplement'
+    post:
+      tags: [Supplements]
+      summary: Add a supplement to the catalog (idempotent by name)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  example: Ashwagandha
+                category:
+                  type: string
+                  example: Adaptogen
+                defaultDose:
+                  type: string
+                  example: 300-600 mg
+      responses:
+        '201':
+          description: Supplement created or updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Supplement'
+        '400':
+          description: Validation error
+
+  /ingredients/search:
+    get:
+      tags: [Ingredients]
+      summary: Search ingredients (3-tier cache → user → central → USDA)
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+        - in: query
+          name: q
+          required: true
+          schema:
+            type: string
+            example: chicken
+          description: Search query
+      responses:
+        '200':
+          description: Ingredient search results (per-100g nutrition)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Ingredient'
+        '400':
+          description: Missing x-user-id or query
+
+  /meals/analyze:
+    post:
+      tags: [Meals]
+      summary: Analyze a meal (mock AI)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                  example: grilled chicken with rice
+                mealType:
+                  type: string
+                  enum: [breakfast, lunch, dinner, snack]
+                  example: lunch
+                hasPhoto:
+                  type: boolean
+                  example: false
+      responses:
+        '200':
+          description: Meal analysis
+
+  /meals/detect:
+    post:
+      tags: [Meals]
+      summary: Detect food and estimate nutrition (per-100g + suggested portion)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                  example: chicken curry with naan
+                mealType:
+                  type: string
+                  enum: [breakfast, lunch, dinner, snack]
+                  example: dinner
+                hasPhoto:
+                  type: boolean
+                  example: false
+      responses:
+        '200':
+          description: Detected food with nutrition
+
+  /recommendations:
+    get:
+      tags: [Recommendations]
+      summary: Get calorie recommendations based on profile
+      parameters:
+        - in: query
+          name: sex
+          schema:
+            type: string
+            enum: [male, female, other]
+            default: male
+        - in: query
+          name: weightKg
+          schema:
+            type: number
+            default: 75
+        - in: query
+          name: heightCm
+          schema:
+            type: number
+            default: 175
+        - in: query
+          name: age
+          schema:
+            type: integer
+            default: 30
+        - in: query
+          name: activityLevel
+          schema:
+            type: string
+            enum: [sedentary, light, moderate, active, very_active]
+            default: sedentary
+        - in: query
+          name: goal
+          schema:
+            type: string
+            enum: [lose, maintain, gain, weight_loss, muscle_gain, body_recomposition]
+            default: maintain
+        - in: query
+          name: caloriesIn
+          schema:
+            type: number
+            default: 2200
+        - in: query
+          name: caloriesBurnedExercise
+          schema:
+            type: number
+            default: 0
+        - in: query
+          name: weather
+          schema:
+            type: string
+            enum: [hot, rainy, pleasant]
+      responses:
+        '200':
+          description: Daily calorie balance and recommendations
+
+  /summary/daily:
+    post:
+      tags: [Summary]
+      summary: Get daily nutrition summary
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profile:
+                  type: object
+                  properties:
+                    sex:
+                      type: string
+                      example: male
+                    weightKg:
+                      type: number
+                      example: 75
+                    heightCm:
+                      type: number
+                      example: 175
+                    age:
+                      type: integer
+                      example: 30
+                meals:
+                  type: array
+                  items:
+                    type: object
+                caloriesBurnedExercise:
+                  type: number
+                  example: 300
+      responses:
+        '200':
+          description: Daily summary with calorie balance
+
+  /summary/history:
+    post:
+      tags: [Summary]
+      summary: Get multi-day history and streaks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profile:
+                  type: object
+                  properties:
+                    sex:
+                      type: string
+                      example: male
+                    weightKg:
+                      type: number
+                      example: 75
+                    heightCm:
+                      type: number
+                      example: 175
+                    age:
+                      type: integer
+                      example: 30
+                days:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      date:
+                        type: string
+                        example: '2026-06-07'
+                      caloriesIn:
+                        type: number
+                        example: 2100
+                      caloriesBurnedExercise:
+                        type: number
+                        example: 200
+                      mealCount:
+                        type: integer
+                        example: 3
+      responses:
+        '200':
+          description: Per-day balance and streak data
+
+  /chat:
+    post:
+      tags: [Chat]
+      summary: Send a message to the AI coach (rate-limited)
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:
+                  type: string
+                  example: How much protein should I eat daily?
+      responses:
+        '200':
+          description: AI reply
+        '429':
+          description: Daily chat limit reached
+
+  /chat/status:
+    get:
+      tags: [Chat]
+      summary: Get remaining chat quota for today
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      responses:
+        '200':
+          description: Quota status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  limit:
+                    type: integer
+                  used:
+                    type: integer
+                  remaining:
+                    type: integer
+
+  /weather:
+    get:
+      tags: [Weather]
+      summary: Get weather for a location
+      parameters:
+        - in: query
+          name: lat
+          required: true
+          schema:
+            type: number
+            example: 40.7128
+        - in: query
+          name: lon
+          required: true
+          schema:
+            type: number
+            example: -74.006
+      responses:
+        '200':
+          description: Weather data
+
+  /exercises:
+    get:
+      tags: [Exercises]
+      summary: List exercise sessions for the user
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      responses:
+        '200':
+          description: User's exercise sessions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items:
+                      type: object
+    post:
+      tags: [Exercises]
+      summary: Create a new exercise session
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [exerciseType, sets]
+              properties:
+                exerciseType:
+                  type: string
+                  example: bench_press
+                sets:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      reps:
+                        type: integer
+                        example: 10
+                      weight:
+                        type: number
+                        example: 135
+      responses:
+        '201':
+          description: Session created
+
+  /exercises/prefill/{exerciseType}:
+    get:
+      tags: [Exercises]
+      summary: Get prefill data for an exercise type (based on last session)
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+        - in: path
+          name: exerciseType
+          required: true
+          schema:
+            type: string
+            example: bench_press
+      responses:
+        '200':
+          description: Prefill data
+
+  /exercises/{id}/sets:
+    post:
+      tags: [Exercises]
+      summary: Append a set to an existing exercise session
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reps:
+                  type: integer
+                  example: 8
+                weight:
+                  type: number
+                  example: 155
+      responses:
+        '200':
+          description: Updated session
+
+  /recipes/search:
+    get:
+      tags: [Recipes]
+      summary: Search recipes by query
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema:
+            type: string
+            example: chicken curry
+      responses:
+        '200':
+          description: Recipe search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        title:
+                          type: string
+                        image:
+                          type: string
+
+  /recipes/{id}/nutrition:
+    get:
+      tags: [Recipes]
+      summary: Get nutrition info for a recipe
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            example: '123'
+      responses:
+        '200':
+          description: Recipe nutrition with per-100g macros
+
+components:
+  parameters:
+    XUserId:
+      in: header
+      name: x-user-id
+      schema:
+        type: string
+        default: test-user-1
+      description: Device / user identifier
+
+  schemas:
+    Supplement:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        defaultDose:
+          type: string
+        isDefault:
+          type: boolean
+        createdAt:
+          type: string
+
+    Ingredient:
+      type: object
+      properties:
+        id:
+          type: string
+        fdcId:
+          type: string
+        name:
+          type: string
+        caloriesPer100g:
+          type: number
+        macrosPer100g:
+          type: object
+          properties:
+            protein_g:
+              type: number
+            carbs_g:
+              type: number
+            fat_g:
+              type: number
+        source:
+          type: string

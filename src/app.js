@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const routes = require('./routes');
+const { setupSwagger } = require('./swagger');
 
 const app = express();
 
@@ -10,6 +11,9 @@ app.use(express.json({ limit: '2mb' }));
 if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
+
+// Swagger UI at /api-docs
+setupSwagger(app);
 
 app.use('/', routes);
 
