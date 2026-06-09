@@ -297,13 +297,44 @@ model Supplement {
   name        String   @unique
 
   category    String?
+  brand       String?
+  flavor      String?
 
-  defaultDose String?
+  defaultDose   String?
+  servingSizeG  Float?
+
+  // Nutrition per serving (from the label).
+  calories    Float    @default(0)
+  proteinG    Float    @default(0)
+  carbsG      Float    @default(0)
+  fatG        Float    @default(0)
+  fiberG      Float    @default(0)
 
   // Seeded defaults shown first in the catalog; user-added entries are false.
   isDefault   Boolean  @default(false)
 
   createdAt   DateTime @default(now())
+
+  userLinks   UserSupplement[]
+}
+
+// Per-user supplement selections. Users pick which supplements they take.
+// Only selected supplements appear on their dashboard.
+model UserSupplement {
+  id             String   @id @default(uuid())
+
+  userId         String
+
+  supplementId   String
+  supplement     Supplement @relation(fields: [supplementId], references: [id], onDelete: Cascade)
+
+  // When the user last marked this supplement as taken.
+  lastTakenAt    DateTime?
+
+  createdAt      DateTime @default(now())
+
+  @@unique([userId, supplementId])
+  @@index([userId])
 }
 
 // Central ingredient catalog shared across all users. Populated on demand from
