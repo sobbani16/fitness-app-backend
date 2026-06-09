@@ -10,7 +10,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "node prisma/seed.js",
-    "db:seed-dummy": "node prisma/seed-dummy.js"
+    "db:seed-dummy": "node prisma/seed-dummy.js",
+    "db:seed-safety": "node prisma/seed-safety.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
