@@ -1,0 +1,340 @@
+paths:
+  /me/roles:
+    get:
+      tags: [RBAC]
+      summary: Get current user's roles and permissions
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      responses:
+        '200':
+          description: User roles and permissions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: string
+                  roles:
+                    type: array
+                    items:
+                      type: string
+                  permissions:
+                    type: array
+                    items:
+                      type: string
+
+  /trainers:
+    get:
+      tags: [Trainers]
+      summary: List verified trainers (public)
+      parameters:
+        - in: query
+          name: tier
+          schema:
+            type: string
+            enum: [bronze, silver, gold]
+      responses:
+        '200':
+          description: List of trainers
+
+  /trainers/me/clients:
+    get:
+      tags: [Trainers]
+      summary: Get trainer's assigned clients (TRAINER role required)
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      responses:
+        '200':
+          description: Client list
+        '403':
+          description: Insufficient role
+
+  /trainers/clients/assign:
+    post:
+      tags: [Trainers]
+      summary: Assign a client to a trainer
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [trainerId, clientId]
+              properties:
+                trainerId:
+                  type: string
+                clientId:
+                  type: string
+      responses:
+        '201':
+          description: Client assigned
+        '403':
+          description: Insufficient permissions
+
+  /workout-plans:
+    post:
+      tags: [Workout Plans]
+      summary: Create a workout plan (TRAINER only)
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clientId, title]
+              properties:
+                clientId:
+                  type: string
+                title:
+                  type: string
+                description:
+                  type: string
+                exercises:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      exerciseName:
+                        type: string
+                      sets:
+                        type: integer
+                      reps:
+                        type: integer
+                      targetWeight:
+                        type: number
+      responses:
+        '201':
+          description: Plan created
+    get:
+      tags: [Workout Plans]
+      summary: List workout plans
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      responses:
+        '200':
+          description: Plans list
+
+  /meal-plans:
+    post:
+      tags: [Meal Plans]
+      summary: Create a meal plan (NUTRITIONIST only)
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clientId, caloriesTarget, proteinTarget]
+              properties:
+                clientId:
+                  type: string
+                title:
+                  type: string
+                caloriesTarget:
+                  type: number
+                proteinTarget:
+                  type: number
+                carbsTarget:
+                  type: number
+                fatTarget:
+                  type: number
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      mealType:
+                        type: string
+                      foodName:
+                        type: string
+                      quantityG:
+                        type: number
+      responses:
+        '201':
+          description: Plan created
+    get:
+      tags: [Meal Plans]
+      summary: List meal plans
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      responses:
+        '200':
+          description: Plans list
+
+  /coach-notes:
+    post:
+      tags: [Coach Notes]
+      summary: Create a coach note (TRAINER or NUTRITIONIST)
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clientId, note]
+              properties:
+                clientId:
+                  type: string
+                note:
+                  type: string
+                visibility:
+                  type: string
+                  enum: [private, client_visible]
+                  default: private
+      responses:
+        '201':
+          description: Note created
+    get:
+      tags: [Coach Notes]
+      summary: List notes
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+        - in: query
+          name: clientId
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notes list
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: List all users with roles (ADMIN/SUPER_ADMIN)
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      responses:
+        '200':
+          description: Users with roles
+        '403':
+          description: Insufficient permissions
+
+  /admin/roles/assign:
+    post:
+      tags: [Admin]
+      summary: Assign a role to a user
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, roleName]
+              properties:
+                userId:
+                  type: string
+                roleName:
+                  type: string
+                  enum: [MEMBER, TRAINER, NUTRITIONIST, CREATOR, SUPPORT, ADMIN, SUPER_ADMIN]
+      responses:
+        '201':
+          description: Role assigned
+
+  /admin/roles/remove:
+    post:
+      tags: [Admin]
+      summary: Remove a role from a user
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, roleName]
+              properties:
+                userId:
+                  type: string
+                roleName:
+                  type: string
+      responses:
+        '200':
+          description: Role removed
+
+  /admin/trainers:
+    get:
+      tags: [Admin]
+      summary: List all trainer profiles (ADMIN)
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      responses:
+        '200':
+          description: All trainers
+
+  /admin/analytics:
+    get:
+      tags: [Admin]
+      summary: Platform analytics (ADMIN)
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      responses:
+        '200':
+          description: Platform stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: integer
+                  trainers:
+                    type: integer
+                  nutritionists:
+                    type: integer
+                  workoutPlans:
+                    type: integer
+                  mealPlans:
+                    type: integer
+
+  /audit-logs:
+    get:
+      tags: [Admin]
+      summary: View audit logs (ADMIN/SUPER_ADMIN)
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+        - in: query
+          name: actorId
+          schema:
+            type: string
+        - in: query
+          name: entityType
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Audit log entries
+
+  /nutritionists:
+    get:
+      tags: [Nutritionists]
+      summary: List verified nutritionists (public)
+      responses:
+        '200':
+          description: Nutritionist list
+
+  /nutritionists/me/clients:
+    get:
+      tags: [Nutritionists]
+      summary: Get nutritionist's assigned clients
+      parameters:
+        - $ref: '#/components/parameters/XUserId'
+      responses:
+        '200':
+          description: Client list
