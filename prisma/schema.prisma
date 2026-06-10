@@ -606,3 +606,263 @@ model DailyCoachingMessage {
 
   @@index([userId, createdAt])
 }
+
+// ============================================================================
+// RBAC — ROLES & PERMISSIONS
+// ============================================================================
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique  // MEMBER, TRAINER, NUTRITIONIST, CREATOR, SUPPORT, ADMIN, SUPER_ADMIN
+  description String?
+  createdAt   DateTime @default(now())
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+}
+
+model UserRole {
+  id         String   @id @default(uuid())
+  userId     String
+  roleId     String
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  active     Boolean  @default(true)
+  assignedAt DateTime @default(now())
+
+  @@unique([userId, roleId])
+  @@index([userId])
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  rolePermissions RolePermission[]
+}
+
+model RolePermission {
+  id           String @id @default(uuid())
+  roleId       String
+  role         Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+// ============================================================================
+// TRAINER SYSTEM
+// ============================================================================
+
+model TrainerProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  bio             String?
+  certifications  String[] // Array of cert names
+  specialties     String[] // e.g. ["strength", "HIIT", "yoga"]
+  yearsExperience Int      @default(0)
+  hourlyRate      Float?
+  tier            String   @default("bronze") // bronze, silver, gold
+  verified        Boolean  @default(false)
+  active          Boolean  @default(true)
+  rating          Float?
+  profilePicture  String?
+  maxClients      Int      @default(10)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  clients      TrainerClient[]
+  workoutPlans WorkoutPlan[]
+  coachNotes   CoachNote[]    @relation("TrainerNotes")
+}
+
+model TrainerClient {
+  id         String   @id @default(uuid())
+  trainerId  String
+  trainer    TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  clientId   String
+  status     String   @default("pending") // pending, active, paused, completed
+  assignedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([trainerId, clientId])
+  @@index([trainerId])
+  @@index([clientId])
+}
+
+// ============================================================================
+// NUTRITIONIST SYSTEM
+// ============================================================================
+
+model NutritionistProfile {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  bio            String?
+  certifications String[]
+  specialties    String[]
+  verified       Boolean  @default(false)
+  active         Boolean  @default(true)
+  maxClients     Int      @default(10)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  clients    NutritionistClient[]
+  mealPlans  MealPlan[]
+  coachNotes CoachNote[] @relation("NutritionistNotes")
+}
+
+model NutritionistClient {
+  id              String   @id @default(uuid())
+  nutritionistId  String
+  nutritionist    NutritionistProfile @relation(fields: [nutritionistId], references: [id], onDelete: Cascade)
+  clientId        String
+  status          String   @default("pending") // pending, active, paused, completed
+  assignedAt      DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([nutritionistId, clientId])
+  @@index([nutritionistId])
+  @@index([clientId])
+}
+
+// ============================================================================
+// COACH NOTES
+// ============================================================================
+
+model CoachNote {
+  id         String   @id @default(uuid())
+  coachId    String   // The userId of the trainer or nutritionist
+  coachRole  String   // "trainer" or "nutritionist"
+  clientId   String
+  note       String
+  visibility String   @default("private") // private, client_visible
+  createdAt  DateTime @default(now())
+
+  // Optional FK to trainer profile (set when coachRole = "trainer")
+  trainerId       String?
+  trainerProfile  TrainerProfile? @relation("TrainerNotes", fields: [trainerId], references: [id], onDelete: SetNull)
+
+  // Optional FK to nutritionist profile (set when coachRole = "nutritionist")
+  nutritionistId       String?
+  nutritionistProfile  NutritionistProfile? @relation("NutritionistNotes", fields: [nutritionistId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, createdAt])
+  @@index([coachId])
+}
+
+// ============================================================================
+// WORKOUT PLANS
+// ============================================================================
+
+model WorkoutPlan {
+  id          String   @id @default(uuid())
+  trainerId   String
+  trainer     TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  clientId    String
+  title       String
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  exercises WorkoutPlanExercise[]
+
+  @@index([trainerId])
+  @@index([clientId])
+}
+
+model WorkoutPlanExercise {
+  id            String @id @default(uuid())
+  workoutPlanId String
+  workoutPlan   WorkoutPlan @relation(fields: [workoutPlanId], references: [id], onDelete: Cascade)
+  exerciseName  String
+  sets          Int
+  reps          Int
+  targetWeight  Float?
+  order         Int    @default(0)
+
+  @@index([workoutPlanId])
+}
+
+// ============================================================================
+// MEAL PLANS
+// ============================================================================
+
+model MealPlan {
+  id              String   @id @default(uuid())
+  nutritionistId  String
+  nutritionist    NutritionistProfile @relation(fields: [nutritionistId], references: [id], onDelete: Cascade)
+  clientId        String
+  title           String?
+  active          Boolean  @default(true)
+  caloriesTarget  Float
+  proteinTarget   Float
+  carbsTarget     Float?
+  fatTarget       Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  items MealPlanItem[]
+
+  @@index([nutritionistId])
+  @@index([clientId])
+}
+
+model MealPlanItem {
+  id           String   @id @default(uuid())
+  mealPlanId   String
+  mealPlan     MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  mealType     String   // breakfast, lunch, dinner, snack
+  foodName     String
+  ingredientId String?
+  quantityG    Float
+  calories     Float?
+  proteinG     Float?
+  carbsG       Float?
+  fatG         Float?
+
+  @@index([mealPlanId])
+}
+
+// ============================================================================
+// CREATOR SYSTEM
+// ============================================================================
+
+model CreatorProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  analytics CreatorAnalytics?
+}
+
+model CreatorAnalytics {
+  id               String   @id @default(uuid())
+  creatorId        String   @unique
+  creator          CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  recipeViews      Int      @default(0)
+  recipeUses       Int      @default(0)
+  estimatedRevenue Float    @default(0)
+  updatedAt        DateTime @updatedAt
+}
+
+// ============================================================================
+// AUDIT LOG
+// ============================================================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String
+  action     String   // e.g. "role.assign", "client.assign", "plan.create"
+  entityType String   // e.g. "UserRole", "TrainerClient", "WorkoutPlan"
+  entityId   String?
+  beforeData Json?
+  afterData  Json?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([entityType, createdAt])
+}
