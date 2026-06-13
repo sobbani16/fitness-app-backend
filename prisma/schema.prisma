@@ -969,3 +969,193 @@ model HealthScoreInsight {
 
   @@index([healthScoreId])
 }
+
+// ============================================================================
+// WEEKLY NUTRITION INTELLIGENCE ENGINE
+// ============================================================================
+
+model UserPlanningPreferences {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  planGenerationDay  String   @default("sunday")
+  planGenerationTime String   @default("06:00")
+  mealPrepStyle      String   @default("daily_cooking")
+  shoppingDay        String?
+  shoppingTime       String?
+  budgetLevel        String   @default("medium")
+  cookingSkill       String   @default("intermediate")
+  householdSize      Int      @default(1)
+  availableEquipment String[]
+  dietaryRestrictions String[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model FoodPreference {
+  id          String   @id @default(uuid())
+  userId      String
+  foodName    String
+  preference  String   // LOVE, LIKE, NEUTRAL, DISLIKE, NEVER_RECOMMEND
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, foodName])
+  @@index([userId])
+}
+
+model WeeklyNutritionPlan {
+  id              String   @id @default(uuid())
+  userId          String
+  weekStartDate   String
+  status          String   @default("active")
+  caloriesTarget  Float
+  proteinTarget   Float
+  carbsTarget     Float
+  fatTarget       Float
+  fiberTarget     Float
+  waterMlTarget   Int      @default(2000)
+  explanation     String?
+  createdAt       DateTime @default(now())
+
+  meals           WeeklyMeal[]
+  shoppingList    WeeklyShoppingList?
+  review          WeeklyReview?
+
+  @@unique([userId, weekStartDate])
+  @@index([userId, weekStartDate])
+}
+
+model WeeklyMeal {
+  id              String   @id @default(uuid())
+  planId          String
+  plan            WeeklyNutritionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  dayOfWeek       Int
+  mealType        String
+  foodName        String
+  portionG        Float
+  calories        Float
+  proteinG        Float
+  carbsG          Float
+  fatG            Float
+  fiberG          Float    @default(0)
+  ingredientId    String?
+  prepNote        String?
+
+  @@index([planId, dayOfWeek])
+}
+
+model WeeklyShoppingList {
+  id        String   @id @default(uuid())
+  planId    String   @unique
+  plan      WeeklyNutritionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  items     WeeklyShoppingItem[]
+}
+
+model WeeklyShoppingItem {
+  id              String   @id @default(uuid())
+  shoppingListId  String
+  shoppingList    WeeklyShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
+  foodName        String
+  quantityG       Float
+  quantityDisplay String
+  category        String?
+  inInventory     Boolean  @default(false)
+
+  @@index([shoppingListId])
+}
+
+model FoodInventory {
+  id             String   @id @default(uuid())
+  userId         String
+  foodName       String
+  ingredientId   String?
+  quantityG      Float
+  expirationDate DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, foodName])
+  @@index([userId])
+}
+
+model DietAdherenceScore {
+  id              String   @id @default(uuid())
+  userId          String
+  weekStartDate   String
+  adherencePercent Float
+  status          String
+  caloriesTarget  Float
+  caloriesActual  Float
+  proteinTarget   Float
+  proteinActual   Float
+  mealsPlanned    Int      @default(0)
+  mealsLogged     Int      @default(0)
+  explanation     String?
+  createdAt       DateTime @default(now())
+
+  @@unique([userId, weekStartDate])
+  @@index([userId])
+}
+
+model CalorieAdjustmentHistory {
+  id              String   @id @default(uuid())
+  userId          String
+  weekStartDate   String
+  previousCalories Float
+  newCalories     Float
+  adjustmentAmount Float
+  reason          String
+  adherencePercent Float?
+  weightTrendKg   Float?
+  createdAt       DateTime @default(now())
+
+  @@index([userId, weekStartDate])
+}
+
+model WeeklyReview {
+  id              String   @id @default(uuid())
+  planId          String   @unique
+  plan            WeeklyNutritionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  userId          String
+  weekStartDate   String
+  weightStart     Float?
+  weightEnd       Float?
+  caloriesAvg     Float?
+  proteinAvg      Float?
+  healthScoreAvg  Float?
+  compliancePercent Float?
+  adherencePercent Float?
+  overallResult   String?
+  recommendation  String?
+  summary         String?
+  createdAt       DateTime @default(now())
+
+  recommendations WeeklyRecommendation[]
+
+  @@index([userId, weekStartDate])
+}
+
+model WeeklyRecommendation {
+  id          String   @id @default(uuid())
+  reviewId    String
+  review      WeeklyReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  category    String
+  message     String
+  priority    Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([reviewId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
