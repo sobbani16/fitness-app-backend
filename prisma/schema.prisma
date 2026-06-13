@@ -910,3 +910,62 @@ model DailyMacroScore {
   @@unique([userId, date])
   @@index([userId, date])
 }
+
+// ============================================================================
+// LEO HEALTH SCORE
+// ============================================================================
+
+// The daily explainable health score (replaces raw macro score on dashboard).
+model HealthScore {
+  id                 String   @id @default(uuid())
+  userId             String
+  date               String   // YYYY-MM-DD
+  score              Float    // 0-100
+  status             String   // elite, excellent, good, fair, needs_attention
+
+  // Component scores (each 0-100, weighted into overall)
+  macroScore         Float    @default(0)
+  conditionScore     Float    @default(0)
+  foodQualityScore   Float    @default(0)
+  activityScore      Float    @default(0)
+  recoveryScore      Float    @default(0)
+
+  createdAt          DateTime @default(now())
+
+  contributors       ScoreContributor[]
+  insights           HealthScoreInsight[]
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+// Individual items that contributed positively or negatively to the score.
+model ScoreContributor {
+  id              String   @id @default(uuid())
+  healthScoreId   String
+  healthScore     HealthScore @relation(fields: [healthScoreId], references: [id], onDelete: Cascade)
+
+  // "macro", "condition", "food_quality", "activity", "recovery"
+  category        String
+  itemName        String
+  scoreImpact     Float    // positive = helped, negative = hurt
+  reason          String
+
+  createdAt       DateTime @default(now())
+
+  @@index([healthScoreId])
+}
+
+// Human-readable insights summarizing score factors.
+model HealthScoreInsight {
+  id              String   @id @default(uuid())
+  healthScoreId   String
+  healthScore     HealthScore @relation(fields: [healthScoreId], references: [id], onDelete: Cascade)
+
+  message         String
+  severity        String   // "info", "warning", "critical"
+
+  createdAt       DateTime @default(now())
+
+  @@index([healthScoreId])
+}
