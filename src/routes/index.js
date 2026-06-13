@@ -18,6 +18,7 @@ const coachNotes = require('./coachNotes');
 const admin = require('./admin');
 const auditLogs = require('./auditLogs');
 const roles = require('./roles');
+const macroScore = require('./macroScore');
 
 const router = express.Router();
 
@@ -40,5 +41,6 @@ router.use('/coach-notes', coachNotes);
 router.use('/admin', admin);
 router.use('/audit-logs', auditLogs);
 router.use('/me/roles', roles);
+router.use('/macro-score', macroScore);
 
 module.exports = router;

@@ -176,6 +176,8 @@ model FoodLog {
 
   fatG            Float
 
+  fiberG          Float    @default(0)
+
   mealType        String
 
   loggedAt        DateTime @default(now())
@@ -865,4 +867,46 @@ model AuditLog {
 
   @@index([actorId, createdAt])
   @@index([entityType, createdAt])
+}
+
+// ============================================================================
+// MACRO SCORE
+// ============================================================================
+
+// Per-user macro targets. Users can customize; otherwise defaults are computed.
+model MacroGoal {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  caloriesTarget Float    @default(2200)
+  proteinTarget  Float    @default(150)
+  carbsTarget    Float    @default(250)
+  fatTarget      Float    @default(70)
+  fiberTarget    Float    @default(30)
+  waterMlTarget  Int      @default(2000)
+  source         String   @default("default") // default, custom, trainer, nutritionist
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// Cached daily scores so trend queries are fast.
+model DailyMacroScore {
+  id             String   @id @default(uuid())
+  userId         String
+  date           String   // YYYY-MM-DD
+  overallScore   Float
+  proteinScore   Float
+  carbsScore     Float
+  fatScore       Float
+  fiberScore     Float
+  hydrationScore Float    @default(0)
+  proteinG       Float    @default(0)
+  carbsG         Float    @default(0)
+  fatG           Float    @default(0)
+  fiberG         Float    @default(0)
+  waterMl        Int      @default(0)
+  calories       Float    @default(0)
+  createdAt      DateTime @default(now())
+
+  @@unique([userId, date])
+  @@index([userId, date])
 }
