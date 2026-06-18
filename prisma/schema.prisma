@@ -666,10 +666,13 @@ model TrainerProfile {
   specialties     String[] // e.g. ["strength", "HIIT", "yoga"]
   yearsExperience Int      @default(0)
   hourlyRate      Float?
-  tier            String   @default("bronze") // bronze, silver, gold
+  monthlyRateUsd  Float?                          // subscription price per month
+  tier            String   @default("standard")   // standard, pro, elite
+  location        String?                         // city/region for display
   verified        Boolean  @default(false)
   active          Boolean  @default(true)
   rating          Float?
+  ratingCount     Int      @default(0)            // number of ratings received
   profilePicture  String?
   maxClients      Int      @default(10)
   createdAt       DateTime @default(now())
@@ -678,20 +681,72 @@ model TrainerProfile {
   clients      TrainerClient[]
   workoutPlans WorkoutPlan[]
   coachNotes   CoachNote[]    @relation("TrainerNotes")
+  dropForms    TrainerDropForm[]
 }
 
 model TrainerClient {
-  id         String   @id @default(uuid())
-  trainerId  String
-  trainer    TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
-  clientId   String
-  status     String   @default("pending") // pending, active, paused, completed
-  assignedAt DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String   @id @default(uuid())
+  trainerId    String
+  trainer      TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  clientId     String
+  status       String   @default("pending") // pending, active, paused, completed, dropped
+  assignedAt   DateTime @default(now())
+  startedAt    DateTime @default(now())     // start of current engagement (for progress range)
+  lockedUntil  DateTime?                    // first day of next month — client cannot switch until then
+  droppedBy    String?                      // "trainer" | "client"
+  dropReason   String?                      // JSON summary stored as string
+  updatedAt    DateTime @updatedAt
+
+  dropForms    TrainerDropForm[]
 
   @@unique([trainerId, clientId])
   @@index([trainerId])
   @@index([clientId])
+}
+
+// ============================================================================
+// TRAINER DROP FORMS & WAITLIST
+// ============================================================================
+
+model TrainerDropForm {
+  id              String   @id @default(uuid())
+  relationId      String   // TrainerClient.id
+  relation        TrainerClient @relation(fields: [relationId], references: [id], onDelete: Cascade)
+  trainerId       String
+  trainerProfile  TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  clientId        String
+  droppedBy       String   // "trainer" | "client"
+
+  // Multiple-choice reason codes (e.g. ["non_responsive", "goal_mismatch"])
+  reasons         String[]
+
+  // Free-text notes
+  notes           String?
+
+  // Trainer-only fields (when droppedBy = "trainer")
+  candidateGoals  String?  // recap of candidate's goals for next trainer
+  adherenceRating Int?     // 1-5: how well did the client follow the plan?
+
+  // Client-only fields (when droppedBy = "client")
+  trainerRating   Int?     // 1-5: how would you rate this trainer?
+
+  createdAt       DateTime @default(now())
+
+  @@index([relationId])
+  @@index([clientId])
+  @@index([trainerId])
+}
+
+// Stub — waitlist not wired up yet; reserved for future "notify me" feature
+model TrainerWaitlist {
+  id        String   @id @default(uuid())
+  userId    String
+  trainerId String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, trainerId])
+  @@index([userId])
+  @@index([trainerId])
 }
 
 // ============================================================================

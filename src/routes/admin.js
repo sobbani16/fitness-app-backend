@@ -98,21 +98,34 @@ router.get('/trainers', requirePermission('MANAGE_TRAINERS'), async (req, res) =
   }
 });
 
-// PATCH /admin/trainers/:id/verify — verify/unverify a trainer
+// PATCH /admin/trainers/:id/verify — verify/unverify a trainer (also activates + assigns TRAINER role)
 router.patch('/trainers/:id/verify', requirePermission('MANAGE_TRAINERS'), async (req, res) => {
   try {
     const prisma = getPrisma();
     const { verified } = req.body || {};
+    const isVerified = Boolean(verified);
+
     const trainer = await prisma.trainerProfile.update({
       where: { id: req.params.id },
-      data: { verified: Boolean(verified) },
+      data: { verified: isVerified, active: isVerified },
     });
+
+    // Assign or deactivate TRAINER role for this user
+    const role = await prisma.role.findUnique({ where: { name: 'TRAINER' } });
+    if (role) {
+      await prisma.userRole.upsert({
+        where: { userId_roleId: { userId: trainer.userId, roleId: role.id } },
+        update: { active: isVerified },
+        create: { userId: trainer.userId, roleId: role.id, active: isVerified },
+      });
+    }
+
     await audit.log({
       actorId: req.userId,
       action: 'trainer.verify',
       entityType: 'TrainerProfile',
       entityId: trainer.id,
-      afterData: { verified: trainer.verified },
+      afterData: { verified: trainer.verified, active: trainer.active },
     });
     res.json(trainer);
   } catch (err) {
