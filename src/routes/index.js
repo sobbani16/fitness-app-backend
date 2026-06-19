@@ -22,6 +22,7 @@ const macroScore = require('./macroScore');
 const healthScore = require('./healthScore');
 const weeklyPlan = require('./weeklyPlan');
 const foodLogs = require('./foodLogs');
+const dailyStats = require('./dailyStats');
 
 const router = express.Router();
 
@@ -48,5 +49,6 @@ router.use('/macro-score', macroScore);
 router.use('/health-score', healthScore);
 router.use('/weekly-plan', weeklyPlan);
 router.use('/food-logs', foodLogs);
+router.use('/daily-stats', dailyStats);
 
 module.exports = router;

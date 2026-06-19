@@ -3,8 +3,10 @@ const { statusFromScore, WEIGHTS } = require('../src/services/healthScoreEngine'
 const mockPrisma = {
   macroGoal: { findUnique: jest.fn() },
   foodLog: { findMany: jest.fn() },
+  supplementLog: { findMany: jest.fn() },
   waterLog: { findMany: jest.fn() },
   workoutSession: { findMany: jest.fn() },
+  dailySteps: { findFirst: jest.fn() },
   sleepLog: { findMany: jest.fn() },
   userHealthCondition: { findMany: jest.fn() },
   ingredient: { findMany: jest.fn() },
@@ -21,8 +23,10 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockPrisma.macroGoal.findUnique.mockResolvedValue({ proteinTarget: 150, carbsTarget: 250, fatTarget: 70, fiberTarget: 30, waterMlTarget: 2000 });
   mockPrisma.foodLog.findMany.mockResolvedValue([]);
+  mockPrisma.supplementLog.findMany.mockResolvedValue([]);
   mockPrisma.waterLog.findMany.mockResolvedValue([]);
   mockPrisma.workoutSession.findMany.mockResolvedValue([]);
+  mockPrisma.dailySteps.findFirst.mockResolvedValue(null);
   mockPrisma.sleepLog.findMany.mockResolvedValue([]);
   mockPrisma.userHealthCondition.findMany.mockResolvedValue([]);
   mockPrisma.ingredient.findMany.mockResolvedValue([]);

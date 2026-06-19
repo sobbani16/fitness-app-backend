@@ -46,10 +46,21 @@ async function scoreMacroAdherence(userId, dateStr, prisma) {
     where: { userId, loggedAt: { gte: startOfDay(dateStr), lte: endOfDay(dateStr) } },
   });
 
+  const supplementLogs = await prisma.supplementLog.findMany({
+    where: { userId, date: dateStr },
+  });
+
   const intake = logs.reduce(
     (a, l) => ({ protein: a.protein + l.proteinG, carbs: a.carbs + l.carbsG, fat: a.fat + l.fatG, fiber: a.fiber + l.fiberG }),
     { protein: 0, carbs: 0, fat: 0, fiber: 0 },
   );
+
+  for (const s of supplementLogs) {
+    intake.protein += s.proteinG;
+    intake.carbs += s.carbsG;
+    intake.fat += s.fatG;
+    intake.fiber += s.fiberG;
+  }
 
   const pScore = scoreMacro(intake.protein, targets.proteinTarget);
   const cScore = scoreMacro(intake.carbs, targets.carbsTarget);
@@ -92,7 +103,8 @@ async function scoreMacroAdherence(userId, dateStr, prisma) {
   }
 
   // Top food contributors
-  const sorted = [...logs].sort((a, b) => b.proteinG - a.proteinG);
+  const allEntries = [...logs, ...supplementLogs.map((s) => ({ foodName: s.supplementName, proteinG: s.proteinG }))];
+  const sorted = allEntries.sort((a, b) => b.proteinG - a.proteinG);
   for (const log of sorted.slice(0, 3)) {
     if (log.proteinG > 15) {
       contributors.push({ category: 'macro', itemName: log.foodName, scoreImpact: Math.round(log.proteinG / 5), reason: 'Helped protein target' });
@@ -222,6 +234,11 @@ async function scoreActivity(userId, dateStr, prisma) {
     where: { userId, startedAt: { gte: startOfDay(dateStr), lte: endOfDay(dateStr) } },
   });
 
+  const stepsRecord = await prisma.dailySteps.findFirst({
+    where: { userId, date: startOfDay(dateStr) },
+  });
+  const steps = stepsRecord?.steps || 0;
+
   const totalMinutes = workouts.reduce((s, w) => s + (w.durationMinutes || 0), 0);
   const contributors = [];
   const insights = [];
@@ -233,9 +250,15 @@ async function scoreActivity(userId, dateStr, prisma) {
   } else if (totalMinutes > 0) {
     score = 60 + Math.round((totalMinutes / 30) * 40);
     contributors.push({ category: 'activity', itemName: 'Light Activity', scoreImpact: 5, reason: `${totalMinutes} min logged — aim for 30+` });
+  } else if (steps >= 6000) {
+    score = 80 + Math.min(20, Math.round((steps - 6000) / 200));
+    contributors.push({ category: 'activity', itemName: 'Steps', scoreImpact: 6, reason: `${steps.toLocaleString()} steps today` });
+  } else if (steps > 0) {
+    score = 40 + Math.round((steps / 6000) * 40);
+    contributors.push({ category: 'activity', itemName: 'Steps', scoreImpact: 3, reason: `${steps.toLocaleString()} steps — aim for 6,000+` });
   } else {
     score = 40;
-    contributors.push({ category: 'activity', itemName: 'No Activity', scoreImpact: -5, reason: 'No workout logged today' });
+    contributors.push({ category: 'activity', itemName: 'No Activity', scoreImpact: -5, reason: 'No workout or steps logged today' });
     insights.push({ message: 'No activity logged today. A 30-minute walk can boost your score.', severity: 'info' });
   }
 
@@ -255,24 +278,47 @@ async function scoreRecovery(userId, dateStr, prisma) {
     take: 1,
   });
 
+  const waterLogs = await prisma.waterLog.findMany({
+    where: { userId, loggedAt: { gte: startOfDay(dateStr), lte: endOfDay(dateStr) } },
+  });
+  const waterMl = waterLogs.reduce((s, w) => s + (w.amountMl || 0), 0);
+  const goals = await prisma.macroGoal.findUnique({ where: { userId } });
+  const waterTarget = goals?.waterMlTarget || 2000;
+
   const contributors = [];
   const insights = [];
-  let score = 70;
+  let sleepScore = 70;
+  let waterScore = 70;
 
   if (sleep.length > 0) {
     const hours = sleep[0].hoursSlept || 0;
     if (hours >= 7) {
-      score = 95;
+      sleepScore = 95;
       contributors.push({ category: 'recovery', itemName: 'Sleep', scoreImpact: 5, reason: `${hours.toFixed(1)}h sleep — optimal recovery` });
     } else if (hours >= 6) {
-      score = 75;
+      sleepScore = 75;
       contributors.push({ category: 'recovery', itemName: 'Sleep', scoreImpact: 2, reason: `${hours.toFixed(1)}h sleep — adequate` });
     } else {
-      score = 45;
+      sleepScore = 45;
       contributors.push({ category: 'recovery', itemName: 'Poor Sleep', scoreImpact: -5, reason: `Only ${hours.toFixed(1)}h sleep — recovery impaired` });
       insights.push({ message: 'Sleep was below 6 hours. Recovery score is reduced.', severity: 'warning' });
     }
   }
+
+  if (waterMl >= waterTarget * 0.9) {
+    waterScore = 95;
+    contributors.push({ category: 'recovery', itemName: 'Hydration', scoreImpact: 4, reason: `${waterMl}ml water — well hydrated` });
+  } else if (waterMl >= waterTarget * 0.5) {
+    waterScore = 70;
+    contributors.push({ category: 'recovery', itemName: 'Hydration', scoreImpact: 1, reason: `${waterMl}ml water — keep drinking` });
+  } else {
+    waterScore = 45;
+    const diff = waterTarget - waterMl;
+    contributors.push({ category: 'recovery', itemName: 'Hydration', scoreImpact: -3, reason: `${waterMl}ml water — ${diff}ml below target` });
+    insights.push({ message: `Water intake is below target by ${diff}ml.`, severity: 'warning' });
+  }
+
+  const score = Math.round((sleepScore + waterScore) / 2);
 
   return { score, contributors, insights };
 }

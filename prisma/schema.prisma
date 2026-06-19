@@ -364,8 +364,32 @@ model UserSupplement {
 
   createdAt      DateTime @default(now())
 
+  logs           SupplementLog[]
+
   @@unique([userId, supplementId])
   @@index([userId])
+}
+
+model SupplementLog {
+  id               String   @id @default(uuid())
+
+  userId           String
+  userSupplementId String
+  userSupplement   UserSupplement @relation(fields: [userSupplementId], references: [id], onDelete: Cascade)
+
+  supplementName   String
+  quantity         Float    @default(1)
+  calories         Float    @default(0)
+  proteinG         Float    @default(0)
+  carbsG           Float    @default(0)
+  fatG             Float    @default(0)
+  fiberG           Float    @default(0)
+
+  loggedAt         DateTime @default(now())
+  date             String
+
+  @@index([userId, date])
+  @@index([userSupplementId])
 }
 
 // Central ingredient catalog shared across all users. Populated on demand from

@@ -1,4 +1,5 @@
 const express = require('express');
+const { getPrisma } = require('../lib/prisma');
 const {
   listSupplements,
   searchSupplements,
@@ -89,6 +90,70 @@ router.post('/', async (req, res) => {
     res.status(201).json(supplement);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /supplements/log — record that the user took a supplement today
+// Body: { userSupplementId, date?, quantity? }
+router.post('/log', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(400).json({ error: 'x-user-id header or userId required' });
+    const { userSupplementId, date, quantity } = req.body || {};
+    if (!userSupplementId) return res.status(400).json({ error: 'userSupplementId required' });
+
+    const prisma = getPrisma();
+    const link = await prisma.userSupplement.findUnique({ where: { id: userSupplementId }, include: { supplement: true } });
+    if (!link || link.userId !== userId) return res.status(404).json({ error: 'Supplement not found in your list' });
+
+    const today = date || new Date().toISOString().slice(0, 10);
+    const q = Number(quantity) || 1;
+    const sup = link.supplement;
+
+    const log = await prisma.supplementLog.create({
+      data: {
+        userId,
+        userSupplementId,
+        supplementName: sup.name,
+        quantity: q,
+        calories: (sup.calories || 0) * q,
+        proteinG: (sup.proteinG || 0) * q,
+        carbsG: (sup.carbsG || 0) * q,
+        fatG: (sup.fatG || 0) * q,
+        fiberG: (sup.fiberG || 0) * q,
+        date: today,
+      },
+    });
+    res.status(201).json(log);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /supplements/log/:id — remove a supplement log entry
+router.delete('/log/:id', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(400).json({ error: 'x-user-id header or userId required' });
+    const prisma = getPrisma();
+    await prisma.supplementLog.deleteMany({ where: { id: req.params.id, userId } });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /supplements/log — get today's supplement logs (optionally ?date=YYYY-MM-DD)
+router.get('/log', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(400).json({ error: 'x-user-id header or userId required' });
+    const prisma = getPrisma();
+    const date = req.query.date || new Date().toISOString().slice(0, 10);
+    const logs = await prisma.supplementLog.findMany({ where: { userId, date }, orderBy: { loggedAt: 'desc' } });
+    res.json({ logs });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
