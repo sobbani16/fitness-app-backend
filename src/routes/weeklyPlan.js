@@ -5,6 +5,9 @@ const { calculateAdherence } = require('../services/weekly/adherenceEngine');
 const { adjustCalories } = require('../services/weekly/calorieAdjustmentEngine');
 const { generateWeeklyReview } = require('../services/weekly/weeklyReviewGenerator');
 const { detectDeficiencies } = require('../services/weekly/deficiencyDetector');
+const { getAlternatives, swapMeal } = require('../services/weekly/mealSwapService');
+const { confirmDay, unconfirmDayByTrainer, canEditDay, allDaysConfirmed } = require('../services/weekly/confirmationService');
+const { generateIngredientShoppingList, toggleChecked, getShoppingList } = require('../services/weekly/ingredientShoppingListService');
 
 const router = express.Router();
 
@@ -41,7 +44,7 @@ router.get('/current', async (req, res) => {
     const plan = await prisma.weeklyNutritionPlan.findFirst({
       where: { userId, status: 'active' },
       include: {
-        meals: { orderBy: [{ dayOfWeek: 'asc' }, { mealType: 'asc' }] },
+        meals: { orderBy: [{ dayOfWeek: 'asc' }, { mealType: 'asc' }], include: { recipe: { include: { ingredients: true } } } },
         shoppingList: { include: { items: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -62,7 +65,7 @@ router.get('/:weekStartDate', async (req, res) => {
     const plan = await prisma.weeklyNutritionPlan.findUnique({
       where: { userId_weekStartDate: { userId, weekStartDate: req.params.weekStartDate } },
       include: {
-        meals: { orderBy: [{ dayOfWeek: 'asc' }, { mealType: 'asc' }] },
+        meals: { orderBy: [{ dayOfWeek: 'asc' }, { mealType: 'asc' }], include: { recipe: { include: { ingredients: true } } } },
         shoppingList: { include: { items: true } },
         review: { include: { recommendations: true } },
       },
@@ -216,6 +219,119 @@ router.get('/notifications/me', async (req, res) => {
     res.json({ notifications: notifs });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// === MEAL CUSTOMIZATION ===
+
+// GET /weekly-plan/meals/:mealId/alternatives
+router.get('/meals/:mealId/alternatives', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+    const alternatives = await getAlternatives(req.params.mealId);
+    res.json({ alternatives });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /weekly-plan/meals/:mealId/swap
+router.post('/meals/:mealId/swap', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+    const { recipeId } = req.body || {};
+    if (!recipeId) return res.status(400).json({ error: 'recipeId required' });
+    const meal = await swapMeal(req.params.mealId, recipeId);
+    res.json({ meal });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /weekly-plan/days/:dayOfWeek/confirm
+router.post('/days/:dayOfWeek/confirm', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+    const { planId } = req.body || {};
+    if (!planId) return res.status(400).json({ error: 'planId required' });
+    const state = await confirmDay(planId, Number(req.params.dayOfWeek), userId);
+    res.json(state);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /weekly-plan/days/:dayOfWeek/unconfirm
+router.post('/days/:dayOfWeek/unconfirm', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+    const { planId } = req.body || {};
+    if (!planId) return res.status(400).json({ error: 'planId required' });
+    const state = await unconfirmDayByTrainer(planId, Number(req.params.dayOfWeek), userId);
+    res.json(state);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// GET /weekly-plan/days/:dayOfWeek/edit-state?planId=
+router.get('/days/:dayOfWeek/edit-state', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+    const { planId } = req.query || {};
+    if (!planId) return res.status(400).json({ error: 'planId required' });
+    const state = await canEditDay(planId, Number(req.params.dayOfWeek), userId);
+    res.json(state);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// === SHOPPING LIST ===
+
+// POST /weekly-plan/shopping-list/generate
+router.post('/shopping-list/generate', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+    const { planId } = req.body || {};
+    if (!planId) return res.status(400).json({ error: 'planId required' });
+    const result = await generateIngredientShoppingList(planId);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// GET /weekly-plan/shopping-list?planId=
+router.get('/shopping-list', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+    const { planId } = req.query || {};
+    if (!planId) return res.status(400).json({ error: 'planId required' });
+    const list = await getShoppingList(planId);
+    res.json(list);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// PATCH /weekly-plan/shopping-list/items/:itemId/check
+router.patch('/shopping-list/items/:itemId/check', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+    const { checked } = req.body || {};
+    const item = await toggleChecked(req.params.itemId, checked);
+    res.json({ item });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 });
 

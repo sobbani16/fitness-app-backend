@@ -226,13 +226,33 @@ model Recipe {
 
   creatorId       String
 
-  recipeName      String
+  recipeName      String   @unique
+
+  mealType        String?  // breakfast | lunch | dinner | snack
 
   cuisine         String?
 
   description     String?
 
-  servings        Int
+  servings        Int      @default(1)
+
+  calories        Float?
+
+  proteinG        Float?
+
+  carbsG          Float?
+
+  fatG            Float?
+
+  fiberG          Float?   @default(0)
+
+  portionG        Float?
+
+  isSystem        Boolean  @default(false)
+
+  ingredients     RecipeIngredient[]
+
+  weeklyMeals     WeeklyMeal[]
 
   createdAt       DateTime @default(now())
 }
@@ -241,6 +261,8 @@ model RecipeIngredient {
   id              String @id @default(uuid())
 
   recipeId        String
+
+  recipe          Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
 
   ingredientName  String
 
@@ -253,6 +275,8 @@ model RecipeIngredient {
   carbsG          Float?
 
   fatG            Float?
+
+  @@index([recipeId])
 }
 
 model Recommendation {
@@ -1093,9 +1117,14 @@ model WeeklyMeal {
   fatG            Float
   fiberG          Float    @default(0)
   ingredientId    String?
+  recipeId        String?
+  recipe          Recipe?  @relation(fields: [recipeId], references: [id])
+  confirmedByUser Boolean  @default(false)
+  lockedAt        DateTime?
   prepNote        String?
 
   @@index([planId, dayOfWeek])
+  @@index([recipeId])
 }
 
 model WeeklyShoppingList {
@@ -1116,6 +1145,8 @@ model WeeklyShoppingItem {
   quantityDisplay String
   category        String?
   inInventory     Boolean  @default(false)
+  checked         Boolean  @default(false)
+  checkedAt       DateTime?
 
   @@index([shoppingListId])
 }

@@ -1,55 +1,27 @@
 // Weekly Diet Generator
-// Generates 7 days of breakfast/lunch/dinner/snacks.
-// Rotates proteins, uses preferences, avoids restricted foods.
+// Generates 7 days of breakfast/lunch/dinner/snacks from the Recipe catalog.
+// Rotates proteins, respects user dislikes/restrictions, and links meals to recipes.
 
 const { getPrisma } = require('../../lib/prisma');
 
-// Deterministic meal database. In production, this would query the Ingredient
-// table and/or call an LLM for variety.
-const MEAL_DB = {
-  breakfast: [
-    { foodName: 'Oatmeal with berries', portionG: 300, calories: 350, proteinG: 12, carbsG: 55, fatG: 8, fiberG: 7 },
-    { foodName: 'Eggs and whole wheat toast', portionG: 250, calories: 380, proteinG: 22, carbsG: 30, fatG: 18, fiberG: 3 },
-    { foodName: 'Greek yogurt with granola', portionG: 280, calories: 320, proteinG: 25, carbsG: 40, fatG: 8, fiberG: 3 },
-    { foodName: 'Protein smoothie', portionG: 400, calories: 350, proteinG: 35, carbsG: 40, fatG: 5, fiberG: 4 },
-    { foodName: 'Avocado toast with egg', portionG: 220, calories: 400, proteinG: 18, carbsG: 35, fatG: 22, fiberG: 6 },
-    { foodName: 'Overnight oats', portionG: 300, calories: 370, proteinG: 15, carbsG: 50, fatG: 10, fiberG: 8 },
-    { foodName: 'Cottage cheese and fruit', portionG: 300, calories: 280, proteinG: 28, carbsG: 30, fatG: 5, fiberG: 3 },
-  ],
-  lunch: [
-    { foodName: 'Grilled chicken salad', portionG: 350, calories: 450, proteinG: 45, carbsG: 15, fatG: 22, fiberG: 6 },
-    { foodName: 'Turkey wrap', portionG: 300, calories: 420, proteinG: 35, carbsG: 40, fatG: 12, fiberG: 4 },
-    { foodName: 'Salmon with quinoa', portionG: 350, calories: 520, proteinG: 40, carbsG: 35, fatG: 22, fiberG: 5 },
-    { foodName: 'Chicken stir-fry with rice', portionG: 400, calories: 480, proteinG: 38, carbsG: 50, fatG: 12, fiberG: 4 },
-    { foodName: 'Lentil soup with bread', portionG: 400, calories: 420, proteinG: 22, carbsG: 55, fatG: 8, fiberG: 12 },
-    { foodName: 'Tuna bowl', portionG: 350, calories: 440, proteinG: 42, carbsG: 35, fatG: 14, fiberG: 4 },
-    { foodName: 'Chicken breast with sweet potato', portionG: 380, calories: 460, proteinG: 48, carbsG: 40, fatG: 8, fiberG: 5 },
-  ],
-  dinner: [
-    { foodName: 'Lean beef with vegetables', portionG: 400, calories: 500, proteinG: 45, carbsG: 20, fatG: 25, fiberG: 6 },
-    { foodName: 'Baked salmon with asparagus', portionG: 350, calories: 480, proteinG: 42, carbsG: 10, fatG: 28, fiberG: 4 },
-    { foodName: 'Chicken thigh with brown rice', portionG: 400, calories: 520, proteinG: 40, carbsG: 45, fatG: 18, fiberG: 3 },
-    { foodName: 'Shrimp stir-fry', portionG: 380, calories: 400, proteinG: 35, carbsG: 35, fatG: 12, fiberG: 4 },
-    { foodName: 'Grilled fish tacos', portionG: 350, calories: 450, proteinG: 38, carbsG: 40, fatG: 14, fiberG: 5 },
-    { foodName: 'Turkey meatballs with pasta', portionG: 400, calories: 510, proteinG: 38, carbsG: 50, fatG: 15, fiberG: 4 },
-    { foodName: 'Egg frittata with veggies', portionG: 350, calories: 420, proteinG: 30, carbsG: 15, fatG: 25, fiberG: 5 },
-  ],
-  snack: [
-    { foodName: 'Protein bar', portionG: 60, calories: 200, proteinG: 20, carbsG: 22, fatG: 7, fiberG: 3 },
-    { foodName: 'Almonds (30g)', portionG: 30, calories: 175, proteinG: 6, carbsG: 6, fatG: 15, fiberG: 3 },
-    { foodName: 'Apple with peanut butter', portionG: 180, calories: 250, proteinG: 7, carbsG: 30, fatG: 12, fiberG: 5 },
-    { foodName: 'Greek yogurt', portionG: 150, calories: 100, proteinG: 17, carbsG: 6, fatG: 1, fiberG: 0 },
-    { foodName: 'Hard boiled eggs (2)', portionG: 100, calories: 155, proteinG: 13, carbsG: 1, fatG: 11, fiberG: 0 },
-    { foodName: 'Hummus with veggies', portionG: 200, calories: 180, proteinG: 8, carbsG: 20, fatG: 8, fiberG: 6 },
-    { foodName: 'Banana', portionG: 120, calories: 105, proteinG: 1, carbsG: 27, fatG: 0, fiberG: 3 },
-  ],
-};
-
 const PROTEIN_SOURCES = ['chicken', 'salmon', 'turkey', 'beef', 'shrimp', 'tuna', 'egg', 'fish', 'lentil'];
 
+function recipeToMeal(recipe) {
+  return {
+    recipeId: recipe.id,
+    foodName: recipe.recipeName,
+    portionG: recipe.portionG || recipe.servings * 100,
+    calories: recipe.calories || 0,
+    proteinG: recipe.proteinG || 0,
+    carbsG: recipe.carbsG || 0,
+    fatG: recipe.fatG || 0,
+    fiberG: recipe.fiberG || 0,
+  };
+}
+
 /**
- * Generate a 7-day meal plan.
- * @param {{userId: string, caloriesTarget: number, proteinTarget: number, carbsTarget: number, fatTarget: number, fiberTarget: number, dislikedFoods: string[], restrictions: string[], mealPrepStyle: string}} ctx
+ * Generate a 7-day meal plan using recipes from the DB.
+ * @param {{recipesByType: Record<string, Array>, caloriesTarget: number, proteinTarget: number, carbsTarget: number, fatTarget: number, fiberTarget: number, dislikedFoods: string[], restrictions: string[], mealPrepStyle: string}} ctx
  * @returns {Array<{dayOfWeek: number, mealType: string, ...meal}>}
  */
 function generateWeeklyMeals(ctx) {
@@ -60,29 +32,33 @@ function generateWeeklyMeals(ctx) {
   const recentProtein = [];
 
   const disliked = new Set((ctx.dislikedFoods || []).map((f) => f.toLowerCase()));
+  const restrictions = new Set((ctx.restrictions || []).map((r) => r.toLowerCase()));
 
-  // Filter meals based on restrictions/dislikes
-  function filterPool(pool) {
-    return pool.filter((m) => {
-      const name = m.foodName.toLowerCase();
-      if (disliked.has(name)) return false;
-      for (const d of disliked) { if (name.includes(d)) return false; }
-      return true;
-    });
+  function hasDislikedOrRestricted(name, ingredients) {
+    const lowerName = name.toLowerCase();
+    if (disliked.has(lowerName)) return true;
+    for (const d of disliked) { if (lowerName.includes(d)) return true; }
+    for (const r of restrictions) {
+      if (lowerName.includes(r)) return true;
+      if (ingredients && ingredients.some((i) => i.ingredientName.toLowerCase().includes(r))) return true;
+    }
+    return false;
   }
 
-  // Pick a meal avoiding repeats and rotating protein
+  function filterPool(pool) {
+    return pool.filter((r) => !hasDislikedOrRestricted(r.recipeName, r.ingredients));
+  }
+
   function pickMeal(pool, usedSet) {
-    const available = pool.filter((m) => !usedSet.has(m.foodName));
-    // Prefer meals with different protein source
-    const preferred = available.filter((m) => {
-      const protein = PROTEIN_SOURCES.find((p) => m.foodName.toLowerCase().includes(p));
+    const available = pool.filter((r) => !usedSet.has(r.id));
+    const preferred = available.filter((r) => {
+      const protein = PROTEIN_SOURCES.find((p) => r.recipeName.toLowerCase().includes(p));
       return !protein || !recentProtein.includes(protein);
     });
     const choice = (preferred.length ? preferred : available.length ? available : pool)[0];
-    usedSet.add(choice.foodName);
-    // Track protein source
-    const protein = PROTEIN_SOURCES.find((p) => choice.foodName.toLowerCase().includes(p));
+    if (!choice) return null;
+    usedSet.add(choice.id);
+    const protein = PROTEIN_SOURCES.find((p) => choice.recipeName.toLowerCase().includes(p));
     if (protein) {
       recentProtein.push(protein);
       if (recentProtein.length > 3) recentProtein.shift();
@@ -90,13 +66,16 @@ function generateWeeklyMeals(ctx) {
     return choice;
   }
 
-  const bPool = filterPool(MEAL_DB.breakfast);
-  const lPool = filterPool(MEAL_DB.lunch);
-  const dPool = filterPool(MEAL_DB.dinner);
-  const sPool = filterPool(MEAL_DB.snack);
+  const bPool = filterPool(ctx.recipesByType.breakfast || []);
+  const lPool = filterPool(ctx.recipesByType.lunch || []);
+  const dPool = filterPool(ctx.recipesByType.dinner || []);
+  const sPool = filterPool(ctx.recipesByType.snack || []);
+
+  if (!bPool.length || !lPool.length || !dPool.length) {
+    throw new Error('Not enough recipes available after applying preferences/restrictions.');
+  }
 
   for (let day = 0; day < 7; day++) {
-    // Reset used sets weekly if we run out
     if (usedBreakfasts.size >= bPool.length) usedBreakfasts.clear();
     if (usedLunches.size >= lPool.length) usedLunches.clear();
     if (usedDinners.size >= dPool.length) usedDinners.clear();
@@ -106,19 +85,18 @@ function generateWeeklyMeals(ctx) {
       : 'Cook fresh';
 
     const breakfast = pickMeal(bPool, usedBreakfasts);
-    meals.push({ dayOfWeek: day, mealType: 'breakfast', ...breakfast, prepNote });
+    meals.push({ dayOfWeek: day, mealType: 'breakfast', ...recipeToMeal(breakfast), prepNote });
 
     const lunch = pickMeal(lPool, usedLunches);
-    meals.push({ dayOfWeek: day, mealType: 'lunch', ...lunch, prepNote });
+    meals.push({ dayOfWeek: day, mealType: 'lunch', ...recipeToMeal(lunch), prepNote });
 
     const dinner = pickMeal(dPool, usedDinners);
-    meals.push({ dayOfWeek: day, mealType: 'dinner', ...dinner, prepNote });
+    meals.push({ dayOfWeek: day, mealType: 'dinner', ...recipeToMeal(dinner), prepNote });
 
-    // Snack — pick one or two based on calorie budget
     const dayCalories = breakfast.calories + lunch.calories + dinner.calories;
-    if (dayCalories < ctx.caloriesTarget - 150) {
+    if (dayCalories < ctx.caloriesTarget - 150 && sPool.length) {
       const snack = sPool[day % sPool.length];
-      meals.push({ dayOfWeek: day, mealType: 'snack', ...snack, prepNote: null });
+      meals.push({ dayOfWeek: day, mealType: 'snack', ...recipeToMeal(snack), prepNote: null });
     }
   }
 
@@ -126,79 +104,55 @@ function generateWeeklyMeals(ctx) {
 }
 
 /**
- * Generate aggregated shopping list from meals.
- */
-function generateShoppingList(meals, inventory = []) {
-  const agg = {};
-  for (const meal of meals) {
-    const key = meal.foodName;
-    if (!agg[key]) {
-      agg[key] = { foodName: key, quantityG: 0, category: guessCategory(meal) };
-    }
-    agg[key].quantityG += meal.portionG;
-  }
-
-  const inventoryMap = {};
-  for (const inv of inventory) {
-    inventoryMap[inv.foodName.toLowerCase()] = inv.quantityG;
-  }
-
-  return Object.values(agg).map((item) => {
-    const invQty = inventoryMap[item.foodName.toLowerCase()] || 0;
-    const needed = Math.max(0, item.quantityG - invQty);
-    return {
-      foodName: item.foodName,
-      quantityG: needed,
-      quantityDisplay: formatQuantity(item.foodName, needed),
-      category: item.category,
-      inInventory: invQty >= item.quantityG,
-    };
-  }).filter((item) => item.quantityG > 0);
-}
-
-function guessCategory(meal) {
-  const name = meal.foodName.toLowerCase();
-  if (['chicken', 'beef', 'salmon', 'turkey', 'shrimp', 'tuna', 'fish', 'egg'].some((p) => name.includes(p))) return 'protein';
-  if (['rice', 'oat', 'bread', 'pasta', 'quinoa', 'potato'].some((c) => name.includes(c))) return 'carbs';
-  if (['yogurt', 'cheese', 'cottage', 'milk'].some((d) => name.includes(d))) return 'dairy';
-  if (['apple', 'banana', 'berr', 'fruit'].some((f) => name.includes(f))) return 'produce';
-  return 'other';
-}
-
-function formatQuantity(name, grams) {
-  if (grams >= 1000) return `${(grams / 1000).toFixed(1)}kg`;
-  if (name.toLowerCase().includes('egg')) return `${Math.ceil(grams / 50)} eggs`;
-  if (name.toLowerCase().includes('yogurt')) return `${Math.ceil(grams / 150)} servings`;
-  return `${Math.round(grams)}g`;
-}
-
-/**
- * Full plan generation: meals + shopping list + store to DB.
+ * Full plan generation: load recipes, generate meals, store to DB.
+ * Shopping list is generated separately after day confirmation.
  */
 async function generateWeeklyPlan(userId, weekStartDate, ctx) {
   const prisma = getPrisma();
 
-  // Load user inventory
-  const inventory = await prisma.foodInventory.findMany({ where: { userId } });
-
-  // Load food preferences
+  // Load food preferences and planning preferences
   const prefs = await prisma.foodPreference.findMany({ where: { userId } });
   const dislikedFoods = prefs
     .filter((p) => p.preference === 'DISLIKE' || p.preference === 'NEVER_RECOMMEND')
     .map((p) => p.foodName);
+  const likedFoods = prefs
+    .filter((p) => p.preference === 'LOVE' || p.preference === 'LIKE')
+    .map((p) => p.foodName);
 
-  // Load planning preferences
   const planPrefs = await prisma.userPlanningPreferences.findUnique({ where: { userId } });
+  const restrictions = planPrefs?.dietaryRestrictions || [];
+
+  // Load all system recipes with their ingredients
+  const allRecipes = await prisma.recipe.findMany({
+    where: { isSystem: true },
+    include: { ingredients: true },
+  });
+
+  const recipesByType = {};
+  for (const r of allRecipes) {
+    const type = r.mealType || 'snack';
+    if (!recipesByType[type]) recipesByType[type] = [];
+    recipesByType[type].push(r);
+  }
+
+  // Boost liked foods to the top of each pool
+  for (const type of Object.keys(recipesByType)) {
+    recipesByType[type].sort((a, b) => {
+      const aLiked = likedFoods.some((f) => a.recipeName.toLowerCase().includes(f.toLowerCase())) ? 1 : 0;
+      const bLiked = likedFoods.some((f) => b.recipeName.toLowerCase().includes(f.toLowerCase())) ? 1 : 0;
+      return bLiked - aLiked;
+    });
+  }
 
   const meals = generateWeeklyMeals({
     ...ctx,
+    recipesByType,
     dislikedFoods,
+    restrictions,
     mealPrepStyle: planPrefs?.mealPrepStyle || 'daily_cooking',
   });
 
-  const shoppingItems = generateShoppingList(meals, inventory);
-
-  // Create plan
+  // Create or update plan
   const plan = await prisma.weeklyNutritionPlan.upsert({
     where: { userId_weekStartDate: { userId, weekStartDate } },
     update: {
@@ -222,7 +176,7 @@ async function generateWeeklyPlan(userId, weekStartDate, ctx) {
     },
   });
 
-  // Delete old meals/shopping for this plan (in case of regeneration)
+  // Reset previous meals and shopping list
   await prisma.weeklyMeal.deleteMany({ where: { planId: plan.id } });
   await prisma.weeklyShoppingList.deleteMany({ where: { planId: plan.id } });
 
@@ -231,23 +185,13 @@ async function generateWeeklyPlan(userId, weekStartDate, ctx) {
     data: meals.map((m) => ({ planId: plan.id, ...m })),
   });
 
-  // Insert shopping list
-  if (shoppingItems.length > 0) {
-    const list = await prisma.weeklyShoppingList.create({
-      data: { planId: plan.id },
-    });
-    await prisma.weeklyShoppingItem.createMany({
-      data: shoppingItems.map((item) => ({ shoppingListId: list.id, ...item })),
-    });
-  }
-
   // Create notification
   await prisma.notification.create({
     data: {
       userId,
       type: 'plan_ready',
       title: 'Your Weekly Plan Is Ready',
-      body: `Your personalized meal plan for the week of ${weekStartDate} is ready. Check it out!`,
+      body: `Your personalized meal plan for the week of ${weekStartDate} is ready. Customize and confirm each day!`,
     },
   });
 
@@ -257,8 +201,7 @@ async function generateWeeklyPlan(userId, weekStartDate, ctx) {
     caloriesTarget: ctx.caloriesTarget,
     proteinTarget: ctx.proteinTarget,
     mealsCount: meals.length,
-    shoppingItemsCount: shoppingItems.length,
   };
 }
 
-module.exports = { generateWeeklyMeals, generateShoppingList, generateWeeklyPlan };
+module.exports = { generateWeeklyMeals, generateWeeklyPlan };
