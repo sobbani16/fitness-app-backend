@@ -63,8 +63,7 @@ async function createTrainerProfile(userId, { bio, certifications, specialties, 
   const existing = await prisma.trainerProfile.findUnique({ where: { userId } });
   if (existing) throw new Error('Trainer profile already exists for this user.');
 
-  const tierRates = { standard: 30, pro: 50, elite: 100 };
-  const resolvedTier = tier && tierRates[tier] ? tier : 'standard';
+  const resolvedTier = ['standard', 'pro', 'elite'].includes(tier) ? tier : 'standard';
 
   return prisma.trainerProfile.create({
     data: {
@@ -74,7 +73,6 @@ async function createTrainerProfile(userId, { bio, certifications, specialties, 
       specialties: specialties || [],
       yearsExperience: yearsExperience || 0,
       tier: resolvedTier,
-      monthlyRateUsd: tierRates[resolvedTier],
       location: location || null,
       profilePicture: profilePicture || null,
       verified: false,

@@ -714,7 +714,6 @@ model TrainerProfile {
   specialties     String[] // e.g. ["strength", "HIIT", "yoga"]
   yearsExperience Int      @default(0)
   hourlyRate      Float?
-  monthlyRateUsd  Float?                          // subscription price per month
   tier            String   @default("standard")   // standard, pro, elite
   location        String?                         // city/region for display
   verified        Boolean  @default(false)
