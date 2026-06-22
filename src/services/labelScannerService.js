@@ -113,7 +113,12 @@ ${ocrText}`;
  * Regex-based fallback for extracting nutrition from OCR text.
  */
 function extractWithRegex(ocrText) {
-  const text = ocrText.toLowerCase();
+  // Remove the footnote sentence that contains "2,000 calories a day" to avoid
+  // false matches.  Also normalize commas out of numbers (e.g. "2,000" → "2000").
+  const cleaned = ocrText
+    .replace(/2[,.]?000\s*calories\s*a\s*day[^.]*\.?/gi, '')
+    .replace(/(\d),(\d)/g, '$1$2');   // "2,000" → "2000"
+  const text = cleaned.toLowerCase();
 
   function findNumber(patterns) {
     for (const pattern of patterns) {
@@ -123,10 +128,11 @@ function extractWithRegex(ocrText) {
     return 0;
   }
 
+  // Calories – match "Calories 170" style, avoid "XX calories a day" leftovers
   const calories = findNumber([
     /calories\s*[:=]?\s*(\d+)/,
-    /(\d+)\s*cal/,
-    /energy\s*[:=]?\s*(\d+)/,
+    /amount\s*per\s*serving\s*[:=]?\s*(\d+)/,
+    /(\d+)\s*kcal/,
   ]);
 
   const proteinG = findNumber([
@@ -156,9 +162,10 @@ function extractWithRegex(ocrText) {
     /sodium\s*[:=]?\s*(\d+)\s*mg/,
   ]);
 
-  // Serving size: look for grams
+  // Serving size: support formats like "(87g)", "87 g", "Serving size 87g"
   let servingSizeG = findNumber([
-    /serving\s*size\s*[:=]?\s*(\d+\.?\d*)\s*g/,
+    /serving\s*size\s*[:=]?\s*\(?\s*(\d+\.?\d*)\s*g\)?/,
+    /\(\s*(\d+\.?\d*)\s*g\s*\)/,
     /(\d+\.?\d*)\s*g\s*per\s*serving/,
     /per\s*(\d+\.?\d*)\s*g/,
   ]);
