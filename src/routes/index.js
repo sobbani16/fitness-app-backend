@@ -23,6 +23,7 @@ const healthScore = require('./healthScore');
 const weeklyPlan = require('./weeklyPlan');
 const foodLogs = require('./foodLogs');
 const dailyStats = require('./dailyStats');
+const labelScanner = require('./labelScanner');
 
 const router = express.Router();
 
@@ -50,5 +51,6 @@ router.use('/health-score', healthScore);
 router.use('/weekly-plan', weeklyPlan);
 router.use('/food-logs', foodLogs);
 router.use('/daily-stats', dailyStats);
+router.use('/label-scanner', labelScanner);
 
 module.exports = router;

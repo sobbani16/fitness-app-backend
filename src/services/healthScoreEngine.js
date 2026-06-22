@@ -32,8 +32,17 @@ function statusFromScore(score) {
 function isoDate(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
-function startOfDay(dateStr) { return new Date(`${dateStr}T00:00:00.000Z`); }
-function endOfDay(dateStr) { return new Date(`${dateStr}T23:59:59.999Z`); }
+// Convert a local calendar date (YYYY-MM-DD) to the start/end UTC timestamps
+// so logs stored in UTC line up with the user's local day. This matches the
+// simulator/Mac environment where the device and server share a timezone.
+function startOfDay(dateStr) {
+  const [y, mo, d] = dateStr.split('-').map(Number);
+  return new Date(y, mo - 1, d, 0, 0, 0, 0);
+}
+function endOfDay(dateStr) {
+  const [y, mo, d] = dateStr.split('-').map(Number);
+  return new Date(y, mo - 1, d, 23, 59, 59, 999);
+}
 
 // ============================================================================
 // COMPONENT 1: MACRO ADHERENCE (40%)

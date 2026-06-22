@@ -1268,3 +1268,53 @@ model Notification {
 
   @@index([userId, createdAt])
 }
+
+// ============================================================================
+// LABEL SCANNER
+// ============================================================================
+
+// Stores raw nutrition label data captured via camera OCR + AI extraction,
+// plus the portion-adjusted values the user actually logged.
+model ScannedLabel {
+  id                 String   @id @default(uuid())
+  userId             String
+
+  // Raw label data (as extracted from the photo)
+  productName        String?
+  ingredients        String?  // comma-separated or raw text
+  servingSizeG       Float    // labeled serving size in grams
+  servingsPerContainer Float? // how many servings in the package
+
+  // Nutrition per labeled serving
+  labelCalories      Float
+  labelProteinG      Float
+  labelCarbsG        Float
+  labelFatG          Float
+  labelFiberG        Float    @default(0)
+  labelSugarG        Float    @default(0)
+  labelSodiumMg      Float    @default(0)
+
+  // User's actual portion
+  actualPortionG     Float    // what the user actually ate (grams)
+
+  // Adjusted nutrition (computed: actual / servingSize * label values)
+  adjCalories        Float
+  adjProteinG        Float
+  adjCarbsG          Float
+  adjFatG            Float
+  adjFiberG          Float    @default(0)
+  adjSugarG          Float    @default(0)
+
+  // Link to the FoodLog entry created from this scan
+  foodLogId          String?
+
+  // Metadata
+  photoUri           String?  // local or cloud URI of the label photo
+  ocrRawText         String?  // raw OCR text for debugging / reprocessing
+  aiConfidence       Float?   // 0-1 confidence from AI extraction
+  mealType           String?  // breakfast | lunch | dinner | snack
+
+  createdAt          DateTime @default(now())
+
+  @@index([userId, createdAt])
+}

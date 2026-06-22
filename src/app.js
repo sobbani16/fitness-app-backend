@@ -15,6 +15,10 @@ if (process.env.NODE_ENV !== 'test') {
 // Swagger UI at /api-docs
 setupSwagger(app);
 
+// Ensure a User record exists for anonymous device ids before any user-scoped route runs
+const { ensureUser } = require('./middleware/ensureUser');
+app.use(ensureUser);
+
 app.use('/', routes);
 
 // 404

@@ -100,11 +100,13 @@ function isoDate(d = new Date()) {
 }
 
 function startOfDay(dateStr) {
-  return new Date(`${dateStr}T00:00:00.000Z`);
+  const [y, mo, d] = dateStr.split('-').map(Number);
+  return new Date(y, mo - 1, d, 0, 0, 0, 0);
 }
 
 function endOfDay(dateStr) {
-  return new Date(`${dateStr}T23:59:59.999Z`);
+  const [y, mo, d] = dateStr.split('-').map(Number);
+  return new Date(y, mo - 1, d, 23, 59, 59, 999);
 }
 
 /**
