@@ -1,3 +1,4 @@
+jest.mock('../src/services/aiService', () => require('./fixtures/aiService'));
 const request = require('supertest');
 const app = require('../src/app');
 

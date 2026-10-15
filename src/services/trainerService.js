@@ -400,6 +400,7 @@ async function getClientProgress(trainerUserId, clientId, { period = 'weekly', f
 // ---------------------------------------------------------------------------
 
 async function createWorkoutPlan(trainerId, clientId, { title, description, exercises }) {
+  if (!await getPrisma().trainerClient.findFirst({where:{trainerId,clientId,status:'active'}})) throw new Error('Client not assigned to this trainer');
   if (!title) throw new Error('title is required');
   const prisma = getPrisma();
   return prisma.workoutPlan.create({

@@ -62,7 +62,7 @@ router.get('/:id/detail', async (req, res) => {
         insights: true,
       },
     });
-    if (!score) return res.status(404).json({ error: 'Score not found' });
+    if (!score || score.userId !== getUserId(req)) return res.status(404).json({ error: 'Score not found' });
     res.json(score);
   } catch (err) {
     res.status(500).json({ error: err.message });

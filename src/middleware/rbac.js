@@ -90,6 +90,7 @@ function requirePermission(...permissions) {
       }
 
       req.userId = userId;
+      req.userRoles = userRoles.map(ur => ur.role.name);
       req.userPermissions = [...userPermissions];
       next();
     } catch (err) {

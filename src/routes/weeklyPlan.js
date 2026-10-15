@@ -10,9 +10,10 @@ const { confirmDay, unconfirmDayByTrainer, canEditDay, allDaysConfirmed } = requ
 const { generateIngredientShoppingList, toggleChecked, getShoppingList } = require('../services/weekly/ingredientShoppingListService');
 
 const router = express.Router();
+router.use(require('../middleware/weeklyOwnership'));
 
 function getUserId(req) {
-  return (req.headers['x-user-id'] || req.query.userId || '').toString().trim();
+  return (req.userId || req.headers['x-user-id'] || '').toString().trim();
 }
 
 // POST /weekly-plan/generate — generate a new weekly plan
@@ -23,15 +24,11 @@ router.post('/generate', async (req, res) => {
     const { weekStartDate, caloriesTarget, proteinTarget, carbsTarget, fatTarget, fiberTarget } = req.body || {};
     if (!weekStartDate) return res.status(400).json({ error: 'weekStartDate required (YYYY-MM-DD)' });
     const result = await generateWeeklyPlan(userId, weekStartDate, {
-      caloriesTarget: caloriesTarget || 2200,
-      proteinTarget: proteinTarget || 150,
-      carbsTarget: carbsTarget || 250,
-      fatTarget: fatTarget || 70,
-      fiberTarget: fiberTarget || 30,
+      caloriesTarget, proteinTarget, carbsTarget, fatTarget, fiberTarget,
     });
     res.status(201).json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.status ? err.message : 'Could not generate plan. Please retry.' });
   }
 });
 
@@ -41,8 +38,15 @@ router.get('/current', async (req, res) => {
     const userId = getUserId(req);
     if (!userId) return res.status(400).json({ error: 'x-user-id required' });
     const prisma = getPrisma();
+    let ownerId = userId;
+    if (req.query.clientId && req.query.clientId !== userId) {
+      const trainer = await prisma.trainerProfile.findUnique({ where: { userId } });
+      const relation = trainer && await prisma.trainerClient.findFirst({ where: { trainerId: trainer.id, clientId: String(req.query.clientId), status: 'active' } });
+      if (!relation) return res.status(403).json({error:'Client access denied'});
+      ownerId = String(req.query.clientId);
+    }
     const plan = await prisma.weeklyNutritionPlan.findFirst({
-      where: { userId, status: 'active' },
+      where: { userId: ownerId, status: 'active' },
       include: {
         meals: { orderBy: [{ dayOfWeek: 'asc' }, { mealType: 'asc' }], include: { recipe: { include: { ingredients: true } } } },
         shoppingList: { include: { items: true } },
@@ -50,27 +54,7 @@ router.get('/current', async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
     if (!plan) return res.status(404).json({ error: 'No active plan found.' });
-    res.json(plan);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET /weekly-plan/:weekStartDate — get plan for a specific week
-router.get('/:weekStartDate', async (req, res) => {
-  try {
-    const userId = getUserId(req);
-    if (!userId) return res.status(400).json({ error: 'x-user-id required' });
-    const prisma = getPrisma();
-    const plan = await prisma.weeklyNutritionPlan.findUnique({
-      where: { userId_weekStartDate: { userId, weekStartDate: req.params.weekStartDate } },
-      include: {
-        meals: { orderBy: [{ dayOfWeek: 'asc' }, { mealType: 'asc' }], include: { recipe: { include: { ingredients: true } } } },
-        shoppingList: { include: { items: true } },
-        review: { include: { recommendations: true } },
-      },
-    });
-    if (!plan) return res.status(404).json({ error: 'Plan not found.' });
+    if (plan.generationDetails) plan.generationDetails.days = require('../services/weekly/planningPolicy').assessMeals(plan.meals, plan);
     res.json(plan);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -179,7 +163,7 @@ router.get('/preferences/me', async (req, res) => {
     if (!userId) return res.status(400).json({ error: 'x-user-id required' });
     const prisma = getPrisma();
     let prefs = await prisma.userPlanningPreferences.findUnique({ where: { userId } });
-    if (!prefs) prefs = await prisma.userPlanningPreferences.create({ data: { userId } });
+    if (!prefs) prefs = await prisma.userPlanningPreferences.upsert({ where: { userId }, create: { userId }, update: {} });
     res.json(prefs);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -192,10 +176,11 @@ router.put('/preferences', async (req, res) => {
     const userId = getUserId(req);
     if (!userId) return res.status(400).json({ error: 'x-user-id required' });
     const prisma = getPrisma();
+    const data = require('../services/weekly/planningPolicy').validatePreferences(req.body);
     const prefs = await prisma.userPlanningPreferences.upsert({
       where: { userId },
-      update: req.body || {},
-      create: { userId, ...req.body },
+      update: data,
+      create: { userId, ...data },
     });
     res.json(prefs);
   } catch (err) {
@@ -332,6 +317,28 @@ router.patch('/shopping-list/items/:itemId/check', async (req, res) => {
     res.json({ item });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// GET /weekly-plan/:weekStartDate — get plan for a specific week
+router.get('/:weekStartDate', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+    const prisma = getPrisma();
+    const plan = await prisma.weeklyNutritionPlan.findUnique({
+      where: { userId_weekStartDate: { userId, weekStartDate: req.params.weekStartDate } },
+      include: {
+        meals: { orderBy: [{ dayOfWeek: 'asc' }, { mealType: 'asc' }], include: { recipe: { include: { ingredients: true } } } },
+        shoppingList: { include: { items: true } },
+        review: { include: { recommendations: true } },
+      },
+    });
+    if (!plan) return res.status(404).json({ error: 'Plan not found.' });
+    if (plan.generationDetails) plan.generationDetails.days = require('../services/weekly/planningPolicy').assessMeals(plan.meals, plan);
+    res.json(plan);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

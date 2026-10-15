@@ -1,0 +1,148 @@
+{
+  "version": "usda-sr-2026-10-14-v1",
+  "retrievedAt": "2026-10-14",
+  "source": "USDA FoodData Central SR Legacy",
+  "basis": "per 100g edible portion in the specified preparation state",
+  "foods": {
+    "173944": {
+      "fdcId": 173944,
+      "description": "Bananas, raw",
+      "dataType": "SR Legacy",
+      "url": "https://fdc.nal.usda.gov/food-details/173944/nutrients",
+      "per100g": {
+        "calories": 89.0,
+        "proteinG": 1.09,
+        "carbsG": 22.84,
+        "fatG": 0.33,
+        "fiberG": 2.6
+      },
+      "recordSha256": "ce1f1bab18f4a77eb75508dd156a687a0207cbf3b8230d8a6862aaebed1c7033"
+    },
+    "173904": {
+      "fdcId": 173904,
+      "description": "Cereals, oats, regular and quick, not fortified, dry",
+      "dataType": "SR Legacy",
+      "url": "https://fdc.nal.usda.gov/food-details/173904/nutrients",
+      "per100g": {
+        "calories": 379.0,
+        "proteinG": 13.15,
+        "carbsG": 67.7,
+        "fatG": 6.52,
+        "fiberG": 10.1
+      },
+      "recordSha256": "f4febefaf0888120928e4eda192677008320a9ad4929d02256ca4567f8dac032"
+    },
+    "168878": {
+      "fdcId": 168878,
+      "description": "Rice, white, long-grain, regular, enriched, cooked",
+      "dataType": "SR Legacy",
+      "url": "https://fdc.nal.usda.gov/food-details/168878/nutrients",
+      "per100g": {
+        "calories": 130.0,
+        "proteinG": 2.69,
+        "carbsG": 28.17,
+        "fatG": 0.28,
+        "fiberG": 0.4
+      },
+      "recordSha256": "3e6cf4726d2b0f02896aaf522fdbdbcb4971971f5f19ecc64c852e3806cda831"
+    },
+    "171413": {
+      "fdcId": 171413,
+      "description": "Oil, olive, salad or cooking",
+      "dataType": "SR Legacy",
+      "url": "https://fdc.nal.usda.gov/food-details/171413/nutrients",
+      "per100g": {
+        "calories": 884.0,
+        "proteinG": 0.0,
+        "carbsG": 0.0,
+        "fatG": 100.0,
+        "fiberG": 0.0
+      },
+      "recordSha256": "e1e200ac8fd050f349841741ee7b4750869fe065742144db0666a0f5a0fd2f99"
+    },
+    "173424": {
+      "fdcId": 173424,
+      "description": "Egg, whole, cooked, hard-boiled",
+      "dataType": "SR Legacy",
+      "url": "https://fdc.nal.usda.gov/food-details/173424/nutrients",
+      "per100g": {
+        "calories": 155.0,
+        "proteinG": 12.58,
+        "carbsG": 1.12,
+        "fatG": 10.61,
+        "fiberG": 0.0
+      },
+      "recordSha256": "3f63c8176d91be7823b7e6c550998dc53fef87d18c7161a3deda6324ba4d9cca"
+    },
+    "171477": {
+      "fdcId": 171477,
+      "description": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+      "dataType": "SR Legacy",
+      "url": "https://fdc.nal.usda.gov/food-details/171477/nutrients",
+      "per100g": {
+        "calories": 165.0,
+        "proteinG": 31.02,
+        "carbsG": 0.0,
+        "fatG": 3.57,
+        "fiberG": 0.0
+      },
+      "recordSha256": "808833c61dfee57af91bd58631be68db5077d692386409df50628ecd05831868"
+    },
+    "170894": {
+      "fdcId": 170894,
+      "description": "Yogurt, Greek, plain, nonfat (Includes foods for USDA's Food Distribution Program)",
+      "dataType": "SR Legacy",
+      "url": "https://fdc.nal.usda.gov/food-details/170894/nutrients",
+      "per100g": {
+        "calories": 59.0,
+        "proteinG": 10.19,
+        "carbsG": 3.6,
+        "fatG": 0.39,
+        "fiberG": 0.0
+      },
+      "recordSha256": "3653ff7f693399c5b5233717c97dcb319e25637415942b57a2882124a666997e"
+    },
+    "172475": {
+      "fdcId": 172475,
+      "description": "Tofu, raw, firm, prepared with calcium sulfate",
+      "dataType": "SR Legacy",
+      "url": "https://fdc.nal.usda.gov/food-details/172475/nutrients",
+      "per100g": {
+        "calories": 144.0,
+        "proteinG": 17.27,
+        "carbsG": 2.78,
+        "fatG": 8.72,
+        "fiberG": 2.3
+      },
+      "recordSha256": "995ace9527577343f1d42329e1e5c4c39d5621b92e2ba0784651bd596414b1b2"
+    },
+    "172421": {
+      "fdcId": 172421,
+      "description": "Lentils, mature seeds, cooked, boiled, without salt",
+      "dataType": "SR Legacy",
+      "url": "https://fdc.nal.usda.gov/food-details/172421/nutrients",
+      "per100g": {
+        "calories": 116.0,
+        "proteinG": 9.02,
+        "carbsG": 20.13,
+        "fatG": 0.38,
+        "fiberG": 7.9
+      },
+      "recordSha256": "ddc5e47f7a6cc15318f756c6145c45e81c5eaf1ef1821bb62b23b382cfedf970"
+    },
+    "170380": {
+      "fdcId": 170380,
+      "description": "Broccoli, frozen, spears, cooked, boiled, drained, without salt",
+      "dataType": "SR Legacy",
+      "url": "https://fdc.nal.usda.gov/food-details/170380/nutrients",
+      "per100g": {
+        "calories": 28.0,
+        "proteinG": 3.1,
+        "carbsG": 5.36,
+        "fatG": 0.11,
+        "fiberG": 3.0
+      },
+      "recordSha256": "92440679eb0cfb731527dd0b5593a032c3f9b0cf548ed908e3d0218b6810a1b4"
+    }
+  }
+}

@@ -38,6 +38,7 @@ async function assignClient(nutritionistId, clientId) {
 }
 
 async function createMealPlan(nutritionistId, clientId, { title, caloriesTarget, proteinTarget, carbsTarget, fatTarget, items }) {
+  if (!await getPrisma().nutritionistClient.findFirst({where:{nutritionistId,clientId,status:'active'}})) throw new Error('Client not assigned to this nutritionist');
   if (!caloriesTarget || !proteinTarget) throw new Error('caloriesTarget and proteinTarget required');
   const prisma = getPrisma();
   return prisma.mealPlan.create({

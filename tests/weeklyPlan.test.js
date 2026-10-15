@@ -1,8 +1,12 @@
 const { computeAdjustment } = require('../src/services/weekly/calorieAdjustmentEngine');
 const { adherenceStatus } = require('../src/services/weekly/adherenceEngine');
-const { generateWeeklyMeals, generateShoppingList } = require('../src/services/weekly/weeklyDietGenerator');
+const { generateWeeklyMeals } = require('../src/services/weekly/weeklyDietGenerator');
 
-describe('Adherence Engine', () => {
+const { MEAL_DB } = require('../src/services/weekly/recipeSeed');
+const recipesByType = Object.fromEntries(['breakfast','lunch','dinner','snack'].map(type => [type,require('../src/services/weekly/catalog').recipes.filter(r=>r.mealType===type)]));
+const { buildShoppingItems } = require('../src/services/weekly/ingredientShoppingListService');
+const generateShoppingList = (meals, inventory=[])=>buildShoppingItems(meals.map(m=>({recipe:{ingredients:[{ingredientName:m.foodName,amountG:m.portionG}]}})),inventory);
+describe('Adherence Engine' , () => {
   it('excellent for 90%+', () => expect(adherenceStatus(92)).toBe('excellent'));
   it('good for 70-84%', () => expect(adherenceStatus(75)).toBe('good'));
   it('poor for 50-69%', () => expect(adherenceStatus(55)).toBe('poor'));
@@ -70,6 +74,7 @@ describe('Calorie Adjustment Engine', () => {
 describe('Weekly Diet Generator', () => {
   it('generates 7 days of meals', () => {
     const meals = generateWeeklyMeals({
+      recipesByType,
       caloriesTarget: 2200, proteinTarget: 150, carbsTarget: 250,
       fatTarget: 70, fiberTarget: 30, dislikedFoods: [], restrictions: [],
     });
@@ -85,6 +90,7 @@ describe('Weekly Diet Generator', () => {
 
   it('avoids disliked foods', () => {
     const meals = generateWeeklyMeals({
+      recipesByType,
       caloriesTarget: 2200, proteinTarget: 150, carbsTarget: 250,
       fatTarget: 70, fiberTarget: 30, dislikedFoods: ['salmon'], restrictions: [],
     });
@@ -94,6 +100,7 @@ describe('Weekly Diet Generator', () => {
 
   it('rotates protein sources (no 3 consecutive same protein)', () => {
     const meals = generateWeeklyMeals({
+      recipesByType,
       caloriesTarget: 2200, proteinTarget: 150, carbsTarget: 250,
       fatTarget: 70, fiberTarget: 30, dislikedFoods: [], restrictions: [],
     });

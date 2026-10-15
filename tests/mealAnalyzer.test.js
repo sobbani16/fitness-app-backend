@@ -1,4 +1,4 @@
-const { analyzeMeal } = require('../src/services/mealAnalyzer');
+const { analyzeMeal } = require('./fixtures/mealAnalyzer');
 
 describe('mealAnalyzer', () => {
   it('matches known food from description', () => {

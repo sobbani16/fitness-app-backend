@@ -10,6 +10,11 @@ datasource db {
 model User {
   id              String   @id @default(uuid())
   email           String   @unique
+  emailVerifiedAt DateTime?
+  authActions     AuthAction[]
+  passwordHash    String?
+  profileData     Json?
+  sessions        AuthSession[]
 
   firstName       String?
   lastName        String?
@@ -222,6 +227,7 @@ model ExerciseSet {
 }
 
 model Recipe {
+  nutritionSource Json?
   id              String @id @default(uuid())
 
   creatorId       String
@@ -1105,6 +1111,7 @@ model FoodPreference {
 }
 
 model WeeklyNutritionPlan {
+  generationDetails Json?
   id              String   @id @default(uuid())
   userId          String
   weekStartDate   String
@@ -1317,4 +1324,66 @@ model ScannedLabel {
   createdAt          DateTime @default(now())
 
   @@index([userId, createdAt])
+}
+
+model AuthSession {
+  tokenHash String @id
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([userId])
+}
+model ApiUsage {
+  userId String
+  date String
+  kind String
+  count Int @default(0)
+  @@id([userId, date, kind])
+}
+
+// Durable email queue. Tokens are derived with a server secret; only hashes are stored.
+model AuthAction {
+  id String @id
+  tokenHash String @unique
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email String
+  purpose String
+  expiresAt DateTime
+  consumedAt DateTime?
+  createdAt DateTime @default(now())
+  deliveredAt DateTime?
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  @@index([userId, purpose])
+  @@index([deliveredAt, nextAttemptAt])
+}
+model AuthRateBucket {
+  key String @id
+  count Int
+  expiresAt DateTime
+  @@index([expiresAt])
+}
+
+// Minimal restore-suppression ledger; never contains email, credentials or health data.
+model AccountDeletionReceipt {
+  userId String @id
+  deletedAt DateTime @default(now())
+  expiresAt DateTime
+  @@index([expiresAt])
+}
+
+model LegacyMigrationGrant {
+  id String @id @default(uuid())
+  tokenHash String @unique
+  legacyUserId String
+  targetUserId String
+  proofType String
+  evidenceReference String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  consumedAt DateTime?
+  @@index([legacyUserId])
+  @@index([targetUserId])
 }

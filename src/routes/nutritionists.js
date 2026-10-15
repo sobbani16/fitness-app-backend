@@ -28,7 +28,7 @@ router.get('/me/clients', requireRole('NUTRITIONIST'), async (req, res) => {
 });
 
 // POST /nutritionists/clients/assign
-router.post('/clients/assign', requirePermission('ASSIGN_MEAL_PLAN', 'MANAGE_NUTRITIONISTS'), async (req, res) => {
+router.post('/clients/assign', requirePermission('MANAGE_NUTRITIONISTS'), async (req, res) => {
   try {
     const { nutritionistId, clientId } = req.body || {};
     if (!nutritionistId || !clientId) {

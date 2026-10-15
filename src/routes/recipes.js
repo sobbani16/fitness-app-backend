@@ -11,7 +11,7 @@ router.get('/search', async (req, res) => {
     const results = await searchRecipes(q);
     res.json({ results });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(err.status || 400).json({ error: err.message });
   }
 });
 
@@ -22,7 +22,7 @@ router.get('/:id/nutrition', async (req, res) => {
     const nutrition = await getRecipeNutrition(req.params.id);
     res.json(nutrition);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(err.status || 400).json({ error: err.message });
   }
 });
 

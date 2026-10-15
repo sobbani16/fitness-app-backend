@@ -38,28 +38,20 @@ describe('searchUsda', () => {
     });
   });
 
-  it('falls back to mock on rate limit (429)', async () => {
+  it('reports unavailability on rate limit (429)', async () => {
     usda.setFetch(async () => ({ ok: false, status: 429, json: async () => ({}) }));
-    const r = await usda.searchUsda('chicken');
-    expect(Array.isArray(r)).toBe(true);
-    expect(r.length).toBeGreaterThan(0);
-    expect(r[0].source).toMatch(/mock/);
+    await expect(usda.searchUsda('chicken')).rejects.toMatchObject({status:503});
   });
 
-  it('falls back to mock on network failure', async () => {
+  it('reports unavailability on network failure', async () => {
     usda.setFetch(async () => {
       throw new Error('network');
     });
-    const r = await usda.searchUsda('beans');
-    expect(r.length).toBeGreaterThan(0);
-    expect(r[0].source).toMatch(/mock/);
+    await expect(usda.searchUsda('chicken')).rejects.toMatchObject({status:503});
   });
 
-  it('falls back to mock on unexpected non-ok status (e.g. 500)', async () => {
+  it('reports unavailability on unexpected non-ok status (e.g. 500)', async () => {
     usda.setFetch(async () => ({ ok: false, status: 500, json: async () => ({}) }));
-    const r = await usda.searchUsda('chicken');
-    expect(Array.isArray(r)).toBe(true);
-    expect(r.length).toBeGreaterThan(0);
-    expect(r[0].source).toMatch(/mock/);
+    await expect(usda.searchUsda('chicken')).rejects.toMatchObject({status:503});
   });
 });

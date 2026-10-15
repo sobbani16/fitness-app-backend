@@ -12,18 +12,11 @@ async function loadUserFilters(userId) {
   const liked = prefs.filter((p) => p.preference === 'LOVE' || p.preference === 'LIKE').map((p) => p.foodName.toLowerCase());
   const planPrefs = await prisma.userPlanningPreferences.findUnique({ where: { userId } });
   const restrictions = new Set((planPrefs?.dietaryRestrictions || []).map((r) => r.toLowerCase()));
-  return { disliked, liked, restrictions };
+  return { disliked, liked, restrictions, preferences: planPrefs || {} };
 }
 
-function isAllowed(recipe, disliked, restrictions) {
-  const name = recipe.recipeName.toLowerCase();
-  if (disliked.has(name)) return false;
-  for (const d of disliked) { if (name.includes(d)) return false; }
-  for (const r of restrictions) {
-    if (name.includes(r)) return false;
-    if (recipe.ingredients?.some((i) => i.ingredientName.toLowerCase().includes(r))) return false;
-  }
-  return true;
+function isAllowed(recipe, disliked, restrictions, preferences = {}) {
+  return require('./planningPolicy').recipeAllowed(recipe, disliked, restrictions, preferences);
 }
 
 function proteinInName(name) {
@@ -38,7 +31,7 @@ async function getAlternatives(weeklyMealId) {
   });
   if (!meal) throw new Error('Meal not found.');
 
-  const { disliked, liked, restrictions } = await loadUserFilters(meal.plan.userId);
+  const { disliked, liked, restrictions, preferences } = await loadUserFilters(meal.plan.userId);
 
   const allAlternatives = await prisma.recipe.findMany({
     where: { mealType: meal.mealType, isSystem: true },
@@ -46,7 +39,7 @@ async function getAlternatives(weeklyMealId) {
   });
 
   const scored = allAlternatives
-    .filter((r) => r.id !== meal.recipeId && isAllowed(r, disliked, restrictions))
+    .filter((r) => r.id !== meal.recipeId && isAllowed(r, disliked, restrictions, preferences))
     .map((r) => {
       const calDiff = Math.abs(r.calories - meal.calories);
       const isLiked = liked.some((f) => r.recipeName.toLowerCase().includes(f)) ? 1 : 0;
@@ -77,8 +70,8 @@ async function swapMeal(weeklyMealId, newRecipeId) {
   if (!newRecipe) throw new Error('Recipe not found.');
   if (newRecipe.mealType !== meal.mealType) throw new Error('Recipe type does not match meal type.');
 
-  const { disliked, restrictions } = await loadUserFilters(meal.plan.userId);
-  if (!isAllowed(newRecipe, disliked, restrictions)) throw new Error('Recipe conflicts with preferences or restrictions.');
+  const { disliked, restrictions, preferences } = await loadUserFilters(meal.plan.userId);
+  if (!isAllowed(newRecipe, disliked, restrictions, preferences)) throw new Error('Recipe conflicts with preferences or restrictions.');
 
   // Update this meal with the new recipe
   await prisma.weeklyMeal.update({
@@ -100,6 +93,7 @@ async function swapMeal(weeklyMealId, newRecipeId) {
     disliked,
     restrictions,
     skipMealId: weeklyMealId,
+    preferences,
   });
 
   return prisma.weeklyMeal.findUnique({ where: { id: weeklyMealId }, include: { recipe: { include: { ingredients: true } } } });
@@ -144,7 +138,7 @@ async function rebalanceDay(planId, dayOfWeek, userId, filters) {
   for (const meal of unlockedMeals) {
     const candidates = allRecipes
       .filter((r) => r.mealType === meal.mealType && r.id !== meal.recipeId && !usedIds.has(r.id))
-      .filter((r) => isAllowed(r, filters.disliked, filters.restrictions))
+      .filter((r) => isAllowed(r, filters.disliked, filters.restrictions, filters.preferences))
       .map((r) => {
         const protein = proteinInName(r.recipeName);
         const score =
@@ -157,7 +151,7 @@ async function rebalanceDay(planId, dayOfWeek, userId, filters) {
       })
       .sort((a, b) => a.score - b.score);
 
-    const best = candidates[0] || allRecipes.find((r) => r.id === meal.recipeId);
+    const best = candidates[0] || allRecipes.find((r) => r.id === meal.recipeId && isAllowed(r, filters.disliked, filters.restrictions, filters.preferences));
     if (best) {
       usedIds.add(best.id);
       const protein = proteinInName(best.recipeName);

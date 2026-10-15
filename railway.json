@@ -1,0 +1,14 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "buildCommand": "npm run db:generate"
+  },
+  "deploy": {
+    "preDeployCommand": [
+      "npm run deploy:prepare"
+    ],
+    "startCommand": "npm start",
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 120
+  }
+}

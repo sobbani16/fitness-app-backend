@@ -1,8 +1,9 @@
+const { httpError } = require('../lib/errors');
 // Recipe search + nutrition via Spoonacular, proxied so the API key stays
 // server-side. Falls back to a deterministic mock (derived from the local
 // food DB) when SPOONACULAR_API_KEY is not set, so dev works without a key.
 
-const { FOOD_DB } = require('./foodDetector');
+
 
 const SPOONACULAR_BASE = 'https://api.spoonacular.com';
 
@@ -22,46 +23,13 @@ function round(n) { return Math.round(n); }
 
 // ---- Mock fallback (no API key) -----------------------------------------
 
-function mockSearch(query) {
-  const q = (query || '').trim().toLowerCase();
-  const matches = FOOD_DB.filter(
-    (f) =>
-      !q ||
-      f.name.toLowerCase().includes(q) ||
-      f.keywords.some((k) => k.includes(q) || q.includes(k)),
-  );
-  const list = (matches.length ? matches : FOOD_DB).slice(0, 8);
-  return list.map((f, i) => ({
-    id: `mock-${FOOD_DB.indexOf(f)}`,
-    title: f.name,
-    image: null,
-  }));
-}
-
-function mockNutrition(id) {
-  const idx = Number(String(id).replace('mock-', ''));
-  const f = FOOD_DB[idx] || FOOD_DB[0];
-  const grams = f.portion_g;
-  const calories = round((f.kcalPer100g * grams) / 100);
-  return {
-    id: String(id),
-    name: f.name,
-    servings: 1,
-    servingWeightGrams: grams,
-    calories,
-    caloriesPer100g: f.kcalPer100g,
-    macrosPer100g: { protein_g: f.p100, carbs_g: f.c100, fat_g: f.f100 },
-    source: 'mock (no SPOONACULAR_API_KEY set)',
-  };
-}
-
 // ---- Spoonacular ---------------------------------------------------------
 
 async function spoonacularSearch(query) {
   const url = `${SPOONACULAR_BASE}/recipes/autocomplete?number=8&query=${encodeURIComponent(
     query || '',
   )}&apiKey=${getApiKey()}`;
-  const res = await _fetch(url);
+  const res = await _fetch(url, { signal: AbortSignal.timeout(10000) });
   if (!res.ok) throw new Error(`recipe search failed: ${res.status}`);
   const data = await res.json();
   const arr = Array.isArray(data) ? data : [];
@@ -85,7 +53,7 @@ async function spoonacularNutrition(id) {
   const url = `${SPOONACULAR_BASE}/recipes/${encodeURIComponent(
     id,
   )}/information?includeNutrition=true&apiKey=${getApiKey()}`;
-  const res = await _fetch(url);
+  const res = await _fetch(url, { signal: AbortSignal.timeout(10000) });
   if (!res.ok) throw new Error(`recipe nutrition failed: ${res.status}`);
   const data = await res.json();
 
@@ -125,22 +93,23 @@ async function spoonacularNutrition(id) {
 // ---- Public API ----------------------------------------------------------
 
 async function searchRecipes(query) {
-  if (!hasApiKey()) return mockSearch(query);
+  if (!hasApiKey()) throw httpError(503, 'Recipe service is not configured.');
   try {
     return await spoonacularSearch(query);
   } catch (err) {
     // Network/key failure → degrade gracefully to mock.
-    return mockSearch(query);
+    throw httpError(503, 'Recipe search service unavailable.');
   }
 }
 
 async function getRecipeNutrition(id) {
   if (!id) throw new Error('id is required');
-  if (!hasApiKey() || String(id).startsWith('mock-')) return mockNutrition(id);
+  if (!hasApiKey()) throw httpError(503, 'Recipe service is not configured.');
+  if (!/^\d+$/.test(String(id))) throw httpError(400, 'Invalid recipe id');
   try {
     return await spoonacularNutrition(id);
   } catch (err) {
-    return mockNutrition(id);
+    throw httpError(503, 'Recipe nutrition service unavailable.');
   }
 }
 

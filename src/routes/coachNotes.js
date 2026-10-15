@@ -15,6 +15,9 @@ router.post('/', requirePermission('CREATE_COACH_NOTES'), async (req, res) => {
     const trainer = await prisma.trainerProfile.findUnique({ where: { userId: req.userId } });
     const nutritionist = await prisma.nutritionistProfile.findUnique({ where: { userId: req.userId } });
 
+    const assigned = (trainer && await prisma.trainerClient.findFirst({where:{trainerId:trainer.id,clientId,status:'active'}})) || (nutritionist && await prisma.nutritionistClient.findFirst({where:{nutritionistId:nutritionist.id,clientId,status:'active'}}));
+    if (!assigned) return res.status(403).json({error:'Client access denied'});
+    if (visibility && !['private','client_visible'].includes(visibility)) return res.status(400).json({error:'Invalid visibility'});
     const coachNote = await prisma.coachNote.create({
       data: {
         coachId: req.userId,
@@ -43,7 +46,7 @@ router.get('/', requirePermission('CREATE_COACH_NOTES', 'VIEW_OWN_PROFILE'), asy
       // If user is the client, only show client_visible notes
       if (clientId === req.userId) {
         where.visibility = 'client_visible';
-      }
+      } else { where.coachId = req.userId; }
     } else {
       where.coachId = req.userId;
     }

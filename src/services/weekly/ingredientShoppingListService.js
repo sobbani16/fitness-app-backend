@@ -17,32 +17,22 @@ function formatQuantity(name, grams) {
   return `${Math.round(grams)}g`;
 }
 
-async function generateIngredientShoppingList(planId) {
-  const prisma = getPrisma();
-  const plan = await prisma.weeklyNutritionPlan.findUnique({
-    where: { id: planId },
-    include: { meals: { include: { recipe: { include: { ingredients: true } } } } },
-  });
-  if (!plan) throw new Error('Plan not found.');
-
-  const allConfirmed = plan.meals.length > 0 && plan.meals.every((m) => m.confirmedByUser);
-  if (!allConfirmed) throw new Error('All days must be confirmed before generating the shopping list.');
-
-  const inventory = await prisma.foodInventory.findMany({ where: { userId: plan.userId } });
+function buildShoppingItems(meals, inventory = [], householdSize = 1) {
   const inventoryMap = {};
   for (const inv of inventory) {
     inventoryMap[inv.foodName.toLowerCase()] = inv.quantityG;
   }
 
   const totals = {};
-  for (const meal of plan.meals) {
+  for (const meal of meals) {
     if (!meal.recipe?.ingredients) continue;
     for (const ing of meal.recipe.ingredients) {
       const key = ing.ingredientName.toLowerCase();
       if (!totals[key]) {
         totals[key] = { ingredientName: ing.ingredientName, amountG: 0, category: guessCategory(ing.ingredientName) };
       }
-      totals[key].amountG += ing.amountG;
+      const factor = meal.recipe.portionG > 0 && meal.portionG > 0 ? meal.portionG / meal.recipe.portionG : 1;
+      totals[key].amountG += ing.amountG * factor * householdSize;
     }
   }
 
@@ -58,6 +48,23 @@ async function generateIngredientShoppingList(planId) {
       checked: false,
     };
   }).filter((item) => item.quantityG > 0);
+
+  return items;
+}
+
+async function generateIngredientShoppingList(planId) {
+  const prisma = getPrisma();
+  const plan = await prisma.weeklyNutritionPlan.findUnique({
+    where: { id: planId },
+    include: { meals: { include: { recipe: { include: { ingredients: true } } } } },
+  });
+  if (!plan) throw new Error('Plan not found.');
+
+  const allConfirmed = plan.meals.length > 0 && plan.meals.every((m) => m.confirmedByUser);
+  if (!allConfirmed) throw new Error('All days must be confirmed before generating the shopping list.');
+
+  const inventory = await prisma.foodInventory.findMany({ where: { userId: plan.userId } });
+  const items = buildShoppingItems(plan.meals, inventory, plan.generationDetails?.householdSize || 1);
 
   await prisma.weeklyShoppingList.deleteMany({ where: { planId } });
   if (items.length > 0) {
@@ -95,4 +102,4 @@ async function getShoppingList(planId) {
   };
 }
 
-module.exports = { generateIngredientShoppingList, toggleChecked, getShoppingList };
+module.exports = { buildShoppingItems, generateIngredientShoppingList, toggleChecked, getShoppingList };

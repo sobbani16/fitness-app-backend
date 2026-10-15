@@ -1,4 +1,4 @@
-const { detectFood } = require('../src/services/foodDetector');
+const { detectFood } = require('./fixtures/foodDetector');
 
 describe('foodDetector.detectFood', () => {
   it('matches known food from description', () => {

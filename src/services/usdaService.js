@@ -1,3 +1,4 @@
+const { httpError } = require('../lib/errors');
 // USDA FoodData Central (FDC) ingredient search, proxied so the API key stays
 // server-side. Falls back to a deterministic mock (derived from the local food
 // DB) when no usable API key is available or USDA is unreachable/rate-limited,
@@ -6,7 +7,7 @@
 // Docs: https://fdc.nal.usda.gov/api-guide.html
 // Endpoint used: POST /foods/search
 
-const { FOOD_DB } = require('./foodDetector');
+
 
 const USDA_BASE = 'https://api.nal.usda.gov/fdc/v1';
 
@@ -35,30 +36,6 @@ function round1(n) {
 
 // ---- Mock fallback (no usable key / USDA down) ---------------------------
 
-function mockSearch(query) {
-  const q = (query || '').trim().toLowerCase();
-  const matches = FOOD_DB.filter(
-    (f) =>
-      !q ||
-      f.name.toLowerCase().includes(q) ||
-      f.keywords.some((k) => k.includes(q) || q.includes(k)),
-  );
-  const list = (matches.length ? matches : FOOD_DB).slice(0, 8);
-  return list.map((f) => ({
-    fdcId: `mock-${FOOD_DB.indexOf(f)}`,
-    name: f.name,
-    caloriesPer100g: f.kcalPer100g,
-    proteinPer100g: f.p100,
-    carbsPer100g: f.c100,
-    fatPer100g: f.f100,
-    source: 'mock (no USDA_API_KEY set)',
-  }));
-}
-
-// ---- USDA ----------------------------------------------------------------
-
-// USDA search results carry a `foodNutrients` array of
-// { nutrientName, value, unitName }. Pull a value by matching nutrient name(s).
 function nutrientValue(foodNutrients, names) {
   const wanted = names.map((n) => n.toLowerCase());
   const n = (foodNutrients || []).find((x) =>
@@ -109,6 +86,7 @@ async function searchUsda(query, number = 8) {
   try {
     res = await _fetch(url, {
       method: 'POST',
+      signal: AbortSignal.timeout(10000),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         query: q,
@@ -118,20 +96,20 @@ async function searchUsda(query, number = 8) {
     });
   } catch (err) {
     // Network failure → degrade gracefully.
-    return mockSearch(q);
+    throw httpError(503, 'Food search service unavailable. Please retry.');
   }
 
   if (!res.ok) {
     // Any non-OK response (auth, rate-limit, bad request, server error) →
     // degrade gracefully so the user still gets results.
-    return mockSearch(q);
+    throw httpError(503, 'Food search service unavailable. Please retry.');
   }
 
   const data = await res.json();
   const foods = Array.isArray(data && data.foods) ? data.foods : [];
   const mapped = foods.map(mapFood).filter((m) => m.caloriesPer100g > 0);
   // If USDA returned nothing useful, still give the user something.
-  return mapped.length ? mapped : mockSearch(q);
+  return mapped;
 }
 
 module.exports = {

@@ -6,9 +6,9 @@ const mockPrisma = {
   permission: { findUnique: jest.fn() },
   rolePermission: { upsert: jest.fn() },
   trainerProfile: { findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
-  trainerClient: { findMany: jest.fn(), upsert: jest.fn(), count: jest.fn(), update: jest.fn() },
+  trainerClient: { findFirst: jest.fn(), findMany: jest.fn(), upsert: jest.fn(), count: jest.fn(), update: jest.fn() },
   nutritionistProfile: { findMany: jest.fn(), findUnique: jest.fn() },
-  nutritionistClient: { findMany: jest.fn(), upsert: jest.fn(), count: jest.fn() },
+  nutritionistClient: { findFirst: jest.fn(), findMany: jest.fn(), upsert: jest.fn(), count: jest.fn() },
   workoutPlan: { create: jest.fn(), findMany: jest.fn(), findUnique: jest.fn(), count: jest.fn() },
   mealPlan: { create: jest.fn(), findMany: jest.fn(), findUnique: jest.fn(), count: jest.fn() },
   coachNote: { create: jest.fn(), findMany: jest.fn() },
@@ -92,6 +92,7 @@ describe('RBAC — Role-based access control', () => {
 
   it('allows TRAINER to access /trainers/me/clients', async () => {
     mockRoles('trainer-1', ['TRAINER']);
+    mockPrisma.trainerClient.findFirst.mockResolvedValue({id:'tc-1',status:'active'});
     mockPrisma.trainerProfile.findUnique.mockResolvedValue({ id: 'tp-1', userId: 'trainer-1' });
     mockPrisma.trainerClient.findMany.mockResolvedValue([]);
     const res = await request(app)
@@ -110,6 +111,7 @@ describe('RBAC — Role-based access control', () => {
 
   it('TRAINER cannot access admin routes', async () => {
     mockRoles('trainer-1', ['TRAINER']);
+    mockPrisma.trainerClient.findFirst.mockResolvedValue({id:'tc-1',status:'active'});
     const res = await request(app)
       .get('/admin/users')
       .set('x-user-id', 'trainer-1');
@@ -148,6 +150,7 @@ describe('RBAC — Role-based access control', () => {
 
   it('NUTRITIONIST cannot create workout plans', async () => {
     mockRoles('nutri-1', ['NUTRITIONIST']);
+    mockPrisma.nutritionistClient.findFirst.mockResolvedValue({id:'nc-1',status:'active'});
     const res = await request(app)
       .post('/workout-plans')
       .set('x-user-id', 'nutri-1')
@@ -157,6 +160,7 @@ describe('RBAC — Role-based access control', () => {
 
   it('TRAINER cannot create meal plans', async () => {
     mockRoles('trainer-1', ['TRAINER']);
+    mockPrisma.trainerClient.findFirst.mockResolvedValue({id:'tc-1',status:'active'});
     const res = await request(app)
       .post('/meal-plans')
       .set('x-user-id', 'trainer-1')
@@ -172,6 +176,7 @@ describe('RBAC — Role-based access control', () => {
 describe('Trainer operations', () => {
   it('creates a workout plan', async () => {
     mockRoles('trainer-1', ['TRAINER']);
+    mockPrisma.trainerClient.findFirst.mockResolvedValue({id:'tc-1',status:'active'});
     mockPrisma.trainerProfile.findUnique.mockResolvedValue({ id: 'tp-1', userId: 'trainer-1' });
     mockPrisma.workoutPlan.create.mockResolvedValue({
       id: 'wp-1',
@@ -194,8 +199,9 @@ describe('Trainer operations', () => {
     expect(res.body.title).toBe('Week 1');
   });
 
-  it('assigns a client', async () => {
+  it('prevents trainers from self-assigning clients', async () => {
     mockRoles('trainer-1', ['TRAINER']);
+    mockPrisma.trainerClient.findFirst.mockResolvedValue({id:'tc-1',status:'active'});
     mockPrisma.trainerProfile.findUnique.mockResolvedValue({ id: 'tp-1', maxClients: 10 });
     mockPrisma.trainerClient.count.mockResolvedValue(3);
     mockPrisma.trainerClient.upsert.mockResolvedValue({ id: 'tc-1', trainerId: 'tp-1', clientId: 'c-1', status: 'pending' });
@@ -205,7 +211,7 @@ describe('Trainer operations', () => {
       .post('/trainers/clients/assign')
       .set('x-user-id', 'trainer-1')
       .send({ trainerId: 'tp-1', clientId: 'c-1' });
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(403);
   });
 });
 
@@ -216,6 +222,7 @@ describe('Trainer operations', () => {
 describe('Nutritionist operations', () => {
   it('creates a meal plan', async () => {
     mockRoles('nutri-1', ['NUTRITIONIST']);
+    mockPrisma.nutritionistClient.findFirst.mockResolvedValue({id:'nc-1',status:'active'});
     mockPrisma.nutritionistProfile.findUnique.mockResolvedValue({ id: 'np-1', userId: 'nutri-1' });
     mockPrisma.mealPlan.create.mockResolvedValue({
       id: 'mp-1',
@@ -248,6 +255,7 @@ describe('Nutritionist operations', () => {
 describe('Coach notes', () => {
   it('trainer can create a note', async () => {
     mockRoles('trainer-1', ['TRAINER']);
+    mockPrisma.trainerClient.findFirst.mockResolvedValue({id:'tc-1',status:'active'});
     mockPrisma.trainerProfile.findUnique.mockResolvedValue({ id: 'tp-1' });
     mockPrisma.nutritionistProfile.findUnique.mockResolvedValue(null);
     mockPrisma.coachNote.create.mockResolvedValue({ id: 'cn-1', note: 'Good progress', visibility: 'private' });

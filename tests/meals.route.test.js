@@ -1,3 +1,5 @@
+jest.mock('../src/services/foodDetector', () => require('./fixtures/foodDetector'));
+jest.mock('../src/services/mealAnalyzer', () => require('./fixtures/mealAnalyzer'));
 const request = require('supertest');
 const app = require('../src/app');
 

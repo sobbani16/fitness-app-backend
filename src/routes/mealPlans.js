@@ -49,6 +49,8 @@ router.get('/:id', requirePermission('ASSIGN_MEAL_PLAN', 'VIEW_OWN_PROFILE'), as
   try {
     const plan = await nutritionistService.getMealPlanById(req.params.id);
     if (!plan) return res.status(404).json({ error: 'Plan not found.' });
+    const owner = await nutritionistService.getNutritionistByUserId(req.userId);
+    if (plan.clientId !== req.userId && plan.nutritionistId !== owner?.id) return res.status(403).json({error:'Plan access denied'});
     res.json(plan);
   } catch (err) {
     res.status(500).json({ error: err.message });

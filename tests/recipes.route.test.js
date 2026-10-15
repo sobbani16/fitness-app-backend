@@ -4,7 +4,7 @@ const recipeService = require('../src/services/recipeService');
 
 jest.setTimeout(30000);
 
-describe('recipes routes (mock fallback, no API key)', () => {
+describe('recipes routes (no API key)', () => {
   const prevKey = process.env.SPOONACULAR_API_KEY;
 
   beforeAll(() => {
@@ -16,26 +16,14 @@ describe('recipes routes (mock fallback, no API key)', () => {
     else process.env.SPOONACULAR_API_KEY = prevKey;
   });
 
-  it('returns autosuggest results for a query', async () => {
-    const res = await request(app).get('/recipes/search').query({ q: 'chicken' });
-    expect(res.status).toBe(200);
-    expect(Array.isArray(res.body.results)).toBe(true);
-    expect(res.body.results.length).toBeGreaterThan(0);
-    expect(res.body.results[0]).toHaveProperty('id');
-    expect(res.body.results[0]).toHaveProperty('title');
+  it('reports unconfigured search without fabricating results', async () => {
+    const res = await request(app).get('/recipes/search').query({q:'chicken'});
+    expect(res.status).toBe(503);
+    expect(res.body.results).toBeUndefined();
   });
-
-  it('returns nutrition with per-100g macros for a result', async () => {
-    const search = await request(app).get('/recipes/search').query({ q: 'chicken' });
-    const id = search.body.results[0].id;
-
-    const res = await request(app).get(`/recipes/${id}/nutrition`);
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('caloriesPer100g');
-    expect(res.body.macrosPer100g).toHaveProperty('protein_g');
-    expect(res.body.macrosPer100g).toHaveProperty('carbs_g');
-    expect(res.body.macrosPer100g).toHaveProperty('fat_g');
-    expect(res.body.servingWeightGrams).toBeGreaterThan(0);
+  it('reports unconfigured nutrition', async () => {
+    const res=await request(app).get('/recipes/123/nutrition');
+    expect(res.status).toBe(503);
   });
 });
 
@@ -89,9 +77,8 @@ describe('recipeService with API key (mocked fetch)', () => {
     expect(n.macrosPer100g.protein_g).toBe(31);
   });
 
-  it('falls back to mock when the API errors', async () => {
+  it('reports provider failure without fabricated data', async () => {
     recipeService.setFetch(async () => ({ ok: false, status: 402 }));
-    const results = await recipeService.searchRecipes('chicken');
-    expect(results.length).toBeGreaterThan(0);
+    await expect(recipeService.searchRecipes('chicken')).rejects.toMatchObject({status:503});
   });
 });

@@ -132,7 +132,7 @@ router.patch('/clients/:clientId/status', requireRole('TRAINER'), async (req, re
 });
 
 // POST /trainers/clients/assign — admin/system assign (keeps existing behaviour)
-router.post('/clients/assign', requirePermission('ASSIGN_CLIENTS', 'MANAGE_TRAINERS'), async (req, res) => {
+router.post('/clients/assign', requirePermission('MANAGE_TRAINERS'), async (req, res) => {
   try {
     const { trainerId, clientId } = req.body || {};
     if (!trainerId || !clientId) {

@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><title>Fitness account</title><link rel="stylesheet" href="/auth/action.css"><script src="/auth/action.js" defer></script></head>
+<body><main><p class="brand">FITNESS</p><h1 id="title">Your account</h1><p id="intro">Open the link from your email to continue.</p>
+<form id="action" hidden><div id="password-fields" hidden><label for="password">New password</label><input id="password" type="password" autocomplete="new-password" minlength="12" maxlength="128"><label for="confirm">Confirm password</label><input id="confirm" type="password" autocomplete="new-password" minlength="12" maxlength="128"><p>Use 12–128 characters.</p></div><button id="submit" type="submit">Continue</button></form>
+<p id="message" role="status" aria-live="polite"></p><p id="done" hidden>You can close this page and return to the Fitness app.</p>
+<details><summary>Need a new email?</summary><form id="request"><label for="email">Email address</label><input id="email" type="email" autocomplete="email" maxlength="254" required><label for="purpose">Email type</label><select id="purpose"><option value="forgot-password">Password reset</option><option value="resend-verification">Email verification</option></select><button id="resend" type="submit">Send email</button></form><p id="request-message" role="status"></p></details>
+<noscript>Enable JavaScript to securely complete this action.</noscript></main></body></html>

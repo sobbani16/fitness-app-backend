@@ -24,7 +24,7 @@ router.get('/search', async (req, res) => {
     res.json({ results });
   } catch (err) {
     const status = err.message && /required/i.test(err.message) ? 400 : 500;
-    res.status(status).json({ error: err.message });
+    res.status(err.status || status).json({ error: err.message });
   }
 });
 

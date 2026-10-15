@@ -47,6 +47,8 @@ router.get('/:id', requirePermission('CREATE_WORKOUT_PLAN', 'VIEW_OWN_PROFILE'),
   try {
     const plan = await trainerService.getWorkoutPlanById(req.params.id);
     if (!plan) return res.status(404).json({ error: 'Plan not found.' });
+    const owner = await trainerService.getTrainerByUserId(req.userId);
+    if (plan.clientId !== req.userId && plan.trainerId !== owner?.id) return res.status(403).json({error:'Plan access denied'});
     res.json(plan);
   } catch (err) {
     res.status(500).json({ error: err.message });

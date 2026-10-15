@@ -1,29 +1,32 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
-const routes = require('./routes');
-const { setupSwagger } = require('./swagger');
-
+const { rateLimit } = require('express-rate-limit');
+const helmet = require('helmet');
 const app = express();
-
-app.use(cors());
-app.use(express.json({ limit: '2mb' }));
-if (process.env.NODE_ENV !== 'test') {
-  app.use(morgan('dev'));
-}
-
-// Swagger UI at /api-docs
-setupSwagger(app);
-
-// Ensure a User record exists for anonymous device ids before any user-scoped route runs
-const { ensureUser } = require('./middleware/ensureUser');
-app.use(ensureUser);
-
-app.use('/', routes);
-
-// 404
-app.use((req, res) => {
-  res.status(404).json({ error: 'Not found', path: req.path });
+app.disable('x-powered-by');
+if (process.env.TRUST_PROXY_HOPS) app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS));
+app.use(helmet());
+const origins = (process.env.CORS_ORIGINS || '').split(',').filter(Boolean);
+app.use(cors({ origin: (origin, cb) => cb(null, !origin || origins.includes(origin)) }));
+app.use(express.json({ limit: '8mb' }));
+if (process.env.NODE_ENV !== 'test') app.use(morgan(':method :url :status :response-time ms', { skip: req => req.path.startsWith('/auth') || req.path.startsWith('/me/account') || req.path.startsWith('/me/legacy-migration') }));
+app.use('/health', require('./routes/health'));
+app.use(rateLimit({ windowMs: 60000, limit: Number(process.env.API_RATE_LIMIT || 120), skip: () => process.env.NODE_ENV === 'test', standardHeaders: 'draft-7', legacyHeaders: false }));
+app.use('/auth', require('./routes/auth'));
+app.use(require('./middleware/authenticate'));
+app.use('/me/account', require('./routes/account'));
+app.use(require('./middleware/requireVerifiedEmail'));
+app.use('/me/legacy-migration', require('./routes/legacyMigration'));
+if (process.env.ENABLE_API_DOCS === 'true') require('./swagger').setupSwagger(app);
+if (process.env.NODE_ENV === 'test' && process.env.AUTH_TEST_BYPASS === 'true') app.use(require('./middleware/ensureUser').ensureUser);
+app.use(require('./middleware/validateInput'));
+app.use('/me/profile', require('./routes/profile'));
+app.use('/', require('./routes'));
+app.use((req,res) => res.status(404).json({error:'Not found'}));
+app.use((err,req,res,next) => {
+  const status = err.status || (err.type === 'entity.too.large' ? 413 : 500);
+  if (status >= 500) console.error('Request failed', { path:req.path, code:err.code || err.name });
+  res.status(status).json({error:status >= 500 && !err.status ? 'Service unavailable. Please try again.' : err.message});
 });
-
 module.exports = app;
