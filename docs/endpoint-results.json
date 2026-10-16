@@ -1,0 +1,1375 @@
+{
+  "generatedAt": "2026-10-09T15:56:06.923Z",
+  "runtime": "v22.23.3",
+  "base": "http://127.0.0.1:4401",
+  "database": "isolated localhost fitness_readiness",
+  "authentication": "real password + opaque session; no bypass",
+  "routes": 109,
+  "covered": 109,
+  "missing": [],
+  "results": [
+    {
+      "method": "GET",
+      "route": "/health",
+      "path": "/health",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/health/ready",
+      "path": "/health/ready",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/auth/register",
+      "path": "/auth/register",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/auth/register",
+      "path": "/auth/register",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/auth/register",
+      "path": "/auth/register",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/auth/register",
+      "path": "/auth/register",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/auth/register",
+      "path": "/auth/register",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/auth/login",
+      "path": "/auth/login",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/auth/login",
+      "path": "/auth/login",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/me/profile",
+      "path": "/me/profile",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "PUT",
+      "route": "/me/profile",
+      "path": "/me/profile",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/me/profile",
+      "path": "/me/profile",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/me/roles",
+      "path": "/me/roles",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/food-logs",
+      "path": "/food-logs",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/food-logs",
+      "path": "/food-logs",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/food-logs",
+      "path": "/food-logs?date=2026-10-09",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/food-logs",
+      "path": "/food-logs",
+      "status": 409,
+      "expected": [
+        409
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/food-logs",
+      "path": "/food-logs",
+      "status": 400,
+      "expected": [
+        400
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/daily-stats/water",
+      "path": "/daily-stats/water",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "PUT",
+      "route": "/daily-stats/water/replace",
+      "path": "/daily-stats/water/replace",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/daily-stats/water",
+      "path": "/daily-stats/water?date=2026-10-09",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/daily-stats/steps",
+      "path": "/daily-stats/steps",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/daily-stats/steps",
+      "path": "/daily-stats/steps?date=2026-10-09",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/exercises",
+      "path": "/exercises",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/exercises/:id/sets",
+      "path": "/exercises/bd4fad0f-cf5c-4a3f-b6ef-d0f8c23ae9f9/sets",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/exercises",
+      "path": "/exercises",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/exercises/prefill/:exerciseType",
+      "path": "/exercises/prefill/squat",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/exercises/:id/sets",
+      "path": "/exercises/bd4fad0f-cf5c-4a3f-b6ef-d0f8c23ae9f9/sets",
+      "status": 404,
+      "expected": [
+        404
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/supplements",
+      "path": "/supplements",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/supplements/search",
+      "path": "/supplements/search?q=Creatine",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/supplements",
+      "path": "/supplements",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/supplements/mine",
+      "path": "/supplements/mine",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/supplements/mine",
+      "path": "/supplements/mine",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/supplements/log",
+      "path": "/supplements/log",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/supplements/log",
+      "path": "/supplements/log",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "DELETE",
+      "route": "/supplements/log/:id",
+      "path": "/supplements/log/ba113b85-11a5-4fa2-a217-0690088e02fe",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "DELETE",
+      "route": "/supplements/mine/:supplementId",
+      "path": "/supplements/mine/69badc08-cb60-4969-b4da-004ab6f45d27",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/macro-score/goals",
+      "path": "/macro-score/goals",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "PUT",
+      "route": "/macro-score/goals",
+      "path": "/macro-score/goals",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/macro-score",
+      "path": "/macro-score",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/macro-score/trend",
+      "path": "/macro-score/trend?days=7",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/health-score",
+      "path": "/health-score",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/health-score/actions",
+      "path": "/health-score/actions",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/health-score/trend",
+      "path": "/health-score/trend?days=7",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/health-score/:id/detail",
+      "path": "/health-score/347e0fd7-bf44-4ccd-91ee-1f6cce401bcb/detail",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/health-score/:id/detail",
+      "path": "/health-score/347e0fd7-bf44-4ccd-91ee-1f6cce401bcb/detail",
+      "status": 404,
+      "expected": [
+        404
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/recommendations",
+      "path": "/recommendations?name=Smoke+Member&age=30&sex=male&heightCm=175&weightKg=75&goalWeightKg=72&activityLevel=moderate&goal=maintain&units=metric&createdAt=2026-10-09T15%3A56%3A03.462Z&caloriesIn=1500&caloriesBurnedExercise=0",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/summary/daily",
+      "path": "/summary/daily",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/summary/history",
+      "path": "/summary/history",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/safety/context",
+      "path": "/safety/context",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/safety/recommend",
+      "path": "/safety/recommend",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/safety/coaching",
+      "path": "/safety/coaching",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/safety/validate/ingredients",
+      "path": "/safety/validate/ingredients",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/safety/validate/supplements",
+      "path": "/safety/validate/supplements",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/safety/validate/recipe",
+      "path": "/safety/validate/recipe",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/label-scanner/extract",
+      "path": "/label-scanner/extract",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/label-scanner/adjust",
+      "path": "/label-scanner/adjust",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/label-scanner/save",
+      "path": "/label-scanner/save",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/label-scanner/history",
+      "path": "/label-scanner/history",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/food-logs",
+      "path": "/food-logs",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "PUT",
+      "route": "/weekly-plan/preferences",
+      "path": "/weekly-plan/preferences",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/weekly-plan/preferences/me",
+      "path": "/weekly-plan/preferences/me",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/weekly-plan/inventory",
+      "path": "/weekly-plan/inventory",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/weekly-plan/inventory/list",
+      "path": "/weekly-plan/inventory/list",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/weekly-plan/generate",
+      "path": "/weekly-plan/generate",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/weekly-plan/current",
+      "path": "/weekly-plan/current",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/weekly-plan/:weekStartDate",
+      "path": "/weekly-plan/2026-10-09",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/weekly-plan/notifications/me",
+      "path": "/weekly-plan/notifications/me",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/weekly-plan/meals/:mealId/alternatives",
+      "path": "/weekly-plan/meals/03b7375e-b0b3-41e5-9130-44b45584c7f0/alternatives",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/weekly-plan/meals/:mealId/swap",
+      "path": "/weekly-plan/meals/03b7375e-b0b3-41e5-9130-44b45584c7f0/swap",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/weekly-plan/meals/:mealId/swap",
+      "path": "/weekly-plan/meals/03b7375e-b0b3-41e5-9130-44b45584c7f0/swap",
+      "status": 403,
+      "expected": [
+        403
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/weekly-plan/days/:dayOfWeek/confirm",
+      "path": "/weekly-plan/days/0/confirm",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/weekly-plan/days/:dayOfWeek/confirm",
+      "path": "/weekly-plan/days/1/confirm",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/weekly-plan/days/:dayOfWeek/confirm",
+      "path": "/weekly-plan/days/2/confirm",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/weekly-plan/days/:dayOfWeek/confirm",
+      "path": "/weekly-plan/days/3/confirm",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/weekly-plan/days/:dayOfWeek/confirm",
+      "path": "/weekly-plan/days/4/confirm",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/weekly-plan/days/:dayOfWeek/confirm",
+      "path": "/weekly-plan/days/5/confirm",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/weekly-plan/days/:dayOfWeek/confirm",
+      "path": "/weekly-plan/days/6/confirm",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/weekly-plan/days/:dayOfWeek/edit-state",
+      "path": "/weekly-plan/days/0/edit-state?planId=447b43b9-8de4-44bf-bc09-5186304143ba",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/weekly-plan/shopping-list/generate",
+      "path": "/weekly-plan/shopping-list/generate",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/weekly-plan/shopping-list",
+      "path": "/weekly-plan/shopping-list?planId=447b43b9-8de4-44bf-bc09-5186304143ba",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "PATCH",
+      "route": "/weekly-plan/shopping-list/items/:itemId/check",
+      "path": "/weekly-plan/shopping-list/items/f8f83c23-7274-4931-a628-8210dc1d2608/check",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/weekly-plan/shopping-list",
+      "path": "/weekly-plan/shopping-list?planId=447b43b9-8de4-44bf-bc09-5186304143ba",
+      "status": 403,
+      "expected": [
+        403
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/weekly-plan/adherence/:weekStartDate",
+      "path": "/weekly-plan/adherence/2026-10-09",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/weekly-plan/review/:weekStartDate",
+      "path": "/weekly-plan/review/2026-10-09",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/weekly-plan/deficiencies/detect",
+      "path": "/weekly-plan/deficiencies/detect",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/weekly-plan/adjust-calories",
+      "path": "/weekly-plan/adjust-calories",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/trainers/signup",
+      "path": "/trainers/signup",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "PATCH",
+      "route": "/admin/trainers/:id/verify",
+      "path": "/admin/trainers/0e90931e-dc29-41a2-896e-9b93b76c7887/verify",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "PATCH",
+      "route": "/trainers/me/profile",
+      "path": "/trainers/me/profile",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/trainers",
+      "path": "/trainers",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/trainers/:id",
+      "path": "/trainers/0e90931e-dc29-41a2-896e-9b93b76c7887",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/trainers/drop-reasons",
+      "path": "/trainers/drop-reasons",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/trainers/:id/subscribe",
+      "path": "/trainers/0e90931e-dc29-41a2-896e-9b93b76c7887/subscribe",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/trainers/me/assigned",
+      "path": "/trainers/me/assigned",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/trainers/me/clients",
+      "path": "/trainers/me/clients",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/trainers/clients/:clientId/progress",
+      "path": "/trainers/clients/8cf6e49c-9577-4956-9cdf-af46fe9a8ef2/progress",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/trainers/clients/assign",
+      "path": "/trainers/clients/assign",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "PATCH",
+      "route": "/trainers/clients/:clientId/status",
+      "path": "/trainers/clients/d42828e7-9855-4e41-827a-8ba2b04746e8/status",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/trainers/me/drop",
+      "path": "/trainers/me/drop",
+      "status": 423,
+      "expected": [
+        423
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/weekly-plan/days/:dayOfWeek/unconfirm",
+      "path": "/weekly-plan/days/0/unconfirm",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/weekly-plan/current",
+      "path": "/weekly-plan/current?clientId=8cf6e49c-9577-4956-9cdf-af46fe9a8ef2",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/weekly-plan/current",
+      "path": "/weekly-plan/current?clientId=8cf6e49c-9577-4956-9cdf-af46fe9a8ef2",
+      "status": 403,
+      "expected": [
+        403
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/workout-plans",
+      "path": "/workout-plans",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/workout-plans",
+      "path": "/workout-plans",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/workout-plans/:id",
+      "path": "/workout-plans/a35bdde2-eba0-42e0-bfb9-fe67ff9c4d4b",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/workout-plans/:id",
+      "path": "/workout-plans/a35bdde2-eba0-42e0-bfb9-fe67ff9c4d4b",
+      "status": 403,
+      "expected": [
+        403
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/coach-notes",
+      "path": "/coach-notes",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/coach-notes",
+      "path": "/coach-notes?clientId=8cf6e49c-9577-4956-9cdf-af46fe9a8ef2",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/coach-notes",
+      "path": "/coach-notes?clientId=8cf6e49c-9577-4956-9cdf-af46fe9a8ef2",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/nutritionists",
+      "path": "/nutritionists",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/nutritionists/clients/assign",
+      "path": "/nutritionists/clients/assign",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/nutritionists/me/clients",
+      "path": "/nutritionists/me/clients",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/meal-plans",
+      "path": "/meal-plans",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/meal-plans",
+      "path": "/meal-plans",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/meal-plans/:id",
+      "path": "/meal-plans/26635568-bbd2-4778-a70c-4b5e8f6f66be",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/meal-plans/:id",
+      "path": "/meal-plans/26635568-bbd2-4778-a70c-4b5e8f6f66be",
+      "status": 403,
+      "expected": [
+        403
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/users",
+      "path": "/admin/users",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/trainers",
+      "path": "/admin/trainers",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/analytics",
+      "path": "/admin/analytics",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/users",
+      "path": "/admin/users",
+      "status": 403,
+      "expected": [
+        403
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/admin/roles/assign",
+      "path": "/admin/roles/assign",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/admin/roles/remove",
+      "path": "/admin/roles/remove",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/audit-logs",
+      "path": "/audit-logs",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/trainers/clients/:clientId/drop",
+      "path": "/trainers/clients/d42828e7-9855-4e41-827a-8ba2b04746e8/drop",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/chat/status",
+      "path": "/chat/status",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/chat",
+      "path": "/chat",
+      "status": 503,
+      "expected": [
+        200
+      ],
+      "result": "BLOCKED_EXTERNAL",
+      "error": "AI service is not configured. Use manual logging or food search."
+    },
+    {
+      "method": "POST",
+      "route": "/meals/detect",
+      "path": "/meals/detect",
+      "status": 503,
+      "expected": [
+        200
+      ],
+      "result": "BLOCKED_EXTERNAL",
+      "error": "AI service is not configured. Use manual logging or food search."
+    },
+    {
+      "method": "POST",
+      "route": "/meals/analyze",
+      "path": "/meals/analyze",
+      "status": 503,
+      "expected": [
+        200
+      ],
+      "result": "BLOCKED_EXTERNAL",
+      "error": "AI service is not configured. Use manual logging or food search."
+    },
+    {
+      "method": "GET",
+      "route": "/weather",
+      "path": "/weather?lat=40.7&lon=-74",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/ingredients/search",
+      "path": "/ingredients/search?q=raw%20chicken%20breast",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/recipes/search",
+      "path": "/recipes/search?q=chicken",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/recipes/:id/nutrition",
+      "path": "/recipes/637876/nutrition",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "DELETE",
+      "route": "/food-logs/:id",
+      "path": "/food-logs/smoke-ed463ca3",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "route": "/auth/logout",
+      "path": "/auth/logout",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "route": "/me/profile",
+      "path": "/me/profile",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "result": "PASS"
+    }
+  ]
+}
