@@ -6,7 +6,10 @@ router.get('/', async (req, res, next) => {
 });
 router.put('/', async (req, res, next) => {
   try {
-    const p = req.body;
+    const p = req.body || {};
+    if (typeof p.name !== 'string' || !p.name.trim() || p.name.trim().length > 100) throw httpError(400, 'Enter a name between 1 and 100 characters.');
+    if (!Number.isInteger(p.age)) throw httpError(400, 'Age must be a whole number.');
+    if (p.goalWeightKg !== undefined && (!Number.isFinite(p.goalWeightKg) || p.goalWeightKg < 20 || p.goalWeightKg > 400)) throw httpError(400, 'Invalid goal weight.');
     for (const [key, min, max] of [['age',18,120],['heightCm',50,260],['weightKg',20,400]]) {
       if (!Number.isFinite(p[key]) || p[key] < min || p[key] > max) throw httpError(400, `Invalid ${key}.`);
     }
@@ -14,6 +17,7 @@ router.put('/', async (req, res, next) => {
     const profile = Object.fromEntries(['name','sex','age','heightCm','weightKg','goalWeightKg','activityLevel','goal','units','createdAt'].filter(k => p[k] !== undefined).map(k => [k,p[k]]));
     const prisma = getPrisma();
     await prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${req.userId} FOR UPDATE`;
       const prev = await tx.user.findUnique({ where: { id: req.userId } });
       await tx.user.update({ where: { id: req.userId }, data: { profileData: profile, firstName: String(p.name || '').slice(0,100), gender: p.sex, heightCm: p.heightCm, currentWeightKg: p.weightKg, goalType: p.goal, activityLevel: p.activityLevel } });
       if (prev.currentWeightKg !== p.weightKg) await tx.weightEntry.create({ data: { userId: req.userId, weightKg: p.weightKg } });

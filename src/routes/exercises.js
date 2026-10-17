@@ -12,4 +12,6 @@ router.get('/prefill/:exerciseType', wrap(ctrl.getPrefill));
 router.post('/', wrap(ctrl.createSession));
 router.post('/:id/sets', wrap(ctrl.appendSet));
 
+router.post('/:id/finish', wrap(ctrl.finishSession));
+
 module.exports = router;

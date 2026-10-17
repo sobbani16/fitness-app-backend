@@ -21,6 +21,7 @@ app.use('/me/legacy-migration', require('./routes/legacyMigration'));
 if (process.env.ENABLE_API_DOCS === 'true') require('./swagger').setupSwagger(app);
 if (process.env.NODE_ENV === 'test' && process.env.AUTH_TEST_BYPASS === 'true') app.use(require('./middleware/ensureUser').ensureUser);
 app.use(require('./middleware/validateInput'));
+app.use('/me/progress', require('./routes/progress'));
 app.use('/me/profile', require('./routes/profile'));
 app.use('/', require('./routes'));
 app.use((req,res) => res.status(404).json({error:'Not found'}));

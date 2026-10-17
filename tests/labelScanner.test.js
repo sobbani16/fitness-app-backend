@@ -65,10 +65,10 @@ describe('Label Scanner Service', () => {
       expect(result.fiberG).toBe(3);
     });
 
-    it('defaults serving size to 100g if not found', () => {
+    it('keeps serving size unknown if not found', () => {
       const text = 'Calories 100\nProtein 5g';
       const result = extractWithRegex(text);
-      expect(result.servingSizeG).toBe(100);
+      expect(result.servingSizeG).toBeNull();
     });
 
     it('returns low confidence', () => {
@@ -77,4 +77,23 @@ describe('Label Scanner Service', () => {
       expect(result.confidence).toBe(0.4);
     });
   });
+});
+it('does not replace unknown values or serving mass with zero/100g', () => {
+  const value = extractWithRegex('Calories 0\nProtein 2g');
+  expect(value.calories).toBe(0); expect(value.fiberG).toBeNull(); expect(value.servingSizeG).toBeNull();
+  expect(adjustPortion({ calories: 200, proteinG: 10, carbsG: 30, fatG: 4 }, 100, 150).adjFiberG).toBeNull();
+});
+it.each([Infinity, NaN, -1, 0, 10001])('rejects invalid portion %s', value => {
+  expect(() => adjustPortion({ calories: 200, proteinG: 10, carbsG: 30, fatG: 4 }, 100, value)).toThrow();
+});
+it('rejects missing or negative required nutrition instead of inferring values', () => {
+  expect(() => adjustPortion({ calories: 200, proteinG: null, carbsG: 30, fatG: 4 }, 100, 150)).toThrow();
+  expect(() => adjustPortion({ calories: -10, proteinG: 5, carbsG: 30, fatG: 4 }, 100, 150)).toThrow();
+});
+it('rounds decimal halfway values consistently with mobile preview', () => {
+  expect(adjustPortion({ calories: 200, proteinG: 3.3, carbsG: 30, fatG: 4 }, 100, 150).adjProteinG).toBe(5);
+});
+it('extracts explicit ingredients and package serving counts without inventing mass', () => {
+  const result = extractWithRegex('4 servings per container\nIngredients: oats, milk\nCalories 200');
+  expect(result.servingsPerContainer).toBe(4); expect(result.ingredients).toBe('oats, milk'); expect(result.servingSizeG).toBeNull();
 });

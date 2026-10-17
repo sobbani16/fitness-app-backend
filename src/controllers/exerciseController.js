@@ -5,7 +5,7 @@ const { buildPrefill } = require('../services/exerciseService');
 const store = process.env.NODE_ENV === 'test' && process.env.AUTH_TEST_BYPASS === 'true' ? createExerciseSessionStore() : require('../models/persistentExerciseStore');
 
 function getUserId(req) {
-  return (req.headers['x-user-id'] || req.body?.userId || '').toString().trim();
+  return (req.userId || req.headers['x-user-id'] || req.body?.userId || '').toString().trim();
 }
 
 function requireUser(req, res) {
@@ -38,11 +38,11 @@ async function createSession(req, res) {
   const userId = requireUser(req, res);
   if (!userId) return;
   try {
-    const { exerciseType, sets } = req.body || {};
-    const session = await store.create(userId, { exerciseType, sets });
+    const { exerciseType, sets, id, startedAt } = req.body || {};
+    const session = await store.create(userId, { exerciseType, sets, id, startedAt });
     res.status(201).json(session);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(err.status || 400).json({ error: err.message });
   }
 }
 
@@ -51,12 +51,12 @@ async function appendSet(req, res) {
   if (!userId) return;
   try {
     const { id } = req.params;
-    const { reps, weight } = req.body || {};
-    const updated = await store.addSet(userId, id, { reps, weight });
+    const { reps, weight, id: setId } = req.body || {};
+    const updated = await store.addSet(userId, id, { reps, weight, id: setId });
     if (!updated) return res.status(404).json({ error: 'session not found' });
     res.json(updated);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(err.status || 400).json({ error: err.message });
   }
 }
 
@@ -66,4 +66,14 @@ module.exports = {
   getPrefill,
   createSession,
   appendSet,
+};
+
+module.exports.finishSession = async (req, res) => {
+  const userId = requireUser(req, res);
+  if (!userId) return;
+  try {
+    const session = await store.finish(userId, req.params.id);
+    if (!session) return res.status(404).json({ error: 'session not found' });
+    res.json(session);
+  } catch (err) { res.status(err.status || 400).json({ error: err.message }); }
 };

@@ -181,7 +181,7 @@ model FoodLog {
 
   fatG            Float
 
-  fiberG          Float    @default(0)
+  fiberG          Float?
 
   mealType        String
 
@@ -196,6 +196,8 @@ model WorkoutSession {
   userId              String
 
   workoutType         String
+
+  finishedAt          DateTime?
 
   durationMinutes     Int
 
@@ -1297,9 +1299,9 @@ model ScannedLabel {
   labelProteinG      Float
   labelCarbsG        Float
   labelFatG          Float
-  labelFiberG        Float    @default(0)
-  labelSugarG        Float    @default(0)
-  labelSodiumMg      Float    @default(0)
+  labelFiberG        Float?
+  labelSugarG        Float?
+  labelSodiumMg      Float?
 
   // User's actual portion
   actualPortionG     Float    // what the user actually ate (grams)
@@ -1309,8 +1311,8 @@ model ScannedLabel {
   adjProteinG        Float
   adjCarbsG          Float
   adjFatG            Float
-  adjFiberG          Float    @default(0)
-  adjSugarG          Float    @default(0)
+  adjFiberG          Float?
+  adjSugarG          Float?
 
   // Link to the FoodLog entry created from this scan
   foodLogId          String?

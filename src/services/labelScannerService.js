@@ -3,6 +3,7 @@
 // portion scaling, and persistence of scanned labels.
 
 const { getPrisma } = require('../lib/prisma');
+const invalid = message => Object.assign(new Error(message), { status: 400 });
 
 /**
  * Scale nutrition values from labeled serving size to actual portion.
@@ -12,22 +13,33 @@ const { getPrisma } = require('../lib/prisma');
  * @returns {object} adjusted nutrition values
  */
 function adjustPortion(labelNutrition, servingSizeG, actualPortionG) {
-  if (!servingSizeG || servingSizeG <= 0) {
-    throw new Error('servingSizeG must be > 0');
+  if (!Number.isFinite(servingSizeG) || servingSizeG <= 0 || servingSizeG > 10000) {
+    throw invalid('servingSizeG must be > 0');
   }
-  if (!actualPortionG || actualPortionG <= 0) {
-    throw new Error('actualPortionG must be > 0');
+  if (!Number.isFinite(actualPortionG) || actualPortionG <= 0 || actualPortionG > 10000) {
+    throw invalid('actualPortionG must be > 0');
   }
 
+  for (const field of ['calories', 'proteinG', 'carbsG', 'fatG', 'fiberG', 'sugarG']) {
+    const value = labelNutrition[field];
+    if (value == null && ['fiberG', 'sugarG'].includes(field)) continue;
+    if (!Number.isFinite(value) || value < 0 || value > 100000) throw invalid(`Invalid ${field}`);
+  }
   const ratio = actualPortionG / servingSizeG;
 
+  const round = (value, precision = 10) => {
+    if (value == null) return null;
+    const scaled = value * ratio;
+    if (!Number.isFinite(scaled) || scaled > 100000) throw invalid('Adjusted nutrition is out of range');
+    return Math.round((scaled + Number.EPSILON * Math.max(1, scaled)) * precision) / precision;
+  };
   return {
-    adjCalories: Math.round(labelNutrition.calories * ratio),
-    adjProteinG: Math.round(labelNutrition.proteinG * ratio * 10) / 10,
-    adjCarbsG: Math.round(labelNutrition.carbsG * ratio * 10) / 10,
-    adjFatG: Math.round(labelNutrition.fatG * ratio * 10) / 10,
-    adjFiberG: Math.round((labelNutrition.fiberG || 0) * ratio * 10) / 10,
-    adjSugarG: Math.round((labelNutrition.sugarG || 0) * ratio * 10) / 10,
+    adjCalories: round(labelNutrition.calories, 1),
+    adjProteinG: round(labelNutrition.proteinG),
+    adjCarbsG: round(labelNutrition.carbsG),
+    adjFatG: round(labelNutrition.fatG),
+    adjFiberG: round(labelNutrition.fiberG),
+    adjSugarG: round(labelNutrition.sugarG),
   };
 }
 
@@ -66,7 +78,7 @@ async function extractWithOpenAI(ocrText) {
 {
   "productName": "string or null",
   "ingredients": "string or null (comma-separated list)",
-  "servingSizeG": number (serving size in grams, estimate if given in cups/oz),
+  "servingSizeG": number or null (explicit mass only; never infer grams from volume),
   "servingsPerContainer": number or null,
   "calories": number,
   "proteinG": number,
@@ -78,7 +90,7 @@ async function extractWithOpenAI(ocrText) {
   "confidence": number between 0 and 1
 }
 
-If a value cannot be determined, use 0. Here is the label text:
+If a value cannot be determined, use null, never zero. Do not infer serving mass or fill missing nutrients. Copy one consistent nutrition column only. Here is the label text:
 
 ${ocrText}`;
 
@@ -93,18 +105,19 @@ ${ocrText}`;
   if (!content) throw new Error('Empty OpenAI response');
 
   const parsed = JSON.parse(content);
+  const known = value => typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
   return {
     productName: parsed.productName || null,
     ingredients: parsed.ingredients || null,
-    servingSizeG: Number(parsed.servingSizeG) || 100,
+    servingSizeG: known(parsed.servingSizeG),
     servingsPerContainer: parsed.servingsPerContainer ? Number(parsed.servingsPerContainer) : null,
-    calories: Number(parsed.calories) || 0,
-    proteinG: Number(parsed.proteinG) || 0,
-    carbsG: Number(parsed.carbsG) || 0,
-    fatG: Number(parsed.fatG) || 0,
-    fiberG: Number(parsed.fiberG) || 0,
-    sugarG: Number(parsed.sugarG) || 0,
-    sodiumMg: Number(parsed.sodiumMg) || 0,
+    calories: known(parsed.calories),
+    proteinG: known(parsed.proteinG),
+    carbsG: known(parsed.carbsG),
+    fatG: known(parsed.fatG),
+    fiberG: known(parsed.fiberG),
+    sugarG: known(parsed.sugarG),
+    sodiumMg: known(parsed.sodiumMg),
     confidence: Number(parsed.confidence) || 0.7,
   };
 }
@@ -117,7 +130,8 @@ function extractWithRegex(ocrText) {
   // false matches.  Also normalize commas out of numbers (e.g. "2,000" → "2000").
   const cleaned = ocrText
     .replace(/2[,.]?000\s*calories\s*a\s*day[^.]*\.?/gi, '')
-    .replace(/(\d),(\d)/g, '$1$2');   // "2,000" → "2000"
+    .replace(/(\d),(?=\d{3}\b)/g, '$1')
+    .replace(/(\d),(\d{1,2})(?!\d)/g, '$1.$2');
   const text = cleaned.toLowerCase();
 
   function findNumber(patterns) {
@@ -125,12 +139,12 @@ function extractWithRegex(ocrText) {
       const match = text.match(pattern);
       if (match) return parseFloat(match[1]);
     }
-    return 0;
+    return null;
   }
 
   // Calories – match "Calories 170" style, avoid "XX calories a day" leftovers
   const calories = findNumber([
-    /calories\s*[:=]?\s*(\d+)/,
+    /calories\s*[:=]?\s*(\d+\.?\d*)/,
     /amount\s*per\s*serving\s*[:=]?\s*(\d+)/,
     /(\d+)\s*kcal/,
   ]);
@@ -169,13 +183,13 @@ function extractWithRegex(ocrText) {
     /(\d+\.?\d*)\s*g\s*per\s*serving/,
     /per\s*(\d+\.?\d*)\s*g/,
   ]);
-  if (!servingSizeG) servingSizeG = 100; // default
+  // Unknown serving mass must be reviewed, never defaulted to 100 g.
 
   return {
     productName: null,
-    ingredients: null,
+    ingredients: ocrText.match(/ingredients\s*:\s*([^\n]+)/i)?.[1]?.trim() || null,
     servingSizeG,
-    servingsPerContainer: null,
+    servingsPerContainer: findNumber([/(\d+\.?\d*)\s*servings?\s*per\s*container/, /servings?\s*per\s*container\s*[:=]?\s*(\d+\.?\d*)/]),
     calories,
     proteinG,
     carbsG,
@@ -222,59 +236,76 @@ async function saveScannedLabel(userId, data) {
       proteinG: labelProteinG,
       carbsG: labelCarbsG,
       fatG: labelFatG,
-      fiberG: labelFiberG || 0,
-      sugarG: labelSugarG || 0,
+      fiberG: labelFiberG ?? null,
+      sugarG: labelSugarG ?? null,
     },
     servingSizeG,
     actualPortionG,
   );
 
-  // Create the FoodLog entry with adjusted values
-  const foodLog = await prisma.foodLog.create({
-    data: {
-      userId,
-      foodName: productName || 'Scanned food',
-      quantityG: actualPortionG,
-      calories: adjusted.adjCalories,
-      proteinG: adjusted.adjProteinG,
-      carbsG: adjusted.adjCarbsG,
-      fatG: adjusted.adjFatG,
-      fiberG: adjusted.adjFiberG,
-      mealType: mealType || 'meal',
-    },
-  });
+  const existing = await prisma.scannedLabel.findUnique({ where: { id: data.id } });
+  const response = async (label) => {
+    if (label.userId !== userId) { const error = new Error('Label id conflict'); error.status = 409; throw error; }
+    const foodLog = label.foodLogId ? await prisma.foodLog.findUnique({ where: { id: label.foodLogId } }) : null;
+    if (!foodLog) throw Object.assign(new Error('This meal was removed'), { status: 410 });
+    return { scannedLabel: label, foodLog,
+      adjusted: Object.fromEntries(['adjCalories','adjProteinG','adjCarbsG','adjFatG','adjFiberG','adjSugarG'].map(key => [key, label[key]])) };
+  };
+  if (existing) return response(existing);
+  try { return await prisma.$transaction(async tx => {
+    // Create the FoodLog entry with adjusted values
+    const foodLog = await tx.foodLog.create({
+      data: {
+        userId,
+        foodName: productName || 'Scanned food',
+        quantityG: actualPortionG,
+        calories: adjusted.adjCalories,
+        proteinG: adjusted.adjProteinG,
+        carbsG: adjusted.adjCarbsG,
+        fatG: adjusted.adjFatG,
+        fiberG: adjusted.adjFiberG,
+        mealType: mealType || 'meal',
+      },
+    });
 
-  // Save the scanned label with both raw and adjusted data
-  const scannedLabel = await prisma.scannedLabel.create({
-    data: {
-      userId,
-      productName,
-      ingredients,
-      servingSizeG,
-      servingsPerContainer,
-      labelCalories,
-      labelProteinG,
-      labelCarbsG,
-      labelFatG,
-      labelFiberG: labelFiberG || 0,
-      labelSugarG: labelSugarG || 0,
-      labelSodiumMg: labelSodiumMg || 0,
-      actualPortionG,
-      adjCalories: adjusted.adjCalories,
-      adjProteinG: adjusted.adjProteinG,
-      adjCarbsG: adjusted.adjCarbsG,
-      adjFatG: adjusted.adjFatG,
-      adjFiberG: adjusted.adjFiberG,
-      adjSugarG: adjusted.adjSugarG,
-      foodLogId: foodLog.id,
-      photoUri,
-      ocrRawText,
-      aiConfidence,
-      mealType,
-    },
-  });
+    // Save the scanned label with both raw and adjusted data
+    const scannedLabel = await tx.scannedLabel.create({
+      data: {
+        id: data.id,
+        userId,
+        productName,
+        ingredients,
+        servingSizeG,
+        servingsPerContainer,
+        labelCalories,
+        labelProteinG,
+        labelCarbsG,
+        labelFatG,
+        labelFiberG: labelFiberG ?? null,
+        labelSugarG: labelSugarG ?? null,
+        labelSodiumMg: labelSodiumMg ?? null,
+        actualPortionG,
+        adjCalories: adjusted.adjCalories,
+        adjProteinG: adjusted.adjProteinG,
+        adjCarbsG: adjusted.adjCarbsG,
+        adjFatG: adjusted.adjFatG,
+        adjFiberG: adjusted.adjFiberG,
+        adjSugarG: adjusted.adjSugarG,
+        foodLogId: foodLog.id,
+        photoUri,
+        ocrRawText,
+        aiConfidence,
+        mealType,
+      },
+    });
 
-  return { scannedLabel, foodLog, adjusted };
+    return { scannedLabel, foodLog, adjusted };
+  }); } catch (error) {
+    if (error.code !== 'P2002') throw error;
+    const saved = await prisma.scannedLabel.findUnique({ where: { id: data.id } });
+    if (!saved) throw error;
+    return response(saved);
+  }
 }
 
 /**

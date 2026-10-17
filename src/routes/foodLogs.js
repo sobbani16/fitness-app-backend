@@ -9,7 +9,8 @@ router.post('/',async(req,res,next)=>{
   if (typeof b.id !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(b.id)) throw httpError(400,'Stable meal id required');
   const data={foodName:b.foodName.slice(0,300),mealType:String(b.mealType||'meal').slice(0,30)};
   for(const k of ['quantityG','calories','proteinG','carbsG','fatG','fiberG']) {
-   const n=b[k] ?? 0; if(!Number.isFinite(n)||n<0||n>100000)throw httpError(400,`Invalid ${k}`); data[k]=n;
+   if(k==='fiberG' && b[k]==null){data[k]=null;continue;}
+   const n=b[k]; if(!Number.isFinite(n)||n<0||n>100000)throw httpError(400,`Invalid ${k}`); data[k]=n;
   }
   const loggedAt=b.loggedAt ? new Date(b.loggedAt) : new Date();
   if(!Number.isFinite(loggedAt.getTime())||loggedAt.getTime()>Date.now()+300000)throw httpError(400,'Invalid loggedAt');

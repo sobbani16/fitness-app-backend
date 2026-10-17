@@ -107,3 +107,15 @@ describe('exercises routes', () => {
     expect(res.body.suggestedWeight).toBeNull();
   });
 });
+
+it('finishes an owned workout idempotently and rejects new sets after finish', async () => {
+  const created = await request(app).post('/exercises').set('x-user-id', USER)
+    .send({ exerciseType: 'squat', sets: [{ reps: 5, weight: 100 }] });
+  const url = `/exercises/${created.body.id}/finish`;
+  expect((await request(app).post(url).set('x-user-id', 'other')).status).toBe(404);
+  const finished = await request(app).post(url).set('x-user-id', USER);
+  expect(finished.status).toBe(200);
+  expect(finished.body.finishedAt).toBeTruthy();
+  expect((await request(app).post(url).set('x-user-id', USER)).body.finishedAt).toBe(finished.body.finishedAt);
+  expect((await request(app).post(`/exercises/${created.body.id}/sets`).set('x-user-id', USER).send({ reps: 5, weight: 100 })).status).toBe(400);
+});

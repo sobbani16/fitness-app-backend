@@ -14,12 +14,14 @@ function createExerciseSessionStore({ clock = () => new Date() } = {}) {
     return list.find((s) => s.id === sessionId) || null;
   }
 
-  function create(userId, { exerciseType, sets = [] }) {
+  function create(userId, { exerciseType, sets = [], id }) {
     if (!userId) throw new Error('userId required');
     if (!exerciseType) throw new Error('exerciseType required');
+    const existing = id && getById(userId, id);
+    if (existing) return existing;
     const now = clock().toISOString();
     const session = {
-      id: `ex-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      id: id || `ex-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
       userId,
       exerciseType,
       createdAt: now,
@@ -36,6 +38,8 @@ function createExerciseSessionStore({ clock = () => new Date() } = {}) {
     const list = sessions.get(userId) || [];
     const idx = list.findIndex((s) => s.id === sessionId);
     if (idx === -1) return null;
+    if (set.id && list[idx].sets.some(s => s.id === set.id)) return list[idx];
+    if (list[idx].finishedAt) throw new Error('Workout already finished');
     const now = clock().toISOString();
     list[idx] = {
       ...list[idx],
@@ -67,19 +71,21 @@ function createExerciseSessionStore({ clock = () => new Date() } = {}) {
     addSet,
     findLastSessionForExercise,
     reset,
+    finish(userId, id) { const s = getById(userId, id); if (s && !s.finishedAt) s.finishedAt = clock().toISOString(); return s; },
   };
 }
 
 function normalizeSet(s, fallbackTs) {
   const reps = Number(s.reps);
   const weight = Number(s.weight);
-  if (!Number.isFinite(reps) || reps <= 0) {
+  if (!Number.isInteger(reps) || reps <= 0 || reps > 1000) {
     throw new Error('reps must be a positive number');
   }
-  if (!Number.isFinite(weight) || weight < 0) {
+  if (!Number.isFinite(weight) || weight < 0 || weight > 2000) {
     throw new Error('weight must be a non-negative number');
   }
   return {
+    id: s.id,
     reps,
     weight,
     timestamp: s.timestamp || fallbackTs,
