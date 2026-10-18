@@ -16,7 +16,8 @@
     "db:seed-rbac": "node prisma/seed-rbac.js",
     "test:api": "node scripts/endpoint-smoke.js",
     "test:auth": "jest --config jest.auth.config.js --runInBand",
-    "deploy:prepare": "node scripts/deploy-prepare.js"
+    "deploy:prepare": "node scripts/deploy-prepare.js",
+    "admin:provision": "node scripts/provision-admin.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
