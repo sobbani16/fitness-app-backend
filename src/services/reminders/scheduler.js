@@ -3,6 +3,18 @@ const { localParts, parseHHMM, wallTimeToUtc, inQuietHours, formatMinutes } = re
 const { evaluate } = require('./decisionEngine');
 const { emit, notifyInbox } = require('./inbox');
 
+const TRIGGER_LOOKBACK_MS = 3 * 3600000;
+const CONFLICT_WINDOW_MS = 10 * 60000;
+const OPTIONAL_DEFER_MS = 15 * 60000;
+
+// Lower number wins a slot. Manual user schedules always outrank optional ones.
+const PRIORITY = { times: 0, trigger: 1, supplement: 2, water: 3, adaptive: 4 };
+
+function whyOf(setting, trigger, checkedAt) {
+  const source = setting.source === 'adaptive' ? 'a suggestion you accepted' : 'your own schedule';
+  return `Enabled: ${setting.category} reminders (${source}) · Trigger: ${trigger} · Checked: ${checkedAt.toISOString()}`;
+}
+
 const TITLES = {
   'meal:breakfast': 'Time for breakfast?',
   'meal:lunch': 'Time for lunch?',
@@ -36,18 +48,28 @@ function candidates(prefs, settings, ctx) {
       const elapsed = ctx.now - ctx.lastWaterAt;
       if (elapsed >= interval && ctx.now - ctx.lastWaterAt < interval * 2) {
         // One reminder per gap, keyed to the gap itself so logging resets it.
-        out.push({ category: cat, dedupeKey: `${ctx.userId}|water|gap|${ctx.lastWaterAt.toISOString()}`, scheduledFor: new Date(ctx.lastWaterAt.getTime() + interval), why: `It's been about ${setting.intervalMinutes ?? DEFAULTS.waterIntervalMinutes} min since your last water log.` });
+        out.push({ category: cat, priority: PRIORITY.water, dedupeKey: `${ctx.userId}|water|gap|${ctx.lastWaterAt.toISOString()}`, scheduledFor: new Date(ctx.lastWaterAt.getTime() + interval), why: whyOf(setting, `${setting.intervalMinutes ?? DEFAULTS.waterIntervalMinutes} min since a water log at ${ctx.lastWaterAt.toISOString()}`, ctx.now) });
       }
       continue;
     }
     if (cat === 'movement') continue; // requires fresh device step data; handled in a later milestone
+    if (setting.triggerEvent) {
+      const delay = (setting.triggerDelay ?? 0) * 60000;
+      for (const ev of ctx.events || []) {
+        if (ev.type !== setting.triggerEvent) continue;
+        const fire = new Date(ev.at.getTime() + delay);
+        if (fire > ctx.now || ctx.now - fire > 60 * 60000) continue;
+        out.push({ category: cat, priority: PRIORITY.trigger, dedupeKey: `${ctx.userId}|${cat}|trigger|${ev.type}|${ev.id}`, scheduledFor: fire, payload: { triggerEvent: ev.type, eventId: ev.id }, why: whyOf(setting, `${ev.type.replace(':', ' ')} confirmed at ${ev.at.toISOString()}`, ctx.now) });
+      }
+      continue;
+    }
     if (cat === 'supplement') {
       for (const sched of ctx.supplementSchedules || []) {
         const minutes = parseHHMM(sched.reminderTime);
         if (minutes == null) continue;
         const at = wallTimeToUtc(lp.dateKey, minutes, tz(prefs));
         if (at <= ctx.now || at - ctx.now > 15 * 60000) continue; // plan window: due now or within 15 min
-        out.push({ category: cat, dedupeKey: `${ctx.userId}|supplement|${lp.dateKey}|${sched.id}`, scheduledFor: at, payload: { supplementScheduleId: sched.id, supplementId: sched.supplementId, userSupplementId: sched.userSupplementId }, why: `Your ${sched.dose || 'supplement'} schedule says ${sched.reminderTime}.` });
+        out.push({ category: cat, priority: PRIORITY.supplement, dedupeKey: `${ctx.userId}|supplement|${lp.dateKey}|${sched.id}`, scheduledFor: at, payload: { supplementScheduleId: sched.id, supplementId: sched.supplementId, userSupplementId: sched.userSupplementId }, why: whyOf(setting, `supplement schedule at ${sched.reminderTime}`, ctx.now) });
       }
       continue;
     }
@@ -60,14 +82,49 @@ function candidates(prefs, settings, ctx) {
       if (fire <= ctx.now || fire - ctx.now > 15 * 60000) continue;
       out.push({
         category: cat,
+        priority: setting.source === 'adaptive' ? PRIORITY.adaptive : PRIORITY.times,
         dedupeKey: `${ctx.userId}|${cat}|${lp.dateKey}|${t}|${lead}`,
         scheduledFor: fire,
         payload: cat === 'workout' ? { startsAt: at.toISOString(), leadMinutes: lead } : undefined,
-        why: cat === 'workout' ? `Your workout schedule says ${t}.` : `Your ${cat.split(':')[1]} schedule says ${t}.`,
+        why: whyOf(setting, `${cat.split(':')[1] || cat} time ${t} local`, ctx.now),
       });
     }
   }
-  return out;
+  return resolveConflicts(out, ctx.userId, lp.dateKey, ctx.now);
+}
+
+// Compatible categories merge into one notification (meal + supplement).
+// Lower-priority optional reminders defer by 15 min — never marked complete.
+const MERGEABLE = /^(meal:|supplement)/;
+function resolveConflicts(planned, userId, dateKey, now) {
+  planned.sort((a, b) => a.scheduledFor - b.scheduledFor || a.priority - b.priority);
+  const kept = [];
+  for (const p of planned) {
+    const clash = kept.find(k => Math.abs(k.scheduledFor - p.scheduledFor) <= CONFLICT_WINDOW_MS);
+    if (!clash) { kept.push(p); continue; }
+    const bothMergeable = MERGEABLE.test(clash.category) && MERGEABLE.test(p.category) && clash.priority <= PRIORITY.supplement && p.priority <= PRIORITY.supplement;
+    if (bothMergeable) {
+      const cats = [...new Set([...(clash.payload?.merged || [clash.category]), p.category])].sort();
+      clash.category = `bundle:${cats.join('+')}`;
+      clash.dedupeKey = `${userId}|bundle|${dateKey}|${cats.join('+')}`;
+      clash.payload = { ...(clash.payload || {}), merged: cats, bodies: [...(clash.payload?.merged ? clash.payload.bodies : [TITLES[clash.category] || clash.category]), TITLES[p.category] || p.category] };
+      clash.why = `${clash.why} · combined with ${p.category}`;
+    } else if (p.priority > clash.priority) {
+      p.scheduledFor = new Date(clash.scheduledFor.getTime() + OPTIONAL_DEFER_MS);
+      p.dedupeKey += '|deferred';
+      p.why += ` · deferred ${OPTIONAL_DEFER_MS / 60000} min to avoid stacking with ${clash.category}`;
+      kept.push(p);
+    } else if (clash.priority > p.priority) {
+      // Incoming higher-priority reminder wins the slot; defer the earlier one.
+      clash.scheduledFor = new Date(p.scheduledFor.getTime() + OPTIONAL_DEFER_MS);
+      clash.dedupeKey += '|deferred';
+      clash.why += ` · deferred ${OPTIONAL_DEFER_MS / 60000} min to avoid stacking with ${p.category}`;
+      kept.push(p);
+    } else {
+      kept.push(p);
+    }
+  }
+  return kept;
 }
 
 // Persists planned instances with idempotent dedupe keys.
@@ -76,10 +133,13 @@ async function planUser(prisma, userId, now) {
   if (!prefs || !prefs.masterEnabled) return [];
   const settings = await prisma.reminderCategorySetting.findMany({ where: { userId, enabled: true } });
   if (!settings.length) return [];
-  const [lastWater, supplementSchedules, links] = await Promise.all([
+  const since = new Date(now.getTime() - TRIGGER_LOOKBACK_MS);
+  const [lastWater, supplementSchedules, links, recentMeals, recentWorkouts] = await Promise.all([
     prisma.waterLog.findFirst({ where: { userId }, orderBy: { loggedAt: 'desc' }, select: { loggedAt: true } }),
     prisma.supplementSchedule.findMany({ where: { userId, active: true, reminderTime: { not: null } } }),
     prisma.userSupplement.findMany({ where: { userId }, select: { id: true, supplementId: true } }),
+    prisma.foodLog.findMany({ where: { userId, loggedAt: { gte: since } }, select: { id: true, mealType: true, loggedAt: true } }),
+    prisma.workoutSession.findMany({ where: { userId, finishedAt: { gte: since } }, select: { id: true, finishedAt: true } }),
   ]);
   const linkBySupplement = Object.fromEntries(links.map(l => [l.supplementId, l.id]));
   const ctx = {
@@ -87,6 +147,10 @@ async function planUser(prisma, userId, now) {
     now,
     lastWaterAt: lastWater?.loggedAt || null,
     supplementSchedules: supplementSchedules.map(s => ({ ...s, userSupplementId: linkBySupplement[s.supplementId] })),
+    events: [
+      ...recentMeals.filter(m => m.mealType).map(m => ({ type: `meal:${m.mealType}`, id: m.id, at: m.loggedAt })),
+      ...recentWorkouts.map(w => ({ type: 'workout:completed', id: w.id, at: w.finishedAt })),
+    ],
   };
   const planned = candidates(prefs, settings, ctx);
   if (!planned.length) return [];
@@ -125,6 +189,7 @@ async function buildContext(prisma, userId, now, prefs) {
 }
 
 function completedFor(category, instance, facts) {
+  if (category.startsWith('bundle:')) return (instance.payload?.merged || []).some(c => c.startsWith('meal:') && facts.mealsLogged.has(c.split(':')[1]));
   if (category.startsWith('meal:')) return facts.mealsLogged.has(category.split(':')[1]);
   if (category === 'water') return instance.scheduledFor && facts.lastWaterAt && facts.lastWaterAt > instance.scheduledFor;
   if (category === 'supplement') return facts.supplementsLogged.has(instance.payload?.userSupplementId ?? instance.payload?.supplementScheduleId);
@@ -169,7 +234,9 @@ async function runTick(prisma, { now = new Date(), userIds } = {}) {
 
     if (verdict.decision === 'send') {
       await prisma.reminderInstance.update({ where: { id: instance.id }, data: { status: 'sent', actedAt: now } });
-      await notifyInbox(prisma, { userId: instance.userId, category: instance.category, title: TITLES[instance.category] || 'Reminder', body: instance.payload?.body || TITLES[instance.category] || 'Reminder', why: instance.why });
+      const merged = instance.payload?.merged;
+      const title = merged ? `Reminder: ${merged.map(c => c.split(':').pop()).join(' and ')}` : (TITLES[instance.category] || 'Reminder');
+      await notifyInbox(prisma, { userId: instance.userId, category: instance.category, title, body: instance.payload?.body || title, why: instance.why });
       await emit(prisma, instance.userId, 'reminder.sent', { category: instance.category });
       facts.sentToday += 1;
       facts.lastSentByCategory[instance.category] = now;

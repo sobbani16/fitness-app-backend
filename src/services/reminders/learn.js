@@ -3,6 +3,10 @@ const { getPreferences } = require('./preferences');
 
 const LOOKBACK_DAYS = 30;
 const SUGGESTION_TTL_DAYS = 14;
+const FATIGUE_WINDOW_DAYS = 14;
+const FATIGUE_MIN_SENT = 8;
+const FATIGUE_COMPLETION_RATE = 0.2;
+
 
 function existingKeys(suggestions, settings) {
   const keys = new Set();
@@ -33,7 +37,8 @@ async function generateSuggestions(prisma, userId, { now = new Date() } = {}) {
   });
   const timezone = prefs.timezone || 'UTC';
   const since = new Date(now.getTime() - LOOKBACK_DAYS * 86400000);
-  const [foodLogs, waterLogs, supplementLogs, open, settings] = await Promise.all([
+  const [foodLogs, waterLogs, supplementLogs, open, settings, recentInstances] = await Promise.all([
+    prisma.reminderInstance.findMany({ where: { userId, createdAt: { gte: new Date(now.getTime() - FATIGUE_WINDOW_DAYS * 86400000) } }, select: { status: true, category: true } }),
     prisma.foodLog.findMany({ where: { userId, loggedAt: { gte: since } }, select: { mealType: true, loggedAt: true } }),
     prisma.waterLog.findMany({ where: { userId, loggedAt: { gte: since } }, select: { loggedAt: true } }),
     prisma.supplementLog.findMany({ where: { userId, loggedAt: { gte: since } }, select: { supplementName: true, loggedAt: true } }),
@@ -51,6 +56,22 @@ async function generateSuggestions(prisma, userId, { now = new Date() } = {}) {
   const created = [];
   for (const s of suggestions) {
     created.push(await prisma.reminderSuggestion.create({ data: { userId, ...s } }));
+  }
+  // Fatigue: many sends, few completed/acted outcomes -> suggest lowering the cap.
+  const sent = recentInstances.filter(i => ['sent'].includes(i.status)).length;
+  const engaged = recentInstances.filter(i => ['completed', 'snoozed'].includes(i.status)).length;
+  if (sent >= FATIGUE_MIN_SENT && engaged / sent < FATIGUE_COMPLETION_RATE && (prefs.dailyCap ?? 3) > 1 && !open.some(o => o.category === 'system:fatigue')) {
+    const lower = Math.max(1, (prefs.dailyCap ?? 3) - 1);
+    created.push(await prisma.reminderSuggestion.create({
+      data: {
+        userId,
+        category: 'system:fatigue',
+        title: 'Fewer reminders?',
+        body: `${sent} optional reminders went out in the last ${FATIGUE_WINDOW_DAYS} days and most weren't acted on. Lower the daily optional limit to ${lower}?`,
+        proposed: { dailyCap: lower },
+        evidence: { observations: sent, engaged, completionRate: Number((engaged / sent).toFixed(2)) },
+      },
+    }));
   }
   return created;
 }

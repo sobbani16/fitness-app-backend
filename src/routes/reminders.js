@@ -42,7 +42,7 @@ router.post('/preferences/pause', async (req, res) => {
     const userId = requireUser(req, res);
     if (!userId) return;
     const minutes = req.body?.minutes == null ? null : Number(req.body.minutes);
-    res.json({ preferences: await prefs.pauseAll(getPrisma(), userId, minutes) });
+    res.json({ preferences: await prefs.pauseAll(getPrisma(), userId, minutes, req.body?.reason) });
   } catch (err) { res.status(400).json({ error: err.message }); }
 });
 

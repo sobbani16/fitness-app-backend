@@ -1,7 +1,9 @@
 const { CATEGORIES, DEFAULTS, SNOOZE_OPTIONS } = require('./constants');
 const { parseHHMM } = require('./time');
 
-const PREF_FIELDS = ['masterEnabled', 'adaptiveEnabled', 'suggestionsMuted', 'quietStart', 'quietEnd', 'dailyCap', 'snoozeMinutes', 'pausedUntil', 'weeklyDigest', 'timezone', 'timezoneLocked'];
+const PREF_FIELDS = ['masterEnabled', 'adaptiveEnabled', 'suggestionsMuted', 'quietStart', 'quietEnd', 'dailyCap', 'snoozeMinutes', 'pausedUntil', 'pauseReason', 'weeklyDigest', 'timezone', 'timezoneLocked'];
+const PAUSE_REASONS = ['vacation', 'rest_day', 'unwell', 'custom'];
+const TRIGGER_EVENTS = ['meal:breakfast', 'meal:lunch', 'meal:dinner', 'meal:snack', 'workout:completed'];
 
 function defaults(userId) {
   return {
@@ -44,6 +46,9 @@ function validatePrefs(patch) {
     } else if (key === 'pausedUntil') {
       clean[key] = value ? new Date(value) : null;
       if (clean[key] && Number.isNaN(clean[key].getTime())) throw new Error('pausedUntil must be a date');
+    } else if (key === 'pauseReason') {
+      if (value != null && !PAUSE_REASONS.includes(value)) throw new Error(`pauseReason must be one of ${PAUSE_REASONS.join('/')}`);
+      clean[key] = value;
     } else {
       clean[key] = Boolean(value);
     }
@@ -84,6 +89,15 @@ function validateCategory(category, patch) {
       clean[key] = patch[key];
     }
   }
+  if ('triggerEvent' in patch) {
+    if (patch.triggerEvent != null && !TRIGGER_EVENTS.includes(patch.triggerEvent)) throw new Error(`triggerEvent must be one of ${TRIGGER_EVENTS.join('/')}`);
+    clean.triggerEvent = patch.triggerEvent;
+  }
+  if ('triggerDelay' in patch) {
+    const n = Number(patch.triggerDelay);
+    if (patch.triggerDelay != null && (!Number.isInteger(n) || n < 0 || n > 180)) throw new Error('triggerDelay must be 0-180 minutes');
+    clean.triggerDelay = patch.triggerDelay;
+  }
   return clean;
 }
 
@@ -118,9 +132,9 @@ async function updateCategory(prisma, userId, category, patch) {
   });
 }
 
-async function pauseAll(prisma, userId, minutes) {
+async function pauseAll(prisma, userId, minutes, reason) {
   const until = minutes ? new Date(Date.now() + minutes * 60000) : null;
-  return updatePreferences(prisma, userId, { pausedUntil: until });
+  return updatePreferences(prisma, userId, { pausedUntil: until, pauseReason: minutes ? (reason || 'custom') : null });
 }
 
 // Revoking adaptive consent immediately stops adaptive automation: pending
@@ -150,6 +164,12 @@ async function acceptSuggestion(prisma, userId, suggestionId) {
   const prefs = await getPreferences(prisma, userId);
   if (!prefs.adaptiveEnabled) throw new Error('Adaptive reminders are not enabled');
   const proposed = suggestion.proposed || {};
+  // Frequency/fatigue suggestions adjust preferences, not category schedules.
+  if (proposed.dailyCap != null) {
+    await updatePreferences(prisma, userId, { dailyCap: proposed.dailyCap });
+    await prisma.reminderSuggestion.update({ where: { id: suggestionId }, data: { status: 'accepted', resolvedAt: new Date() } });
+    return { category: suggestion.category, dailyCap: proposed.dailyCap };
+  }
   const current = await prisma.reminderCategorySetting.findUnique({ where: { userId_category: { userId, category: suggestion.category } } });
   // User-configured manual schedules always take precedence over suggestions.
   if (current && current.source === 'manual' && current.enabled && Array.isArray(current.times) && current.times.length) {

@@ -211,3 +211,52 @@ describe('preferences and consent', () => {
     expect(prisma.store.pref.suggestionsMuted).toBe(true);
   });
 });
+
+describe('conflict resolution and triggers', () => {
+  const { candidates } = require('../src/services/reminders/scheduler');
+  const basePrefs2 = { masterEnabled: true, adaptiveEnabled: true, timezone: 'America/New_York' };
+  const now = new Date('2026-10-27T16:25:00Z'); // 12:25 EDT — within plan window of 12:30
+
+  it('merges a meal and supplement reminder in the same slot', () => {
+    const settings = [
+      { category: 'meal:lunch', enabled: true, source: 'manual', times: ['12:30'] },
+      { category: 'supplement', enabled: true, source: 'manual', times: [] },
+    ];
+    const supplementSchedules = [{ id: 'ss1', supplementId: 'sup1', userSupplementId: 'us1', dose: '5g', reminderTime: '12:30', active: true }];
+    const plan = candidates(basePrefs2, settings, { userId: 'u1', now, lastWaterAt: null, supplementSchedules, events: [] });
+    expect(plan).toHaveLength(1);
+    expect(plan[0].category).toBe('bundle:meal:lunch+supplement');
+    expect(plan[0].dedupeKey).toContain('bundle');
+  });
+  it('defers an optional water reminder rather than completing it', () => {
+    const settings = [
+      { category: 'meal:lunch', enabled: true, source: 'manual', times: ['12:30'] },
+      { category: 'water', enabled: true, source: 'manual', intervalMinutes: 60 },
+    ];
+    const lastWater = new Date('2026-10-27T15:25:00Z'); // gap ends 16:25Z, within 10 min of the 12:30 lunch
+    const plan = candidates(basePrefs2, settings, { userId: 'u1', now, lastWaterAt: lastWater, supplementSchedules: [], events: [] });
+    expect(plan).toHaveLength(2);
+    const water = plan.find(p => p.category === 'water');
+    expect(water.scheduledFor.getTime()).toBe(plan.find(p => p.category === 'meal:lunch').scheduledFor.getTime() + 15 * 60000);
+    expect(water.dedupeKey).toContain('deferred');
+    expect(water.status).toBeUndefined(); // stays schedulable, never completed
+  });
+  it('triggered reminders require a confirmed event', () => {
+    const settings = [{ category: 'supplement', enabled: true, source: 'manual', times: [], triggerEvent: 'meal:breakfast', triggerDelay: 15 }];
+    const noEvent = candidates(basePrefs2, settings, { userId: 'u1', now, lastWaterAt: null, supplementSchedules: [], events: [] });
+    expect(noEvent).toEqual([]);
+    const ev = { type: 'meal:breakfast', id: 'log-1', at: new Date('2026-10-27T16:10:00Z') };
+    const plan = candidates(basePrefs2, settings, { userId: 'u1', now, lastWaterAt: null, supplementSchedules: [], events: [ev] });
+    expect(plan).toHaveLength(1);
+    expect(plan[0].dedupeKey).toBe('u1|supplement|trigger|meal:breakfast|log-1');
+    expect(plan[0].scheduledFor.toISOString()).toBe('2026-10-27T16:25:00.000Z');
+    expect(plan[0].why).toContain('meal breakfast');
+  });
+  it('validates trigger and pause inputs', () => {
+    expect(() => prefs.validateCategory('supplement', { triggerEvent: 'meal:midnight' })).toThrow('triggerEvent');
+    expect(() => prefs.validateCategory('supplement', { triggerDelay: 999 })).toThrow('triggerDelay');
+    expect(prefs.validateCategory('supplement', { triggerEvent: 'meal:breakfast', triggerDelay: 15 })).toEqual({ triggerEvent: 'meal:breakfast', triggerDelay: 15 });
+    expect(() => prefs.validatePrefs({ pauseReason: 'lazy' })).toThrow('pauseReason');
+    expect(prefs.validatePrefs({ pauseReason: 'vacation' })).toEqual({ pauseReason: 'vacation' });
+  });
+});

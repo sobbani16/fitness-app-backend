@@ -1632,6 +1632,7 @@ model ReminderPreference {
 
   snoozeMinutes   Int      @default(30)
   pausedUntil     DateTime?
+  pauseReason     String?  // vacation | rest_day | unwell | custom
   weeklyDigest    Boolean  @default(false)
 
   // IANA timezone used for scheduling. When timezoneLocked is set, learned/manual
@@ -1671,6 +1672,11 @@ model ReminderCategorySetting {
   // water waking hours override ("HH:MM"), falls back to quiet hours.
   wakingStart     String?
   wakingEnd       String?
+
+  // Opt-in habit stacking: fire only after a confirmed event, e.g.
+  // "meal:breakfast" (a FoodLog was written) or "workout:completed".
+  triggerEvent    String?
+  triggerDelay    Int?     // minutes after the confirmed event
 
   source          String   @default("manual")
 
