@@ -2,6 +2,7 @@ const express = require('express');
 const { requireRole, requirePermission } = require('../middleware/rbac');
 const nutritionistService = require('../services/nutritionistService');
 const audit = require('../services/auditService');
+const { coachingTransaction } = require('../services/coachingTransaction');
 
 const router = express.Router();
 
@@ -34,13 +35,16 @@ router.post('/clients/assign', requirePermission('MANAGE_NUTRITIONISTS'), async 
     if (!nutritionistId || !clientId) {
       return res.status(400).json({ error: 'nutritionistId and clientId required.' });
     }
-    const result = await nutritionistService.assignClient(nutritionistId, clientId);
-    await audit.log({
-      actorId: req.userId,
-      action: 'client.assign',
-      entityType: 'NutritionistClient',
-      entityId: result.id,
-      afterData: { nutritionistId, clientId },
+    const result = await coachingTransaction(async tx => {
+      const result = await nutritionistService.assignClient(nutritionistId, clientId, tx);
+      await audit.log({
+        actorId: req.userId,
+        action: 'client.assign',
+        entityType: 'NutritionistClient',
+        entityId: result.id,
+        afterData: { nutritionistId, clientId },
+      }, tx);
+      return result;
     });
     res.status(201).json(result);
   } catch (err) {

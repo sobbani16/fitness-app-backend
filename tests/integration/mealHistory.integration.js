@@ -21,7 +21,7 @@ test('historical meals survive fresh login, recover on a second device and remai
   const times = ['2025-01-01T00:00:00.000Z', '2025-01-01T23:59:59.999Z', '2025-01-02T00:00:00.000Z'];
   const ids = times.map(() => randomUUID());
   for (let i = 0; i < times.length; i++) {
-    await request(app).post('/food-logs').set('Authorization', auth(owner)).send({ id: ids[i], foodName: 'Historical lunch', calories: 350, loggedAt: times[i], fiberG: 5 }).expect(201);
+    await request(app).post('/food-logs').set('Authorization', auth(owner)).send({ id: ids[i], foodName: 'Historical lunch', calories: 350, quantityG: 250, proteinG: 25, carbsG: 40, fatG: 10, loggedAt: times[i], fiberG: 5 }).expect(201);
   }
   // Reinstall/another device obtains a new session without any device cache or ID.
   const login = (await request(app).post('/auth/login').send({ email: owner.user.email, password }).expect(200)).body;

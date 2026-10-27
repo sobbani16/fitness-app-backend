@@ -45,7 +45,7 @@ async function generateWeeklyPlan(userId, weekStartDate, requested = {}) {
     const preferences = await tx.userPlanningPreferences.findUnique({where:{userId}});
     if (preferences) validatePreferences(Object.fromEntries(['mealPrepStyle','budgetLevel','cookingSkill','householdSize','availableEquipment','dietaryRestrictions'].map(k=>[k,preferences[k]])));
     const prefs = await tx.foodPreference.findMany({where:{userId}});
-    const allRecipes = await tx.recipe.findMany({where:{isSystem:true},include:{ingredients:true}});
+    const allRecipes = await require('./centralRecipes').resolveRecipes(await tx.recipe.findMany({where:{isSystem:true},include:{ingredients:true}}),tx);
     const recipesByType = Object.fromEntries(['breakfast','lunch','dinner','snack'].map(t=>[t,allRecipes.filter(r=>r.mealType===t)]));
     const meals = generateWeeklyMeals({...ctx, recipesByType, preferences:preferences||{},
       dislikedFoods:prefs.filter(p=>['DISLIKE','NEVER_RECOMMEND'].includes(p.preference)).map(p=>p.foodName),

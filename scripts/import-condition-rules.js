@@ -1,0 +1,11 @@
+require('dotenv').config({quiet:true});
+const fs=require('node:fs');
+const {getPrisma}=require('../src/lib/prisma');
+const {importConditionRules}=require('../src/services/nutrients/conditionRuleImport');
+const args=process.argv.slice(2),file=args.find(x=>!x.startsWith('--'));
+if(args.some(x=>x.startsWith('--')&&!['--apply','--approved-hosted','--allow-approved'].includes(x)))throw Error('Unknown flag');
+const apply=args.includes('--apply'),url=new URL(process.env.DATABASE_URL||'http://missing');
+if(apply&&!['localhost','127.0.0.1','[::1]'].includes(url.hostname)&&!args.includes('--approved-hosted'))throw Error('Hosted writes require approval and --approved-hosted');
+const dataset=file?JSON.parse(fs.readFileSync(file,'utf8')):require('../data/condition-rules/initial');
+const p=getPrisma();
+importConditionRules(p,dataset,{apply,allowApproved:args.includes('--allow-approved')}).then(r=>console.log(JSON.stringify(r,null,2))).catch(e=>{console.error(e.message);process.exitCode=1;}).finally(()=>p.$disconnect());

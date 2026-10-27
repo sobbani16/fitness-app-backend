@@ -23,3 +23,15 @@ it('adjustment requires known primary nutrients and preserves optional unknowns'
   const result = await request(app).post('/labels/adjust').send({ servingSizeG: 100, actualPortionG: 150, calories: 200, proteinG: 10, carbsG: 30, fatG: 4 }).expect(200);
   expect(result.body.adjusted).toMatchObject({ adjCalories: 300, adjFiberG: null });
 });
+it('serves versioned insight findings and rejects malformed values', async () => {
+  const response = await request(app).post('/labels/insights').send({ingredients:'Maida',reviewed:true}).expect(200);
+  expect(response.body.insights[0]).toMatchObject({ruleId:'REFINED_GRAIN_001',confidence:'VERIFIED'});
+  await request(app).post('/labels/insights').send({sugarG:'unknown'}).expect(400);
+});
+it('rejects insights whose reviewed evidence disagrees with the logged meal', async () => {
+  await request(app).post('/labels/save').set('x-user-id','alice').send({...data,labelFacts:{reviewed:true,ingredients:'maida',carbsG:999}}).expect(400);
+  expect(service.saveScannedLabel).not.toHaveBeenCalled();
+});
+it('rejects comparison of an unreviewed product', async () => {
+  await request(app).post('/labels/compare').send({first:{reviewed:true,basisAmount:100,basisUnit:'g'},second:{reviewed:false}}).expect(400);
+});

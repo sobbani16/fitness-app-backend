@@ -8,7 +8,7 @@
       "npm run deploy:prepare"
     ],
     "startCommand": "npm start",
-    "healthcheckPath": "/health",
+    "healthcheckPath": "/health/ready",
     "healthcheckTimeout": 120
   }
 }

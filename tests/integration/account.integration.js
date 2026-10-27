@@ -66,7 +66,7 @@ afterAll(async () => { await clear(); await prisma.$disconnect(); });
 test('all schema models are explicitly classified for deletion/export review', () => {
   const special = ['legacyMigrationGrant', 'user', 'authSession', 'authAction', 'authRateBucket', 'accountDeletionReceipt', 'trainerProfile', 'nutritionistProfile', 'creatorProfile', 'recipe', 'auditLog', 'trainerClient', 'nutritionistClient', 'trainerDropForm', 'coachNote', 'workoutPlan', 'mealPlan'];
   const children = ['exerciseSet','recipeIngredient','creatorAnalytics','workoutPlanExercise','mealPlanItem','scoreContributor','healthScoreInsight','weeklyMeal','weeklyShoppingList','weeklyShoppingItem','weeklyRecommendation'];
-  const shared = ['healthCondition','allergy','supplement','ingredient','ingredientAttribute','supplementAttribute','conditionRule','supplementRule','role','permission','rolePermission'];
+  const shared = ['ruleEvidence','healthConditionNutrientRule','nutrient','ingredientNutritionProfile','ingredientNutrient','ingredientImport','ingredientServing','ingredientCatalog','healthCondition','allergy','supplement','ingredient','ingredientAttribute','supplementAttribute','conditionRule','supplementRule','role','permission','rolePermission'];
   expect(models.map(m => modelName(m.name)).filter(m => ![...OWNED,...special,...children,...shared].includes(m))).toEqual([]);
 });
 test('requires session, current password, explicit deletion confirmation; unverified users retain privacy access', async () => {

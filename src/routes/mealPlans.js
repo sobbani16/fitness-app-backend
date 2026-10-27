@@ -2,6 +2,7 @@ const express = require('express');
 const { requirePermission } = require('../middleware/rbac');
 const nutritionistService = require('../services/nutritionistService');
 const audit = require('../services/auditService');
+const { coachingTransaction } = require('../services/coachingTransaction');
 
 const router = express.Router();
 
@@ -12,15 +13,18 @@ router.post('/', requirePermission('ASSIGN_MEAL_PLAN'), async (req, res) => {
     if (!profile) return res.status(403).json({ error: 'No nutritionist profile found.' });
     const { clientId, title, caloriesTarget, proteinTarget, carbsTarget, fatTarget, items } = req.body || {};
     if (!clientId) return res.status(400).json({ error: 'clientId required.' });
-    const plan = await nutritionistService.createMealPlan(profile.id, clientId, {
-      title, caloriesTarget, proteinTarget, carbsTarget, fatTarget, items,
-    });
-    await audit.log({
-      actorId: req.userId,
-      action: 'plan.create',
-      entityType: 'MealPlan',
-      entityId: plan.id,
-      afterData: { clientId, title, caloriesTarget },
+    const plan = await coachingTransaction(async tx => {
+      const plan = await nutritionistService.createMealPlan(profile.id, clientId, {
+        title, caloriesTarget, proteinTarget, carbsTarget, fatTarget, items,
+      }, tx);
+      await audit.log({
+        actorId: req.userId,
+        action: 'plan.create',
+        entityType: 'MealPlan',
+        entityId: plan.id,
+        afterData: { clientId },
+      }, tx);
+      return plan;
     });
     res.status(201).json(plan);
   } catch (err) {

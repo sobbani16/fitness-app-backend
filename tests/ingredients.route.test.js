@@ -3,8 +3,9 @@ const request = require('supertest');
 // Mock the Prisma client so the route/service can be exercised without a DB.
 // Each test sets the resolved values to drive a specific cache tier.
 const mockPrisma = {
+  ingredientCatalog: { findMany: jest.fn() },
   userIngredient: { findMany: jest.fn(), upsert: jest.fn() },
-  ingredient: { findMany: jest.fn(), upsert: jest.fn() },
+  ingredient: { findMany: jest.fn(), findUnique: jest.fn(), upsert: jest.fn() },
 };
 jest.mock('../src/lib/prisma', () => ({ getPrisma: () => mockPrisma }));
 
@@ -30,6 +31,8 @@ function ingredientRow(over = {}) {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockPrisma.ingredientCatalog.findMany.mockResolvedValue([]);
+  mockPrisma.ingredient.findUnique.mockResolvedValue(null);
   mockPrisma.userIngredient.findMany.mockResolvedValue([]);
   mockPrisma.ingredient.findMany.mockResolvedValue([]);
   mockPrisma.userIngredient.upsert.mockResolvedValue({});

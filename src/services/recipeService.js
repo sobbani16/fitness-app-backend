@@ -67,6 +67,7 @@ async function spoonacularNutrition(id) {
   const servingWeightGrams =
     wps && Number(wps.amount) > 0 ? round(Number(wps.amount)) : 0;
 
+  if (!servingWeightGrams) throw httpError(422, 'Recipe serving weight is unknown; enter weighed nutrition manually.');
   // Per-100g so the client can re-scale to any portion (e.g. BLE scale).
   const factor = servingWeightGrams > 0 ? 100 / servingWeightGrams : 0;
   const caloriesPer100g = factor ? round(calories * factor) : calories;
@@ -92,7 +93,8 @@ async function spoonacularNutrition(id) {
 
 // ---- Public API ----------------------------------------------------------
 
-async function searchRecipes(query) {
+async function searchRecipes(query, userId) {
+  if(userId){const local=await require('../lib/prisma').getPrisma().recipe.findMany({where:{recipeName:{contains:query,mode:'insensitive'},OR:[{isSystem:true},{creatorId:userId}]},take:10});if(local.length)return local.map(r=>({id:r.id,title:r.recipeName,image:null}));}
   if (!hasApiKey()) throw httpError(503, 'Recipe service is not configured.');
   try {
     return await spoonacularSearch(query);
@@ -102,7 +104,13 @@ async function searchRecipes(query) {
   }
 }
 
-async function getRecipeNutrition(id) {
+async function getRecipeNutrition(id, userId) {
+  if(userId && !/^\d+$/.test(String(id))){
+   const r=await require('../lib/prisma').getPrisma().recipe.findFirst({where:{id,OR:[{isSystem:true},{creatorId:userId}]}});
+   if(!r)throw httpError(404,'Recipe unavailable');if(!r.portionG)throw httpError(422,'Recipe weight is unknown');
+   const per=require('./nutrition').scale(r,10000/r.portionG);
+   return {id:r.id,name:r.recipeName,servings:r.servings,servingWeightGrams:r.portionG,calories:r.calories,caloriesPer100g:per.calories,macrosPer100g:{protein_g:per.proteinG,carbs_g:per.carbsG,fat_g:per.fatG,fiber_g:per.fiberG},source:'local-recipe',provenance:r.nutritionSource};
+  }
   if (!id) throw new Error('id is required');
   if (!hasApiKey()) throw httpError(503, 'Recipe service is not configured.');
   if (!/^\d+$/.test(String(id))) throw httpError(400, 'Invalid recipe id');

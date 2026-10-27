@@ -21,9 +21,10 @@ const INCLUDES = {
   weeklyReview: { recommendations: true },
   userRole: { role: true },
 };
-const POLICY = Object.freeze({ version: '2026-10-14', liveData: 'Deleted immediately when the transaction completes; no recovery grace period.',
+const POLICY = Object.freeze({ version: '2026-10-18', liveData: 'Deleted immediately when the transaction completes; no recovery grace period.',
   backups: 'Hosting must enforce a maximum of 30 days for backups and operational logs. Restores must replay deletion receipts before serving traffic.',
   receipts: 'Account ID and deletion time only, retained for 35 days for backup restore suppression.',
+  audit: 'Operational audit records expire after 30 days at hourly maintenance. Bootstrap completion retains only a non-personal marker to prevent bootstrap reuse. Account deletion removes related audit records immediately.',
   exports: 'No server-side export file is retained. Copies you save or share are under your control.',
   relatedRecords: 'Coaching assignments, plans and notes involving this account are removed. Shared food catalogs and other users’ independent health records remain.',
   devices: 'This device clears its account caches. Other devices clear caches when they next contact the service; offline devices and OS backups cannot be remotely erased.',

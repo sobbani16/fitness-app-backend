@@ -1,120 +1,25 @@
 const { httpError } = require('../lib/errors');
-// USDA FoodData Central (FDC) ingredient search, proxied so the API key stays
-// server-side. Falls back to a deterministic mock (derived from the local food
-// DB) when no usable API key is available or USDA is unreachable/rate-limited,
-// so dev works without a key.
-//
-// Docs: https://fdc.nal.usda.gov/api-guide.html
-// Endpoint used: POST /foods/search
-
-
-
-const USDA_BASE = 'https://api.nal.usda.gov/fdc/v1';
-
-// Injectable for tests (mirrors weatherService / recipeService pattern).
-let _fetch = globalThis.fetch;
-function setFetch(fn) {
-  _fetch = fn;
+let _fetch=globalThis.fetch;
+const setFetch=fn=>{_fetch=fn;};
+const getApiKey=()=>process.env.USDA_API_KEY||'DEMO_KEY';
+const usingDemoKey=()=>!process.env.USDA_API_KEY;
+function nutrient(food,names,unit){const n=(food.foodNutrients||[]).find(x=>names.includes((x.nutrientName||'').toLowerCase())&&(!unit||(x.unitName||'').toUpperCase()===unit));return n && n.value!=null && Number.isFinite(Number(n.value)) && Number(n.value)>=0?Number(n.value):null;}
+function mapFood(f){
+ const kcal=nutrient(f,['energy'],'KCAL'),kj=nutrient(f,['energy'],'KJ');
+ return {fdcId:String(f.fdcId),name:f.description||'Food',caloriesPer100g:kcal??(kj==null?null:kj/4.184),proteinPer100g:nutrient(f,['protein']),carbsPer100g:nutrient(f,['carbohydrate, by difference']),fatPer100g:nutrient(f,['total lipid (fat)']),fiberPer100g:nutrient(f,['fiber, total dietary']),source:'usda',sourceMetadata:{provider:'USDA FoodData Central',fdcId:String(f.fdcId),dataType:f.dataType||null,brand:f.brandOwner||f.brandName||null,servingSize:f.servingSize??null,servingSizeUnit:f.servingSizeUnit||null,householdServingFullText:f.householdServingFullText||null,retrievedAt:new Date().toISOString(),carb_definition:'total carbohydrate (USDA carbohydrate by difference)',nutrients:f.foodNutrients||[]}};
 }
-
-// DEMO_KEY works out of the box for light exploration (heavily rate-limited).
-// Set USDA_API_KEY in .env for real usage.
-function getApiKey() {
-  return process.env.USDA_API_KEY || 'DEMO_KEY';
+async function searchUsda(query,number=8){
+ if(!query?.trim())return[];
+ let res;
+ for(let attempt=0;attempt<2;attempt++){
+  try{res=await _fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${encodeURIComponent(getApiKey())}`,{method:'POST',signal:AbortSignal.timeout(5000),headers:{'Content-Type':'application/json'},body:JSON.stringify({query:query.trim(),pageSize:number,dataType:['Foundation','SR Legacy','Survey (FNDDS)','Branded']})});}
+  catch{res=null;}
+  if(res?.ok)break;
+  if(res && res.status!==429 && res.status<500)break;
+  if(attempt===0)await new Promise(resolve=>setTimeout(resolve,250));
+ }
+ if(!res?.ok)throw httpError(503,'Food search service unavailable. Please retry.');
+ let data;try{data=await res.json();}catch{throw httpError(503,'Food search service unavailable. Please retry.');}
+ return (Array.isArray(data.foods)?data.foods:[]).map(mapFood).filter(x=>['caloriesPer100g','proteinPer100g','carbsPer100g','fatPer100g'].every(k=>x[k]!=null));
 }
-
-function usingDemoKey() {
-  return !process.env.USDA_API_KEY;
-}
-
-function round(n) {
-  return Math.round(n);
-}
-function round1(n) {
-  return Math.round(n * 10) / 10;
-}
-
-// ---- Mock fallback (no usable key / USDA down) ---------------------------
-
-function nutrientValue(foodNutrients, names) {
-  const wanted = names.map((n) => n.toLowerCase());
-  const n = (foodNutrients || []).find((x) =>
-    wanted.includes((x.nutrientName || '').toLowerCase()),
-  );
-  return n ? Number(n.value) || 0 : 0;
-}
-
-// Energy can be reported in both kcal and kJ; prefer the kcal entry.
-function energyKcal(foodNutrients) {
-  const energies = (foodNutrients || []).filter(
-    (x) => (x.nutrientName || '').toLowerCase() === 'energy',
-  );
-  const kcal = energies.find(
-    (x) => (x.unitName || '').toUpperCase() === 'KCAL',
-  );
-  const chosen = kcal || energies[0];
-  return chosen ? Number(chosen.value) || 0 : 0;
-}
-
-function mapFood(f) {
-  return {
-    fdcId: String(f.fdcId),
-    name: f.description || 'Food',
-    caloriesPer100g: round(energyKcal(f.foodNutrients)),
-    proteinPer100g: round1(nutrientValue(f.foodNutrients, ['Protein'])),
-    carbsPer100g: round1(
-      nutrientValue(f.foodNutrients, ['Carbohydrate, by difference']),
-    ),
-    fatPer100g: round1(nutrientValue(f.foodNutrients, ['Total lipid (fat)'])),
-    source: 'usda',
-  };
-}
-
-/**
- * Search USDA for ingredients matching `query`.
- * Returns an array of per-100g ingredient records. Degrades to a mock list on
- * missing/invalid key, rate limiting, or network failure.
- * @param {string} query
- * @param {number} [number=8]
- */
-async function searchUsda(query, number = 8) {
-  const q = (query || '').trim();
-  if (!q) return [];
-
-  const url = `${USDA_BASE}/foods/search?api_key=${encodeURIComponent(getApiKey())}`;
-  let res;
-  try {
-    res = await _fetch(url, {
-      method: 'POST',
-      signal: AbortSignal.timeout(10000),
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: q,
-        pageSize: number,
-        dataType: ['Foundation', 'SR Legacy', 'Survey (FNDDS)'],
-      }),
-    });
-  } catch (err) {
-    // Network failure → degrade gracefully.
-    throw httpError(503, 'Food search service unavailable. Please retry.');
-  }
-
-  if (!res.ok) {
-    // Any non-OK response (auth, rate-limit, bad request, server error) →
-    // degrade gracefully so the user still gets results.
-    throw httpError(503, 'Food search service unavailable. Please retry.');
-  }
-
-  const data = await res.json();
-  const foods = Array.isArray(data && data.foods) ? data.foods : [];
-  const mapped = foods.map(mapFood).filter((m) => m.caloriesPer100g > 0);
-  // If USDA returned nothing useful, still give the user something.
-  return mapped;
-}
-
-module.exports = {
-  searchUsda,
-  setFetch,
-  getApiKey,
-  usingDemoKey,
-};
+module.exports={searchUsda,setFetch,getApiKey,usingDemoKey,mapFood};

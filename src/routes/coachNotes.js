@@ -1,37 +1,43 @@
 const express = require('express');
 const { requirePermission } = require('../middleware/rbac');
 const { getPrisma } = require('../lib/prisma');
+const { coachingTransaction } = require('../services/coachingTransaction');
+const audit = require('../services/auditService');
+const { httpError } = require('../lib/errors');
 
 const router = express.Router();
 
 // POST /coach-notes
 router.post('/', requirePermission('CREATE_COACH_NOTES'), async (req, res) => {
   try {
-    const prisma = getPrisma();
     const { clientId, note, visibility } = req.body || {};
     if (!clientId || !note) return res.status(400).json({ error: 'clientId and note required.' });
 
-    // Determine coach type
-    const trainer = await prisma.trainerProfile.findUnique({ where: { userId: req.userId } });
-    const nutritionist = await prisma.nutritionistProfile.findUnique({ where: { userId: req.userId } });
+    const coachNote = await coachingTransaction(async prisma => {
+      // Determine coach type
+      const trainer = await prisma.trainerProfile.findUnique({ where: { userId: req.userId } });
+      const nutritionist = await prisma.nutritionistProfile.findUnique({ where: { userId: req.userId } });
 
-    const assigned = (trainer && await prisma.trainerClient.findFirst({where:{trainerId:trainer.id,clientId,status:'active'}})) || (nutritionist && await prisma.nutritionistClient.findFirst({where:{nutritionistId:nutritionist.id,clientId,status:'active'}}));
-    if (!assigned) return res.status(403).json({error:'Client access denied'});
-    if (visibility && !['private','client_visible'].includes(visibility)) return res.status(400).json({error:'Invalid visibility'});
-    const coachNote = await prisma.coachNote.create({
-      data: {
-        coachId: req.userId,
-        coachRole: trainer ? 'trainer' : 'nutritionist',
-        clientId,
-        note,
-        visibility: visibility || 'private',
-        trainerId: trainer?.id || null,
-        nutritionistId: nutritionist?.id || null,
-      },
+      const assigned = (trainer && await prisma.trainerClient.findFirst({where:{trainerId:trainer.id,clientId,status:'active'}})) || (nutritionist && await prisma.nutritionistClient.findFirst({where:{nutritionistId:nutritionist.id,clientId,status:'active'}}));
+      if (!assigned) throw httpError(403, 'Client access denied');
+      if (visibility && !['private','client_visible'].includes(visibility)) throw httpError(400, 'Invalid visibility');
+      const coachNote = await prisma.coachNote.create({
+        data: {
+          coachId: req.userId,
+          coachRole: trainer ? 'trainer' : 'nutritionist',
+          clientId,
+          note,
+          visibility: visibility || 'private',
+          trainerId: trainer?.id || null,
+          nutritionistId: nutritionist?.id || null,
+        },
+      });
+      await audit.log({ actorId: req.userId, action: 'coach_note.create', entityType: 'CoachNote', entityId: coachNote.id, afterData: { clientId, visibility: coachNote.visibility } }, prisma);
+      return coachNote;
     });
     res.status(201).json(coachNote);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(err.status || 400).json({ error: err.message });
   }
 });
 

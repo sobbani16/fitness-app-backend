@@ -70,7 +70,10 @@ const ROLE_PERMS = {
   ],
 };
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockPrisma.$transaction = jest.fn(async callback => callback(mockPrisma));
+});
 
 // ============================================================================
 // RBAC ACCESS CONTROL

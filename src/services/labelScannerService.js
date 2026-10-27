@@ -25,21 +25,22 @@ function adjustPortion(labelNutrition, servingSizeG, actualPortionG) {
     if (value == null && ['fiberG', 'sugarG'].includes(field)) continue;
     if (!Number.isFinite(value) || value < 0 || value > 100000) throw invalid(`Invalid ${field}`);
   }
-  const ratio = actualPortionG / servingSizeG;
+  const scaledNutrients = require('./nutrition').scale(Object.fromEntries(Object.entries(labelNutrition).map(([key,value])=>[key,value==null?null:value*100/servingSizeG])),actualPortionG);
 
-  const round = (value, precision = 10) => {
+  const round = (field, precision = 10) => {
+    const value = scaledNutrients[field];
     if (value == null) return null;
-    const scaled = value * ratio;
+    const scaled = value;
     if (!Number.isFinite(scaled) || scaled > 100000) throw invalid('Adjusted nutrition is out of range');
     return Math.round((scaled + Number.EPSILON * Math.max(1, scaled)) * precision) / precision;
   };
   return {
-    adjCalories: round(labelNutrition.calories, 1),
-    adjProteinG: round(labelNutrition.proteinG),
-    adjCarbsG: round(labelNutrition.carbsG),
-    adjFatG: round(labelNutrition.fatG),
-    adjFiberG: round(labelNutrition.fiberG),
-    adjSugarG: round(labelNutrition.sugarG),
+    adjCalories: round('calories', 1),
+    adjProteinG: round('proteinG'),
+    adjCarbsG: round('carbsG'),
+    adjFatG: round('fatG'),
+    adjFiberG: round('fiberG'),
+    adjSugarG: round('sugarG'),
   };
 }
 
@@ -57,7 +58,9 @@ async function extractNutritionFromText(ocrText) {
   // Try OpenAI extraction if available
   if (process.env.OPENAI_API_KEY) {
     try {
-      return await extractWithOpenAI(ocrText);
+      const extracted = await extractWithOpenAI(ocrText);
+      const literal = extractWithRegex(ocrText);
+      return { ...extracted, saturatedFatG:literal.saturatedFatG, transFatG:literal.transFatG, addedSugarG: literal.addedSugarG, allergens: literal.allergens };
     } catch (err) {
       console.error('OpenAI extraction failed, using regex fallback:', err.message);
     }
@@ -156,25 +159,26 @@ function extractWithRegex(ocrText) {
 
   const carbsG = findNumber([
     /total\s*carb(?:ohydrate)?s?\s*[:=]?\s*(\d+\.?\d*)\s*g/,
-    /carb(?:ohydrate)?s?\s*[:=]?\s*(\d+\.?\d*)\s*g/,
+    /(?:^|\n)\s*carb(?:ohydrate)?s?\s*[:=]?\s*(\d+\.?\d*)\s*g/,
   ]);
 
   const fatG = findNumber([
     /total\s*fat\s*[:=]?\s*(\d+\.?\d*)\s*g/,
-    /fat\s*[:=]?\s*(\d+\.?\d*)\s*g/,
+    /(?:^|\n)\s*fat\s*[:=]?\s*(\d+\.?\d*)\s*g/,
   ]);
 
   const fiberG = findNumber([
-    /(?:dietary\s*)?fiber\s*[:=]?\s*(\d+\.?\d*)\s*g/,
+    /(?:dietary\s*)?fib(?:er|re)\s*[:=]?\s*(\d+\.?\d*)\s*g/,
   ]);
 
   const sugarG = findNumber([
-    /(?:total\s*)?sugars?\s*[:=]?\s*(\d+\.?\d*)\s*g/,
+    /(?:^|\n)\s*(?:total\s*)?sugars?\s*[:=]?\s*(\d+\.?\d*)\s*g/,
   ]);
 
-  const sodiumMg = findNumber([
-    /sodium\s*[:=]?\s*(\d+)\s*mg/,
+  let sodiumMg = findNumber([
+    /sodium\s*[:=]?\s*(\d+\.?\d*)\s*mg/,
   ]);
+  if(sodiumMg==null){const sodiumG=findNumber([/sodium\s*[:=]?\s*(\d+\.?\d*)\s*g\b/]);if(sodiumG!=null)sodiumMg=sodiumG*1000;}
 
   // Serving size: support formats like "(87g)", "87 g", "Serving size 87g"
   let servingSizeG = findNumber([
@@ -197,6 +201,10 @@ function extractWithRegex(ocrText) {
     fiberG,
     sugarG,
     sodiumMg,
+    saturatedFatG: findNumber([/\bsaturated\s+fat\s*[:=]?\s*(\d+\.?\d*)\s*g/]),
+    transFatG: findNumber([/\btrans\s+fat\s*[:=]?\s*(\d+\.?\d*)\s*g/]),
+    addedSugarG: findNumber([/\bincludes\s+(\d+\.?\d*)\s*g\s*added\s+sugars?/, /(?:^|\n)\s*(?:includes\s*)?added\s*sugars?\s*[:=]?\s*(\d+\.?\d*)\s*g/]),
+    allergens: ocrText.match(/(?:^|\n)\s*((?:contains|may contain)\s+[^\n]+)/i)?.[1] || null,
     confidence: 0.4, // low confidence for regex
   };
 }
@@ -259,6 +267,7 @@ async function saveScannedLabel(userId, data) {
         userId,
         foodName: productName || 'Scanned food',
         quantityG: actualPortionG,
+        nutritionSnapshot: { ...(data.labelInsights ? { labelInsights: data.labelInsights } : {}), loggedSource: 'user-reviewed scanned label', servingSizeG, actualPortionG, calculation: 'label nutrients × actual grams / label serving grams', verificationLevel: 'USER_REVIEWED_LABEL', sourceNutrition: {calories:labelCalories,proteinG:labelProteinG,carbsG:labelCarbsG,fatG:labelFatG,fiberG:labelFiberG ?? null}, adjusted },
         calories: adjusted.adjCalories,
         proteinG: adjusted.adjProteinG,
         carbsG: adjusted.adjCarbsG,

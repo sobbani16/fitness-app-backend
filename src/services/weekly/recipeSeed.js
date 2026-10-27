@@ -1,6 +1,7 @@
 const { getPrisma } = require('../../lib/prisma');
 const { recipes } = require('./catalog');
 async function seedRecipes() {
+  await require('./centralRecipes').importReviewedIngredients(getPrisma());
   // Versioned IDs never overwrite the old catalog or historical recipe references.
   await getPrisma().$transaction(async tx => {
     for (const recipe of recipes) {
@@ -12,7 +13,7 @@ async function seedRecipes() {
       }
       await tx.recipe.create({ data: { ...data, ingredients: { create: ingredients } } });
     }
-  });
+  }, { timeout: 60000 });
   return { seeded: recipes.length };
 }
 // Retain the fixture shape for older deterministic generator tests.

@@ -72,6 +72,7 @@ model HealthCondition {
   userConditions UserHealthCondition[]
   conditionRules ConditionRule[]
   supplementRules SupplementRule[]
+  nutrientRules HealthConditionNutrientRule[]
 }
 
 model UserHealthCondition {
@@ -165,6 +166,8 @@ model SleepLog {
 }
 
 model FoodLog {
+  ingredientId String?
+  nutritionSnapshot Json?
   id              String @id @default(uuid())
 
   userId          String
@@ -266,6 +269,8 @@ model Recipe {
 }
 
 model RecipeIngredient {
+  ingredientId String?
+  nutritionSnapshot Json?
   id              String @id @default(uuid())
 
   recipeId        String
@@ -407,7 +412,7 @@ model Ingredient {
   id              String   @id @default(uuid())
 
   // USDA FoodData Central ID. Unique so upserts dedupe across users.
-  fdcId           String   @unique
+  fdcId           String?  @unique
 
   name            String
   // Lowercased name for case-insensitive contains lookups.
@@ -422,6 +427,13 @@ model Ingredient {
   source          String   @default("usda")
 
   createdAt       DateTime @default(now())
+
+  catalogId       String? @unique
+  catalog         IngredientCatalog? @relation(fields: [catalogId], references: [id], onDelete: Restrict)
+  fiberPer100g    Float?
+  sourceMetadata Json?
+  servings IngredientServing[]
+  nutritionProfiles IngredientNutritionProfile[]
 
   userLinks       UserIngredient[]
   attributes      IngredientAttribute[]
@@ -439,6 +451,8 @@ model UserIngredient {
   ingredientId   String
   ingredient     Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
 
+  favorite Boolean @default(false)
+  selectedAt DateTime?
   searchCount    Int      @default(1)
   lastSearchedAt DateTime @default(now())
 
@@ -502,6 +516,19 @@ model ConditionRule {
 
   // Human-readable reason shown to the user.
   reason         String?
+
+  // Legacy attribute rules are not approved clinical evidence by default.
+  ruleCode String? @unique
+  clinicalAction NutrientRuleAction?
+  clinicalSeverity NutrientRuleSeverity @default(INFO)
+  applicabilityCriteria Json?
+  requiresPersonalization Boolean @default(false)
+  evidenceSourceId String? @db.Uuid
+  evidence RuleEvidence? @relation(fields: [evidenceSourceId], references: [id], onDelete: Restrict)
+  reviewStatus ClinicalRuleReview @default(DRAFT)
+  version Int @default(1)
+  reviewedBy String?
+  reviewedAt DateTime?
 
   createdAt      DateTime @default(now())
 
@@ -1388,4 +1415,192 @@ model LegacyMigrationGrant {
   consumedAt DateTime?
   @@index([legacyUserId])
   @@index([targetUserId])
+}
+
+// Owner-maintained source records, including candidates hidden until nutrition is sourced.
+model IngredientCatalog {
+  verificationLevel String?
+  brand String?
+  restaurantChain String?
+  market String?
+  foodType String?
+  cuisine String?
+  identityKey String?
+  importBatch String?
+  reviewRequired Boolean @default(false)
+  id String @id
+  name String
+  normalizedName String
+  aliases String[]
+  category String
+  preparation String
+  status String
+  usable Boolean
+  sourceRecord Json
+  updatedAt DateTime @updatedAt
+  ingredient Ingredient?
+  @@index([usable, normalizedName])
+}
+
+model IngredientServing {
+  id String @id
+  ingredientId String
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  label String
+  grams Float
+  estimated Boolean @default(true)
+  sourceRecord Json
+  @@index([ingredientId])
+}
+
+model IngredientImport {
+  id String @id @default(uuid())
+  checksum String
+  filename String
+  report Json
+  createdAt DateTime @default(now())
+}
+
+
+// Composition only. Future condition rules can reference Nutrient.id;
+// no condition-specific limits or advice are introduced in Phase 1.
+enum NutrientCategory {
+  MACRO
+  MINERAL
+  VITAMIN
+  OTHER
+}
+
+enum NutritionPreparation {
+  RAW
+  BOILED
+  STEAMED
+  FRIED
+  ROASTED
+  OTHER
+}
+
+enum NutritionSource {
+  USDA
+  IFCT
+  MANUAL
+  OTHER
+}
+
+model Nutrient {
+  id String @id @default(uuid()) @db.Uuid
+  name String @unique
+  code String @unique
+  unit String
+  category NutrientCategory
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ingredientNutrients IngredientNutrient[]
+  conditionRules HealthConditionNutrientRule[]
+}
+
+model IngredientNutritionProfile {
+  id String @id @default(uuid()) @db.Uuid
+  ingredientId String
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+  preparationType NutritionPreparation
+  preparationMethod String?
+  source NutritionSource
+  sourceFoodId String?
+  // Dataset/edition and recordKey distinguish records even without a source food ID.
+  sourceDataset String
+  sourceRecordKey String
+  sourceCitation String
+  identityKey String @unique
+  verifiedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  nutrients IngredientNutrient[]
+
+  @@index([ingredientId, preparationType])
+  @@index([source, sourceFoodId])
+}
+
+model IngredientNutrient {
+  id String @id @default(uuid()) @db.Uuid
+  nutritionProfileId String @db.Uuid
+  nutritionProfile IngredientNutritionProfile @relation(fields: [nutritionProfileId], references: [id], onDelete: Cascade)
+  nutrientId String @db.Uuid
+  nutrient Nutrient @relation(fields: [nutrientId], references: [id], onDelete: Restrict)
+  amountPer100g Decimal? @db.Decimal(18, 9)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([nutritionProfileId, nutrientId])
+  @@index([nutrientId])
+}
+
+enum NutrientRuleAction {
+  LIMIT
+  MONITOR
+  PRIORITIZE
+  AVOID_IF_INDICATED
+}
+
+enum NutrientRuleSeverity {
+  INFO
+  CAUTION
+  HIGH
+}
+
+enum ClinicalRuleReview {
+  DRAFT
+  REVIEWED
+  APPROVED
+}
+
+enum NutrientThresholdBasis {
+  PER_SERVING
+  PER_100G
+  DAILY
+  OTHER
+}
+
+model RuleEvidence {
+  id String @id @default(uuid()) @db.Uuid
+  code String @unique
+  organization String
+  guidelineTitle String
+  sourceUrl String
+  publicationYear Int?
+  lastReviewedAt DateTime
+  evidenceNotes String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  nutrientRules HealthConditionNutrientRule[]
+  ingredientRules ConditionRule[]
+}
+
+model HealthConditionNutrientRule {
+  id String @id @default(uuid()) @db.Uuid
+  code String @unique
+  healthConditionId String
+  healthCondition HealthCondition @relation(fields: [healthConditionId], references: [id], onDelete: Restrict)
+  nutrientId String @db.Uuid
+  nutrient Nutrient @relation(fields: [nutrientId], references: [id], onDelete: Restrict)
+  action NutrientRuleAction
+  severity NutrientRuleSeverity @default(INFO)
+  rationale String
+  thresholdValue Decimal? @db.Decimal(18, 9)
+  thresholdUnit String?
+  thresholdBasis NutrientThresholdBasis @default(PER_SERVING)
+  applicabilityCriteria Json?
+  requiresPersonalization Boolean @default(false)
+  evidenceSourceId String @db.Uuid
+  evidence RuleEvidence @relation(fields: [evidenceSourceId], references: [id], onDelete: Restrict)
+  reviewStatus ClinicalRuleReview @default(DRAFT)
+  version Int @default(1)
+  reviewedBy String?
+  reviewedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([healthConditionId, reviewStatus])
+  @@index([nutrientId])
+  @@index([evidenceSourceId])
 }

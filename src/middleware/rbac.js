@@ -44,7 +44,7 @@ function requireRole(...roles) {
       req.userRoles = userRoleNames;
       next();
     } catch (err) {
-      res.status(500).json({ error: 'RBAC check failed: ' + err.message });
+      res.status(500).json({ error: 'RBAC check failed.' });
     }
   };
 }
@@ -94,7 +94,7 @@ function requirePermission(...permissions) {
       req.userPermissions = [...userPermissions];
       next();
     } catch (err) {
-      res.status(500).json({ error: 'Permission check failed: ' + err.message });
+      res.status(500).json({ error: 'Permission check failed.' });
     }
   };
 }

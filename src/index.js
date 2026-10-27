@@ -4,6 +4,7 @@ async function start() {
   if (process.env.NODE_ENV === 'production' && process.env.AUTH_TEST_BYPASS) throw new Error('Test authentication bypass cannot be configured in production.');
   require('./services/authLifecycle').validateConfig();
   await getPrisma().$connect();
+  if (process.env.NODE_ENV === 'production') await require('./services/deploymentReadiness').assertDeploymentReady(getPrisma());
   const stopEmailWorker = require('./services/authEmail').startEmailWorker();
   const server = require('./app').listen(process.env.PORT || 4000, () => console.log('Backend listening'));
   server.requestTimeout = 60000;

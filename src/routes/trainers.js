@@ -2,6 +2,7 @@ const express = require('express');
 const { requireRole, requirePermission, identifyUser } = require('../middleware/rbac');
 const trainerService = require('../services/trainerService');
 const audit = require('../services/auditService');
+const { coachingTransaction } = require('../services/coachingTransaction');
 
 const router = express.Router();
 
@@ -37,13 +38,16 @@ router.get('/drop-reasons', async (req, res) => {
 // POST /trainers/signup — create trainer profile (pending verification)
 router.post('/signup', identifyUser, async (req, res) => {
   try {
-    const profile = await trainerService.createTrainerProfile(req.userId, req.body || {});
-    await audit.log({
-      actorId: req.userId,
-      action: 'trainer.signup',
-      entityType: 'TrainerProfile',
-      entityId: profile.id,
-      afterData: { tier: profile.tier, verified: false },
+    const profile = await coachingTransaction(async tx => {
+      const profile = await trainerService.createTrainerProfile(req.userId, req.body || {}, tx);
+      await audit.log({
+        actorId: req.userId,
+        action: 'trainer.signup',
+        entityType: 'TrainerProfile',
+        entityId: profile.id,
+        afterData: { tier: profile.tier, verified: false },
+      }, tx);
+      return profile;
     });
     res.status(201).json(profile);
   } catch (err) {
@@ -54,7 +58,11 @@ router.post('/signup', identifyUser, async (req, res) => {
 // PATCH /trainers/me/profile — trainer updates own profile
 router.patch('/me/profile', requireRole('TRAINER'), async (req, res) => {
   try {
-    const profile = await trainerService.updateTrainerProfile(req.userId, req.body || {});
+    const profile = await coachingTransaction(async tx => {
+      const profile = await trainerService.updateTrainerProfile(req.userId, req.body || {}, tx);
+      await audit.log({ actorId: req.userId, action: 'trainer.profile_updated', entityType: 'TrainerProfile', entityId: profile.id, afterData: { userId: req.userId } }, tx);
+      return profile;
+    });
     res.json(profile);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -92,18 +100,21 @@ router.get('/clients/:clientId/progress', requireRole('TRAINER'), async (req, re
 router.post('/clients/:clientId/drop', requireRole('TRAINER'), async (req, res) => {
   try {
     const { reasons, notes, candidateGoals, adherenceRating } = req.body || {};
-    const result = await trainerService.trainerDropClient(req.userId, req.params.clientId, {
-      reasons,
-      notes,
-      candidateGoals,
-      adherenceRating,
-    });
-    await audit.log({
-      actorId: req.userId,
-      action: 'client.dropped_by_trainer',
-      entityType: 'TrainerClient',
-      entityId: result.relation.id,
-      afterData: { clientId: req.params.clientId, reasons },
+    const result = await coachingTransaction(async tx => {
+      const result = await trainerService.trainerDropClient(req.userId, req.params.clientId, {
+        reasons,
+        notes,
+        candidateGoals,
+        adherenceRating,
+      }, tx);
+      await audit.log({
+        actorId: req.userId,
+        action: 'client.dropped_by_trainer',
+        entityType: 'TrainerClient',
+        entityId: result.relation.id,
+        afterData: { clientId: req.params.clientId, status: 'dropped' },
+      }, tx);
+      return result;
     });
     res.json(result);
   } catch (err) {
@@ -117,13 +128,16 @@ router.patch('/clients/:clientId/status', requireRole('TRAINER'), async (req, re
     const profile = await trainerService.getTrainerByUserId(req.userId);
     if (!profile) return res.status(404).json({ error: 'Trainer profile not found.' });
     const { status } = req.body || {};
-    const result = await trainerService.updateClientStatus(profile.id, req.params.clientId, status);
-    await audit.log({
-      actorId: req.userId,
-      action: 'client.status_update',
-      entityType: 'TrainerClient',
-      entityId: result.id,
-      afterData: { status },
+    const result = await coachingTransaction(async tx => {
+      const result = await trainerService.updateClientStatus(profile.id, req.params.clientId, status, tx);
+      await audit.log({
+        actorId: req.userId,
+        action: 'client.status_update',
+        entityType: 'TrainerClient',
+        entityId: result.id,
+        afterData: { status },
+      }, tx);
+      return result;
     });
     res.json(result);
   } catch (err) {
@@ -138,13 +152,16 @@ router.post('/clients/assign', requirePermission('MANAGE_TRAINERS'), async (req,
     if (!trainerId || !clientId) {
       return res.status(400).json({ error: 'trainerId and clientId required.' });
     }
-    const result = await trainerService.assignClient(trainerId, clientId);
-    await audit.log({
-      actorId: req.userId,
-      action: 'client.assign',
-      entityType: 'TrainerClient',
-      entityId: result.id,
-      afterData: { trainerId, clientId, status: result.status },
+    const result = await coachingTransaction(async tx => {
+      const result = await trainerService.assignClient(trainerId, clientId, tx);
+      await audit.log({
+        actorId: req.userId,
+        action: 'client.assign',
+        entityType: 'TrainerClient',
+        entityId: result.id,
+        afterData: { trainerId, clientId, status: result.status },
+      }, tx);
+      return result;
     });
     res.status(201).json(result);
   } catch (err) {
@@ -169,13 +186,18 @@ router.get('/me/assigned', identifyUser, async (req, res) => {
 // POST /trainers/:id/subscribe — user picks a trainer
 router.post('/:id/subscribe', identifyUser, async (req, res) => {
   try {
-    const result = await trainerService.subscribeToTrainer(req.params.id, req.userId);
-    await audit.log({
-      actorId: req.userId,
-      action: 'trainer.subscribed',
-      entityType: 'TrainerClient',
-      entityId: result.id,
-      afterData: { trainerId: req.params.id },
+    const result = await coachingTransaction(async tx => {
+      const previous = await tx.trainerClient.findFirst({ where: { clientId: req.userId, status: 'active' } });
+      const result = await trainerService.subscribeToTrainer(req.params.id, req.userId, tx);
+      await audit.log({
+        actorId: req.userId,
+        action: 'trainer.subscribed',
+        entityType: 'TrainerClient',
+        entityId: result.id,
+        beforeData: previous ? { trainerId: previous.trainerId, status: previous.status } : {},
+        afterData: { trainerId: req.params.id, clientId: req.userId, status: result.status },
+      }, tx);
+      return result;
     });
     res.status(201).json(result);
   } catch (err) {
@@ -195,13 +217,16 @@ router.post('/:id/subscribe', identifyUser, async (req, res) => {
 router.post('/me/drop', identifyUser, async (req, res) => {
   try {
     const { reasons, notes, trainerRating } = req.body || {};
-    const result = await trainerService.clientDropTrainer(req.userId, { reasons, notes, trainerRating });
-    await audit.log({
-      actorId: req.userId,
-      action: 'trainer.dropped_by_client',
-      entityType: 'TrainerClient',
-      entityId: result.relation.id,
-      afterData: { reasons, trainerRating },
+    const result = await coachingTransaction(async tx => {
+      const result = await trainerService.clientDropTrainer(req.userId, { reasons, notes, trainerRating }, tx);
+      await audit.log({
+        actorId: req.userId,
+        action: 'trainer.dropped_by_client',
+        entityType: 'TrainerClient',
+        entityId: result.relation.id,
+        afterData: { clientId: req.userId, status: 'dropped' },
+      }, tx);
+      return result;
     });
     res.json(result);
   } catch (err) {

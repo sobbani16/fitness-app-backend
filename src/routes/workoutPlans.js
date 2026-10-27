@@ -2,6 +2,7 @@ const express = require('express');
 const { requireRole, requirePermission } = require('../middleware/rbac');
 const trainerService = require('../services/trainerService');
 const audit = require('../services/auditService');
+const { coachingTransaction } = require('../services/coachingTransaction');
 
 const router = express.Router();
 
@@ -12,13 +13,16 @@ router.post('/', requirePermission('CREATE_WORKOUT_PLAN'), async (req, res) => {
     if (!profile) return res.status(403).json({ error: 'No trainer profile found.' });
     const { clientId, title, description, exercises } = req.body || {};
     if (!clientId) return res.status(400).json({ error: 'clientId required.' });
-    const plan = await trainerService.createWorkoutPlan(profile.id, clientId, { title, description, exercises });
-    await audit.log({
-      actorId: req.userId,
-      action: 'plan.create',
-      entityType: 'WorkoutPlan',
-      entityId: plan.id,
-      afterData: { clientId, title },
+    const plan = await coachingTransaction(async tx => {
+      const plan = await trainerService.createWorkoutPlan(profile.id, clientId, { title, description, exercises }, tx);
+      await audit.log({
+        actorId: req.userId,
+        action: 'plan.create',
+        entityType: 'WorkoutPlan',
+        entityId: plan.id,
+        afterData: { clientId },
+      }, tx);
+      return plan;
     });
     res.status(201).json(plan);
   } catch (err) {

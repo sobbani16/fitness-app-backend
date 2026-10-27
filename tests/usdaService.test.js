@@ -55,3 +55,12 @@ describe('searchUsda', () => {
     await expect(usda.searchUsda('chicken')).rejects.toMatchObject({status:503});
   });
 });
+
+it('preserves missing nutrients, zero values, serving metadata and converts kJ only when kcal absent', () => {
+ const item=usda.mapFood({fdcId:1,description:'Example',dataType:'Branded',servingSize:30,servingSizeUnit:'g',foodNutrients:[{nutrientName:'Energy',unitName:'KJ',value:418.4},{nutrientName:'Total lipid (fat)',value:0}]});
+ expect(item.caloriesPer100g).toBeCloseTo(100);expect(item.fatPer100g).toBe(0);expect(item.proteinPer100g).toBeNull();expect(item.fiberPer100g).toBeNull();expect(item.sourceMetadata).toMatchObject({fdcId:'1',dataType:'Branded',servingSize:30,servingSizeUnit:'g'});
+});
+it('does not turn an incomplete upstream profile into zero macros', async () => {
+ usda.setFetch(async()=>({ok:true,json:async()=>({foods:[{fdcId:1,foodNutrients:[{nutrientName:'Energy',unitName:'KCAL',value:100}]}]})}));
+ expect(await usda.searchUsda('incomplete')).toEqual([]);
+});

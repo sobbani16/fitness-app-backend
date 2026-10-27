@@ -17,7 +17,15 @@
     "test:api": "node scripts/endpoint-smoke.js",
     "test:auth": "jest --config jest.auth.config.js --runInBand",
     "deploy:prepare": "node scripts/deploy-prepare.js",
-    "admin:provision": "node scripts/provision-admin.js"
+    "ingredients:import": "node scripts/import-ingredients.js",
+    "deploy:check": "node scripts/check-deployment.js",
+    "admin:provision": "node scripts/provision-admin.js",
+    "ingredients:import:v5": "node scripts/import-ingredients-v5.js",
+    "db:seed-nutrients": "node prisma/seed-nutrients.js",
+    "nutrients:import": "node scripts/import-nutrients.js",
+    "nutrients:fetch": "node scripts/fetch-nutrient-sources.js",
+    "nutrients:populate": "node scripts/populate-nutrients.js",
+    "conditions:import": "node scripts/import-condition-rules.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
@@ -42,5 +50,8 @@
   },
   "engines": {
     "node": ">=22.12.0 <25"
+  },
+  "overrides": {
+    "qs": "6.16.1"
   }
 }

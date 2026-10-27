@@ -25,6 +25,14 @@ router.post('/extract', async (req, res) => {
     res.json({ extracted: await extractNutritionFromText(ocrText) });
   } catch (error) { fail(res, error); }
 });
+router.post('/compare', (req, res) => {
+  try { res.json(require('../services/labelInsights').compare(req.body?.first, req.body?.second)); }
+  catch (error) { fail(res, error); }
+});
+router.post('/insights', async (req, res) => {
+  try { res.json(await require('../services/labelInsights').analyzeForUser(req.body, userId(req))); }
+  catch (error) { fail(res, error); }
+});
 router.post('/adjust', (req, res) => {
   try {
     const b = req.body || {};
@@ -45,6 +53,11 @@ router.post('/save', async (req, res) => {
       data[name] = number(b[name], name, ['labelFiberG','labelSugarG','labelSodiumMg'].includes(name));
     }
     for (const [name, maximum] of [['productName',300],['ingredients',20000],['photoUri',4096],['ocrRawText',20000],['mealType',30]]) data[name] = text(b[name], name, maximum);
+    if (b.labelFacts != null) {
+      const facts = require('../services/labelInsights').validate(b.labelFacts);
+      if (!facts.reviewed || facts.ingredients !== (data.ingredients || '') || facts.carbsG !== data.labelCarbsG || facts.sugarG !== data.labelSugarG || facts.fiberG !== data.labelFiberG || facts.calories !== data.labelCalories || facts.proteinG !== data.labelProteinG || facts.sodiumMg !== data.labelSodiumMg || Math.abs(facts.portionRatio - data.actualPortionG / data.servingSizeG) > 0.000001 || (facts.basisUnit === 'g' && facts.basisAmount !== data.servingSizeG)) throw invalid('Insights must match the reviewed meal');
+      data.labelInsights = await require('../services/labelInsights').analyzeForUser(facts, owner);
+    }
     res.status(201).json(await saveScannedLabel(owner, data));
   } catch (error) { fail(res, error); }
 });

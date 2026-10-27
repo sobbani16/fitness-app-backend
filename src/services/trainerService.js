@@ -1,4 +1,6 @@
 const { getPrisma } = require('../lib/prisma');
+// Interactive transaction clients cannot nest transactions.
+const runOperations = (prisma, operations) => prisma.$transaction ? prisma.$transaction(operations) : Promise.all(operations);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -58,8 +60,7 @@ async function getTrainerById(id) {
 // Trainer signup
 // ---------------------------------------------------------------------------
 
-async function createTrainerProfile(userId, { bio, certifications, specialties, yearsExperience, tier, location, profilePicture }) {
-  const prisma = getPrisma();
+async function createTrainerProfile(userId, { bio, certifications, specialties, yearsExperience, tier, location, profilePicture }, prisma = getPrisma()) {
   const existing = await prisma.trainerProfile.findUnique({ where: { userId } });
   if (existing) throw new Error('Trainer profile already exists for this user.');
 
@@ -81,8 +82,7 @@ async function createTrainerProfile(userId, { bio, certifications, specialties, 
   });
 }
 
-async function updateTrainerProfile(userId, updates) {
-  const prisma = getPrisma();
+async function updateTrainerProfile(userId, updates, prisma = getPrisma()) {
   const profile = await prisma.trainerProfile.findUnique({ where: { userId } });
   if (!profile) throw new Error('Trainer profile not found.');
 
@@ -111,8 +111,7 @@ async function getTrainerClients(trainerId) {
   }));
 }
 
-async function assignClient(trainerId, clientId) {
-  const prisma = getPrisma();
+async function assignClient(trainerId, clientId, prisma = getPrisma()) {
   const trainer = await prisma.trainerProfile.findUnique({ where: { id: trainerId } });
   if (!trainer) throw new Error('Trainer not found');
   if (!trainer.verified || !trainer.active) throw new Error('Trainer is not available.');
@@ -131,8 +130,7 @@ async function assignClient(trainerId, clientId) {
   });
 }
 
-async function updateClientStatus(trainerId, clientId, status) {
-  const prisma = getPrisma();
+async function updateClientStatus(trainerId, clientId, status, prisma = getPrisma()) {
   const valid = ['pending', 'active', 'paused', 'completed'];
   if (!valid.includes(status)) throw new Error(`Invalid status: ${status}`);
   return prisma.trainerClient.update({
@@ -145,8 +143,7 @@ async function updateClientStatus(trainerId, clientId, status) {
 // User → trainer subscription
 // ---------------------------------------------------------------------------
 
-async function subscribeToTrainer(trainerId, clientId) {
-  const prisma = getPrisma();
+async function subscribeToTrainer(trainerId, clientId, prisma = getPrisma()) {
 
   // Check if client already has an active trainer
   const existing = await prisma.trainerClient.findFirst({
@@ -172,7 +169,7 @@ async function subscribeToTrainer(trainerId, clientId) {
     });
   }
 
-  return assignClient(trainerId, clientId);
+  return assignClient(trainerId, clientId, prisma);
 }
 
 async function getAssignedTrainer(clientId) {
@@ -219,8 +216,7 @@ const CLIENT_DROP_REASONS = [
   'schedule_conflict',
 ];
 
-async function trainerDropClient(trainerUserId, clientId, { reasons, notes, candidateGoals, adherenceRating }) {
-  const prisma = getPrisma();
+async function trainerDropClient(trainerUserId, clientId, { reasons, notes, candidateGoals, adherenceRating }, prisma = getPrisma()) {
   const trainerProfile = await prisma.trainerProfile.findUnique({ where: { userId: trainerUserId } });
   if (!trainerProfile) throw new Error('Trainer profile not found.');
 
@@ -232,7 +228,7 @@ async function trainerDropClient(trainerUserId, clientId, { reasons, notes, cand
 
   if (!reasons || reasons.length === 0) throw new Error('At least one reason is required.');
 
-  const [updatedRelation, dropForm] = await prisma.$transaction([
+  const [updatedRelation, dropForm] = await runOperations(prisma, [
     prisma.trainerClient.update({
       where: { id: relation.id },
       data: { status: 'dropped', droppedBy: 'trainer', dropReason: JSON.stringify({ reasons, notes }) },
@@ -254,8 +250,7 @@ async function trainerDropClient(trainerUserId, clientId, { reasons, notes, cand
   return { relation: updatedRelation, dropForm };
 }
 
-async function clientDropTrainer(clientId, { reasons, notes, trainerRating }) {
-  const prisma = getPrisma();
+async function clientDropTrainer(clientId, { reasons, notes, trainerRating }, prisma = getPrisma()) {
   const relation = await prisma.trainerClient.findFirst({
     where: { clientId, status: 'active' },
     include: { trainer: true },
@@ -305,7 +300,7 @@ async function clientDropTrainer(clientId, { reasons, notes, trainerRating }) {
     );
   }
 
-  const results = await prisma.$transaction(ops);
+  const results = await runOperations(prisma, ops);
   return { relation: results[0], dropForm: results[1] };
 }
 
@@ -399,10 +394,9 @@ async function getClientProgress(trainerUserId, clientId, { period = 'weekly', f
 // Workout plans (unchanged)
 // ---------------------------------------------------------------------------
 
-async function createWorkoutPlan(trainerId, clientId, { title, description, exercises }) {
-  if (!await getPrisma().trainerClient.findFirst({where:{trainerId,clientId,status:'active'}})) throw new Error('Client not assigned to this trainer');
+async function createWorkoutPlan(trainerId, clientId, { title, description, exercises }, prisma = getPrisma()) {
+  if (!await prisma.trainerClient.findFirst({where:{trainerId,clientId,status:'active'}})) throw new Error('Client not assigned to this trainer');
   if (!title) throw new Error('title is required');
-  const prisma = getPrisma();
   return prisma.workoutPlan.create({
     data: {
       trainerId,

@@ -97,3 +97,7 @@ it('extracts explicit ingredients and package serving counts without inventing m
   const result = extractWithRegex('4 servings per container\nIngredients: oats, milk\nCalories 200');
   expect(result.servingsPerContainer).toBe(4); expect(result.ingredients).toBe('oats, milk'); expect(result.servingSizeG).toBeNull();
 });
+
+it('never substitutes added sugar, saturated fat or net carbs for totals', () => {
+  expect(extractWithRegex('Added Sugars 3g\nSaturated Fat 2g\nNet Carbs 4g')).toMatchObject({sugarG:null,fatG:null,carbsG:null,addedSugarG:3});
+});

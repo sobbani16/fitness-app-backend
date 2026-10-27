@@ -20,8 +20,7 @@ async function getClients(nutritionistId) {
   });
 }
 
-async function assignClient(nutritionistId, clientId) {
-  const prisma = getPrisma();
+async function assignClient(nutritionistId, clientId, prisma = getPrisma()) {
   const profile = await prisma.nutritionistProfile.findUnique({ where: { id: nutritionistId } });
   if (!profile) throw new Error('Nutritionist not found');
   const activeCount = await prisma.nutritionistClient.count({
@@ -37,10 +36,17 @@ async function assignClient(nutritionistId, clientId) {
   });
 }
 
-async function createMealPlan(nutritionistId, clientId, { title, caloriesTarget, proteinTarget, carbsTarget, fatTarget, items }) {
-  if (!await getPrisma().nutritionistClient.findFirst({where:{nutritionistId,clientId,status:'active'}})) throw new Error('Client not assigned to this nutritionist');
+async function createMealPlan(nutritionistId, clientId, { title, caloriesTarget, proteinTarget, carbsTarget, fatTarget, items }, prisma = getPrisma()) {
+  if (!await prisma.nutritionistClient.findFirst({where:{nutritionistId,clientId,status:'active'}})) throw new Error('Client not assigned to this nutritionist');
   if (!caloriesTarget || !proteinTarget) throw new Error('caloriesTarget and proteinTarget required');
-  const prisma = getPrisma();
+  const resolvedItems=[];
+  if(items != null && (!Array.isArray(items) || items.length>100))throw new Error('At most 100 plan items allowed');
+  for(const item of items || []) {
+    const quantityG=item.quantityG ?? 100;
+    let nutrition={calories:item.calories ?? null,proteinG:item.proteinG ?? null,carbsG:item.carbsG ?? null,fatG:item.fatG ?? null};
+    if(item.ingredientId){const result=await require('./ingredientNutrition').calculate(item.ingredientId,{grams:quantityG},prisma);nutrition=Object.fromEntries(Object.keys(nutrition).map(k=>[k,result.nutrition[k]]));}
+    resolvedItems.push({mealType:item.mealType||'lunch',foodName:item.foodName,ingredientId:item.ingredientId||null,quantityG,...nutrition});
+  }
   return prisma.mealPlan.create({
     data: {
       nutritionistId,
@@ -51,16 +57,7 @@ async function createMealPlan(nutritionistId, clientId, { title, caloriesTarget,
       carbsTarget: carbsTarget || null,
       fatTarget: fatTarget || null,
       items: {
-        create: (items || []).map((item) => ({
-          mealType: item.mealType || 'lunch',
-          foodName: item.foodName,
-          ingredientId: item.ingredientId || null,
-          quantityG: item.quantityG || 100,
-          calories: item.calories || null,
-          proteinG: item.proteinG || null,
-          carbsG: item.carbsG || null,
-          fatG: item.fatG || null,
-        })),
+        create: resolvedItems,
       },
     },
     include: { items: true },

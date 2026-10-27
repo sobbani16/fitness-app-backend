@@ -17,7 +17,8 @@ const specs = [
 ];
 const recipes = specs.map(([mealType, title, parts, budget = 'low'], index) => {
   const ingredients = parts.map(([id, amountG]) => ({ ingredientName: snapshot.foods[id].description, amountG }));
-  const totals = Object.fromEntries(nutrients.map(key => [key, Math.round(parts.reduce((sum,[id,g]) => sum + snapshot.foods[id].per100g[key] * g / 100, 0) * 10) / 10]));
+  const calculated = require('../nutrition').recipe(parts.map(([id, grams]) => ({ per100g: snapshot.foods[id].per100g, grams })));
+  const totals = Object.fromEntries(nutrients.map(key => [key, Math.round(calculated.totals[key] * 10) / 10]));
   return {
     id: `usda-weekly-v1-${index + 1}`, creatorId: 'system', isSystem: true,
     recipeName: `${title} · USDA v1`, mealType, servings: 1, portionG: parts.reduce((sum,[,g])=>sum+g,0), ...totals,

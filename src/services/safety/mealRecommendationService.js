@@ -62,7 +62,7 @@ async function generateMealRecommendation(userId, opts = {}) {
   const mealFat = Math.min(Math.round(dailyFat * split), remainingFat);
 
   // Generate food suggestions based on targets and context.
-  const foods = generateFoodSuggestions({
+  const foods = await generateFoodSuggestions({
     mealType,
     caloriesTarget: mealCalories,
     proteinTarget: mealProtein,
@@ -100,6 +100,12 @@ async function generateMealRecommendation(userId, opts = {}) {
       .map((v) => v.entityName),
   );
   const safeFoods = foods.filter((f) => !blockedNames.has(f.name));
+  const intelligence=require('../nutrients/foodIntelligence');
+  const recipeIds=[...new Set(safeFoods.map(f=>f.recipeId).filter(Boolean))];
+  const foodIntelligence=await intelligence.safe(async()=>{
+    const recipes=await prisma.recipe.findMany({where:{id:{in:recipeIds},OR:[{isSystem:true},{creatorId:userId}]},include:{ingredients:true}});
+    return intelligence.recipes(recipes,userId,prisma,Object.fromEntries(safeFoods.map(f=>[f.recipeId,f.portionG])));
+  },null);
 
   // Store recommendation.
   const recommendation = await prisma.mealRecommendation.create({
@@ -134,6 +140,7 @@ async function generateMealRecommendation(userId, opts = {}) {
 
   return {
     id: recommendation.id,
+    foodIntelligence,
     mealType,
     caloriesTarget: mealCalories,
     proteinTarget: mealProtein,
@@ -162,75 +169,19 @@ function determineMealType(timeOfDay, mealCount) {
   return 'snack';
 }
 
-function generateFoodSuggestions({ mealType, caloriesTarget, proteinTarget, conditions, allergies, workoutCompleted }) {
-  // Deterministic food database for recommendations.
-  // In production, this would query the Ingredient table and optionally call an LLM.
-  const FOOD_SUGGESTIONS = {
-    breakfast: [
-      { name: 'Oatmeal', portionG: 80, calories: 311, proteinG: 14, carbsG: 53, fatG: 6 },
-      { name: 'Greek yogurt', portionG: 200, calories: 118, proteinG: 20, carbsG: 7, fatG: 1 },
-      { name: 'Eggs (2 whole)', portionG: 100, calories: 155, proteinG: 13, carbsG: 1, fatG: 11 },
-      { name: 'Banana', portionG: 120, calories: 107, proteinG: 1, carbsG: 28, fatG: 0 },
-      { name: 'Whole wheat toast', portionG: 60, calories: 160, proteinG: 6, carbsG: 28, fatG: 2 },
-    ],
-    lunch: [
-      { name: 'Chicken breast', portionG: 200, calories: 330, proteinG: 62, carbsG: 0, fatG: 7 },
-      { name: 'Brown rice', portionG: 150, calories: 185, proteinG: 4, carbsG: 38, fatG: 2 },
-      { name: 'Mixed vegetables', portionG: 150, calories: 50, proteinG: 3, carbsG: 10, fatG: 0 },
-      { name: 'Quinoa', portionG: 150, calories: 180, proteinG: 7, carbsG: 32, fatG: 3 },
-      { name: 'Salmon', portionG: 150, calories: 312, proteinG: 30, carbsG: 0, fatG: 20 },
-    ],
-    dinner: [
-      { name: 'Grilled chicken thigh', portionG: 200, calories: 380, proteinG: 44, carbsG: 0, fatG: 22 },
-      { name: 'Sweet potato', portionG: 200, calories: 180, proteinG: 4, carbsG: 42, fatG: 0 },
-      { name: 'Steamed broccoli', portionG: 150, calories: 51, proteinG: 4, carbsG: 11, fatG: 1 },
-      { name: 'Lean beef', portionG: 150, calories: 250, proteinG: 36, carbsG: 0, fatG: 11 },
-      { name: 'Avocado', portionG: 80, calories: 128, proteinG: 2, carbsG: 7, fatG: 12 },
-    ],
-    snack: [
-      { name: 'Almonds', portionG: 30, calories: 174, proteinG: 6, carbsG: 7, fatG: 15 },
-      { name: 'Protein shake', portionG: 31, calories: 120, proteinG: 24, carbsG: 3, fatG: 2 },
-      { name: 'Apple', portionG: 150, calories: 78, proteinG: 0, carbsG: 21, fatG: 0 },
-      { name: 'Cottage cheese', portionG: 150, calories: 147, proteinG: 18, carbsG: 5, fatG: 6 },
-    ],
-  };
-
-  const pool = FOOD_SUGGESTIONS[mealType] || FOOD_SUGGESTIONS.lunch;
-
-  // Filter out allergens (basic).
-  const allergenMap = {
-    'Nut Allergy': ['Almonds'],
-    'Dairy Allergy': ['Greek yogurt', 'Cottage cheese', 'Protein shake'],
-    'Egg Allergy': ['Eggs (2 whole)'],
-    'Shellfish Allergy': [],
-  };
-  const blocked = new Set();
-  for (const allergy of allergies) {
-    for (const food of (allergenMap[allergy] || [])) {
-      blocked.add(food);
-    }
-  }
-
-  const filtered = pool.filter((f) => !blocked.has(f.name));
-
-  // Select foods to approximately meet targets.
-  const selected = [];
-  let cals = 0;
-  let prot = 0;
-  for (const food of filtered) {
-    if (cals >= caloriesTarget) break;
-    selected.push(food);
-    cals += food.calories;
-    prot += food.proteinG;
-  }
-
-  // If protein is still low after workout, prioritize protein.
-  if (workoutCompleted && prot < proteinTarget * 0.8) {
-    const proteinFood = filtered.find((f) => f.proteinG > 20 && !selected.includes(f));
-    if (proteinFood) selected.push(proteinFood);
-  }
-
-  return selected;
+async function generateFoodSuggestions({ mealType, caloriesTarget, allergies }) {
+  // Suggestions use the same reviewed recipes and central ingredient records as weekly planning.
+  const db=getPrisma();
+  const recipes=await require('../weekly/centralRecipes').resolveRecipes(await db.recipe.findMany({where:{isSystem:true,mealType},include:{ingredients:true}}),db);
+  const {recipeAllowed}=require('../weekly/planningPolicy');
+  const restrictions=[];
+  const map={'Nut Allergy':'nut-free','Dairy Allergy':'dairy-free','Egg Allergy':'egg-free','Shellfish Allergy':'shellfish-free','Peanut Allergy':'peanut-free','Fish Allergy':'fish-free','Soy Allergy':'soy-free','Gluten Allergy':'gluten-free'};
+  for(const allergy of allergies || []){if(!map[allergy])return [];restrictions.push(map[allergy]);}
+  const candidate=recipes.filter(r=>recipeAllowed(r,[],restrictions)).sort((a,b)=>Math.abs(a.calories-caloriesTarget)-Math.abs(b.calories-caloriesTarget))[0];
+  if(!candidate)return [];
+  const factor=Math.max(0.5,Math.min(2,caloriesTarget/candidate.calories));
+  const meal=require('../weekly/weeklyDietGenerator').recipeToMeal(candidate,factor);
+  return [{name:meal.foodName,recipeId:candidate.id,portionG:meal.portionG,calories:meal.calories,proteinG:meal.proteinG,carbsG:meal.carbsG,fatG:meal.fatG,fiberG:meal.fiberG,nutritionSource:candidate.nutritionSource}];
 }
 
 function generateReasoning(context, targets) {
