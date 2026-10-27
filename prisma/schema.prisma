@@ -1604,3 +1604,147 @@ model HealthConditionNutrientRule {
   @@index([nutrientId])
   @@index([evidenceSourceId])
 }
+
+
+// ============================================================================
+// SMART REMINDERS & HABIT ENGINE
+// ============================================================================
+
+// Per-user reminder preferences. Everything defaults to OFF — reminders are
+// strictly opt-in per the product requirement that no automatic reminders
+// fire without explicit consent. `adaptiveEnabled` is a separate consent from
+// `masterEnabled`: receiving notifications never implies learning consent.
+model ReminderPreference {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+
+  masterEnabled   Boolean  @default(false)
+  adaptiveEnabled Boolean  @default(false)
+  // When true, no further adaptive suggestions are offered (declined permanently).
+  suggestionsMuted Boolean @default(false)
+
+  // Local wall-clock "HH:MM" bounds; wraps midnight (e.g. 22:00 -> 07:00).
+  quietStart      String?
+  quietEnd        String?
+
+  // Max nonessential reminder sends per local day.
+  dailyCap        Int      @default(3)
+
+  snoozeMinutes   Int      @default(30)
+  pausedUntil     DateTime?
+  weeklyDigest    Boolean  @default(false)
+
+  // IANA timezone used for scheduling. When timezoneLocked is set, learned/manual
+  // home-time schedules are followed instead of the current local zone.
+  timezone        String?
+  timezoneLocked  Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  categories      ReminderCategorySetting[]
+}
+
+// Per-user per-category schedule. `category` is a string like
+// "meal:breakfast", "meal:lunch", "water", "supplement", "workout", "movement".
+// `source` records whether the schedule is user-configured ("manual") or came
+// from an accepted adaptive suggestion ("adaptive"); manual always wins.
+model ReminderCategorySetting {
+  id              String   @id @default(uuid())
+
+  userId          String
+  preference      ReminderPreference @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  category        String
+
+  enabled         Boolean  @default(false)
+
+  // ["HH:MM"] local times for fixed schedules (meals, supplements, workouts).
+  times           Json     @default("[]")
+  // [0-6] days the schedule applies; null = every day.
+  daysOfWeek      Json?
+
+  // water: minutes since last water log (default 120)
+  // movement: inactivity window 60-120
+  intervalMinutes Int?
+  // workout prep lead (15/30/60) or meal grace delay after typical time.
+  leadMinutes     Int?
+  // water waking hours override ("HH:MM"), falls back to quiet hours.
+  wakingStart     String?
+  wakingEnd       String?
+
+  source          String   @default("manual")
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, category])
+  @@index([userId])
+}
+
+// Adaptive schedule proposal. Created only after enough comparable
+// observations (>=3) and only when adaptiveEnabled. Never activates itself;
+// expires stale so users aren't reprompted forever.
+model ReminderSuggestion {
+  id         String   @id @default(uuid())
+
+  userId     String
+  category   String
+
+  title      String
+  body       String   // "why" explanation citing the evidence
+  proposed   Json     // { times?: ["HH:MM"], intervalMinutes?, daysOfWeek? }
+  evidence   Json     // { observations, dates:[YYYY-MM-DD], typicalTime }
+
+  status     String   @default("pending") // pending | accepted | declined | expired
+  createdAt  DateTime @default(now())
+  resolvedAt DateTime?
+
+  @@index([userId, status])
+}
+
+// One concrete reminder occurrence. dedupeKey makes scheduling idempotent
+// across ticks and devices: userId|category|localDate|slot. Status is the
+// audit trail for the notification history/inbox.
+model ReminderInstance {
+  id           String   @id @default(uuid())
+
+  userId       String
+  category     String
+
+  dedupeKey    String   @unique
+  scheduledFor DateTime
+
+  // pending -> ready -> sent | suppressed | snoozed | completed | dismissed | skipped | expired
+  status       String   @default("pending")
+  reason       String?
+  why          String?  // short "why did I receive this" explanation
+  payload      Json?
+
+  snoozeUntil  DateTime?
+  actedAt      DateTime?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status, scheduledFor])
+}
+
+// Registered devices for remote delivery in a later milestone.
+model PushDevice {
+  id            String   @id @default(uuid())
+
+  userId        String
+  deviceId      String
+  expoPushToken String?
+  platform      String
+
+  active        Boolean  @default(true)
+  lastSeenAt    DateTime @default(now())
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, deviceId])
+  @@index([userId])
+}
