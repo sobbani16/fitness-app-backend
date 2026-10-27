@@ -77,6 +77,18 @@ router.get('/water', async (req, res) => {
   }
 });
 
+// GET /daily-stats/water/last — most recent water log timestamp
+router.get('/water/last', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(400).json({ error: 'x-user-id header or userId required' });
+    const last = await getPrisma().waterLog.findFirst({ where: { userId }, orderBy: { loggedAt: 'desc' }, select: { loggedAt: true, amountMl: true } });
+    res.json({ loggedAt: last?.loggedAt || null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /daily-stats/steps — upsert today's step count
 // Body: { steps, date? }
 router.post('/steps', async (req, res) => {
