@@ -80,3 +80,19 @@ describe('search', () => {
     expect(calls).toBe(2); // search + videos once
   });
 });
+
+describe('explainability, tags and reports', () => {
+  const { detectTags, explain } = require('../src/services/youtubeService');
+  it('detects variation tags only from title keywords', () => {
+    expect(detectTags('Dumbbell Bench Press for Beginners')).toEqual(expect.arrayContaining(['dumbbell', 'beginner']));
+    expect(detectTags('Fix Your Squat — 5 Mistakes')).toEqual(expect.arrayContaining(['mistakes']));
+    expect(detectTags('Just a random vlog')).toEqual([]);
+  });
+  it('explains ranking without inventing credibility', () => {
+    const trusted = new Map([['UC1', 'Coach']]);
+    const item = { statistics: { viewCount: '2000000' }, snippet: { channelId: 'UC1', publishedAt: new Date().toISOString() } };
+    expect(explain(item, 0, trusted)).toContain('reviewed list');
+    expect(explain(item, 0, trusted)).toContain('2M views');
+    expect(explain({ statistics: {}, snippet: { channelId: 'X' } }, 5, new Map())).toBe('Matched your search');
+  });
+});

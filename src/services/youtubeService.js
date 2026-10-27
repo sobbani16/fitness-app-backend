@@ -57,6 +57,36 @@ function score(item, index, trusted) {
   return relevance + popularity + recency + curated;
 }
 
+// Variation/equipment labels only when the title itself says so — metadata,
+// not inference. Anything else is left unlabeled rather than invented.
+const TAG_PATTERNS = [
+  ['beginner', /\bbeginner|basics|first time\b/i],
+  ['advanced', /\badvanced|progression\b/i],
+  ['dumbbell', /\bdumbbells?\b/i],
+  ['barbell', /\bbarbells?\b/i],
+  ['kettlebell', /\bkettlebells?\b/i],
+  ['bodyweight', /\bbodyweight|no equipment\b/i],
+  ['home', /\bat home|home workout\b/i],
+  ['gym', /\bgym\b/i],
+  ['modified', /\bmodified|regression|easier\b/i],
+  ['form', /\bform|technique|how to\b/i],
+  ['mistakes', /\bmistakes?|avoid\b/i],
+];
+function detectTags(title) {
+  return TAG_PATTERNS.filter(([, re]) => re.test(title || '')).map(([tag]) => tag);
+}
+
+function explain(item, index, trusted) {
+  const parts = ['Matched your search'];
+  const views = Number(item.statistics?.viewCount) || 0;
+  if (views >= 1000000) parts.push(`${Math.round(views / 1000000)}M views`);
+  else if (views >= 1000) parts.push(`${Math.round(views / 1000)}K views`);
+  const days = ageDays(item.snippet?.publishedAt);
+  if (days != null && days < 365) parts.push('recent');
+  if (trusted.has(item.snippet?.channelId)) parts.push('from a channel on Humai\'s reviewed list');
+  return parts.join(' · ');
+}
+
 function toResult(item, index, trusted, now) {
   const seconds = parseDuration(item.contentDetails?.duration);
   return {
@@ -72,6 +102,9 @@ function toResult(item, index, trusted, now) {
     durationLabel: formatDuration(seconds),
     trusted: trusted.has(item.snippet?.channelId),
     trustedChannelName: trusted.get(item.snippet?.channelId) || null,
+    tags: detectTags(item.snippet?.title),
+    description: (item.snippet?.description || '').slice(0, 300),
+    why: explain(item, index, trusted),
   };
 }
 
@@ -116,4 +149,4 @@ async function search({ query, context = 'general', pageToken, sort = 'recommend
   return { recommended, explore, nextPageToken: searchBody.nextPageToken || null, query };
 }
 
-module.exports = { search, parseDuration, formatDuration, score, trustedChannels, _cache: cache };
+module.exports = { search, parseDuration, formatDuration, score, trustedChannels, detectTags, explain, _cache: cache };
