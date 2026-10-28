@@ -235,6 +235,8 @@ async function saveScannedLabel(userId, data) {
     photoUri,
     ocrRawText,
     aiConfidence,
+    extraction,
+    userCorrections,
   } = data;
 
   // Compute adjusted values
@@ -304,6 +306,8 @@ async function saveScannedLabel(userId, data) {
         photoUri,
         ocrRawText,
         aiConfidence,
+        extraction: extraction ?? undefined,
+        userCorrections: userCorrections ?? undefined,
         mealType,
       },
     });

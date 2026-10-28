@@ -1364,6 +1364,11 @@ model ScannedLabel {
   aiConfidence       Float?   // 0-1 confidence from AI extraction
   mealType           String?  // breakfast | lunch | dinner | snack
 
+  // Structured extraction evidence (schemaVersion guards older records)
+  schemaVersion      Int      @default(1)
+  extraction         Json?    // { merged, provenance, conflicts, productConflict, panelCount }
+  userCorrections    Json?    // field-level edits applied during review
+
   createdAt          DateTime @default(now())
 
   @@index([userId, createdAt])
