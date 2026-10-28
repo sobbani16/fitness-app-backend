@@ -5,6 +5,12 @@ const CURRENCY = /(?:rs\.?|inr|usd|\$|₹|€|£)/i;
 const PRICE = new RegExp(`(?:${CURRENCY.source})\\s?(\\d+(?:\\.\\d{1,2})?)|\\b(\\d+(?:\\.\\d{1,2})?)\\s?(?:${CURRENCY.source})`, 'i');
 // Calories: "320 kcal", "cal: 450", "(180 cal)", "Kcal 220". Never bare numbers.
 const KCAL = /(\d{2,4})\s*(?:k?cals?|calories|kilo\s*joules?|kj)\b|(?:k?cals?|calories)\s*[:\-]?\s*(\d{2,4})/i;
+// Lines that are never dish names: URLs/watermarks and pure macro-stat rows
+// ("18g Fat (3.5g Sat)", "41g Carbs", "1,460mg Sodium"). Real dishes like
+// "12 Nuggets" don't match — the token after the number isn't a unit.
+const NOISE = /https?:|www\.|\.\s*(?:com|net|org|in|io)\b/i;
+const STAT_LINE = /^\(?[\d,.\s]+\s*(mg|g|kj)\b/i;
+const STAT_WORDS = /sodium|salt|fat|sat|carbs?|carbohydrate|protein|fibre?|sugar|trans/i;
 const SECTION_WORDS = /^(appetizers?|starters?|entrees?|mains?|main course|desserts?|beverages?|drinks?|cocktails?|mocktails?|breakfast|brunch|lunch|dinner|specials?|sides?|soups?|salads?|wraps?|pizza|pasta|grill|veg(etarian)?|non.?veg(etarian)?|biryani|curries|tandoori|dosa|breads?|rice|combos?|thali)\b/i;
 const PRICE_ONLY = /^(?:rs\.?|inr|usd|\$|₹|€|£)?\s?\d+(?:\.\d{1,2})?\s?(?:rs\.?|inr|₹)?$/i;
 // Trailing bare number: "Paneer Tikka 280", "Samosa ..... 12.99", "Thali 1,299".
@@ -76,6 +82,13 @@ function parseMenuText(ocrText, opts = {}) {
       continue;
     }
     if (PRICE_ONLY.test(raw)) continue;
+    // Skip watermark/URL noise and bare macro-stat lines — they attach as
+    // context on the pending dish rather than becoming items themselves.
+    if (NOISE.test(raw)) continue;
+    if (STAT_LINE.test(raw) && (STAT_WORDS.test(raw) || !/[a-z]{3,}/i.test(raw.replace(STAT_LINE, '')))) {
+      if (pending && !pending.description) pending.description = raw;
+      continue;
+    }
     if (!pending) {
       if (raw.length < 2 || raw.length > 60) continue;
       pending = { name: raw, description: null, price: null, currency: null, calories: kcal ? Number(kcal[1] ?? kcal[2]) : null, calorieSource: kcal ? 'restaurant-reported' : null, section: currentSection };
