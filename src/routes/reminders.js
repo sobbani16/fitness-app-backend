@@ -184,6 +184,33 @@ router.post('/instances/:id/action', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// GET /reminders/diagnostics — authenticated user-scoped pipeline status:
+// consent, category settings, registered devices, and recent instance
+// outcomes (sent/suppressed/expired with reasons). No other user's data.
+router.get('/diagnostics', async (req, res) => {
+  try {
+    const userId = requireUser(req, res);
+    if (!userId) return;
+    const prisma = getPrisma();
+    const [prefs, categories, devices, instances, counts] = await Promise.all([
+      prisma.reminderPreference.findUnique({ where: { userId } }),
+      prisma.reminderCategorySetting.findMany({ where: { userId } }),
+      prisma.pushDevice.findMany({ where: { userId }, orderBy: { lastSeenAt: 'desc' }, take: 10 }),
+      prisma.reminderInstance.findMany({ where: { userId }, orderBy: { scheduledFor: 'desc' }, take: 15,
+        select: { category: true, status: true, reason: true, scheduledFor: true, actedAt: true } }),
+      prisma.reminderInstance.groupBy({ by: ['status'], where: { userId, scheduledFor: { gte: new Date(Date.now() - 86400000) } }, _count: true }),
+    ]);
+    res.json({
+      delivery: 'device-local', // reminders are scheduled on-device; no remote push is configured
+      consent: prefs ? { masterEnabled: prefs.masterEnabled, adaptiveEnabled: prefs.adaptiveEnabled, pausedUntil: prefs.pausedUntil, quietStart: prefs.quietStart, quietEnd: prefs.quietEnd, dailyCap: prefs.dailyCap, timezone: prefs.timezone } : null,
+      categories: categories.map(c => ({ category: c.category, enabled: c.enabled, times: c.times, intervalMinutes: c.intervalMinutes })),
+      devices: devices.map(d => ({ deviceId: d.deviceId, platform: d.platform, hasPushToken: Boolean(d.expoPushToken), lastSeenAt: d.lastSeenAt, active: d.active })),
+      last24h: Object.fromEntries(counts.map(c => [c.status, c._count])),
+      recent: instances,
+    });
+  } catch (error) { fail(res, error); }
+});
+
 // GET /reminders/inbox — recent inbox notifications (reminder-prefixed only).
 router.get('/inbox', async (req, res) => {
   try {
