@@ -134,6 +134,11 @@ model DailySteps {
 
   distanceKm    Float?
 
+  // Source attribution: 'app' (manual/device sensors today), future 'fitbit',
+  // 'apple-health', 'health-connect'. externalId enables provider dedup.
+  source        String   @default("app")
+  externalId    String?
+
   user          User @relation(fields: [userId], references: [id])
 }
 
@@ -145,6 +150,9 @@ model WaterLog {
   amountMl      Int
 
   loggedAt      DateTime @default(now())
+
+  source        String   @default("app")
+  externalId    String?
 
   user          User @relation(fields: [userId], references: [id])
 }
@@ -161,6 +169,9 @@ model SleepLog {
   hoursSlept    Float?
 
   sleepScore    Float?
+
+  source        String   @default("app")
+  externalId    String?
 
   user          User @relation(fields: [userId], references: [id])
 }
@@ -209,6 +220,9 @@ model WorkoutSession {
   startedAt           DateTime
 
   endedAt             DateTime
+
+  source              String   @default("app")
+  externalId          String?
 
   user                User @relation(fields: [userId], references: [id])
 

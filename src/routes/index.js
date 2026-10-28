@@ -26,6 +26,7 @@ const dailyStats = require('./dailyStats');
 const labelScanner = require('./labelScanner');
 const reminders = require('./reminders');
 const videos = require('./videos');
+const healthData = require('./healthData');
 
 const router = express.Router();
 
@@ -56,5 +57,6 @@ router.use('/daily-stats', dailyStats);
 router.use('/label-scanner', labelScanner);
 router.use('/reminders', reminders);
 router.use('/videos', videos);
+router.use('/health-data', healthData);
 
 module.exports = router;
