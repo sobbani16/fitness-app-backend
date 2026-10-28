@@ -11,6 +11,13 @@ const KCAL = /(\d{2,4})\s*(?:k?cals?|calories|kilo\s*joules?|kj)\b|(?:k?cals?|ca
 const NOISE = /https?:|www\.|\.\s*(?:com|net|org|in|io)\b/i;
 const STAT_LINE = /^\(?[\d,.\s]+\s*(mg|g|kj)\b/i;
 const STAT_WORDS = /sodium|salt|fat|sat|carbs?|carbohydrate|protein|fibre?|sugar|trans/i;
+// Count-only fragments ("8ct", "12 ct") and continuation lines ("or Chips + Tea").
+const COUNT_ONLY = /^\d+\s*ct\b/i;
+const CONTINUATION = /^(or|and|with)\s/i;
+// Meal-number prefixes ("1 Chick-fil-A® Chicken" → "Chick-fil-A® Chicken").
+// Only strips a single digit when the remainder is long enough to be a real
+// name — preserves counts like "8 Nuggets".
+const MEAL_NUM = /^[1-9]\s+(?=[A-Z])/;
 const SECTION_WORDS = /^(appetizers?|starters?|entrees?|mains?|main course|desserts?|beverages?|drinks?|cocktails?|mocktails?|breakfast|brunch|lunch|dinner|specials?|sides?|soups?|salads?|wraps?|pizza|pasta|grill|veg(etarian)?|non.?veg(etarian)?|biryani|curries|tandoori|dosa|breads?|rice|combos?|thali)\b/i;
 const PRICE_ONLY = /^(?:rs\.?|inr|usd|\$|₹|€|£)?\s?\d+(?:\.\d{1,2})?\s?(?:rs\.?|inr|₹)?$/i;
 // Trailing bare number: "Paneer Tikka 280", "Samosa ..... 12.99", "Thali 1,299".
@@ -35,6 +42,7 @@ function parseMenuText(ocrText, opts = {}) {
   let restaurant = opts.restaurantName || null;
   let pending = null;
 
+  const cleanName = (n) => { const s = String(n).trim(); return s.length - 2 >= 10 && MEAL_NUM.test(s) ? s.slice(2).trim() : s; };
   const flush = () => { if (pending) items.push(pending); pending = null; };
   for (const raw of lines) {
     if (!raw) { flush(); continue; }
@@ -65,7 +73,7 @@ function parseMenuText(ocrText, opts = {}) {
       // kcal — flag for user confirmation instead of guessing.
       const ambiguous = !priceMatch && priceVal >= 50 && priceVal <= 900;
       pending = {
-        name: namePart,
+        name: cleanName(namePart),
         description: descPart || null,
         price: Number.isFinite(priceVal) ? priceVal : null,
         currency: priceMatch ? currencyOf(priceMatch[0]) : null,
@@ -89,9 +97,15 @@ function parseMenuText(ocrText, opts = {}) {
       if (pending && !pending.description) pending.description = raw;
       continue;
     }
+    // Count-only fragments and lowercase continuations belong to the dish
+    // above, not a new item.
+    if (COUNT_ONLY.test(raw) || CONTINUATION.test(raw)) {
+      if (pending && !pending.description) pending.description = raw;
+      continue;
+    }
     if (!pending) {
       if (raw.length < 2 || raw.length > 60) continue;
-      pending = { name: raw, description: null, price: null, currency: null, calories: kcal ? Number(kcal[1] ?? kcal[2]) : null, calorieSource: kcal ? 'restaurant-reported' : null, section: currentSection };
+      pending = { name: cleanName(raw), description: null, price: null, currency: null, calories: kcal ? Number(kcal[1] ?? kcal[2]) : null, calorieSource: kcal ? 'restaurant-reported' : null, section: currentSection };
       continue;
     }
     if (!pending.description && raw.length <= 160 && !MENU_PRICE_TEST(raw)) {
@@ -99,7 +113,7 @@ function parseMenuText(ocrText, opts = {}) {
       continue;
     }
     flush();
-    if (raw.length >= 2 && raw.length <= 60) pending = { name: raw, description: null, price: null, currency: null, calories: null, calorieSource: null, section: currentSection };
+    if (raw.length >= 2 && raw.length <= 60) pending = { name: cleanName(raw), description: null, price: null, currency: null, calories: null, calorieSource: null, section: currentSection };
   }
   flush();
   return { restaurant, items: items.filter(i => i.name && i.name.length >= 2) };
