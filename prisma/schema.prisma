@@ -41,6 +41,7 @@ model User {
   sleepLogs       SleepLog[]
   foodLogs        FoodLog[]
   workoutSessions WorkoutSession[]
+  energyRecords   HealthEnergyRecord[]
 }
 
 model UserHealthProfile {
@@ -1772,4 +1773,23 @@ model PushDevice {
 
   @@unique([userId, deviceId])
   @@index([userId])
+}
+
+// Imported active-energy records from wearables (Fitbit / HealthKit / Health
+// Connect). Informational only — never added to TDEE-derived targets.
+model HealthEnergyRecord {
+  id          String   @id @default(cuid())
+  userId      String
+  provider    String   // 'fitbit' | 'healthkit' | 'health_connect'
+  sourceId    String   // provider-assigned record id (dedupe key)
+  deviceLabel String?
+  startAt     DateTime
+  endAt       DateTime
+  activeKcal  Float    // active (not total) energy, kcal
+  syncedAt    DateTime @default(now())
+  metadata    Json?    // original provider fields
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider, sourceId])
+  @@index([userId, startAt])
 }

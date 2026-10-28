@@ -23,6 +23,7 @@ const ACTIVITY_FACTORS = {
 const GOAL_ADJUSTMENT = {
   weight_loss: -500,
   muscle_gain: 400,
+  weight_gain: 500,
   body_recomposition: 0,
   maintain: 0,
   // Legacy aliases

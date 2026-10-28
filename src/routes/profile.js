@@ -13,7 +13,7 @@ router.put('/', async (req, res, next) => {
     for (const [key, min, max] of [['age',18,120],['heightCm',50,260],['weightKg',20,400]]) {
       if (!Number.isFinite(p[key]) || p[key] < min || p[key] > max) throw httpError(400, `Invalid ${key}.`);
     }
-    if (!['weight_loss','muscle_gain','body_recomposition','maintain'].includes(p.goal) || !['male','female','other'].includes(p.sex) || !['metric','imperial'].includes(p.units) || !['sedentary','light','moderate','active','very_active'].includes(p.activityLevel)) throw httpError(400, 'Invalid profile options.');
+    if (!['weight_loss','muscle_gain','body_recomposition','weight_gain','maintain'].includes(p.goal) || !['male','female','other'].includes(p.sex) || !['metric','imperial'].includes(p.units) || !['sedentary','light','moderate','active','very_active'].includes(p.activityLevel)) throw httpError(400, 'Invalid profile options.');
     const profile = Object.fromEntries(['name','sex','age','heightCm','weightKg','goalWeightKg','activityLevel','goal','units','createdAt'].filter(k => p[k] !== undefined).map(k => [k,p[k]]));
     const prisma = getPrisma();
     await prisma.$transaction(async tx => {
