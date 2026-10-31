@@ -5,7 +5,7 @@ const { getPrisma } = require('../lib/prisma');
 const { hashPassword, verifyPassword, createSession, hashToken } = require('../services/authService');
 const authenticate = require('../middleware/authenticate');
 const { httpError } = require('../lib/errors');
-const { GENERIC_MESSAGE, normalizeEmail, validatePassword, enqueueAction, consumeLimit, requestAction, completeAction } = require('../services/authLifecycle');
+const { GENERIC_MESSAGE, normalizeEmail, validatePassword, enqueueAction, consumeLimit, requestAction, completeAction, actionStatus } = require('../services/authLifecycle');
 router.use((req, res, next) => { res.set('Cache-Control', 'no-store'); res.set('Referrer-Policy', 'no-referrer'); next(); });
 router.get('/action', (req, res) => res.sendFile(path.join(__dirname, '../public/auth-action.html')));
 router.get('/action.js', (req, res) => res.sendFile(path.join(__dirname, '../public/auth-action.js')));
@@ -76,6 +76,11 @@ for (const purpose of ['verify-email', 'reset-password']) {
     } catch (e) { next(e); }
   });
 }
+// Non-consuming pre-check so the action page can render expired/used links correctly.
+router.post('/action-status', async (req, res, next) => {
+  try { res.json({ state: await actionStatus(req.body?.token, req.body?.purpose) }); }
+  catch (e) { next(e); }
+});
 router.post('/logout', authenticate, async (req, res, next) => {
   try {
     await getPrisma().authSession.deleteMany({ where: { tokenHash: hashToken(req.headers.authorization.slice(7)) } });

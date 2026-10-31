@@ -21,16 +21,40 @@ router.put('/', async (req, res, next) => {
       const prev = await tx.user.findUnique({ where: { id: req.userId } });
       await tx.user.update({ where: { id: req.userId }, data: { profileData: profile, firstName: String(p.name || '').slice(0,100), gender: p.sex, heightCm: p.heightCm, currentWeightKg: p.weightKg, goalType: p.goal, activityLevel: p.activityLevel } });
       if (prev.currentWeightKg !== p.weightKg) await tx.weightEntry.create({ data: { userId: req.userId, weightKg: p.weightKg } });
-      const { calculateBMR, calculateTDEE, targetCalories } = require('../services/calorieEngine');
-      const caloriesTarget = Math.round(targetCalories(calculateTDEE(calculateBMR(p),p.activityLevel),p.goal));
-      const existing = await tx.macroGoal.findUnique({ where: { userId: req.userId } });
-      if (!existing || existing.source === 'default') {
-        const proteinTarget = Math.round(p.weightKg * 1.6), fatTarget = Math.round(caloriesTarget * 0.25 / 9);
-        const data = { caloriesTarget, proteinTarget, fatTarget, carbsTarget: Math.max(0,Math.round((caloriesTarget-proteinTarget*4-fatTarget*9)/4)), fiberTarget:30, waterMlTarget:2000, source:'default' };
-        await tx.macroGoal.upsert({ where:{userId:req.userId},create:{userId:req.userId,...data},update:data });
-      }
+      await recalcDefaultGoal(tx, req.userId, p);
     });
     res.json({ profile });
+  } catch(e) { next(e); }
+});
+async function recalcDefaultGoal(tx, userId, p) {
+  const { calculateBMR, calculateTDEE, targetCalories } = require('../services/calorieEngine');
+  const caloriesTarget = Math.round(targetCalories(calculateTDEE(calculateBMR(p),p.activityLevel),p.goal));
+  const existing = await tx.macroGoal.findUnique({ where: { userId } });
+  if (!existing || existing.source === 'default') {
+    const proteinTarget = Math.round(p.weightKg * 1.6), fatTarget = Math.round(caloriesTarget * 0.25 / 9);
+    const data = { caloriesTarget, proteinTarget, fatTarget, carbsTarget: Math.max(0,Math.round((caloriesTarget-proteinTarget*4-fatTarget*9)/4)), fiberTarget:30, waterMlTarget:2000, source:'default' };
+    await tx.macroGoal.upsert({ where:{userId},create:{userId,...data},update:data });
+  }
+}
+// POST /me/profile/weight — record an explicit measurement, including a repeat
+// of the last value, without requiring the full profile payload.
+router.post('/weight', async (req, res, next) => {
+  try {
+    const weightKg = Number(req.body?.weightKg);
+    if (!Number.isFinite(weightKg) || weightKg < 20 || weightKg > 400) throw httpError(400, 'Invalid weight.');
+    const prisma = getPrisma();
+    const result = await prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${req.userId} FOR UPDATE`;
+      const prev = await tx.user.findUnique({ where: { id: req.userId }, select: { profileData: true } });
+      const profile = { ...(prev?.profileData || {}), weightKg };
+      await tx.user.update({ where: { id: req.userId }, data: { profileData: profile, currentWeightKg: weightKg } });
+      const entry = await tx.weightEntry.create({ data: { userId: req.userId, weightKg } });
+      if (['name','sex','age','heightCm','activityLevel','goal','units'].every(k => profile[k] !== undefined)) {
+        await recalcDefaultGoal(tx, req.userId, profile);
+      }
+      return { entry, profile };
+    });
+    res.status(201).json(result);
   } catch(e) { next(e); }
 });
 module.exports = router;

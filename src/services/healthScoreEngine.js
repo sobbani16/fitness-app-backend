@@ -59,6 +59,12 @@ async function scoreMacroAdherence(userId, dateStr, prisma) {
     where: { userId, date: dateStr },
   });
 
+  // Missing logs are not zero intake — without food records there is no
+  // measurable adherence, so the component reports unavailable.
+  if (!logs.length && !supplementLogs.length) {
+    return { score: null, available: false, contributors: [], insights: [] };
+  }
+
   const intake = logs.reduce(
     (a, l) => ({ protein: a.protein + l.proteinG, carbs: a.carbs + l.carbsG, fat: a.fat + l.fatG, fiber: a.fiber + l.fiberG }),
     { protein: 0, carbs: 0, fat: 0, fiber: 0 },
@@ -120,7 +126,7 @@ async function scoreMacroAdherence(userId, dateStr, prisma) {
     }
   }
 
-  return { score, contributors, insights, intake, targets };
+  return { score, available: true, contributors, insights, intake, targets };
 }
 
 // ============================================================================
@@ -132,8 +138,9 @@ async function scoreConditionCompliance(userId, dateStr, prisma) {
     include: { condition: { include: { conditionRules: true } } },
   });
 
+  // No recorded conditions is unknown, not a perfect score.
   if (!userConditions.length) {
-    return { score: 100, contributors: [], insights: [] };
+    return { score: null, available: false, contributors: [], insights: [] };
   }
 
   const logs = await prisma.foodLog.findMany({
@@ -141,6 +148,7 @@ async function scoreConditionCompliance(userId, dateStr, prisma) {
   });
 
   // Load attributes for all ingredients the user has
+  if (!logs.length) return { score: null, available: false, contributors: [], insights: [] };
   const allIngredients = await prisma.ingredient.findMany({
     include: { attributes: true },
   });
@@ -193,7 +201,7 @@ async function scoreConditionCompliance(userId, dateStr, prisma) {
   }
 
   const score = Math.max(0, Math.min(100, 100 - penalties));
-  return { score, contributors, insights };
+  return { score, available: true, contributors, insights };
 }
 
 // ============================================================================
@@ -204,7 +212,8 @@ async function scoreFoodQuality(userId, dateStr, prisma) {
     where: { userId, loggedAt: { gte: startOfDay(dateStr), lte: endOfDay(dateStr) } },
   });
 
-  if (!logs.length) return { score: 50, contributors: [], insights: [] };
+  // No food records means nothing to evaluate — unavailable, not mid-range.
+  if (!logs.length) return { score: null, available: false, contributors: [], insights: [] };
 
   const contributors = [];
   let qualityPoints = 0;
@@ -232,7 +241,7 @@ async function scoreFoodQuality(userId, dateStr, prisma) {
     insights.push({ message: 'Food quality is low today. Choose whole foods over processed options.', severity: 'warning' });
   }
 
-  return { score, contributors, insights };
+  return { score, available: true, contributors, insights };
 }
 
 // ============================================================================
@@ -247,6 +256,12 @@ async function scoreActivity(userId, dateStr, prisma) {
     where: { userId, date: startOfDay(dateStr) },
   });
   const steps = stepsRecord?.steps || 0;
+
+  // No recorded activity is unknown — rest days are valid and absence of
+  // logs is not evidence of inactivity.
+  if (!workouts.length && !stepsRecord) {
+    return { score: null, available: false, contributors: [], insights: [] };
+  }
 
   const totalMinutes = workouts.reduce((s, w) => s + (w.durationMinutes || 0), 0);
   const contributors = [];
@@ -267,11 +282,10 @@ async function scoreActivity(userId, dateStr, prisma) {
     contributors.push({ category: 'activity', itemName: 'Steps', scoreImpact: 3, reason: `${steps.toLocaleString()} steps — aim for 6,000+` });
   } else {
     score = 40;
-    contributors.push({ category: 'activity', itemName: 'No Activity', scoreImpact: -5, reason: 'No workout or steps logged today' });
-    insights.push({ message: 'No activity logged today. A 30-minute walk can boost your score.', severity: 'info' });
+    contributors.push({ category: 'activity', itemName: 'No Activity', scoreImpact: -5, reason: 'Steps were recorded but no workout minutes today' });
   }
 
-  return { score, contributors, insights };
+  return { score, available: true, contributors, insights };
 }
 
 // ============================================================================
@@ -296,8 +310,11 @@ async function scoreRecovery(userId, dateStr, prisma) {
 
   const contributors = [];
   const insights = [];
-  let sleepScore = 70;
-  let waterScore = 70;
+  // Score only what was recorded: missing sleep or water logs are unknown,
+  // not a default 70. Both missing → the whole component is unavailable.
+  const parts = [];
+  let sleepScore = null;
+  let waterScore = null;
 
   if (sleep.length > 0) {
     const hours = sleep[0].hoursSlept || 0;
@@ -312,6 +329,13 @@ async function scoreRecovery(userId, dateStr, prisma) {
       contributors.push({ category: 'recovery', itemName: 'Poor Sleep', scoreImpact: -5, reason: `Only ${hours.toFixed(1)}h sleep — recovery impaired` });
       insights.push({ message: 'Sleep was below 6 hours. Recovery score is reduced.', severity: 'warning' });
     }
+    parts.push(sleepScore);
+  }
+
+  if (!waterLogs.length) {
+    return parts.length
+      ? { score: Math.round(parts.reduce((s, v) => s + v, 0) / parts.length), available: true, contributors, insights }
+      : { score: null, available: false, contributors: [], insights: [] };
   }
 
   if (waterMl >= waterTarget * 0.9) {
@@ -326,10 +350,10 @@ async function scoreRecovery(userId, dateStr, prisma) {
     contributors.push({ category: 'recovery', itemName: 'Hydration', scoreImpact: -3, reason: `${waterMl}ml water — ${diff}ml below target` });
     insights.push({ message: `Water intake is below target by ${diff}ml.`, severity: 'warning' });
   }
+  parts.push(waterScore);
 
-  const score = Math.round((sleepScore + waterScore) / 2);
-
-  return { score, contributors, insights };
+  const score = Math.round(parts.reduce((s, v) => s + v, 0) / parts.length);
+  return { score, available: true, contributors, insights };
 }
 
 // ============================================================================
@@ -347,13 +371,21 @@ async function calculateHealthScore(userId, date) {
     scoreRecovery(userId, dateStr, prisma),
   ]);
 
-  const overallScore = Math.round(
-    macro.score * WEIGHTS.macro +
-    condition.score * WEIGHTS.condition +
-    quality.score * WEIGHTS.foodQuality +
-    activity.score * WEIGHTS.activity +
-    recovery.score * WEIGHTS.recovery,
-  );
+  // Only components with real records contribute; weights renormalize over
+  // what is available so missing data never masquerades as a measurement.
+  const parts = [
+    ['macro', macro, WEIGHTS.macro],
+    ['condition', condition, WEIGHTS.condition],
+    ['foodQuality', quality, WEIGHTS.foodQuality],
+    ['activity', activity, WEIGHTS.activity],
+    ['recovery', recovery, WEIGHTS.recovery],
+  ];
+  const available = parts.filter(([, c]) => c.available && Number.isFinite(c.score));
+  const weightTotal = available.reduce((s, [, , w]) => s + w, 0);
+  const overallScore = weightTotal > 0
+    ? Math.round(available.reduce((s, [, c, w]) => s + c.score * w, 0) / weightTotal)
+    : null;
+  const coverage = { available: available.length, total: parts.length };
 
   const allContributors = [
     ...macro.contributors,
@@ -371,15 +403,19 @@ async function calculateHealthScore(userId, date) {
     ...recovery.insights,
   ];
 
-  const status = statusFromScore(overallScore);
+  const status = overallScore == null ? 'insufficient_data' : statusFromScore(overallScore);
 
-  // Persist to DB
+  // Persist to DB — but only a real score; an all-unknown day is left
+  // unrecorded rather than stored as a misleading zero.
   const existing = await prisma.healthScore.findUnique({
     where: { userId_date: { userId, date: dateStr } },
   });
 
   let healthScore;
-  if (existing) {
+  if (overallScore == null) {
+    if (existing) await prisma.healthScore.delete({ where: { id: existing.id } });
+    healthScore = null;
+  } else if (existing) {
     // Delete old contributors/insights, then update
     await prisma.scoreContributor.deleteMany({ where: { healthScoreId: existing.id } });
     await prisma.healthScoreInsight.deleteMany({ where: { healthScoreId: existing.id } });
@@ -412,12 +448,12 @@ async function calculateHealthScore(userId, date) {
   }
 
   // Store contributors and insights
-  if (allContributors.length > 0) {
+  if (healthScore && allContributors.length > 0) {
     await prisma.scoreContributor.createMany({
       data: allContributors.map((c) => ({ healthScoreId: healthScore.id, ...c })),
     });
   }
-  if (allInsights.length > 0) {
+  if (healthScore && allInsights.length > 0) {
     await prisma.healthScoreInsight.createMany({
       data: allInsights.map((i) => ({ healthScoreId: healthScore.id, ...i })),
     });
@@ -429,16 +465,17 @@ async function calculateHealthScore(userId, date) {
     .slice(0, 5);
 
   return {
-    id: healthScore.id,
+    id: healthScore?.id ?? null,
     date: dateStr,
     score: overallScore,
     status,
+    coverage,
     components: {
-      macro: { score: macro.score, weight: WEIGHTS.macro },
-      condition: { score: condition.score, weight: WEIGHTS.condition },
-      foodQuality: { score: quality.score, weight: WEIGHTS.foodQuality },
-      activity: { score: activity.score, weight: WEIGHTS.activity },
-      recovery: { score: recovery.score, weight: WEIGHTS.recovery },
+      macro: { score: macro.score, weight: WEIGHTS.macro, available: macro.available !== false },
+      condition: { score: condition.score, weight: WEIGHTS.condition, available: condition.available !== false },
+      foodQuality: { score: quality.score, weight: WEIGHTS.foodQuality, available: quality.available !== false },
+      activity: { score: activity.score, weight: WEIGHTS.activity, available: activity.available !== false },
+      recovery: { score: recovery.score, weight: WEIGHTS.recovery, available: recovery.available !== false },
     },
     topContributors,
     insights: allInsights,

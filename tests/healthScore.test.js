@@ -46,16 +46,30 @@ describe('Health Score Engine', () => {
   });
 
   describe('calculateHealthScore', () => {
-    it('returns a score with all components', async () => {
+    it('reports insufficient data instead of fabricating a score when nothing is logged', async () => {
       const result = await calculateHealthScore('user-1', '2026-06-13');
-      expect(result.score).toBeGreaterThanOrEqual(0);
-      expect(result.score).toBeLessThanOrEqual(100);
+      expect(result.score).toBeNull();
+      expect(result.status).toBe('insufficient_data');
+      expect(result.coverage).toEqual({ available: 0, total: 5 });
       expect(result.components).toHaveProperty('macro');
       expect(result.components).toHaveProperty('condition');
       expect(result.components).toHaveProperty('foodQuality');
       expect(result.components).toHaveProperty('activity');
       expect(result.components).toHaveProperty('recovery');
-      expect(result.status).toBeDefined();
+      expect(result.components.condition.available).toBe(false);
+      expect(mockPrisma.healthScore.create).not.toHaveBeenCalled();
+    });
+
+    it('never treats missing conditions as a perfect component score', async () => {
+      mockPrisma.foodLog.findMany.mockResolvedValue([
+        { foodName: 'Oats', proteinG: 30, carbsG: 60, fatG: 10, fiberG: 8, calories: 450 },
+      ]);
+      const result = await calculateHealthScore('user-1', '2026-06-13');
+      expect(result.components.condition.score).toBeNull();
+      expect(result.components.condition.available).toBe(false);
+      // Overall score renormalizes over available components only.
+      expect(result.score).not.toBeNull();
+      expect(result.coverage.available).toBeGreaterThan(0);
     });
 
     it('protein achievement increases macro score', async () => {
@@ -183,4 +197,18 @@ describe('Health Score Engine', () => {
       expect(sum).toBeCloseTo(1.0);
     });
   });
+});
+
+test('recorded conditions without food do not fabricate perfect compliance', async () => {
+  mockPrisma.userHealthCondition.findMany.mockResolvedValue([{ condition: { name: 'Example', conditionRules: [] } }]);
+  const result = await calculateHealthScore('user-1', '2026-06-13');
+  expect(result.score).toBeNull();
+  expect(result.components.condition.available).toBe(false);
+});
+test('removes stale score snapshots after the underlying last record is removed', async () => {
+  mockPrisma.healthScore.findUnique.mockResolvedValue({ id: 'old-score' });
+  mockPrisma.healthScore.delete = jest.fn().mockResolvedValue({});
+  const result = await calculateHealthScore('user-1', '2026-06-13');
+  expect(result.score).toBeNull();
+  expect(mockPrisma.healthScore.delete).toHaveBeenCalledWith({ where: { id: 'old-score' } });
 });

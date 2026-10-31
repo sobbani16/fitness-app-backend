@@ -5,12 +5,14 @@ async function sendEmail(action) {
   if (hashToken(actionToken(action.id)) !== action.tokenHash) throw new Error('Auth link signing key changed; request a new email.');
   const url = new URL(`/auth/action#${new URLSearchParams({ purpose: action.purpose, token: actionToken(action.id) })}`, process.env.AUTH_PUBLIC_URL).href;
   const reset = action.purpose === 'reset-password';
+  const mins = Math.max(1, Math.round((action.expiresAt.getTime() - Date.now()) / 60000));
+  const expiry = mins >= 120 ? `in ${Math.round(mins / 60)} hours` : `in ${mins} minute${mins === 1 ? '' : 's'}`;
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST', signal: AbortSignal.timeout(10000),
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json', 'Idempotency-Key': `auth-action/${action.id}` },
     body: JSON.stringify({ from: process.env.AUTH_EMAIL_FROM, to: [action.email],
       subject: reset ? 'Reset your Fitness password' : 'Verify your Fitness email',
-      text: `${reset ? 'Choose a new password' : 'Confirm your email address'}: ${url}\n\nThis single-use link expires at ${action.expiresAt.toISOString()}. If you did not request this, ignore this email. Never share this link.` })
+      text: `${reset ? 'Choose a new password' : 'Confirm your email address'}: ${url}\n\nThis single-use link expires ${expiry}. If you did not request this, ignore this email. Never share this link.` })
   });
   if (!response.ok) throw new Error(`Email delivery HTTP ${response.status}`);
 }

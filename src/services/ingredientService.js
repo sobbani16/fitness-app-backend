@@ -15,6 +15,19 @@ function normalize(s) {
   return (s || '').trim().toLowerCase();
 }
 
+// USDA rows carry a labeled household measure ("1 slice") plus its weight in
+// sourceMetadata. When no catalog servings exist, surface it as a serving so
+// clients can offer natural units instead of bare grams.
+function derivedServings(ingredient) {
+  if (ingredient.servings?.length) return ingredient.servings;
+  const meta = ingredient.sourceMetadata;
+  const unit = (meta?.servingSizeUnit || '').toLowerCase();
+  if (meta?.householdServingFullText && Number.isFinite(meta?.servingSize) && meta.servingSize > 0 && ['g', 'gm', 'ml'].includes(unit)) {
+    return [{ id: 'label-serving', label: meta.householdServingFullText, grams: meta.servingSize, estimated: true }];
+  }
+  return [];
+}
+
 function toDto(ingredient, source) {
   return {
     id: ingredient.id,
@@ -28,7 +41,7 @@ function toDto(ingredient, source) {
       ...(ingredient.fiberPer100g == null ? {} : { fiber_g: ingredient.fiberPer100g }),
     },
     source: ingredient.catalogId ? 'humai-catalog' : source,
-    servings: ingredient.servings || [],
+    servings: derivedServings(ingredient),
     revision: ingredient.catalog?.importBatch || null,
     verificationLevel: ingredient.catalog?.verificationLevel || null,
     reviewRequired: ingredient.catalog?.reviewRequired || false,

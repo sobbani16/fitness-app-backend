@@ -79,6 +79,12 @@ async function ingredient({ingredientId,profileId,grams},userId,db=getPrisma()) 
  if(!profile)return empty(ingredientId,'A verified profile matching this ingredient was not found.');
  return memo(userId,{profile,grams},ctx,()=>format(ingredientId,profile,grams,ctx,'VERIFIED_DATABASE'));
 }
+// Recipe rows carry approximate per-portion macros (USDA-derived or the
+// author's calc snapshot). When verified ingredient profiles can't reproduce a
+// nutrient, the recipe's own per-100g equivalent fills the display summary —
+// findings still evaluate as INSUFFICIENT_DATA because the profile stays
+// unverified.
+const RECIPE_NUTRIENTS={ENERGY_KCAL:'calories',PROTEIN:'proteinG',CARBOHYDRATE_TOTAL:'carbsG',FAT_TOTAL:'fatG',FIBER:'fiberG'};
 function aggregateRecipe(recipe,profiles,masters,portionGrams) {
  const missing=[],parts=recipe.ingredients||[],byId=new Map(profiles.map(p=>[p.id,p]));
  const yieldG=recipe.nutritionSource?.yieldGrams;
@@ -96,6 +102,8 @@ function aggregateRecipe(recipe,profiles,masters,portionGrams) {
   const factor=retained?retention.factors[n.code]:null;
   if(retained&&(typeof factor!=='number'||!Number.isFinite(factor)||factor<0||factor>1))value=null;
   else if(value!=null&&retained)value=value.mul(factor);
+  const fallback=RECIPE_NUTRIENTS[n.code];
+  if(value==null&&fallback&&Number.isFinite(recipe[fallback])&&recipe[fallback]>=0&&positive(recipe.portionG))value=new Prisma.Decimal(recipe[fallback]).mul(100).div(recipe.portionG);
   return {nutrientId:n.id,amountPer100g:value?.toString()??null};
  });
  return {profile:{id:recipe.id,ingredientId:recipe.id,verifiedAt:retained&&validParts&&positive(yieldG)?new Date().toISOString():null,nutrients,sourceCitation:retained?retention.source:'Approximate sum of preparation-specific ingredient records',ingredient:{attributes:[]}},grams:positive(portionGrams)?portionGrams:positive(yieldG)&&positive(recipe.servings)?yieldG/recipe.servings:null,missing,quality:retained?'VERIFIED_RECIPE_CALCULATION':'APPROXIMATE_RECIPE_CALCULATION'};

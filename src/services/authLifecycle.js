@@ -68,4 +68,14 @@ async function completeAction(token, purpose, password) {
     if (purpose === 'reset-password') await tx.authSession.deleteMany({ where: { userId: action.userId } });
   });
 }
-module.exports = { GENERIC_MESSAGE, validateConfig, actionToken, normalizeEmail, validatePassword, enqueueAction, consumeLimit, requestAction, completeAction };
+// Lets the hosted action page render the correct state before submission. Never consumes the token.
+async function actionStatus(token, purpose) {
+  if (!/^[A-Za-z0-9_-]{43}$/.test(typeof token === 'string' ? token : '') || !['verify-email', 'reset-password'].includes(purpose)) return 'invalid';
+  const action = await getPrisma().authAction.findUnique({ where: { tokenHash: hashToken(token) } });
+  if (!action || action.purpose !== purpose) return 'invalid';
+  if (action.consumedAt) return 'consumed';
+  if (action.expiresAt <= new Date()) return 'expired';
+  return 'ready';
+}
+
+module.exports = { GENERIC_MESSAGE, validateConfig, actionToken, normalizeEmail, validatePassword, enqueueAction, consumeLimit, requestAction, completeAction, actionStatus };

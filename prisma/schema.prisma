@@ -42,6 +42,7 @@ model User {
   foodLogs        FoodLog[]
   workoutSessions WorkoutSession[]
   energyRecords   HealthEnergyRecord[]
+  workoutPlans    UserWorkoutPlan[]
 }
 
 model UserHealthProfile {
@@ -1075,12 +1076,13 @@ model HealthScore {
   score              Float    // 0-100
   status             String   // elite, excellent, good, fair, needs_attention
 
-  // Component scores (each 0-100, weighted into overall)
-  macroScore         Float    @default(0)
-  conditionScore     Float    @default(0)
-  foodQualityScore   Float    @default(0)
-  activityScore      Float    @default(0)
-  recoveryScore      Float    @default(0)
+  // Component scores (each 0-100, weighted into overall). NULL means the
+  // component had no records that day — never stored as a fake zero.
+  macroScore         Float?
+  conditionScore     Float?
+  foodQualityScore   Float?
+  activityScore      Float?
+  recoveryScore      Float?
 
   createdAt          DateTime @default(now())
 
@@ -1792,4 +1794,67 @@ model HealthEnergyRecord {
 
   @@unique([userId, provider, sourceId])
   @@index([userId, startAt])
+}
+
+// User-owned workout plan versions (drafts require explicit confirmation).
+model UserWorkoutPlan {
+  id          String   @id @default(cuid())
+  userId      String
+  version     Int      @default(1)
+  status      String   @default("draft")
+  preferences Json?
+  plan        Json
+  createdAt   DateTime @default(now())
+  confirmedAt DateTime?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+// Imported exercise library (free-exercise-db and future licensed sources).
+model Exercise {
+  id                String   @id
+  name              String
+  normalizedName    String   @unique
+  level             String?
+  force             String?
+  mechanic          String?
+  equipment         String?
+  appEquipment      String[]
+  category          String?
+  instructions      String[]
+  source            String   @default("free-exercise-db")
+  sourceId          String?
+  reviewStatus      String   @default("imported")
+  muscles           ExerciseMuscle[]
+
+  @@index([normalizedName])
+  @@index([appEquipment])
+}
+
+model ExerciseMuscle {
+  id          String   @id @default(uuid())
+  exerciseId  String
+  muscle      String
+  role        String   // 'primary' | 'secondary'
+
+  exercise    Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([exerciseId, muscle, role])
+  @@index([muscle, role])
+}
+
+// Voice command audit + undo. Stores parsed actions and the entities they
+// created so undo can reverse them within a bounded window. No audio stored.
+model VoiceCommand {
+  id              String   @id
+  userId          String
+  transcript      String
+  actions         Json
+  createdEntities Json     // [{kind:'water'|'foodLog'|'supplementLog'|'workoutSession'|'exerciseSetUpdate'|'workoutSessionComplete', id, prev?}]
+  result          Json?
+  undoneAt        DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([userId, createdAt])
 }

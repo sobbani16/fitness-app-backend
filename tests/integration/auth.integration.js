@@ -3,6 +3,7 @@ const { randomUUID } = require('node:crypto');
 const { PrismaClient } = require('@prisma/client');
 const url = new URL(process.env.DATABASE_URL || 'http://invalid');
 if (!['localhost', '127.0.0.1'].includes(url.hostname) || url.pathname !== '/fitness_auth_readiness') throw new Error('Use only the disposable localhost fitness_auth_readiness database.');
+process.env.NODE_ENV = 'test';
 process.env.AUTH_TEST_BYPASS = 'false';
 process.env.AUTH_LINK_SECRET = 'ab'.repeat(32);
 process.env.AUTH_PUBLIC_URL = 'http://localhost:4000';
@@ -67,6 +68,21 @@ test('reset revokes all sessions and sibling links; old password fails; no autom
   await post('reset-password', { token: actionToken(second.id), password: newPassword }).expect(400);
   await post('login', { email: user.user.email, password }).expect(401);
   await post('login', { email: user.user.email, password: newPassword }).expect(200);
+});
+test.each(['verify-email', 'reset-password'])('action-status reports ready/consumed/expired/invalid for %s without consuming', async purpose => {
+  const user = await register();
+  if (purpose === 'reset-password') await post('forgot-password', { email: user.user.email }).expect(202);
+  const job = await action(user, purpose), token = actionToken(job.id);
+  const status = body => post('action-status', body).expect(200).then(r => r.body.state);
+  expect(await status({ purpose, token })).toBe('ready');
+  expect(await status({ purpose, token: 'bogus' })).toBe('invalid');
+  const other = purpose === 'verify-email' ? 'reset-password' : 'verify-email';
+  expect(await status({ purpose: other, token })).toBe('invalid');
+  await prisma.authAction.update({ where: { id: job.id }, data: { expiresAt: new Date(Date.now() - 1) } });
+  expect(await status({ purpose, token })).toBe('expired');
+  await prisma.authAction.update({ where: { id: job.id }, data: { expiresAt: new Date(Date.now() + 60000) } });
+  await post(purpose, purpose === 'reset-password' ? { token, password: newPassword } : { token }).expect(200); // proves status did not consume
+  expect(await status({ purpose, token })).toBe('consumed');
 });
 test.each(['verify-email', 'reset-password'])('%s rejects expired/wrong-purpose tokens and consumes only once under concurrency', async purpose => {
   const user = await register();
@@ -171,7 +187,7 @@ test('actual email-page script completes verification and reset over HTTP, clear
     const document = { getElementById(id) {
       if (!elements.has(id)) elements.set(id, { value: '', hidden: true, disabled: false, textContent: '', handlers: {}, addEventListener(event, handler) { this.handlers[event] = handler; } });
       return elements.get(id);
-    } };
+    }, querySelector() { return { open: false }; } };
     const replaceState = jest.fn();
     const fetch = jest.fn(async (path, options) => {
       const response = await request(app).post(path).send(JSON.parse(options.body));
@@ -179,7 +195,10 @@ test('actual email-page script completes verification and reset over HTTP, clear
     });
     vm.runInNewContext(source, { document, location: { hash: `#purpose=${purpose}&token=${token}`, pathname: '/auth/action' }, history: { replaceState }, URLSearchParams, AbortSignal, fetch });
     expect(replaceState).toHaveBeenCalledWith(null, '', '/auth/action');
-    expect(fetch).not.toHaveBeenCalled();
+    // One non-consuming status pre-check via POST; the token is never sent on GET.
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch.mock.calls[0][0]).toBe('/auth/action-status');
+    expect(fetch.mock.calls[0][1].method).toBe('POST');
     return { el: document.getElementById, submit: () => document.getElementById('action').handlers.submit({ preventDefault() {} }) };
   }
   const verify = page('verify-email', actionToken((await action(user, 'verify-email')).id));
@@ -191,6 +210,6 @@ test('actual email-page script completes verification and reset over HTTP, clear
   reset.el('confirm').value = newPassword;
   await reset.submit(); expect(reset.el('message').textContent).toContain('Password updated');
   expect(reset.el('password').value).toBe(''); expect(reset.el('action').hidden).toBe(true);
-  await verify.submit(); expect(verify.el('message').textContent).toContain('invalid or expired');
+  await verify.submit(); expect(verify.el('message').textContent).toContain('This email is already verified.');
   await post('login', { email: user.user.email, password: newPassword }).expect(200);
 });

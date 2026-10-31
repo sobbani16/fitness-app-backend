@@ -16,8 +16,12 @@ function validatePreferences(body) {
     data[key] = [...new Set(data[key].map(x=>x.trim().toLowerCase()))];
   }
   if (data.availableEquipment?.some(x=>!['stovetop','microwave','oven','blender','refrigerator'].includes(x))) throw httpError(400,'Unsupported equipment.');
-  if (data.dietaryRestrictions?.some(x=>!DIETS.includes(x) && !/^exclude:[a-z][a-z -]{1,60}$/.test(x))) throw httpError(400,'Choose a supported dietary filter or exclude:ingredient.');
+  if (data.dietaryRestrictions?.some(x=>!DIETS.includes(x) && !/^exclude:[a-z][a-z -]{1,60}$/.test(x) && !/^cuisine:[a-z][a-z -]{1,40}$/.test(x))) throw httpError(400,'Choose a supported dietary filter or exclude:ingredient.');
   return data;
+}
+// cuisine: entries are soft preferences for AI generation — never safety filters.
+function preferredCuisines(restrictions = []) {
+  return restrictions.filter(x => x.startsWith('cuisine:')).map(x => x.slice(8));
 }
 function recipeAllowed(recipe, disliked = [], restrictions = [], prefs = {}) {
   if (!attributable(recipe)) return false;
@@ -50,4 +54,4 @@ function assessMeals(meals, targets) {
     return {dayOfWeek,totals,deviations,warnings};
   });
 }
-module.exports = { validatePreferences, recipeAllowed, validateTargets, assessMeals, DIETS };
+module.exports = { validatePreferences, recipeAllowed, validateTargets, assessMeals, DIETS, preferredCuisines };

@@ -41,7 +41,7 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const reply = await generateReply(message);
+    const reply = await generateReply(message, userId);
     res.json({
       ...reply,
       quota: { limit: gate.limit, used: gate.used, remaining: gate.remaining },

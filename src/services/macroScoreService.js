@@ -118,7 +118,37 @@ async function getGoals(userId) {
   if (!goals) {
     goals = await prisma.macroGoal.create({ data: { userId, ...DEFAULT_GOALS } });
   }
-  return goals;
+  const { waterMlTarget, waterMlTargetBasis } = await deriveWaterTarget(userId, goals);
+  return { ...goals, waterMlTarget, waterMlTargetBasis };
+}
+
+// Water target basis: 'custom' = user-set, 'history' = derived from the user's
+// median daily intake over the last 30 days, 'default' = generic fallback.
+// The stored column only holds an explicit choice once it differs from the
+// generic default, so a stored 2000 is treated as "not personalized".
+async function deriveWaterTarget(userId, goals) {
+  if (goals.waterMlTarget !== DEFAULT_GOALS.waterMlTarget) {
+    return { waterMlTarget: goals.waterMlTarget, waterMlTargetBasis: 'custom' };
+  }
+  const prisma = getPrisma();
+  const since = new Date();
+  since.setDate(since.getDate() - 30);
+  since.setHours(0, 0, 0, 0);
+  const logs = await prisma.waterLog.findMany({
+    where: { userId, loggedAt: { gte: since } },
+    select: { loggedAt: true, amountMl: true },
+  });
+  const byDay = new Map();
+  for (const log of logs) {
+    const day = log.loggedAt.toISOString().slice(0, 10);
+    byDay.set(day, (byDay.get(day) || 0) + (log.amountMl || 0));
+  }
+  const totals = [...byDay.values()].filter(v => v > 0).sort((a, b) => a - b);
+  if (totals.length < 5) return { waterMlTarget: goals.waterMlTarget, waterMlTargetBasis: 'default' };
+  const mid = Math.floor(totals.length / 2);
+  const median = totals.length % 2 ? totals[mid] : (totals[mid - 1] + totals[mid]) / 2;
+  const rounded = Math.min(5000, Math.max(500, Math.round(median / 250) * 250));
+  return { waterMlTarget: rounded, waterMlTargetBasis: 'history' };
 }
 
 /**
@@ -126,11 +156,13 @@ async function getGoals(userId) {
  */
 async function updateGoals(userId, updates) {
   const prisma = getPrisma();
-  return prisma.macroGoal.upsert({
+  const goals = await prisma.macroGoal.upsert({
     where: { userId },
     update: { ...updates, source: updates.source || 'custom' },
     create: { userId, ...DEFAULT_GOALS, ...updates, source: updates.source || 'custom' },
   });
+  const { waterMlTarget, waterMlTargetBasis } = await deriveWaterTarget(userId, goals);
+  return { ...goals, waterMlTarget, waterMlTargetBasis };
 }
 
 /**

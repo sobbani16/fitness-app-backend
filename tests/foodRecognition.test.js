@@ -1,12 +1,12 @@
 const mockCreate = jest.fn();
 const mockConstructor = jest.fn();
 jest.mock('openai', () => ({ OpenAI: function(options) { mockConstructor(options); this.responses = { create: mockCreate }; } }));
-const { detectFood } = require('../src/services/foodDetector');
+let detectFood;
 const { validateFoodInput } = require('../src/services/foodInput');
 const good = { identifiable: true, foodName: 'Rice and beans', caloriesPer100g: 150, suggestedPortionGrams: 250, protein: 5, carbs: 25, fat: 3, confidence: 0.5, uncertainty: 'Portion and cooking oil are unclear.' };
 const image = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=';
 const originalKey = process.env.OPENAI_API_KEY;
-beforeEach(() => { jest.clearAllMocks(); process.env.OPENAI_API_KEY = 'test-only'; mockCreate.mockResolvedValue({ status: 'completed', output_text: JSON.stringify(good) }); });
+beforeEach(() => { jest.resetModules(); ({ detectFood } = require('../src/services/foodDetector')); jest.clearAllMocks(); process.env.OPENAI_API_KEY = 'test-only'; mockCreate.mockResolvedValue({ status: 'completed', output_text: JSON.stringify(good) }); });
 afterAll(() => { if (originalKey === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = originalKey; });
 test('real detector sends image bytes with strict schema, no storage or retries; uncertain estimate requires review', async () => {
   const result = await detectFood({ imageDataUrl: image, hasPhoto: true });

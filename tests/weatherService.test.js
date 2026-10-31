@@ -1,4 +1,4 @@
-const { deriveCondition, fetchWeather, setFetch } = require('../src/services/weatherService');
+const { deriveCondition, fetchWeather, geocodeCity, setFetch } = require('../src/services/weatherService');
 
 describe('deriveCondition', () => {
   it('returns rainy when precipitation > 0', () => {
@@ -37,5 +37,29 @@ describe('fetchWeather', () => {
   it('throws on non-ok response', async () => {
     setFetch(async () => ({ ok: false, status: 500, json: async () => ({}) }));
     await expect(fetchWeather(40, -74)).rejects.toThrow(/500/);
+  });
+});
+
+describe('geocodeCity', () => {
+  afterEach(() => setFetch(globalThis.fetch));
+
+  it('rejects a blank city without calling the provider', async () => {
+    const spy = jest.fn();
+    setFetch(spy);
+    await expect(geocodeCity('  ')).rejects.toThrow('city name');
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('trims provider results to name, country and coordinates', async () => {
+    setFetch(async () => ({ ok: true, json: async () => ({ results: [
+      { name: 'Pune', country: 'India', latitude: 18.52, longitude: 73.86, population: 3000000, timezone: 'Asia/Kolkata' },
+      { name: 'Bad', latitude: 'x' },
+    ] }) }));
+    expect(await geocodeCity('pune')).toEqual([{ name: 'Pune', country: 'India', latitude: 18.52, longitude: 73.86 }]);
+  });
+
+  it('returns an empty list when the provider has no match', async () => {
+    setFetch(async () => ({ ok: true, json: async () => ({}) }));
+    expect(await geocodeCity('nowhere')).toEqual([]);
   });
 });

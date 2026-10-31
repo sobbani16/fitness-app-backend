@@ -18,12 +18,32 @@ if (valid) {
   el('purpose').value = reset ? 'forgot-password' : 'resend-verification';
 } else {
   el('message').textContent = 'This link is incomplete. Open the full email link or request a new one below.';
+  document.querySelector('details').open = true;
+}
+function showState(state) {
+  el('action').hidden = true;
+  el('intro').hidden = true;
+  if (state === 'consumed' && purpose === 'verify-email') {
+    el('message').textContent = 'This email is already verified.';
+    el('done').hidden = false;
+    return;
+  }
+  el('message').textContent = state === 'consumed'
+    ? 'This link was already used. Request a new one below.'
+    : state === 'expired'
+      ? 'This link has expired. Request a new one below.'
+      : 'This link is invalid. Request a new one below.';
+  document.querySelector('details').open = true;
 }
 async function post(path, body) {
   const response = await fetch(`/auth/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'omit', body: JSON.stringify(body), signal: AbortSignal.timeout(20000) });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || 'Unable to continue. Please try again later.');
   return data;
+}
+if (valid) {
+  // A used or expired link renders its real state instead of a button that only fails on click.
+  post('action-status', { purpose, token }).then(({ state }) => { if (state && state !== 'ready') showState(state); }).catch(() => {});
 }
 el('action').addEventListener('submit', async event => {
   event.preventDefault();
@@ -32,9 +52,17 @@ el('action').addEventListener('submit', async event => {
   el('submit').disabled = true; el('message').textContent = '';
   try {
     const data = await post(purpose, { token, ...(purpose === 'reset-password' ? { password: el('password').value } : {}) });
-    el('message').textContent = data.message; el('action').hidden = true; el('done').hidden = false;
+    el('message').textContent = data.message; el('action').hidden = true; el('intro').hidden = true; el('done').hidden = false;
     el('password').value = ''; el('confirm').value = '';
-  } catch (error) { el('message').textContent = error.name === 'TimeoutError' ? 'The request timed out. Try again or request a new link.' : error.message; }
+  } catch (error) {
+    if (/invalid or expired/i.test(error.message)) {
+      // Re-check so the message is accurate: consumed, expired or invalid.
+      const { state } = await post('action-status', { purpose, token }).catch(() => ({ state: 'invalid' }));
+      showState(state === 'ready' ? 'invalid' : state);
+      return;
+    }
+    el('message').textContent = error.name === 'TimeoutError' ? 'The request timed out. Try again or request a new link.' : error.message;
+  }
   finally { el('submit').disabled = false; }
 });
 el('request').addEventListener('submit', async event => {

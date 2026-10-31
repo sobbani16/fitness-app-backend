@@ -65,4 +65,21 @@ function describe(code) {
 
 function isFiniteNumber(v) { return typeof v === 'number' && isFinite(v); }
 
-module.exports = { fetchWeather, deriveCondition, setFetch };
+const GEOCODE_URL = 'https://geocoding-api.open-meteo.com/v1/search';
+
+// Free Open-Meteo geocoding for the manual saved-city option. Results are
+// trimmed to what the app needs; no API key or user data is sent.
+async function geocodeCity(q) {
+  const name = String(q || '').trim();
+  if (!name || name.length > 100) throw new Error('A city name is required');
+  const url = `${GEOCODE_URL}?name=${encodeURIComponent(name)}&count=5&language=en&format=json`;
+  const res = await _fetch(url);
+  if (!res.ok) throw new Error(`geocode fetch failed: ${res.status}`);
+  const data = await res.json();
+  const results = Array.isArray(data?.results) ? data.results : [];
+  return results
+    .filter(r => isFiniteNumber(Number(r.latitude)) && isFiniteNumber(Number(r.longitude)))
+    .map(r => ({ name: String(r.name || name), country: r.country ? String(r.country) : undefined, latitude: Number(r.latitude), longitude: Number(r.longitude) }));
+}
+
+module.exports = { fetchWeather, deriveCondition, geocodeCity, setFetch };

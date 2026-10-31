@@ -27,6 +27,9 @@ const labelScanner = require('./labelScanner');
 const reminders = require('./reminders');
 const videos = require('./videos');
 const healthData = require('./healthData');
+const personalPlans = require('./personalPlans');
+const menuAnalysis = require('./menuAnalysis');
+const voice = require('./voice');
 
 const router = express.Router();
 
@@ -58,5 +61,8 @@ router.use('/label-scanner', labelScanner);
 router.use('/reminders', reminders);
 router.use('/videos', videos);
 router.use('/health-data', healthData);
+router.use('/personal-plans', personalPlans);
+router.use('/menu-analysis', menuAnalysis);
+router.use('/voice', voice);
 
 module.exports = router;

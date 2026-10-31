@@ -15,6 +15,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed-rbac": "node prisma/seed-rbac.js",
     "test:api": "node scripts/endpoint-smoke.js",
+    "qa:auth": "node scripts/qa-auth.js",
     "test:auth": "jest --config jest.auth.config.js --runInBand",
     "deploy:prepare": "node scripts/deploy-prepare.js",
     "ingredients:import": "node scripts/import-ingredients.js",
