@@ -23,11 +23,13 @@ if (process.env.NODE_ENV === 'test' && process.env.AUTH_TEST_BYPASS === 'true') 
 app.use(require('./middleware/validateInput'));
 app.use('/me/progress', require('./routes/progress'));
 app.use('/me/profile', require('./routes/profile'));
+app.use('/config', require('./routes/config'));
 app.use('/', require('./routes'));
 app.use((req,res) => res.status(404).json({error:'Not found'}));
 app.use((err,req,res,next) => {
   const status = err.status || (err.type === 'entity.too.large' ? 413 : 500);
   if (status >= 500) console.error('Request failed', { path:req.path, code:err.code || err.name });
+  if (err.body) return res.status(status).json(err.body);
   res.status(status).json({error:status >= 500 && !err.status ? 'Service unavailable. Please try again.' : err.message});
 });
 module.exports = app;

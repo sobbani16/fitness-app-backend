@@ -5,6 +5,9 @@ const audit = require('../services/auditService');
 const { coachingTransaction } = require('../services/coachingTransaction');
 
 const router = express.Router();
+// trainer_dashboard flag gates the entire trainer suite; RBAC role checks
+// below still apply independently of the flag.
+router.use(require('../middleware/requireFeature').requireFeature('trainer_dashboard'));
 
 // ---------------------------------------------------------------------------
 // Public — trainer discovery

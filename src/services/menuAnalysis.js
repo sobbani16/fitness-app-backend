@@ -97,8 +97,9 @@ async function analyzeMenu({ prisma, userId, ocrTexts = [], images = [], restaur
       sources.push('ocr');
     }
   }
-  // AI layout interpretation only when OCR yields nothing and AI is enabled.
-  if (!items.length && images.length && aiEnabled()) {
+  // AI layout interpretation only when OCR yields nothing and the
+  // menu_scanning flag is on for this user (kill switch included).
+  if (!items.length && images.length && aiEnabled() && await require('./featureFlags/service').isEnabled('menu_scanning', userId)) {
     for (const image of images) {
     const raw = await askJSON('menu_extraction', AI_SCHEMA,
       'Extract menu items from this image. Report only printed text — never estimate calories, nutrition, or ingredients. Set calories only if a calorie number is printed. Output strict JSON.',

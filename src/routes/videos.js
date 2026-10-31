@@ -2,6 +2,7 @@ const express = require('express');
 const { search } = require('../services/youtubeService');
 const { getPrisma } = require('../lib/prisma');
 const router = express.Router();
+router.use(require('../middleware/requireFeature').requireFeature('video_search'));
 
 function getUserId(req) {
   return (req.headers['x-user-id'] || req.query.userId || '').toString().trim();

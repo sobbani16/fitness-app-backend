@@ -11,6 +11,9 @@ const { generateIngredientShoppingList, toggleChecked, getShoppingList } = requi
 
 const router = express.Router();
 router.use(require('../middleware/weeklyOwnership'));
+// Entire weekly-plan feature is flag-gated; /generate additionally degrades to
+// its deterministic fallback when weekly_plan_ai_generation / AI shutdown is off.
+router.use(require('../middleware/requireFeature').requireFeature('weekly_meal_plans'));
 
 function getUserId(req) {
   return (req.userId || req.headers['x-user-id'] || '').toString().trim();

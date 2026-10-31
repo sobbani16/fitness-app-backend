@@ -81,7 +81,8 @@ async function generateWeeklyPlan(userId, weekStartDate, requested = {}) {
   // deterministic catalog is the fallback when AI is off or fails. Either
   // way, safety filters and day-level assessment stay deterministic.
   let aiMeals = null, aiMeta = null;
-  if (require('../aiProvider').aiEnabled() && process.env.OPENAI_API_KEY?.trim()) {
+  if (require('../aiProvider').aiEnabled() && process.env.OPENAI_API_KEY?.trim()
+      && await require('../featureFlags/service').isEnabled('weekly_plan_ai_generation', userId)) {
     try {
       const ai = await generateAiWeeklyMeals({ ...mealCtx, userId, allergies,
         cuisines: preferredCuisines(restrictions), fiberTarget: ctx.fiberTarget,

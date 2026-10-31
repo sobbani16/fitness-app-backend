@@ -23,7 +23,7 @@ function text(value, name, maximum) {
   if (typeof value !== 'string' || value.length > maximum) throw invalid(`Invalid ${name}`);
   return value;
 }
-router.post('/extract', async (req, res) => {
+router.post('/extract', require('../middleware/requireFeature').requireFeature('nutrition_label_scanning'), async (req, res) => {
   try {
     const ocrText = text(req.body?.ocrText, 'label text', 20000);
     if (!ocrText?.trim()) throw invalid('Label text is required');

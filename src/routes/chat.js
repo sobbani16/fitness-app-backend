@@ -1,6 +1,7 @@
 const express = require('express');
 const { generateReply } = require('../services/aiService');
 const { createDailyLimiter } = require('../services/rateLimiter');
+const { requireFeature } = require('../middleware/requireFeature');
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ function getUserId(req) {
 }
 
 // GET /chat/status — remaining quota for today
-router.get('/status', async (req, res, next) => {
+router.get('/status', requireFeature('ai_coach'), async (req, res, next) => {
  try {
   const userId = getUserId(req);
   if (!userId) return res.status(400).json({ error: 'x-user-id header or userId required' });
@@ -24,7 +25,7 @@ router.get('/status', async (req, res, next) => {
 });
 
 // POST /chat { message } (header: x-user-id)
-router.post('/', async (req, res) => {
+router.post('/', requireFeature('ai_coach'), async (req, res) => {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(400).json({ error: 'x-user-id header or userId required' });

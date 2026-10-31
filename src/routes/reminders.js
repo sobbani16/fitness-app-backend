@@ -98,7 +98,7 @@ router.put('/categories/:category', async (req, res) => {
 });
 
 // GET /reminders/suggestions?status=pending
-router.get('/suggestions', async (req, res) => {
+router.get('/suggestions', require('../middleware/requireFeature').requireFeature('smart_reminder_suggestions'), async (req, res) => {
   try {
     const userId = requireUser(req, res);
     if (!userId) return;
@@ -109,7 +109,7 @@ router.get('/suggestions', async (req, res) => {
 });
 
 // POST /reminders/suggestions/generate — analyze recent logs now (dev hook).
-router.post('/suggestions/generate', async (req, res) => {
+router.post('/suggestions/generate', require('../middleware/requireFeature').requireFeature('smart_reminder_suggestions'), async (req, res) => {
   try {
     const userId = requireUser(req, res);
     if (!userId) return;

@@ -1,8 +1,10 @@
 const express = require('express');
 const { getPrisma } = require('../lib/prisma');
 const { summary } = require('../services/healthData');
+const { requireAnyFeature } = require('../middleware/requireFeature');
 
 const router = express.Router();
+router.use(requireAnyFeature('apple_health_sync', 'android_health_sync'));
 
 function getUserId(req) {
   return (req.headers['x-user-id'] || req.query.userId || '').toString().trim();

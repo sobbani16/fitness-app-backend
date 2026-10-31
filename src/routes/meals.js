@@ -3,7 +3,9 @@ const { analyzeMeal } = require('../services/mealAnalyzer');
 const { detectFood } = require('../services/foodDetector');
 const { validateFoodInput } = require('../services/foodInput');
 const { reserveFoodRequest } = require('../services/foodQuota');
-for (const [path, fn] of [['/analyze', analyzeMeal], ['/detect', detectFood]]) router.post(path, async (req, res, next) => {
+const { requireFeature } = require('../middleware/requireFeature');
+// food_photo_scanning gate runs before any quota is consumed.
+for (const [path, fn] of [['/analyze', analyzeMeal], ['/detect', detectFood]]) router.post(path, requireFeature('food_photo_scanning'), async (req, res, next) => {
   try {
     if (process.env.NODE_ENV !== 'test' || process.env.AUTH_TEST_BYPASS !== 'true') {
       validateFoodInput(req.body);

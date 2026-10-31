@@ -3,6 +3,12 @@ const { httpError } = require('../lib/errors');
 // Paid-call gate: AI features stay off until explicitly enabled.
 const aiEnabled = () => process.env.AI_ENABLED === 'true' || process.env.NODE_ENV === 'test';
 
+// Uniform machine-readable rejection for feature-flag enforcement. `body`
+// is passed through the global error handler unchanged.
+const featureDisabled = () => Object.assign(httpError(403, 'This feature is temporarily unavailable.'), {
+  body: { error: { code: 'FEATURE_DISABLED', message: 'This feature is temporarily unavailable.' } },
+});
+
 // Startup validation — reports presence only, never the secret.
 if (!process.env.OPENAI_API_KEY?.trim()) console.warn('[ai] OPENAI_API_KEY not set; AI features will return 503.');
 
@@ -38,6 +44,8 @@ function aiUsage(userId) {
 }
 
 async function askJSON(name, properties, instructions, text, imageDataUrl, userId, options = {}) {
+  // Emergency AI shutdown beats every other gate, including provider targeting.
+  if (await require('./featureFlags/service').isAiShutdown(userId)) throw featureDisabled();
   if (!aiEnabled()) throw httpError(503, 'AI features are not enabled on this server.');
   if (!process.env.OPENAI_API_KEY?.trim()) throw httpError(503, 'AI service is not configured. Use manual logging or food search.');
   if (imageDataUrl) require('./foodInput').validateFoodInput({ imageDataUrl });

@@ -6,6 +6,8 @@ const ingredientNutrition = require('../services/ingredientNutrition');
 const httpError = require('../lib/errors').httpError;
 
 const router = express.Router();
+const { requireAnyFeature } = require('../middleware/requireFeature');
+const voiceEnabled = requireAnyFeature('voice_food_logging', 'voice_exercise_logging');
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const uid = req => (req.userId || req.headers['x-user-id'] || '').toString().trim();
 const UNDO_WINDOW_MS = 15 * 60 * 1000;
@@ -51,11 +53,11 @@ const applyUndo = async (prisma, cmd) => {
 
 // POST /voice/transcribe — audio → text. Returns 503 until a provider is
 // configured; body: { audio: base64, format }. Audio is never persisted.
-router.post('/transcribe', wrap(async (req, res) => {
+router.post('/transcribe', voiceEnabled, wrap(async (req, res) => {
   const { audio } = req.body || {};
   if (typeof audio !== 'string' || !audio.length) throw httpError(400, 'audio (base64) required');
   if (audio.length > 4_000_000) throw httpError(413, 'Audio too large — keep clips under ~30 seconds.');
-  if (!aiEnabled()) throw httpError(503, 'Voice transcription is not configured.');
+  if (!aiEnabled() || !process.env.OPENAI_API_KEY?.trim()) throw httpError(503, 'Voice transcription is not configured.');
   const { OpenAI } = require('openai');
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const buf = Buffer.from(audio, 'base64');
@@ -144,7 +146,7 @@ async function aiFillUnknown(actions, ctx, userId) {
 // POST /voice/interpret — transcript → proposed actions (+ server-side
 // entity matches for confirmation). context: { lastExercise, lastWeight,
 // lastSetId, weightUnit } — never trusted, only used to fill references.
-router.post('/interpret', wrap(async (req, res) => {
+router.post('/interpret', voiceEnabled, wrap(async (req, res) => {
   const { transcript, context } = req.body || {};
   if (typeof transcript !== 'string' || !transcript.trim()) throw httpError(400, 'transcript required');
   const prisma = getPrisma();

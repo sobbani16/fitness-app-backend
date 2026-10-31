@@ -10,6 +10,7 @@ const {
 } = require('../services/supplementService');
 
 const router = express.Router();
+router.use(require('../middleware/requireFeature').requireFeature('supplements'));
 
 function getUserId(req) {
   return (req.headers['x-user-id'] || req.query.userId || '').toString().trim();

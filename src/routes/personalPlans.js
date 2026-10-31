@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getPrisma } = require('../lib/prisma');
 const planner = require('../services/workoutPlanner');
+const { requireFeature } = require('../middleware/requireFeature');
 const { suggestNext, missedSessionNote } = require('../services/workoutProgression');
 const { classify } = require('../services/exerciseSuitability');
 const { EXERCISES } = require('../services/exerciseCatalog');
@@ -11,7 +12,7 @@ function getUserId(req) {
 }
 
 // POST /personal-plans/draft — AI-generate a draft plan (never auto-active).
-router.post('/draft', async (req, res, next) => {
+router.post('/draft', requireFeature('ai_workout_recommendations'), async (req, res, next) => {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(400).json({ error: 'x-user-id header or userId required' });
