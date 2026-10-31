@@ -1,26 +1,32 @@
 const express = require('express');
 const { requireRole, requirePermission, identifyUser } = require('../middleware/rbac');
+const { requireFeature } = require('../middleware/requireFeature');
 const trainerService = require('../services/trainerService');
+const applications = require('../services/trainerApplications');
 const audit = require('../services/auditService');
 const { coachingTransaction } = require('../services/coachingTransaction');
 
 const router = express.Router();
-// trainer_dashboard flag gates the entire trainer suite; RBAC role checks
-// below still apply independently of the flag.
-router.use(require('../middleware/requireFeature').requireFeature('trainer_dashboard'));
+// trainer_dashboard flag gates the entire trainer suite; surface flags below
+// (discovery/registration/coaching/insights) apply on top of RBAC checks.
+router.use(requireFeature('trainer_dashboard'));
 
 // ---------------------------------------------------------------------------
 // Public — trainer discovery
 // ---------------------------------------------------------------------------
 
-// GET /trainers — verified trainers list (filterable by ?tier=standard|pro|elite)
-router.get('/', async (req, res) => {
+// GET /trainers — approved+discoverable trainers. Filters:
+// ?q= (name/location) &tier= &specialty= &mode=online|in_person|both
+// &language= &country= &cursor=<id>&take=<n>
+router.get('/', requireFeature('trainer_discovery'), async (req, res) => {
   try {
-    const tier = req.query.tier || undefined;
-    const trainers = await trainerService.listTrainers({ verified: true, tier });
-    res.json({ trainers });
+    const { tier, q, specialty, mode, language, country, cursor, take } = req.query;
+    const { trainers, nextCursor } = await trainerService.listTrainers({
+      tier, q, specialty, mode, language, country, cursor, take,
+    });
+    res.json({ trainers, nextCursor });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
@@ -38,8 +44,8 @@ router.get('/drop-reasons', async (req, res) => {
 // Trainer signup & profile management
 // ---------------------------------------------------------------------------
 
-// POST /trainers/signup — create trainer profile (pending verification)
-router.post('/signup', identifyUser, async (req, res) => {
+// POST /trainers/signup — create trainer profile + submit application
+router.post('/signup', requireFeature('trainer_registration'), identifyUser, async (req, res) => {
   try {
     const profile = await coachingTransaction(async tx => {
       const profile = await trainerService.createTrainerProfile(req.userId, req.body || {}, tx);
@@ -48,13 +54,112 @@ router.post('/signup', identifyUser, async (req, res) => {
         action: 'trainer.signup',
         entityType: 'TrainerProfile',
         entityId: profile.id,
-        afterData: { tier: profile.tier, verified: false },
+        afterData: { tier: profile.tier, verified: false, applicationStatus: profile.applicationStatus },
       }, tx);
       return profile;
     });
     res.status(201).json(profile);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(err.status || 400).json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Trainer applications (registration workflow)
+// ---------------------------------------------------------------------------
+
+// POST /trainers/applications — save/overwrite a draft application
+router.post('/applications', requireFeature('trainer_registration'), identifyUser, async (req, res) => {
+  try {
+    const profile = await coachingTransaction(async tx => {
+      const profile = await applications.saveDraft(req.userId, req.body || {}, tx);
+      await audit.log({
+        actorId: req.userId,
+        action: 'trainer.apply',
+        entityType: 'TrainerProfile',
+        entityId: profile.id,
+        afterData: { applicationStatus: profile.applicationStatus, tier: profile.tier },
+      }, tx);
+      return profile;
+    });
+    res.status(201).json(profile);
+  } catch (err) {
+    res.status(err.status || 400).json({ error: err.message });
+  }
+});
+
+// GET /trainers/applications/me — own application status + admin note
+router.get('/applications/me', requireFeature('trainer_registration'), identifyUser, async (req, res) => {
+  try {
+    res.json(await applications.getMyApplication(req.userId));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+// PATCH /trainers/applications/me — edit draft / changes_requested application
+router.patch('/applications/me', requireFeature('trainer_registration'), identifyUser, async (req, res) => {
+  try {
+    res.json(await applications.updateDraft(req.userId, req.body || {}));
+  } catch (err) {
+    res.status(err.status || 400).json({ error: err.message });
+  }
+});
+
+// POST /trainers/applications/me/submit — validate + submit for review
+router.post('/applications/me/submit', requireFeature('trainer_registration'), identifyUser, async (req, res) => {
+  try {
+    const profile = await coachingTransaction(async tx => {
+      const profile = await applications.submitApplication(req.userId, tx);
+      await audit.log({
+        actorId: req.userId,
+        action: 'trainer.submit',
+        entityType: 'TrainerProfile',
+        entityId: profile.id,
+        afterData: { applicationStatus: profile.applicationStatus, tier: profile.tier },
+      }, tx);
+      return profile;
+    });
+    res.json(profile);
+  } catch (err) {
+    res.status(err.status || 400).json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Structured certifications (trainer-owned; verification is admin-only —
+// every write forces verificationStatus back to 'unverified')
+// ---------------------------------------------------------------------------
+
+router.get('/me/certifications', identifyUser, async (req, res) => {
+  try {
+    res.json({ certifications: await applications.listCertifications(req.userId) });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+router.post('/me/certifications', identifyUser, async (req, res) => {
+  try {
+    res.status(201).json(await applications.addCertification(req.userId, req.body || {}));
+  } catch (err) {
+    res.status(err.status || 400).json({ error: err.message });
+  }
+});
+
+router.patch('/me/certifications/:certId', identifyUser, async (req, res) => {
+  try {
+    res.json(await applications.updateCertification(req.userId, req.params.certId, req.body || {}));
+  } catch (err) {
+    res.status(err.status || 400).json({ error: err.message });
+  }
+});
+
+router.delete('/me/certifications/:certId', identifyUser, async (req, res) => {
+  try {
+    res.json(await applications.deleteCertification(req.userId, req.params.certId));
+  } catch (err) {
+    res.status(err.status || 400).json({ error: err.message });
   }
 });
 
@@ -88,14 +193,14 @@ router.get('/me/clients', requireRole('TRAINER'), async (req, res) => {
   }
 });
 
-// GET /trainers/clients/:clientId/progress — client progress dashboard (trainer view)
-router.get('/clients/:clientId/progress', requireRole('TRAINER'), async (req, res) => {
+// GET /trainers/clients/:clientId/progress — consent-filtered client progress (trainer view)
+router.get('/clients/:clientId/progress', requireFeature('trainer_insights'), requireRole('TRAINER'), async (req, res) => {
   try {
     const { period, from } = req.query;
     const progress = await trainerService.getClientProgress(req.userId, req.params.clientId, { period, from });
     res.json(progress);
   } catch (err) {
-    res.status(err.message.includes('not assigned') ? 403 : 500).json({ error: err.message });
+    res.status(err.status || (err.message.includes('not assigned') ? 403 : 500)).json({ error: err.message });
   }
 });
 
@@ -186,8 +291,8 @@ router.get('/me/assigned', identifyUser, async (req, res) => {
   }
 });
 
-// POST /trainers/:id/subscribe — user picks a trainer
-router.post('/:id/subscribe', identifyUser, async (req, res) => {
+// POST /trainers/:id/subscribe — client requests a trainer (pending until accepted)
+router.post('/:id/subscribe', requireFeature('trainer_coaching'), identifyUser, async (req, res) => {
   try {
     const result = await coachingTransaction(async tx => {
       const previous = await tx.trainerClient.findFirst({ where: { clientId: req.userId, status: 'active' } });
@@ -212,7 +317,7 @@ router.post('/:id/subscribe', identifyUser, async (req, res) => {
         currentTrainerId: err.currentTrainerId,
       });
     }
-    res.status(400).json({ error: err.message });
+    res.status(err.status || 400).json({ error: err.message });
   }
 });
 
@@ -240,7 +345,7 @@ router.post('/me/drop', identifyUser, async (req, res) => {
         daysRemaining: err.daysRemaining,
       });
     }
-    res.status(400).json({ error: err.message });
+    res.status(err.status || 400).json({ error: err.message });
   }
 });
 
@@ -248,8 +353,8 @@ router.post('/me/drop', identifyUser, async (req, res) => {
 // Trainer detail (public)
 // ---------------------------------------------------------------------------
 
-// GET /trainers/:id — trainer profile detail
-router.get('/:id', async (req, res) => {
+// GET /trainers/:id — public trainer profile detail (approved + discoverable only)
+router.get('/:id', requireFeature('trainer_discovery'), async (req, res) => {
   try {
     const trainer = await trainerService.getTrainerById(req.params.id);
     if (!trainer) return res.status(404).json({ error: 'Trainer not found.' });

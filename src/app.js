@@ -12,6 +12,8 @@ app.use(cors({ origin: (origin, cb) => cb(null, !origin || origins.includes(orig
 app.use(express.json({ limit: '8mb' }));
 if (process.env.NODE_ENV !== 'test') app.use(morgan(':method :url :status :response-time ms', { skip: req => req.path.startsWith('/auth') || req.path.startsWith('/me/account') || req.path.startsWith('/me/legacy-migration') }));
 app.use('/health', require('./routes/health'));
+// Public payment webhooks — signature-verified, no session auth (provider HMAC only).
+app.use('/webhooks/payments', require('./routes/paymentWebhooks'));
 app.use(rateLimit({ windowMs: 60000, limit: Number(process.env.API_RATE_LIMIT || 120), skip: () => process.env.NODE_ENV === 'test', standardHeaders: 'draft-7', legacyHeaders: false }));
 app.use('/auth', require('./routes/auth'));
 app.use(require('./middleware/authenticate'));
@@ -23,6 +25,8 @@ if (process.env.NODE_ENV === 'test' && process.env.AUTH_TEST_BYPASS === 'true') 
 app.use(require('./middleware/validateInput'));
 app.use('/me/progress', require('./routes/progress'));
 app.use('/me/profile', require('./routes/profile'));
+app.use('/me', require('./routes/myPurchases')); // /me/entitlements + /me/purchases
+app.use('/trainer/commerce', require('./routes/trainerCommerce'));
 app.use('/config', require('./routes/config'));
 app.use('/', require('./routes'));
 app.use((req,res) => res.status(404).json({error:'Not found'}));

@@ -36,11 +36,14 @@ for (const [operation, active] of [['assign', true], ['remove', false]]) {
   });
 }
 
-// GET /admin/trainers — list all trainer profiles
+// GET /admin/trainers — list trainer profiles (?applicationStatus= filter;
+// rows include applicationStatus/applicationNote/approvedAt fields)
 router.get('/trainers', requirePermission('MANAGE_TRAINERS'), async (req, res) => {
   try {
     const prisma = getPrisma();
-    const trainers = await prisma.trainerProfile.findMany({ orderBy: { createdAt: 'desc' } });
+    const where = {};
+    if (req.query.applicationStatus) where.applicationStatus = req.query.applicationStatus;
+    const trainers = await prisma.trainerProfile.findMany({ where, orderBy: { createdAt: 'desc' } });
     res.json({ trainers });
   } catch (err) {
     fail(res, err);
@@ -49,6 +52,13 @@ router.get('/trainers', requirePermission('MANAGE_TRAINERS'), async (req, res) =
 
 router.patch('/trainers/:id/verify', requirePermission('MANAGE_TRAINERS'), async (req, res) => {
   try { res.json(await operations.verifyTrainer(req.userId, req.params.id, req.body?.verified)); }
+  catch (err) { fail(res, err); }
+});
+
+// PATCH /admin/trainers/:id/review — application review decision
+// {decision:'approve'|'reject'|'request_changes', note?}
+router.patch('/trainers/:id/review', requirePermission('MANAGE_TRAINERS'), async (req, res) => {
+  try { res.json(await operations.reviewTrainer(req.userId, req.params.id, req.body || {})); }
   catch (err) { fail(res, err); }
 });
 

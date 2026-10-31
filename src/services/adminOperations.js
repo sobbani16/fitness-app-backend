@@ -42,7 +42,9 @@ async function verifyTrainer(actorId, id, verified) {
     if (!before) throw httpError(404, 'Trainer not found.');
     const role = await tx.role.findUnique({ where: { name: 'TRAINER' } });
     if (!role) throw httpError(409, 'TRAINER role must be provisioned first.');
-    const trainer = await tx.trainerProfile.update({ where: { id }, data: { verified, active: verified } });
+    const trainer = await tx.trainerProfile.update({ where: { id }, data: verified
+      ? { verified: true, active: true, applicationStatus: 'approved', approvedAt: new Date(), approvedBy: actorId }
+      : { verified: false, active: false, applicationStatus: 'rejected' } });
     await tx.userRole.upsert({ where: { userId_roleId: { userId: trainer.userId, roleId: role.id } }, update: { active: verified }, create: { userId: trainer.userId, roleId: role.id, active: verified } });
     await tx.authSession.deleteMany({ where: { userId: trainer.userId } });
     await audit.log({ actorId, action: 'trainer.verify', entityType: 'TrainerProfile', entityId: id,
@@ -50,4 +52,47 @@ async function verifyTrainer(actorId, id, verified) {
     return trainer;
   }, { timeout: 15000 });
 }
-module.exports = { changeRole, verifyTrainer };
+const REVIEW_DECISIONS = ['approve', 'reject', 'request_changes'];
+async function reviewTrainer(actorId, id, { decision, note } = {}) {
+  if (!REVIEW_DECISIONS.includes(decision)) throw httpError(400, 'decision must be approve|reject|request_changes.');
+  if (note !== undefined && note !== null && (typeof note !== 'string' || note.length > 2000)) throw httpError(400, 'note must be a string under 2000 chars.');
+  return getPrisma().$transaction(async tx => {
+    let before = await tx.trainerProfile.findUnique({ where: { id } });
+    if (!before) throw httpError(404, 'Trainer not found.');
+    const users = await tx.$queryRaw`SELECT "id", "emailVerifiedAt" FROM "User" WHERE "id" = ${before.userId} FOR UPDATE`;
+    if (!users.length) throw httpError(404, 'Trainer account not found.');
+    await tx.$executeRaw`LOCK TABLE "UserRole" IN SHARE ROW EXCLUSIVE MODE`;
+    await authorize(tx, actorId, 'MANAGE_TRAINERS');
+    before = await tx.trainerProfile.findUnique({ where: { id } });
+    const role = await tx.role.findUnique({ where: { name: 'TRAINER' } });
+    const now = new Date();
+    let trainer;
+    if (decision === 'approve') {
+      // Same atomic path as verifyTrainer: verify + activate + TRAINER role +
+      // session revoke, plus the application bookkeeping.
+      if (!users[0].emailVerifiedAt) throw httpError(409, 'Trainer requires an existing verified account.');
+      if (!role) throw httpError(409, 'TRAINER role must be provisioned first.');
+      trainer = await tx.trainerProfile.update({ where: { id }, data: {
+        verified: true, active: true, applicationStatus: 'approved',
+        approvedAt: now, approvedBy: actorId, applicationNote: note || null,
+      } });
+      await tx.userRole.upsert({ where: { userId_roleId: { userId: trainer.userId, roleId: role.id } }, update: { active: true }, create: { userId: trainer.userId, roleId: role.id, active: true } });
+    } else {
+      // reject | request_changes — pull the profile out of the approved pool:
+      // unverified + inactive (mirrors the un-verify path) so it cannot appear
+      // in discovery or serve trainer data until re-approved.
+      const applicationStatus = decision === 'reject' ? 'rejected' : 'changes_requested';
+      trainer = await tx.trainerProfile.update({ where: { id }, data: {
+        verified: false, active: false, applicationStatus,
+        applicationNote: note || null, approvedAt: null, approvedBy: null,
+      } });
+      if (role) await tx.userRole.updateMany({ where: { userId: trainer.userId, roleId: role.id }, data: { active: false } });
+    }
+    await tx.authSession.deleteMany({ where: { userId: trainer.userId } });
+    await audit.log({ actorId, action: `trainer.review.${decision}`, entityType: 'TrainerProfile', entityId: id,
+      beforeData: { applicationStatus: before.applicationStatus, verified: before.verified, active: before.active },
+      afterData: { userId: trainer.userId, applicationStatus: trainer.applicationStatus, verified: trainer.verified, active: trainer.active, decision } }, tx);
+    return trainer;
+  }, { timeout: 15000 });
+}
+module.exports = { changeRole, verifyTrainer, reviewTrainer };

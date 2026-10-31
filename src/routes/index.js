@@ -11,6 +11,7 @@ const supplements = require('./supplements');
 const ingredients = require('./ingredients');
 const safety = require('./safety');
 const trainers = require('./trainers');
+const trainerRequests = require('./trainerRequests');
 const workoutPlans = require('./workoutPlans');
 const nutritionists = require('./nutritionists');
 const mealPlans = require('./mealPlans');
@@ -30,6 +31,14 @@ const healthData = require('./healthData');
 const personalPlans = require('./personalPlans');
 const menuAnalysis = require('./menuAnalysis');
 const voice = require('./voice');
+const conversations = require('./conversations');
+const pushTokens = require('./pushTokens');
+const trainerWorkoutPlans = require('./trainerWorkoutPlans');
+const myWorkoutPlans = require('./myWorkoutPlans');
+const trainerNutritionPlans = require('./trainerNutritionPlans');
+const myNutritionPlans = require('./myNutritionPlans');
+const trainerSchedule = require('./trainerSchedule');
+const myBookings = require('./myBookings');
 
 const router = express.Router();
 
@@ -45,6 +54,10 @@ router.use('/supplements', supplements);
 router.use('/ingredients', ingredients);
 router.use('/safety', safety);
 router.use('/trainers', trainers);
+// One router serves both mounts: request actions live under /trainer-requests,
+// consent/end actions under /trainer-relationships (all paths work on either).
+router.use('/trainer-requests', trainerRequests);
+router.use('/trainer-relationships', trainerRequests);
 router.use('/workout-plans', workoutPlans);
 router.use('/nutritionists', nutritionists);
 router.use('/meal-plans', mealPlans);
@@ -64,5 +77,13 @@ router.use('/health-data', healthData);
 router.use('/personal-plans', personalPlans);
 router.use('/menu-analysis', menuAnalysis);
 router.use('/voice', voice);
+router.use('/conversations', conversations);
+router.use('/me/push-tokens', pushTokens);
+router.use('/trainer/workout-plans', trainerWorkoutPlans);
+router.use('/me/workout-plans', myWorkoutPlans);
+router.use('/trainer/nutrition-plans', trainerNutritionPlans);
+router.use('/me/nutrition-plans', myNutritionPlans);
+router.use('/trainer/schedule', trainerSchedule);
+router.use('/me', myBookings);
 
 module.exports = router;

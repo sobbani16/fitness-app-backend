@@ -1,7 +1,7 @@
 const { getPrisma } = require('../lib/prisma');
 const { httpError } = require('../lib/errors');
 // Only operational metadata belongs in snapshots, never free-text health data or credentials.
-const FIELDS = new Set(['userId', 'clientId', 'trainerId', 'nutritionistId', 'roleName', 'active', 'verified', 'status', 'tier', 'revokedSessions', 'sessionsRevoked', 'reference', 'reviewed', 'existed', 'previewState', 'visibility']);
+const FIELDS = new Set(['userId', 'clientId', 'trainerId', 'nutritionistId', 'roleName', 'active', 'verified', 'status', 'tier', 'revokedSessions', 'sessionsRevoked', 'reference', 'reviewed', 'existed', 'previewState', 'visibility', 'applicationStatus', 'relationId', 'planId', 'assignmentId', 'bookingId', 'packageId', 'purchaseId', 'amountCents', 'currency', 'category', 'decision', 'version', 'rating', 'sessionTypeId', 'startAtUtc', 'endAtUtc']);
 function snapshot(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
   return Object.fromEntries(Object.entries(value).filter(([key, v]) => FIELDS.has(key) &&
