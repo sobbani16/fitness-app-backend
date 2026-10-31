@@ -55,7 +55,7 @@ Flags already created per `ADVANCED_TRAINER_FEATURE_FLAGS.md`. To enable for you
 
 | Requirement | Status | Evidence |
 |---|---|---|
-| Full synthetic journey (application→approval→discovery→request→consent→plan→progress→guidance→messages→booking lifecycle→revocation→flag-off) | **PASS (suite) / NOT TESTED (live)** | Every step is covered by integration tests in the module suites (775 tests): application lifecycle + admin review, pending-request accept, per-category consent gating, plan assign→client log→trainer progress, guidance that never overwrites FoodLog, participant-only messaging, book/reschedule/cancel, revocation→403, flag-off→403. **No scripted live HTTP journey against a running server was executed** — the runtime doing so was interrupted; recommend executing `docs/TRAINER_SECURITY_TEST_PLAN.md` on staging before beta |
+| Full synthetic journey (application→approval→discovery→request→consent→plan→progress→guidance→messages→booking lifecycle→revocation→flag-off) | **PASS** | `tests/e2eTrainerJourney.test.js` — **17/17** through the real Express app + dev Postgres: draft→submit→admin approve→discovery (real `displayName`)→pending request→accept→partial consent (2/8 categories granted, 6 stay `pending`)→consent-filtered progress (ungranted categories absent despite existing rows)→plan draft/build/publish/assign/accept/complete→trainer progress shows `completedSessions:1`→nutrition plan→client log creates client-owned FoodLog `source:'trainer_plan'`, pre-existing log untouched (count 1→2)→messaging unread/read→availability→slots→book→confirm→reschedule→cancel→revocation blocks `workoutSessions` but keeps `weight_trends`→`FF_TRAINER_MESSAGING_ENABLED=false`→403. Idempotent, zero residue. **Caveat:** runs against local dev DB, not a deployed staging env |
 
 ## 6. Security verification
 
@@ -68,7 +68,7 @@ Flags already created per `ADVANCED_TRAINER_FEATURE_FLAGS.md`. To enable for you
 | Another trainer's messages / bookings | **PASS** | Conversation participant check; booking ownership checks (tests) |
 | Pending/rejected trainers vs approved APIs | **PASS** | `requireApprovedTrainer` + `requireRole('TRAINER')`; unverified/inactive profiles excluded from discovery (F2 fix); legacy `verify` endpoint now sets `applicationStatus:'approved'` consistently |
 | Mock payments can't grant real entitlements | **PASS** | Mock provider only; `requireActiveRelation` added to checkout; HMAC webhook verify + idempotent processing; `trainer_paid_coaching_enabled` ships at 0%. No live provider code exists |
-| Live adversarial probing | **NOT TESTED** | All above are suite-tested against in-memory/integration harness, not a deployed environment |
+| Live adversarial probing vs deployed env | **NOT TESTED** | Negative cases DO run through the real app in `e2eTrainerJourney.test.js` step 14: outsider→progress 403; `submitted`-status trainer→plan creation 403; pre-approval applicant→availability 403; second trainer sees only own requests; outsider checkout 403. Still absent: probing a deployed environment + unauthenticated fuzzing |
 
 ## 7. Beta deployment preparation (prepared, not executed)
 
@@ -88,7 +88,7 @@ Flags already created per `ADVANCED_TRAINER_FEATURE_FLAGS.md`. To enable for you
 
 ## 8. Summary
 
-- **PASS:** flags/defaults/dependencies/gating, manual-logging independence, migration safety review, timezone fix, both full suites (775 + 380), suite-level security + E2E coverage, deployment prep docs.
+- **PASS:** flags/defaults/dependencies/gating, manual-logging independence, migration safety review, timezone fix, full suites (775 + 380 + **17-test live HTTP E2E journey** with authz negatives), suite-level security coverage, deployment prep docs.
 - **BLOCKED:** staging-DB validation (no reachable staging); failed prod deploy `de28d129` needs log inspection/redeploy approval.
-- **NOT TESTED:** device/simulator UI pass; live scripted E2E journey; live adversarial security probing.
+- **NOT TESTED:** device/simulator UI pass; adversarial probing against a deployed environment.
 - **Verdict: do not deploy to production or open beta** until (1) prod deploy failure is diagnosed and a clean deploy lands, (2) staging migration validation runs, (3) live E2E + security probing executes, (4) a device UI pass completes.
