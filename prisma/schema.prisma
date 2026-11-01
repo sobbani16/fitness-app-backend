@@ -803,7 +803,10 @@ model TrainerProfile {
   packages         TrainerCoachingPackage[]
   payouts          TrainerPayout[]
   nutritionPlans   TrainerNutritionPlan[]
+  coachingGroups  CoachingGroup[]
+  documents       TrainerDocument[]
 }
+
 
 model TrainerClient {
   id          String         @id @default(uuid())
@@ -823,6 +826,10 @@ model TrainerClient {
   consents     TrainerClientConsent[]
   conversation Conversation?
   bookings     TrainerBooking[]
+  checkIns     CheckIn[]
+
+  videoSessions   VideoSession[]
+  documentShares  TrainerDocumentShare[]
 
   @@unique([trainerId, clientId])
   @@index([trainerId])
@@ -832,7 +839,6 @@ model TrainerClient {
 // ============================================================================
 // TRAINER DROP FORMS & WAITLIST
 // ============================================================================
-
 model TrainerDropForm {
   id             String         @id @default(uuid())
   relationId     String // TrainerClient.id
@@ -2330,4 +2336,191 @@ model TrainerPromotion {
   active         Boolean   @default(true)
   expiresAt      DateTime?
   createdAt      DateTime  @default(now())
+}
+
+// ============================================================================
+// COACHING CHECK-INS (member → trainer structured weekly reviews)
+// ============================================================================
+
+model CheckIn {
+  id                String        @id @default(uuid())
+  relationId        String
+  relation          TrainerClient @relation(fields: [relationId], references: [id], onDelete: Cascade)
+  clientId          String
+  weekOf            DateTime // Monday (UTC) the check-in covers
+  goalProgress      String? // member self-assessment vs goal
+  workoutDifficulty Int? // 1-5 perceived difficulty
+  energyLevel       Int? // 1-5 recovery/energy
+  weightKg          Float? // optional weight update
+  questions         String?
+  challenges        String?
+  notes             String?
+  reviewedAt        DateTime?
+  reviewedBy        String?
+  trainerReply      String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@unique([relationId, weekOf])
+  @@index([clientId])
+  @@index([relationId])
+}
+
+// ---------------------------------------------------------------------------
+// Coaching communication platform (web) — groups, documents, video sessions.
+// DM conversations reuse existing Conversation/Message models above.
+// ---------------------------------------------------------------------------
+
+model CoachingGroup {
+  id         String   @id @default(uuid())
+  name       String
+  kind       String   @default("coaching") // coaching|cohort|challenge|nutrition
+  trainerId  String
+  trainer    TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  status     String   @default("active")   // active|archived
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  members    CoachingGroupMember[]
+  messages   GroupMessage[]
+  readCursors GroupReadCursor[]
+  documentShares TrainerDocumentShare[]
+
+  @@index([trainerId, status])
+}
+
+model CoachingGroupMember {
+  id        String    @id @default(uuid())
+  groupId   String
+  group     CoachingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId    String
+  role      String    @default("member")   // member|moderator|owner
+  status    String    @default("invited")  // invited|active|left|removed
+  invitedBy String?
+  joinedAt  DateTime?
+  leftAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([groupId, userId])
+  @@index([userId, status])
+}
+
+model GroupMessage {
+  id        String   @id @default(uuid())
+  groupId   String
+  group     CoachingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  senderId  String
+  body      String
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([groupId, id])
+}
+
+model GroupReadCursor {
+  groupId           String
+  group             CoachingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId            String
+  lastReadMessageId String?
+  updatedAt         DateTime @updatedAt
+
+  @@id([groupId, userId])
+}
+
+model MessageReport {
+  id          String   @id @default(uuid())
+  messageKind String                       // dm|group
+  messageId   String
+  reporterId  String
+  reason      String
+  status      String   @default("open")    // open|resolved|dismissed
+  resolvedBy  String?
+  resolvedAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([status, createdAt])
+}
+
+model TrainerDocument {
+  id          String   @id @default(uuid())
+  trainerId   String
+  trainer     TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  category    String   @default("education") // nutrition|workout|meal_plan|exercise|progress|education
+  fileKey     String                       // storage-relative key (never exposed)
+  fileName    String
+  mimeType    String   @default("application/pdf")
+  sizeBytes   Int
+  version     Int      @default(1)
+  status      String   @default("active")    // active|revoked
+  uploadedAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  shares      TrainerDocumentShare[]
+
+  @@index([trainerId, status])
+}
+
+model TrainerDocumentShare {
+  id         String   @id @default(uuid())
+  documentId String
+  document   TrainerDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  relationId String?  // share with one coaching relationship
+  relation   TrainerClient? @relation(fields: [relationId], references: [id], onDelete: Cascade)
+  groupId    String?
+  group      CoachingGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@index([documentId])
+  @@index([relationId])
+  @@index([groupId])
+}
+
+model VideoSession {
+  id                  String   @id @default(uuid())
+  relationId          String
+  relation            TrainerClient @relation(fields: [relationId], references: [id], onDelete: Cascade)
+  roomName            String   @unique
+  purpose             String?
+  scheduledStart      DateTime
+  scheduledEnd        DateTime
+  status              String   @default("scheduled") // scheduled|live|ended|cancelled
+  recordingRequested  Boolean  @default(false)
+  recordingStartedAt  DateTime?
+  recordingEndedAt    DateTime?
+  endedAt             DateTime?
+  exerciseKey         String?  // optional exercise-demo ref from the exercise library
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  consents            RecordingConsent[]
+  summary             VideoSessionSummary?
+
+  @@index([relationId, scheduledStart])
+  @@index([status])
+}
+
+model RecordingConsent {
+  id             String   @id @default(uuid())
+  videoSessionId String
+  videoSession   VideoSession @relation(fields: [videoSessionId], references: [id], onDelete: Cascade)
+  userId         String
+  granted        Boolean
+  policyVersion  String
+  withdrawnAt    DateTime?
+  createdAt      DateTime @default(now())
+
+  @@unique([videoSessionId, userId])
+}
+
+model VideoSessionSummary {
+  id             String   @id @default(uuid())
+  videoSessionId String   @unique
+  videoSession   VideoSession @relation(fields: [videoSessionId], references: [id], onDelete: Cascade)
+  memberSummary  String?
+  actionItems    Json?
+  privateNotes   String?
+  publishedAt    DateTime?
+  updatedAt      DateTime @updatedAt
 }

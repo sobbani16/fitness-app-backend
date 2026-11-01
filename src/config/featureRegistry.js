@@ -326,6 +326,42 @@ const FEATURES = {
     endpoints: [],
     description: 'Future AI-assisted nutrition planning. In AI kill group.',
   },
+  group_messaging_enabled: {
+    clientKey: 'groupMessagingEnabled',
+    class: 'core', group: 'communication', default: false, failOpen: false,
+    endpoints: ['/communication/groups'],
+    description: 'Humai-managed coaching groups (cohorts, challenges).',
+  },
+  trainer_documents_enabled: {
+    clientKey: 'trainerDocumentsEnabled',
+    class: 'core', group: 'communication', default: false, failOpen: false,
+    endpoints: ['/communication/documents'],
+    description: 'Trainer PDF document library with consent-scoped sharing.',
+  },
+  video_sessions_enabled: {
+    clientKey: 'videoSessionsEnabled',
+    class: 'core', group: 'communication', default: false, failOpen: false,
+    endpoints: ['/communication/video-sessions'],
+    description: 'Scheduled 1:1 video consultations (LiveKit-backed).',
+  },
+  call_recording_enabled: {
+    clientKey: 'callRecordingEnabled',
+    class: 'sensitive', group: 'communication', default: false, failOpen: false,
+    endpoints: ['/communication/video-sessions'],
+    description: 'Optional call recording — requires per-participant consent.',
+  },
+  ai_transcription_enabled: {
+    clientKey: 'aiTranscriptionEnabled',
+    class: 'ai', group: 'ai', default: false, failOpen: false,
+    endpoints: [],
+    description: 'AI transcription/summaries of calls — separately consented, in AI kill group.',
+  },
+  whatsapp_integration_enabled: {
+    clientKey: 'whatsappIntegrationEnabled',
+    class: 'core', group: 'communication', default: false, failOpen: false,
+    endpoints: [],
+    description: 'WhatsApp Business integration — OFF pending official-API feasibility (Phase 8).',
+  },
   ai_emergency_shutdown: {
     clientKey: 'aiEmergencyShutdown',
     class: 'control',

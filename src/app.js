@@ -25,7 +25,8 @@ if (process.env.NODE_ENV === 'test' && process.env.AUTH_TEST_BYPASS === 'true') 
 app.use(require('./middleware/validateInput'));
 app.use('/me/progress', require('./routes/progress'));
 app.use('/me/profile', require('./routes/profile'));
-app.use('/me', require('./routes/myPurchases')); // /me/entitlements + /me/purchases
+// myPurchases is mounted in routes/index.js AFTER the other /me mounts —
+// its router-level paid-coaching flag must not shadow /me/roles, plans, etc.
 app.use('/trainer/commerce', require('./routes/trainerCommerce'));
 app.use('/config', require('./routes/config'));
 app.use('/', require('./routes'));

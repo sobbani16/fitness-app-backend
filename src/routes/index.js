@@ -39,6 +39,10 @@ const trainerNutritionPlans = require('./trainerNutritionPlans');
 const myNutritionPlans = require('./myNutritionPlans');
 const trainerSchedule = require('./trainerSchedule');
 const myBookings = require('./myBookings');
+const checkIns = require('./checkIns');
+const notifications = require('./notifications');
+const communication = require('./communication');
+const myPurchases = require('./myPurchases');
 
 const router = express.Router();
 
@@ -84,6 +88,12 @@ router.use('/me/workout-plans', myWorkoutPlans);
 router.use('/trainer/nutrition-plans', trainerNutritionPlans);
 router.use('/me/nutrition-plans', myNutritionPlans);
 router.use('/trainer/schedule', trainerSchedule);
+// notifications before myBookings: its router-level requireFeature would shadow them.
+router.use('/me/notifications', notifications);
 router.use('/me', myBookings);
+// Paid-coaching gated router LAST under /me — only entitlements/purchases hit it.
+router.use('/me', myPurchases);
+router.use('/check-ins', checkIns);
+router.use('/communication', communication);
 
 module.exports = router;

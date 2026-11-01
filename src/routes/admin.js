@@ -79,4 +79,24 @@ router.get('/analytics', requirePermission('VIEW_PLATFORM_ANALYTICS'), async (re
   }
 });
 
+// GET /admin/feature-flags — registry + provider diagnostics (read-only).
+// Runtime overrides are managed in PostHog / env vars by design; this view
+// exists so reviewers can see flag state without console access.
+router.get('/feature-flags', requirePermission('MANAGE_FEATURE_FLAGS'), async (req, res) => {
+  try {
+    const { FEATURES } = require('../config/featureRegistry');
+    const flags = require('../services/featureFlags/service');
+    res.json({
+      registry: Object.entries(FEATURES).map(([key, f]) => ({
+        key, clientKey: f.clientKey, class: f.class, group: f.group,
+        default: f.default, endpoints: f.endpoints, description: f.description,
+      })),
+      diagnostics: flags.diagnostics(),
+      resolvedForCaller: await flags.evaluateAll(req.userId),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

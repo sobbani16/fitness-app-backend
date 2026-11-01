@@ -9,6 +9,12 @@
     ],
     "startCommand": "npm start",
     "healthcheckPath": "/health/ready",
-    "healthcheckTimeout": 120
+    "healthcheckTimeout": 120,
+    "cronJobs": [
+      {
+        "schedule": "17 3 * * *",
+        "command": "node scripts/retention-sweep.js"
+      }
+    ]
   }
 }
