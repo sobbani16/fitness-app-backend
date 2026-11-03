@@ -8,12 +8,14 @@ const {
 
 const router = express.Router();
 
+// Identity comes from the authenticated session (authenticate middleware);
+// the header fallback exists only for isolated unit tests.
 function getUserId(req) {
-  return (req.headers['x-user-id'] || req.query.userId || '').toString().trim();
+  return (req.userId || req.headers['x-user-id'] || '').toString().trim();
 }
 
 // GET /macro-score — today's macro score
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(400).json({ error: 'x-user-id header required' });
@@ -21,24 +23,24 @@ router.get('/', async (req, res) => {
     const score = await calculateScore(userId, date);
     res.json(score);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
 // GET /macro-score/goals — user's macro targets
-router.get('/goals', async (req, res) => {
+router.get('/goals', async (req, res, next) => {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(400).json({ error: 'x-user-id header required' });
     const goals = await getGoals(userId);
     res.json(goals);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
 // PUT /macro-score/goals — update macro targets
-router.put('/goals', async (req, res) => {
+router.put('/goals', async (req, res, next) => {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(400).json({ error: 'x-user-id header required' });
@@ -50,15 +52,16 @@ router.put('/goals', async (req, res) => {
     if (fatTarget != null) updates.fatTarget = Number(fatTarget);
     if (fiberTarget != null) updates.fiberTarget = Number(fiberTarget);
     if (waterMlTarget != null) updates.waterMlTarget = Number(waterMlTarget);
+    if (Object.values(updates).some(v => !Number.isFinite(v) || v < 0)) return res.status(400).json({ error: 'Targets must be non-negative numbers.', code: 'INVALID_REQUEST' });
     const goals = await updateGoals(userId, updates);
     res.json(goals);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    next(err);
   }
 });
 
 // GET /macro-score/trend?days=7 — score trend
-router.get('/trend', async (req, res) => {
+router.get('/trend', async (req, res, next) => {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(400).json({ error: 'x-user-id header required' });
@@ -66,7 +69,7 @@ router.get('/trend', async (req, res) => {
     const trend = await getTrend(userId, days);
     res.json({ trend });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 

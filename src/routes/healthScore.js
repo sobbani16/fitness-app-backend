@@ -7,12 +7,14 @@ const {
 
 const router = express.Router();
 
+// Identity comes from the authenticated session (authenticate middleware);
+// the header fallback exists only for isolated unit tests.
 function getUserId(req) {
-  return (req.headers['x-user-id'] || req.query.userId || '').toString().trim();
+  return (req.userId || req.headers['x-user-id'] || '').toString().trim();
 }
 
 // GET /health-score — calculate and return today's health score
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(400).json({ error: 'x-user-id header required' });
@@ -20,12 +22,12 @@ router.get('/', async (req, res) => {
     const result = await calculateHealthScore(userId, date);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
 // GET /health-score/actions — ranked improvement actions
-router.get('/actions', async (req, res) => {
+router.get('/actions', async (req, res, next) => {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(400).json({ error: 'x-user-id header required' });
@@ -33,12 +35,12 @@ router.get('/actions', async (req, res) => {
     const result = await getImprovementActions(userId, date);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
 // GET /health-score/trend?days=7 — score trend
-router.get('/trend', async (req, res) => {
+router.get('/trend', async (req, res, next) => {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(400).json({ error: 'x-user-id header required' });
@@ -46,12 +48,12 @@ router.get('/trend', async (req, res) => {
     const trend = await getHealthScoreTrend(userId, days);
     res.json({ trend });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
 // GET /health-score/:id/detail — full detail with all contributors
-router.get('/:id/detail', async (req, res) => {
+router.get('/:id/detail', async (req, res, next) => {
   try {
     const { getPrisma } = require('../lib/prisma');
     const prisma = getPrisma();
@@ -65,7 +67,7 @@ router.get('/:id/detail', async (req, res) => {
     if (!score || score.userId !== getUserId(req)) return res.status(404).json({ error: 'Score not found' });
     res.json(score);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
