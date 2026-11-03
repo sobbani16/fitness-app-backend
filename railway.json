@@ -7,7 +7,7 @@
     "preDeployCommand": [
       "npm run deploy:prepare"
     ],
-    "startCommand": "npm start",
+    "startCommand": "npm run deploy:prepare && npm start",
     "healthcheckPath": "/health/ready",
     "healthcheckTimeout": 120,
     "cronJobs": [
