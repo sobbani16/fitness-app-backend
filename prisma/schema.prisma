@@ -2817,3 +2817,13 @@ model CoachingPreference {
   model     String   @default("self_guided") // self_guided|humai_assisted|trainer_led|hybrid
   updatedAt DateTime @updatedAt
 }
+
+model ActionFeedback {
+  id        String   @id @default(uuid())
+  userId    String
+  actionKey String
+  verdict   String
+  createdAt DateTime @default(now())
+
+  @@index([userId, actionKey, createdAt])
+}
