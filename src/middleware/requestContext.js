@@ -23,6 +23,11 @@ function failureCategory(status) {
   return 'validation';
 }
 
+function defaultCode(status) {
+  return { 400: 'INVALID_REQUEST', 401: 'AUTH_REQUIRED', 403: 'FORBIDDEN', 404: 'NOT_FOUND', 409: 'CONFLICT', 413: 'PAYLOAD_TOO_LARGE', 422: 'INVALID_REQUEST', 426: 'CLIENT_UPGRADE_REQUIRED', 429: 'RATE_LIMITED', 503: 'UNAVAILABLE' }[status]
+    || (status >= 500 ? 'INTERNAL' : 'INVALID_REQUEST');
+}
+
 /**
  * Correlation ID + privacy-safe failure log. Never records headers, bodies,
  * query values or identifiers — only the route template, status and timing.
@@ -34,6 +39,16 @@ function requestContext(logger = console) {
     res.setHeader('x-correlation-id', req.correlationId);
     res.setHeader('x-api-contract', String(API_CONTRACT_VERSION));
     res.setHeader('x-min-client-contract', String(MIN_CLIENT_CONTRACT));
+    // Every error body carries a code + correlation ID, including routes that respond directly.
+    const json = res.json.bind(res);
+    res.json = body => {
+      if (res.statusCode >= 400 && body && typeof body === 'object' && !Array.isArray(body)) {
+        const code = typeof body.code === 'string' ? body.code : defaultCode(res.statusCode);
+        res.locals.errorCode = res.locals.errorCode || code;
+        body = { ...body, code, correlationId: body.correlationId || req.correlationId };
+      }
+      return json(body);
+    };
     const started = process.hrtime.bigint();
     res.on('finish', () => {
       if (res.statusCode < 400 || process.env.NODE_ENV === 'test') return;
@@ -60,4 +75,4 @@ function requestContext(logger = console) {
   };
 }
 
-module.exports = { requestContext, routeLabel, failureCategory };
+module.exports = { requestContext, routeLabel, failureCategory, defaultCode };
