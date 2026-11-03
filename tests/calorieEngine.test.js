@@ -78,9 +78,17 @@ describe('calorieEngine', () => {
       expect(b.status).toBe('surplus');
     });
     it('reports deficit when intake < target', () => {
-      const b = computeDailyBalance({ caloriesIn: 1800, caloriesBurnedExercise: 100, tdee: 2400, goal: 'maintain' });
-      expect(b.surplus).toBe(-700);
+      const b = computeDailyBalance({ caloriesIn: 1800, caloriesBurnedExercise: 0, tdee: 2400, goal: 'maintain' });
+      expect(b.surplus).toBe(-600);
       expect(b.status).toBe('deficit');
+    });
+    it('does not subtract exercise again — TDEE already contains it', () => {
+      // caloriesBurnedExercise is reported for display but never subtracted:
+      // TDEE's activity factor already includes movement expenditure.
+      const with_ = computeDailyBalance({ caloriesIn: 2000, caloriesBurnedExercise: 500, tdee: 2400, goal: 'maintain' });
+      const without = computeDailyBalance({ caloriesIn: 2000, caloriesBurnedExercise: 0, tdee: 2400, goal: 'maintain' });
+      expect(with_.surplus).toBe(without.surplus);
+      expect(with_.caloriesBurnedExercise).toBe(500);
     });
     it('reports on_target exactly', () => {
       const b = computeDailyBalance({ caloriesIn: 2400, caloriesBurnedExercise: 0, tdee: 2400, goal: 'maintain' });

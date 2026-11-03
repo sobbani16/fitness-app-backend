@@ -15,12 +15,19 @@ function progressRange({ from, to, timeZone = 'UTC' }) {
   };
   return { from, to, count, timeZone, date, start: new Date(Date.parse(from) - DAY), end: new Date(Date.parse(to) + 2 * DAY) };
 }
-function buildProgress(range, { meals = [], weights = [], water = [], steps = [], workouts = [] }) {
+function buildProgress(range, { meals = [], weights = [], water = [], steps = [], workouts = [], expenditureByDate = {} }) {
   const entries = Array.from({ length: range.count }, (_, i) => ({
     date: new Date(Date.parse(range.from) + i * DAY).toISOString().slice(0, 10), mealCount: 0,
     calories: null, protein: null, carbs: null, fat: null, fiber: null,
     weightKg: null, waterMl: null, steps: null, workouts: 0,
+    // Estimated/measured expenditure — never zeroed when absent; null = unknown,
+    // so charts show a gap rather than a fake drop to zero on unsynced days.
+    expenditureKcal: null, expenditureSource: null,
   }));
+  for (const e of entries) {
+    const ex = expenditureByDate[e.date];
+    if (ex && Number.isFinite(ex.kcal)) { e.expenditureKcal = Math.round(ex.kcal); e.expenditureSource = ex.source; }
+  }
   const byDate = new Map(entries.map(x => [x.date, x]));
   for (const m of meals) {
     const day = byDate.get(range.date(m.loggedAt)); if (!day) continue;

@@ -77,8 +77,16 @@ function targetCalories(tdee, goal) {
 }
 
 /**
- * Compute daily balance.
- * surplus = net - target. Positive = over target (surplus); negative = under (deficit).
+ * Compute daily pacing versus the intake target.
+ *
+ * CONTRACT (corrected): `tdee` is a full-day FORECAST that already includes
+ * routine movement via the activity factor, so `caloriesBurnedExercise` must
+ * NOT be subtracted again — doing so double-counted exercise in the previous
+ * contract. `caloriesIn` is logged intake only; it is not confirmed total
+ * intake, so `surplus` is "logged intake minus target", never a verified
+ * physiological deficit/surplus.
+ *
+ * surplus = caloriesIn - target. Positive = logged above target.
  * @param {{ caloriesIn: number, caloriesBurnedExercise?: number, tdee: number, goal: 'lose'|'maintain'|'gain' }} p
  */
 function computeDailyBalance({ caloriesIn, caloriesBurnedExercise = 0, tdee, goal }) {
@@ -86,15 +94,15 @@ function computeDailyBalance({ caloriesIn, caloriesBurnedExercise = 0, tdee, goa
   assertNonNegative('caloriesBurnedExercise', caloriesBurnedExercise);
   assertPositive('tdee', tdee);
   const target = targetCalories(tdee, goal);
-  const net = caloriesIn - caloriesBurnedExercise;
-  const surplus = Math.round(net - target);
+  const surplus = Math.round(caloriesIn - target);
   return {
     caloriesIn: Math.round(caloriesIn),
     caloriesBurnedExercise: Math.round(caloriesBurnedExercise),
     tdee: Math.round(tdee),
     target: Math.round(target),
-    net: Math.round(net),
-    surplus, // positive = over target, negative = under (deficit)
+    net: Math.round(caloriesIn), // logged intake only — see contract note
+    surplus, // logged intake vs target — provisional, not a confirmed balance
+    provisional: true,
     status: surplus > 0 ? 'surplus' : surplus < 0 ? 'deficit' : 'on_target',
   };
 }

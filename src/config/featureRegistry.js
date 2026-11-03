@@ -344,6 +344,18 @@ const FEATURES = {
     endpoints: ['/communication/video-sessions'],
     description: 'Scheduled 1:1 video consultations (LiveKit-backed).',
   },
+  knowledge_academy_enabled: {
+    clientKey: 'knowledgeAcademyEnabled',
+    class: 'core', group: 'education', default: false, failOpen: false,
+    endpoints: ['/academy', '/editorial', '/super-admin'],
+    description: 'Knowledge Academy — Myth vs Fact, research library, FAQ.',
+  },
+  modular_entitlements_enabled: {
+    clientKey: 'modularEntitlementsEnabled',
+    class: 'core', group: 'billing', default: false, failOpen: false,
+    endpoints: [],
+    description: 'Modular membership entitlements (shadow/enforce via ENTITLEMENT_MODE).',
+  },
   call_recording_enabled: {
     clientKey: 'callRecordingEnabled',
     class: 'sensitive', group: 'communication', default: false, failOpen: false,

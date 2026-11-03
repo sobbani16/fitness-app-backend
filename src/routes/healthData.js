@@ -37,12 +37,15 @@ router.post('/energy', async (req, res) => {
       const provider = String(r.provider || '').toLowerCase();
       const sourceId = String(r.sourceId || '').slice(0, 200);
       const startAt = new Date(r.startAt), endAt = new Date(r.endAt);
-      const kcal = Number(r.activeKcal);
-      if (!providers.has(provider) || !sourceId || !Number.isFinite(startAt) || !Number.isFinite(endAt) || !Number.isFinite(kcal) || kcal < 0 || kcal > 20000) continue;
+      const kcal = Number(r.activeKcal ?? 0);
+      const restKcal = r.restingKcal == null ? null : Number(r.restingKcal);
+      const kcalOk = Number.isFinite(kcal) && kcal >= 0 && kcal <= 20000;
+      const restOk = restKcal == null || (Number.isFinite(restKcal) && restKcal >= 0 && restKcal <= 20000);
+      if (!providers.has(provider) || !sourceId || !Number.isFinite(startAt.getTime()) || !Number.isFinite(endAt.getTime()) || startAt >= endAt || !kcalOk || !restOk || (kcal <= 0 && restKcal == null)) continue;
       await prisma.healthEnergyRecord.upsert({
         where: { userId_provider_sourceId: { userId, provider, sourceId } },
-        create: { userId, provider, sourceId, startAt, endAt, activeKcal: kcal, deviceLabel: r.deviceLabel ? String(r.deviceLabel).slice(0, 100) : null, metadata: r.metadata && typeof r.metadata === 'object' ? r.metadata : null },
-        update: { startAt, endAt, activeKcal: kcal, syncedAt: new Date() },
+        create: { userId, provider, sourceId, startAt, endAt, activeKcal: kcal, restingKcal: restKcal, deviceLabel: r.deviceLabel ? String(r.deviceLabel).slice(0, 100) : null, metadata: r.metadata && typeof r.metadata === 'object' ? r.metadata : null },
+        update: { startAt, endAt, activeKcal: kcal, restingKcal: restKcal, syncedAt: new Date() },
       });
       saved++;
     }

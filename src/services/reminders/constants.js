@@ -1,6 +1,7 @@
 const CATEGORIES = [
   'meal:breakfast', 'meal:lunch', 'meal:dinner', 'meal:snack',
   'water', 'supplement', 'workout', 'movement',
+  'WEEKLY_FITNESS_EDUCATION', // opt-in: new Myth vs Fact edition
 ];
 
 const DEFAULTS = {

@@ -70,3 +70,16 @@ AI_EMERGENCY_SHUTDOWN=false
 | All AI off unexpectedly | PostHog flag off or absent → registry default is OFF for AI — create the flags |
 | 403 FEATURE_DISABLED surprises | A `router.use(requireFeature)` gate — check the flag + its `dependsOn` (e.g. `weekly_plan_ai_generation` needs `weekly_meal_plans` too) |
 | Mobile shows stale config | Cache is per-account, ≤60s + jitter poll; logout/login forces re-fetch |
+
+
+## knowledge_academy_enabled / modular_entitlements_enabled (2026-11)
+
+- `knowledge_academy_enabled` gates /academy (member read), /editorial,
+  /super-admin. Off = FEATURE_DISABLED 403 on all surfaces.
+- `modular_entitlements_enabled` flags the module catalog; actual gating is
+  controlled by ENTITLEMENT_MODE=shadow|enforce (env, not PostHog).
+- Bootstrap: node prisma/seed-rbac.js (new roles+perms), scripts/seed-modules.js
+  (module catalog), scripts/grant-super-admin.js <email> --confirm (the only
+  SUPER_ADMIN grant path — no HTTP route exists).
+- Weekly publisher: Railway cron → node scripts/weekly-publish.js (idempotent
+  via EditorialSchedule.publishKey + PublicationEvent.scheduleId unique).

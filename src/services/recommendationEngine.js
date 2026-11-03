@@ -1,77 +1,56 @@
 // Recommendation engine — rule-based, no AI.
-// Maps a daily calorie balance to a concrete workout/diet suggestion.
+// Maps today's pacing (logged intake vs intake target) to a supportive nudge.
 //
-// Surplus rules (positive surplus = over target):
-//   +1..149     -> 15 min brisk walk
-//   +150..349   -> 25 min moderate workout
-//   +350..599   -> HIIT (~20 min) or split cardio+strength
-//   +600+       -> split workout across day + review portions
+// CONTRACT (corrected): no rule prescribes exercise to offset food. A fixed
+// workout duration does not "cancel" a calorie surplus and must never be
+// presented as doing so — energy estimates are too uncertain, and compensatory
+// framing encourages unhealthy patterns. Recommendations address logging
+// completeness, meal pacing, and general activity as health context only.
 //
-// Deficit rules (negative surplus = under target):
-//   -1..-299    -> light mobility / optional easy walk
-//   -300..-599  -> rest or easy activity; add a snack if hungry
-//   -600+       -> eat more; deficit too aggressive for today
-//
-// On target:
-//   maintenance activity (30 min walk or light strength)
+// surplus here = loggedIntake - target (provisional; intake may be incomplete).
 
-function recommendFromBalance(balance, { weather } = {}) {
+function recommendFromBalance(balance, { weather, mealsLogged } = {}) {
   if (!balance || typeof balance.surplus !== 'number') {
     throw new Error('recommendFromBalance: balance.surplus is required');
   }
   const s = balance.surplus;
-  const base = pickBase(s);
+  const base = mealsLogged === 0
+    ? noLogsYet()
+    : pickBase(s);
   const adjusted = applyWeather(base, weather);
   return {
-    type: adjusted.type,              // 'workout' | 'rest' | 'eat_more' | 'maintain'
+    type: adjusted.type,              // 'log' | 'review' | 'maintain' | 'rest' | 'eat_regular' | 'workout'
     intensity: adjusted.intensity,    // 'low' | 'moderate' | 'high'
     durationMin: adjusted.durationMin,
     location: adjusted.location,      // 'outdoor' | 'indoor' | 'either'
     title: adjusted.title,
     reason: adjusted.reason,
     surplus: s,
+    provisional: true,
+  };
+}
+
+function noLogsYet() {
+  return {
+    type: 'log',
+    intensity: 'low',
+    durationMin: 0,
+    location: 'either',
+    title: 'Log what you ate',
+    reason: 'No meals recorded yet today. Logging is the only way to understand today’s intake — an empty log is not a deficit.',
   };
 }
 
 function pickBase(surplus) {
-  if (surplus >= 600) {
-    return {
-      type: 'workout',
-      intensity: 'high',
-      durationMin: 45,
-      location: 'either',
-      title: 'Split workout + portion check',
-      reason: `You are ${surplus} kcal over target. Split into two sessions (cardio + strength) and review portions.`,
-    };
-  }
-  if (surplus >= 350) {
-    return {
-      type: 'workout',
-      intensity: 'high',
-      durationMin: 20,
-      location: 'either',
-      title: 'HIIT or cardio + strength',
-      reason: `You are ${surplus} kcal over target. A 20 min HIIT or split session will close the gap.`,
-    };
-  }
-  if (surplus >= 150) {
-    return {
-      type: 'workout',
-      intensity: 'moderate',
-      durationMin: 25,
-      location: 'either',
-      title: '25 min moderate workout',
-      reason: `You are ${surplus} kcal over target. A 25 min moderate session should offset it.`,
-    };
-  }
   if (surplus >= 1) {
+    // Above target — suggest pacing awareness, never compensation workouts.
     return {
-      type: 'workout',
+      type: 'review',
       intensity: 'low',
-      durationMin: 15,
-      location: 'outdoor',
-      title: '15 min brisk walk',
-      reason: `You are ${surplus} kcal over target. A 15 min brisk walk is enough.`,
+      durationMin: 0,
+      location: 'either',
+      title: 'Check in with your next meal',
+      reason: 'Logged intake is above today’s target. A comfortable, balanced next meal is fine — and staying active is good for you regardless of what you ate.',
     };
   }
   if (surplus === 0) {
@@ -80,39 +59,38 @@ function pickBase(surplus) {
       intensity: 'low',
       durationMin: 30,
       location: 'either',
-      title: 'Maintenance activity',
-      reason: 'You are on target. A 30 min walk or light strength keeps the streak.',
+      title: 'Right on pace',
+      reason: 'Logged intake matches today’s target. Keep going with your usual routine.',
     };
   }
-  // surplus < 0 (deficit)
   const deficit = -surplus;
   if (deficit >= 600) {
     return {
-      type: 'eat_more',
+      type: 'eat_regular',
       intensity: 'low',
       durationMin: 0,
       location: 'either',
-      title: 'Add a balanced meal',
-      reason: `You are ${deficit} kcal under target — too aggressive. Add a balanced meal instead of exercising more.`,
+      title: 'Eat a regular meal',
+      reason: 'Logged intake is well below target — if you’ve eaten more than you recorded, add it. Otherwise a normal balanced meal is appropriate.',
     };
   }
   if (deficit >= 300) {
     return {
-      type: 'rest',
+      type: 'eat_regular',
       intensity: 'low',
-      durationMin: 20,
+      durationMin: 0,
       location: 'either',
-      title: 'Rest or easy activity',
-      reason: `You are ${deficit} kcal under target. Rest, stretch, or take an easy walk. Add a snack if hungry.`,
+      title: 'A balanced meal or snack fits',
+      reason: 'Logged intake is below target so far — though if you haven’t logged everything, that gap may be smaller than it looks.',
     };
   }
   return {
-    type: 'rest',
+    type: 'maintain',
     intensity: 'low',
-    durationMin: 15,
+    durationMin: 20,
     location: 'either',
-    title: 'Light mobility',
-    reason: `Small deficit (${deficit} kcal). Light mobility or an easy walk is perfect.`,
+    title: 'Close to target',
+    reason: 'Logged intake is near today’s target. Eat normally and log when it suits you.',
   };
 }
 

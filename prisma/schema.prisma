@@ -29,6 +29,10 @@ model User {
   goalType      String?
   activityLevel String?
 
+  // IANA timezone for local-day boundaries (energy summaries, streaks).
+  // Optional — clients may also pass a timezone per request.
+  timeZone String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1907,6 +1911,7 @@ model HealthEnergyRecord {
   startAt     DateTime
   endAt       DateTime
   activeKcal  Float // active (not total) energy, kcal
+  restingKcal Float? // resting/basal energy reported by the provider for this interval, kcal
   syncedAt    DateTime @default(now())
   metadata    Json? // original provider fields
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -2523,4 +2528,292 @@ model VideoSessionSummary {
   privateNotes   String?
   publishedAt    DateTime?
   updatedAt      DateTime @updatedAt
+}
+
+// ============================================================================
+// KNOWLEDGE ACADEMY — research-backed education (editorial workflow)
+// ============================================================================
+
+model ResearchSource {
+  id               String   @id @default(uuid())
+  key              String   @unique // doi:<doi> | pmid:<id> | url:<stable-url>
+  title            String
+  authors          Json?
+  journal          String?
+  year             Int?
+  doi              String?
+  pmid             String?
+  url              String?
+  studyType        String?  // guideline|meta_analysis|rct|cohort|review|position_stand
+  population       String?
+  intervention     String?
+  comparator       String?
+  outcomes         String?
+  resultsSummary   String?
+  limitations      String?
+  status           String   @default("active") // active|retracted|corrected|unavailable
+  verifiedAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  evidenceLinks    ArticleEvidence[]
+
+  @@index([status])
+}
+
+model KnowledgeArticle {
+  id                String    @id @default(uuid())
+  slug              String    @unique
+  category          String
+  tags              Json      @default("[]")
+  status            String    @default("draft") // draft|researching|ready_for_review|changes_requested|approved|scheduled|published|correction_required|retracted|archived
+  authorId          String
+  reviewerId        String?
+  currentRevisionId String?
+  approvedRevisionId String?  // immutable pointer set on approval
+  publishedRevisionId String?
+  publishedAt       DateTime?
+  lastReviewedAt    DateTime?
+  withdrawnAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  revisions  KnowledgeArticleRevision[]
+  reviews    ArticleReview[]
+  schedule   EditorialSchedule[]
+  savedBy    KnowledgeSavedItem[]
+  corrections ContentCorrection[]
+  faqs       KnowledgeFAQ[]
+
+  @@index([status, publishedAt])
+  @@index([category, status])
+}
+
+model KnowledgeArticleRevision {
+  id            String   @id @default(uuid())
+  articleId     String
+  article       KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  version       Int
+  title         String
+  claim         String   // the myth/common claim being examined
+  verdict       String   // MYTH|MOSTLY_MYTH|CONTEXT_DEPENDENT|MOSTLY_SUPPORTED|SUPPORTED|INSUFFICIENT_EVIDENCE
+  shortVerdict  String   // one-sentence explanation
+  explanation   String   // what the evidence suggests, plain language
+  takeaway      String?  // practical takeaway
+  appliesTo     String?  // who the finding applies to
+  exceptions    String?  // important exceptions
+  uncertainty   String?  // conflicting findings / gaps
+  certainty     String   @default("NOT_ASSESSED") // HIGH|MODERATE|LOW|VERY_LOW|NOT_ASSESSED
+  certaintyRationale String? // reviewer rationale — required when certainty assessed
+  aiAssisted    Boolean  @default(false)
+  immutable     Boolean  @default(false) // frozen at approval — scheduled/published refs point here
+  createdById   String
+  createdAt     DateTime @default(now())
+
+  evidence  ArticleEvidence[]
+  reviews   ArticleReview[]
+  schedule  EditorialSchedule[]
+  events    PublicationEvent[]
+  corrections ContentCorrection[]
+
+  @@unique([articleId, version])
+  @@index([articleId])
+}
+
+model ArticleEvidence {
+  id          String   @id @default(uuid())
+  revisionId  String
+  revision    KnowledgeArticleRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  sourceId    String
+  source      ResearchSource @relation(fields: [sourceId], references: [id])
+  supports    String?  // which claim/section it backs
+  position    Int      @default(0)
+
+  @@unique([revisionId, sourceId])
+  @@index([sourceId])
+}
+
+model ArticleReview {
+  id         String   @id @default(uuid())
+  articleId  String
+  article    KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  revisionId String
+  revision   KnowledgeArticleRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  reviewerId String
+  decision   String   // approved|changes_requested
+  feedback   Json?    // field-specific comments
+  scope      String?  // clinical|general — reviewers' declared scope for this review
+  createdAt  DateTime @default(now())
+
+  @@index([articleId, createdAt])
+  @@index([reviewerId, createdAt])
+}
+
+model ReviewerProfile {
+  userId        String   @id
+  expertise     Json     @default("[]") // topic keys the reviewer covers
+  qualifications String?  // self-declared; NOT verified credentials
+  conflicts     String?  // disclosed conflicts of interest
+  clinical      Boolean  @default(false) // eligible for clinical-scope reviews
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model EditorialSchedule {
+  id           String    @id @default(uuid())
+  publishKey   String    @unique // idempotency: e.g. weekly:2026-45
+  articleId    String
+  article      KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  revisionId   String
+  revision     KnowledgeArticleRevision @relation(fields: [revisionId], references: [id])
+  scheduledFor DateTime
+  status       String    @default("scheduled") // scheduled|published|cancelled|blocked|withdrawn
+  blockedReason String?
+  publishedAt  DateTime?
+  createdById  String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([status, scheduledFor])
+}
+
+model PublicationEvent {
+  id           String   @id @default(uuid())
+  scheduleId   String?  @unique // one event per schedule → idempotent
+  articleId    String
+  revisionId   String
+  revision     KnowledgeArticleRevision @relation(fields: [revisionId], references: [id])
+  kind         String   @default("weekly") // weekly|correction|republication
+  scheduledFor DateTime
+  publishedAt  DateTime @default(now())
+  notifiedAt   DateTime?
+
+  @@index([articleId, publishedAt])
+}
+
+model KnowledgeFAQ {
+  id              String   @id @default(uuid())
+  canonicalQuestion String @unique
+  aliases         Json     @default("[]")
+  shortAnswer     String
+  detail          String?
+  topicTags       Json     @default("[]")
+  articleId       String?
+  article         KnowledgeArticle? @relation(fields: [articleId], references: [id])
+  sourceKeys      Json     @default("[]") // ResearchSource.key list — validated on write
+  certainty       String   @default("NOT_ASSESSED")
+  status          String   @default("draft") // draft|published|retired
+  language        String   @default("en")
+  version         Int      @default(1)
+  lastReviewedAt  DateTime?
+  reviewerId      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+}
+
+model KnowledgeSavedItem {
+  id        String   @id @default(uuid())
+  userId    String
+  articleId String
+  article   KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, articleId])
+}
+
+model KnowledgeQuestionSuggestion {
+  id        String   @id @default(uuid())
+  userId    String?
+  question  String
+  status    String   @default("open") // open|reviewed|answered|declined
+  createdAt DateTime @default(now())
+
+  @@index([status, createdAt])
+}
+
+model ContentCorrection {
+  id           String   @id @default(uuid())
+  articleId    String
+  article      KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  revisionId   String
+  revision     KnowledgeArticleRevision @relation(fields: [revisionId], references: [id])
+  kind         String   // retraction|guideline_change|new_evidence|error|source_unavailable
+  detail       String
+  status       String   @default("open") // open|corrected|withdrawn
+  createdById  String
+  resolvedRevisionId String?
+  createdAt    DateTime @default(now())
+  resolvedAt   DateTime?
+
+  @@index([status])
+}
+
+// ============================================================================
+// MODULAR MEMBERSHIPS — server-side entitlement engine
+// ============================================================================
+
+model MembershipModule {
+  key         String   @id // FREE_CORE|NUTRITION|WORKOUTS|EXERCISE_LIBRARY|ADVANCED_VIDEO_GUIDANCE|LEO_AI|ADVANCED_ANALYTICS|TRAINER_COACHING|LIVE_SESSIONS|KNOWLEDGE_PREMIUM
+  name        String
+  description String?
+  sortOrder   Int      @default(0)
+}
+
+model MembershipPackage {
+  id          String   @id @default(uuid())
+  key         String   @unique // free|nutrition|workout|nutrition_workout|full|ai_addon|byot|trainer_coached
+  name        String
+  description String?
+  modules     Json     @default("[]") // MembershipModule.key list
+  trialDays   Int      @default(0)
+  active      Boolean  @default(false) // draft until activated
+  platforms   Json     @default("[]")  // ios|android|web availability
+  storeIds    Json     @default("{}")  // {appStore, playStore, web} provider product ids — set at sale time
+  displayCopy Json?
+  effectiveFrom DateTime?
+  effectiveUntil DateTime?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model UserEntitlement {
+  id         String    @id @default(uuid())
+  userId     String
+  moduleKey  String
+  source     String    // purchase|trial|complimentary|admin_grant|trainer_relationship
+  status     String    @default("active") // active|grace|expired|revoked
+  startsAt   DateTime  @default(now())
+  endsAt     DateTime? // null = no expiry (e.g. free core)
+  packageKey String?
+  purchaseRef String?  // provider transaction id — dedupe key with provider
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId, moduleKey, status])
+  @@index([status, endsAt])
+}
+
+model EntitlementEvent {
+  id              String   @id @default(uuid())
+  userId          String
+  moduleKey       String
+  packageKey      String?
+  event           String   // purchase|activation|renewal|upgrade|downgrade|cancellation|expiration|refund|grant|revoke|trial_start|trial_end
+  payload         Json?
+  providerEventId String?  @unique // idempotent provider webhook reconciliation
+  occurredAt      DateTime
+  processedAt     DateTime @default(now())
+  actorId         String?
+
+  @@index([userId, occurredAt])
+}
+
+// Member's chosen coaching model (Trainer Partnership Mode).
+model CoachingPreference {
+  userId    String   @id
+  model     String   @default("self_guided") // self_guided|humai_assisted|trainer_led|hybrid
+  updatedAt DateTime @updatedAt
 }

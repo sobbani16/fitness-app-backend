@@ -30,7 +30,7 @@ function buildDailySummary(input) {
     tdee,
     goal: profile.goal || 'maintain',
   });
-  const recommendation = recommendFromBalance(balance, { weather });
+  const recommendation = recommendFromBalance(balance, { weather, mealsLogged: meals.length });
   const insight = buildInsight({ balance, meals, recommendation, weather });
 
   return {
@@ -57,11 +57,11 @@ function buildInsight({ balance, meals, recommendation, weather }) {
   }
 
   if (balance.status === 'surplus') {
-    parts.push(`You are ${balance.surplus} kcal over target.`);
+    parts.push(`Logged intake is ${balance.surplus} kcal over target.`);
   } else if (balance.status === 'deficit') {
-    parts.push(`You are ${-balance.surplus} kcal under target.`);
+    parts.push(`Logged intake is ${-balance.surplus} kcal under target — though anything unlogged isn't counted.`);
   } else {
-    parts.push('You are right on target — nice pacing.');
+    parts.push('Logged intake is right on target — nice pacing.');
   }
 
   parts.push(`Next action: ${recommendation.title}.`);

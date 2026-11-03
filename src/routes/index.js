@@ -42,6 +42,10 @@ const myBookings = require('./myBookings');
 const checkIns = require('./checkIns');
 const notifications = require('./notifications');
 const communication = require('./communication');
+const energy = require('./energy');
+const mealSuggest = require('./mealSuggest');
+const academy = require('./academy');
+const editorial = require('./editorial');
 const myPurchases = require('./myPurchases');
 
 const router = express.Router();
@@ -94,6 +98,11 @@ router.use('/me', myBookings);
 // Paid-coaching gated router LAST under /me — only entitlements/purchases hit it.
 router.use('/me', myPurchases);
 router.use('/check-ins', checkIns);
+router.use('/energy', energy);
+router.use('/meal-suggest', mealSuggest);
 router.use('/communication', communication);
+router.use('/academy', academy.router);
+router.use('/editorial', editorial.router);
+router.use('/super-admin', editorial.router); // same perms: SUPER_ADMIN_PANEL + scoped perms gate every route
 
 module.exports = router;

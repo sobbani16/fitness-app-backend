@@ -31,16 +31,19 @@ router.get('/', (req, res) => {
     // and legacy values (lose/maintain/gain); normalize to a known engine key.
     const requestedGoal = q.goal || 'maintain';
     const goal = normalizeGoal(requestedGoal);
-    const caloriesIn = num(q.caloriesIn, 2200);
+    // Intake is never invented: when the caller doesn't send caloriesIn we
+    // treat intake as unknown and the recommendation reflects that.
+    const intakeProvided = q.caloriesIn !== undefined && q.caloriesIn !== null && q.caloriesIn !== '';
+    const caloriesIn = num(q.caloriesIn, 0);
     const caloriesBurnedExercise = num(q.caloriesBurnedExercise, 0);
     const weather = q.weather ? { condition: q.weather } : undefined;
 
     const bmr = calculateBMR(profile);
     const tdee = calculateTDEE(bmr, activityLevel);
     const balance = computeDailyBalance({ caloriesIn, caloriesBurnedExercise, tdee, goal });
-    const recommendation = recommendFromBalance(balance, { weather });
+    const recommendation = recommendFromBalance(balance, { weather, mealsLogged: intakeProvided ? undefined : 0 });
 
-    res.json({ profile, activityLevel, goal, bmr: Math.round(bmr), balance, recommendation });
+    res.json({ profile, activityLevel, goal, bmr: Math.round(bmr), intakeProvided, balance, recommendation });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

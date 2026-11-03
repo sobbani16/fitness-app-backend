@@ -7,6 +7,10 @@ const ROLES = [
   { name: 'SUPPORT', description: 'Customer support — view accounts, manage tickets.' },
   { name: 'ADMIN', description: 'Platform admin — manage users, trainers, recipes, analytics.' },
   { name: 'SUPER_ADMIN', description: 'Super admin — full platform control, audit logs, settings.' },
+  { name: 'CONTENT_AUTHOR', description: 'Academy author — drafts Myth vs Fact articles and FAQs.' },
+  { name: 'CONTENT_REVIEWER', description: 'Academy reviewer — independent evidence review, no publish rights.' },
+  { name: 'CLINICAL_REVIEWER', description: 'Clinical-scope reviewer — may approve condition-specific claims.' },
+  { name: 'EDITOR', description: 'Academy editor — publishes, schedules, manages reviewers and corrections.' },
 ];
 
 const PERMISSIONS = [
@@ -55,6 +59,17 @@ const PERMISSIONS = [
   { name: 'MANAGE_AI_SETTINGS', description: 'Configure AI/LLM parameters.' },
   { name: 'VIEW_AUDIT_LOGS', description: 'Access full audit trail.' },
   { name: 'MANAGE_BILLING_SETTINGS', description: 'Configure billing/payout settings.' },
+
+  // Knowledge Academy editorial
+  { name: 'ACADEMY_AUTHOR', description: 'Create and edit academy drafts and FAQs.' },
+  { name: 'ACADEMY_REVIEW', description: 'Review articles — approve or request changes (never own work).' },
+  { name: 'ACADEMY_CLINICAL_REVIEW', description: 'Review clinical/condition-specific claims.' },
+  { name: 'ACADEMY_PUBLISH', description: 'Approve, schedule, publish, and withdraw academy content.' },
+  { name: 'MANAGE_REVIEWERS', description: 'Invite, assign, and manage reviewer profiles.' },
+
+  // Modular memberships
+  { name: 'MANAGE_ENTITLEMENTS', description: 'Configure modules, packages, and member grants.' },
+  { name: 'SUPER_ADMIN_PANEL', description: 'Access the /super-admin control center.' },
 ];
 
 // Maps role name → permission names
@@ -88,7 +103,13 @@ const ROLE_PERMISSIONS = {
     'MANAGE_RECIPES', 'VIEW_AUDIT_LOGS', 'MANAGE_SUPER_ADMINS',
     'MANAGE_FEATURE_FLAGS', 'MANAGE_PLATFORM_SETTINGS', 'MANAGE_AI_SETTINGS',
     'MANAGE_BILLING_SETTINGS',
+    'ACADEMY_AUTHOR', 'ACADEMY_REVIEW', 'ACADEMY_CLINICAL_REVIEW', 'ACADEMY_PUBLISH',
+    'MANAGE_REVIEWERS', 'MANAGE_ENTITLEMENTS', 'SUPER_ADMIN_PANEL',
   ],
+  CONTENT_AUTHOR: ['VIEW_OWN_PROFILE', 'ACADEMY_AUTHOR'],
+  CONTENT_REVIEWER: ['VIEW_OWN_PROFILE', 'ACADEMY_REVIEW'],
+  CLINICAL_REVIEWER: ['VIEW_OWN_PROFILE', 'ACADEMY_REVIEW', 'ACADEMY_CLINICAL_REVIEW'],
+  EDITOR: ['VIEW_OWN_PROFILE', 'ACADEMY_AUTHOR', 'ACADEMY_REVIEW', 'ACADEMY_PUBLISH', 'MANAGE_REVIEWERS'],
 };
 
 

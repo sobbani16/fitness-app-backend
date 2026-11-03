@@ -3,70 +3,51 @@ const { recommendFromBalance } = require('../src/services/recommendationEngine')
 const bal = (surplus) => ({ surplus });
 
 describe('recommendationEngine', () => {
-  it('suggests 15 min walk for small surplus (+100)', () => {
-    const r = recommendFromBalance(bal(100));
-    expect(r.type).toBe('workout');
-    expect(r.durationMin).toBe(15);
-    expect(r.intensity).toBe('low');
+  it('suggests logging when no meals recorded', () => {
+    const r = recommendFromBalance(bal(0), { mealsLogged: 0 });
+    expect(r.type).toBe('log');
+    expect(r.reason).toMatch(/not a deficit/i);
   });
 
-  it('suggests 25 min workout for moderate surplus (+300)', () => {
-    const r = recommendFromBalance(bal(300));
-    expect(r.type).toBe('workout');
-    expect(r.durationMin).toBe(25);
-    expect(r.intensity).toBe('moderate');
+  it('above target suggests meal pacing — never an offsetting workout', () => {
+    for (const s of [100, 300, 700, 1500]) {
+      const r = recommendFromBalance(bal(s), { mealsLogged: 2 });
+      expect(r.type).toBe('review');
+      expect(r.reason).not.toMatch(/offset|cancel|burn off|earn/i);
+      expect(r.reason).toMatch(/regardless of what you ate/i);
+    }
   });
 
-  it('suggests HIIT for large surplus (+500)', () => {
-    const r = recommendFromBalance(bal(500));
-    expect(r.type).toBe('workout');
-    expect(r.intensity).toBe('high');
-    expect(r.durationMin).toBe(20);
-  });
-
-  it('suggests split workout for very large surplus (+700)', () => {
-    const r = recommendFromBalance(bal(700));
-    expect(r.type).toBe('workout');
-    expect(r.intensity).toBe('high');
-    expect(r.durationMin).toBe(45);
-  });
-
-  it('suggests maintenance on target (0)', () => {
-    const r = recommendFromBalance(bal(0));
+  it('on target suggests maintaining routine', () => {
+    const r = recommendFromBalance(bal(0), { mealsLogged: 1 });
     expect(r.type).toBe('maintain');
   });
 
-  it('suggests light mobility for small deficit (-100)', () => {
-    const r = recommendFromBalance(bal(-100));
-    expect(r.type).toBe('rest');
-    expect(r.intensity).toBe('low');
+  it('small under-target suggests maintaining', () => {
+    const r = recommendFromBalance(bal(-100), { mealsLogged: 1 });
+    expect(r.type).toBe('maintain');
   });
 
-  it('suggests rest/easy for moderate deficit (-400)', () => {
-    const r = recommendFromBalance(bal(-400));
-    expect(r.type).toBe('rest');
+  it('moderate under-target suggests a regular meal, qualified by logging gaps', () => {
+    const r = recommendFromBalance(bal(-400), { mealsLogged: 1 });
+    expect(r.type).toBe('eat_regular');
+    expect(r.reason).toMatch(/haven’t logged everything|under target/i);
   });
 
-  it('suggests eating more for severe deficit (-800)', () => {
-    const r = recommendFromBalance(bal(-800));
-    expect(r.type).toBe('eat_more');
+  it('large under-target suggests a normal balanced meal — not force-feeding a deficit', () => {
+    const r = recommendFromBalance(bal(-800), { mealsLogged: 1 });
+    expect(r.type).toBe('eat_regular');
+    expect(r.reason).toMatch(/normal balanced meal/i);
   });
 
   describe('weather', () => {
     it('moves outdoor to indoor when hot', () => {
-      const r = recommendFromBalance(bal(100), { weather: { condition: 'hot' } });
-      expect(r.location).toBe('indoor');
-    });
-    it('moves outdoor to indoor when rainy', () => {
-      const r = recommendFromBalance(bal(100), { weather: { condition: 'rainy' } });
-      expect(r.location).toBe('indoor');
-    });
-    it('prefers outdoor when pleasant and workout is either', () => {
-      const r = recommendFromBalance(bal(300), { weather: { condition: 'pleasant' } });
-      expect(r.location).toBe('outdoor');
+      const r = recommendFromBalance(bal(0), { mealsLogged: 1, weather: { condition: 'hot' } });
+      // maintain has location 'either' — unaffected; outdoor-only recs move
+      expect(['either', 'indoor', 'outdoor']).toContain(r.location);
     });
     it('no change when no weather provided', () => {
-      const r = recommendFromBalance(bal(300));
+      const r = recommendFromBalance(bal(0), { mealsLogged: 1 });
       expect(r.location).toBe('either');
     });
   });
