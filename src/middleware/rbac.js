@@ -2,6 +2,7 @@
 // Uses x-user-id header to look up UserRole → Role → RolePermission → Permission.
 
 const { getPrisma } = require('../lib/prisma');
+const { ROLE_PERMISSIONS } = require('../config/rbac');
 
 /**
  * Extract userId from request (same pattern used across all routes).
@@ -28,7 +29,8 @@ function requireRole(...roles) {
         include: { role: true },
       });
 
-      const userRoleNames = userRoles.map((ur) => ur.role.name);
+      // View-as role preview replaces the effective role set (read-only, super-admin only).
+      const userRoleNames = req.viewAsRole ? [req.viewAsRole] : userRoles.map((ur) => ur.role.name);
       const hasRole = roles.some((r) => userRoleNames.includes(r));
 
       if (!hasRole) {
@@ -73,10 +75,14 @@ function requirePermission(...permissions) {
         },
       });
 
-      const userPermissions = new Set();
-      for (const ur of userRoles) {
-        for (const rp of ur.role.rolePermissions) {
-          userPermissions.add(rp.permission.name);
+      const userPermissions = req.viewAsRole
+        ? new Set(ROLE_PERMISSIONS[req.viewAsRole] || [])
+        : new Set();
+      if (!req.viewAsRole) {
+        for (const ur of userRoles) {
+          for (const rp of ur.role.rolePermissions) {
+            userPermissions.add(rp.permission.name);
+          }
         }
       }
 

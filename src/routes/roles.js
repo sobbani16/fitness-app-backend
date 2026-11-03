@@ -7,6 +7,10 @@ const router = express.Router();
 // GET /me/roles — returns the current user's roles and permissions
 router.get('/', identifyUser, async (req, res) => {
   try {
+    if (req.viewAsRole) {
+      const { ROLE_PERMISSIONS } = require('../config/rbac');
+      return res.json({ userId: req.userId, roles: [req.viewAsRole], permissions: ROLE_PERMISSIONS[req.viewAsRole] || [] });
+    }
     const prisma = getPrisma();
     const userRoles = await prisma.userRole.findMany({
       where: { userId: req.userId, active: true },
