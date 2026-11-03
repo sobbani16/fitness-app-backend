@@ -115,9 +115,9 @@ function endOfDay(dateStr) {
 async function getGoals(userId) {
   const prisma = getPrisma();
   let goals = await prisma.macroGoal.findUnique({ where: { userId } });
-  if (!goals) {
-    goals = await prisma.macroGoal.create({ data: { userId, ...DEFAULT_GOALS } });
-  }
+  // Upsert: concurrent first loads (Today, macro score, health score) must not
+  // race into a unique-constraint failure.
+  if (!goals) goals = await prisma.macroGoal.upsert({ where: { userId }, update: {}, create: { userId, ...DEFAULT_GOALS } });
   const { waterMlTarget, waterMlTargetBasis } = await deriveWaterTarget(userId, goals);
   return { ...goals, waterMlTarget, waterMlTargetBasis };
 }
