@@ -64,9 +64,22 @@ beforeEach(clear);
 afterAll(async () => { await clear(); await prisma.$disconnect(); });
 
 test('all schema models are explicitly classified for deletion/export review', () => {
-  const special = ['legacyMigrationGrant', 'user', 'authSession', 'authAction', 'authRateBucket', 'accountDeletionReceipt', 'trainerProfile', 'nutritionistProfile', 'creatorProfile', 'recipe', 'auditLog', 'trainerClient', 'nutritionistClient', 'trainerDropForm', 'coachNote', 'workoutPlan', 'mealPlan'];
-  const children = ['exerciseSet','recipeIngredient','creatorAnalytics','workoutPlanExercise','mealPlanItem','scoreContributor','healthScoreInsight','weeklyMeal','weeklyShoppingList','weeklyShoppingItem','weeklyRecommendation'];
-  const shared = ['ruleEvidence','healthConditionNutrientRule','nutrient','ingredientNutritionProfile','ingredientNutrient','ingredientImport','ingredientServing','ingredientCatalog','healthCondition','allergy','supplement','ingredient','ingredientAttribute','supplementAttribute','conditionRule','supplementRule','role','permission','rolePermission'];
+  const special = ['legacyMigrationGrant', 'user', 'authSession', 'authAction', 'authRateBucket', 'accountDeletionReceipt', 'trainerProfile', 'nutritionistProfile', 'creatorProfile', 'recipe', 'auditLog', 'trainerClient', 'nutritionistClient', 'trainerDropForm', 'coachNote', 'workoutPlan', 'mealPlan',
+    // Relation-scoped member data deleted via the relations array.
+    'checkIn', 'baselineAssessment', 'outcomePlan', 'formCheckRequest', 'trainerWorkoutAssignment',
+    'trainerNutritionAssignment', 'trainerNutritionFeedback', 'trainerNutritionPlan', 'messageReport',
+    // Financial records retained (anonymized) for accounting; staff profiles.
+    'trainerPurchase', 'trainerSubscription', 'trainerPaymentTransaction', 'trainerRefund', 'trainerPayout', 'reviewerProfile'];
+  const children = ['exerciseSet','recipeIngredient','creatorAnalytics','workoutPlanExercise','mealPlanItem','scoreContributor','healthScoreInsight','weeklyMeal','weeklyShoppingList','weeklyShoppingItem','weeklyRecommendation',
+    'habitCompletion', 'trainerClientConsent', 'conversation', 'message', 'trainerWorkoutDay', 'trainerWorkoutExercise',
+    'trainerWorkoutFeedback', 'trainerNutritionPlanMeal', 'trainerNutritionPlanItem', 'trainerNutritionTargets',
+    'outcomeGoal', 'outcomePlanAdjustment', 'formCheckFeedback', 'videoSession', 'videoSessionSummary',
+    'trainerBooking', 'trainerBookingEvent', 'trainerDocumentShare', 'groupMessage',
+    'knowledgeArticleRevision', 'articleEvidence', 'articleReview', 'editorialSchedule', 'publicationEvent',
+    'knowledgeFAQ', 'contentCorrection', 'trainerCoachingPackage', 'trainerAvailability', 'trainerSessionType',
+    'trainerSchedulingPreference', 'trainerCertification', 'trainerDocument', 'coachingGroup', 'trainerEntitlement'];
+  const shared = ['ruleEvidence','healthConditionNutrientRule','nutrient','ingredientNutritionProfile','ingredientNutrient','ingredientImport','ingredientServing','ingredientCatalog','healthCondition','allergy','supplement','ingredient','ingredientAttribute','supplementAttribute','conditionRule','supplementRule','role','permission','rolePermission',
+    'exercise', 'exerciseMuscle', 'researchSource', 'knowledgeArticle', 'membershipModule', 'membershipPackage', 'trainerPromotion'];
   expect(models.map(m => modelName(m.name)).filter(m => ![...OWNED,...special,...children,...shared].includes(m))).toEqual([]);
 });
 test('requires session, current password, explicit deletion confirmation; unverified users retain privacy access', async () => {

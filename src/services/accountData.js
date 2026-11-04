@@ -1,4 +1,5 @@
 const { getPrisma } = require('../lib/prisma');
+const docStorage = require('../lib/docStorage');
 const { verifyPassword, hashToken } = require('./authService');
 const { consumeLimit } = require('./authLifecycle');
 const { httpError } = require('../lib/errors');
@@ -12,6 +13,11 @@ const OWNED = [
   'macroGoal', 'dailyMacroScore', 'healthScore', 'userPlanningPreferences', 'foodPreference',
   'foodInventory', 'dietAdherenceScore', 'calorieAdjustmentHistory', 'weeklyReview', 'weeklyNutritionPlan',
   'notification', 'scannedLabel', 'apiUsage',
+  'weeklyHealthReview', 'wellnessCheckIn', 'gutSymptom', 'actionFeedback', 'habit', 'coachingPreference',
+  'reminderPreference', 'reminderSuggestion', 'reminderInstance', 'reminderCategorySetting',
+  'pushDevice', 'devicePushToken', 'healthEnergyRecord', 'userWorkoutPlan', 'voiceCommand', 'foodTolerance',
+  'userEntitlement', 'entitlementEvent', 'knowledgeSavedItem', 'knowledgeQuestionSuggestion',
+  'recordingConsent', 'coachingGroupMember', 'groupReadCursor',
 ];
 const INCLUDES = {
   workoutSession: { exerciseSets: true },
@@ -20,6 +26,7 @@ const INCLUDES = {
   weeklyNutritionPlan: { meals: true, shoppingList: { include: { items: true } } },
   weeklyReview: { recommendations: true },
   userRole: { role: true },
+  habit: { completions: true },
 };
 const POLICY = Object.freeze({ version: '2026-10-18', liveData: 'Deleted immediately when the transaction completes; no recovery grace period.',
   backups: 'Hosting must enforce a maximum of 30 days for backups and operational logs. Restores must replay deletion receipts before serving traffic.',
@@ -35,7 +42,7 @@ function recordIds(rows) {
     if (!row || typeof row !== 'object') return;
     if (Array.isArray(row)) return row.forEach(visit);
     if (typeof row.id === 'string') ids.push(row.id);
-    for (const key of ['exerciseSets', 'contributors', 'insights', 'violations', 'meals', 'shoppingList', 'items', 'recommendations', 'exercises', 'ingredients', 'analytics']) visit(row[key]);
+    for (const key of ['exerciseSets', 'contributors', 'insights', 'violations', 'meals', 'shoppingList', 'items', 'recommendations', 'exercises', 'ingredients', 'analytics', 'goals', 'adjustments', 'feedback', 'completions']) visit(row[key]);
   };
   visit(rows); return ids;
 }
@@ -70,6 +77,12 @@ async function exportAccount(userId, token, password) {
     data.sessions = await tx.authSession.findMany({ where: { userId }, select: { createdAt: true, expiresAt: true } });
     data.emailActions = await tx.authAction.findMany({ where: { userId }, select: { purpose: true, createdAt: true, expiresAt: true, consumedAt: true, deliveredAt: true } });
     data.coachNotes = await tx.coachNote.findMany({ where: { clientId: userId, visibility: 'client_visible' } });
+    // Member-side coaching-loop records (relation children cascade on delete;
+    // exported here because they are the member's own data).
+    data.checkIns = await tx.checkIn.findMany({ where: { clientId: userId } });
+    data.baselineAssessments = await tx.baselineAssessment.findMany({ where: { clientId: userId } });
+    data.outcomePlans = await tx.outcomePlan.findMany({ where: { clientId: userId }, include: { goals: true, adjustments: true } });
+    data.formCheckRequests = await tx.formCheckRequest.findMany({ where: { clientId: userId }, include: { feedback: true } });
     // Private coach notes and other clients' information are intentionally not exported.
     const output = { formatVersion: 1, exportedAt: new Date().toISOString(), retention: POLICY, data };
     if (Buffer.byteLength(JSON.stringify(output)) > 50 * 1024 * 1024) throw httpError(413, 'This export exceeds the online limit. Contact support for a full export.');
@@ -79,7 +92,8 @@ async function exportAccount(userId, token, password) {
 async function deleteAccount(userId, token, password, confirmation) {
   if (confirmation !== 'DELETE') throw httpError(400, 'Type DELETE to confirm permanent deletion.');
   await limit(userId, 'delete');
-  return getPrisma().$transaction(async tx => {
+  const formCheckKeys = [];
+  const result = await getPrisma().$transaction(async tx => {
     const user = await reauthenticate(tx, userId, token, password);
     // Serialize audit inserts while scrubbing snapshots and recording the deletion.
     await tx.$executeRaw`LOCK TABLE "AuditLog" IN SHARE ROW EXCLUSIVE MODE`;
@@ -88,7 +102,24 @@ async function deleteAccount(userId, token, password, confirmation) {
     const creator = await tx.creatorProfile.findUnique({ where: { userId } });
     const trainerIds = trainer ? [trainer.id] : [], nutritionistIds = nutritionist ? [nutritionist.id] : [];
     const identifiers = [userId, user.email, ...trainerIds, ...nutritionistIds, ...(creator ? [creator.id] : [])];
+    // Form-check video objects must be collected before the rows disappear —
+    // private storage can't roll back, so files are removed after commit.
+    formCheckKeys.push(...(await tx.formCheckRequest.findMany({
+      where: { OR: [{ clientId: userId }, { relation: { trainer: { userId } } }] },
+      select: { videoKey: true },
+    })).map(r => r.videoKey).filter(Boolean));
     const relations = [
+      // Member-side coaching-loop rows first — explicit ids land in the
+      // deletion receipt; relation children also cascade via trainerClient.
+      ['checkIn', { clientId: userId }],
+      ['baselineAssessment', { clientId: userId }],
+      ['outcomePlan', { clientId: userId }],
+      ['formCheckRequest', { clientId: userId }],
+      ['trainerWorkoutAssignment', { clientId: userId }],
+      ['trainerNutritionAssignment', { clientId: userId }],
+      ['trainerNutritionFeedback', { clientId: userId }],
+      ['trainerNutritionPlan', { OR: [{ clientId: userId }, { trainerId: { in: trainerIds } }] }],
+      ['messageReport', { OR: [{ reporterId: userId }, { resolvedBy: userId }] }],
       ['coachNote', { OR: [{ clientId: userId }, { coachId: userId }, { trainerId: { in: trainerIds } }, { nutritionistId: { in: nutritionistIds } }] }],
       ['trainerDropForm', { OR: [{ clientId: userId }, { trainerId: { in: trainerIds } }] }],
       ['workoutPlan', { OR: [{ clientId: userId }, { trainerId: { in: trainerIds } }] }],
@@ -98,7 +129,8 @@ async function deleteAccount(userId, token, password, confirmation) {
       ['trainerWaitlist', { OR: [{ userId }, { trainerId: { in: trainerIds } }] }],
     ];
     for (const [model, where] of relations) {
-      const include = model === 'workoutPlan' ? { exercises: true } : model === 'mealPlan' ? { items: true } : undefined;
+      const include = model === 'workoutPlan' ? { exercises: true } : model === 'mealPlan' ? { items: true }
+        : model === 'outcomePlan' ? { goals: true, adjustments: true } : model === 'formCheckRequest' ? { feedback: true } : undefined;
       const rows = await tx[model].findMany({ where, ...(include ? { include } : {}) });
       identifiers.push(...recordIds(rows));
       await tx[model].deleteMany({ where });
@@ -130,10 +162,17 @@ async function deleteAccount(userId, token, password, confirmation) {
     ].map(hashToken);
     await tx.authRateBucket.deleteMany({ where: { key: { in: bucketKeys } } });
     await tx.legacyMigrationGrant.deleteMany({ where: { OR: [{ legacyUserId: userId }, { targetUserId: userId }] } });
+    // Financial records are retained for accounting (RESTRICT FKs, legal
+    // retention) — anonymize the member reference rather than deleting.
+    await tx.trainerPurchase.updateMany({ where: { clientId: userId }, data: { clientId: `deleted:${userId.slice(0, 8)}` } });
     const deletedAt = new Date();
     await tx.accountDeletionReceipt.create({ data: { userId, deletedAt, expiresAt: new Date(deletedAt.getTime() + 35 * 86400000) } });
     await tx.user.delete({ where: { id: userId } }); // Cascades sessions and queued auth emails.
     return { deleted: true, deletedAt: deletedAt.toISOString(), policyVersion: POLICY.version };
   }, { timeout: 60000 });
+  // Best-effort object cleanup after commit — private storage can't roll back,
+  // and an orphaned video is worse than a row pointing at a missing file.
+  for (const key of formCheckKeys) { try { await docStorage.remove(key); } catch { /* orphan — sweep via retention job */ } }
+  return result;
 }
 module.exports = { OWNED, INCLUDES, POLICY, exportAccount, deleteAccount };
