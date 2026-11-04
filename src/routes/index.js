@@ -62,6 +62,7 @@ router.use('/recipes', recipes);
 router.use('/supplements', supplements);
 router.use('/today', require('./today'));
 router.use('/gut', require('./gut'));
+router.use('/habits', require('./habits'));
 router.use('/ingredients', ingredients);
 router.use('/safety', safety);
 router.use('/trainers', trainers);

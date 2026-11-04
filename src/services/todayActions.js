@@ -5,6 +5,7 @@
 const { getPrisma } = require('../lib/prisma');
 const { getSleepRecoverySummary } = require('./sleepRecovery');
 const { getGutHealthSummary } = require('./gutHealth');
+const { listHabits } = require('./habits');
 
 const DAY_MS = 86400000;
 const DISMISS_WINDOW = 14 * DAY_MS;
@@ -74,6 +75,14 @@ const ACTION_DEFS = [
     },
   },
   {
+    key: 'habit_due', weight: 60,
+    applies: async (c) => {
+      const due = (c.habits?.habits || []).filter(h => h.scheduledToday && !h.todayOutcome);
+      if (!due.length) return null;
+      return { title: `${due[0].title}`, explanation: due.length > 1 ? `+ ${due.length - 1} more habit${due.length > 2 ? 's' : ''} scheduled today.` : 'A habit you chose for today.', evidence: [`${due.length} habit${due.length > 1 ? 's' : ''} open`], action: { type: 'open', route: 'Dashboard' }, confidence: 'high' };
+    },
+  },
+  {
     key: 'log_water', weight: 55,
     applies: async (c) => {
       if (!c.waterTargetMl || c.waterLoggedMl == null) return null;
@@ -122,6 +131,7 @@ async function buildContext(userId, tz) {
     activePlan: plan || null,
     sleep: await getSleepRecoverySummary(userId).catch(() => null),
     gut: await getGutHealthSummary(userId).catch(() => null),
+    habits: await listHabits(userId, tz).catch(() => null),
   };
 }
 

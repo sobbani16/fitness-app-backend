@@ -233,6 +233,15 @@ const FEATURES = {
     endpoints: ['/gut'],
     description: 'Gut health: fiber/variety summary, symptom journal, food tolerances.',
   },
+  habit_coaching: {
+    clientKey: 'habitCoaching',
+    class: 'server',
+    group: 'manual',
+    default: false,
+    failOpen: false,
+    endpoints: ['/habits'],
+    description: 'User-selected habit tracking: create/pause/snooze/complete/skip.',
+  },
   video_search: {
     clientKey: 'videoSearch',
     class: 'server',

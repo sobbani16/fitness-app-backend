@@ -45,6 +45,7 @@ model User {
   sleepLogs        SleepLog[]
   gutSymptoms      GutSymptom[]
   foodTolerances   FoodTolerance[]
+  habits           Habit[]
   foodLogs         FoodLog[]
   workoutSessions  WorkoutSession[]
   energyRecords    HealthEnergyRecord[]
@@ -2856,4 +2857,30 @@ model FoodTolerance {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, kind])
+}
+
+// User-selected habit coaching — no streak punishment, pause/snooze friendly.
+model Habit {
+  id          String   @id @default(uuid())
+  userId      String
+  title       String
+  kind        String   @default("custom") // fiber|workout|sleep_window|meal_prep|movement_break|reflection|supplement|custom
+  daysOfWeek  Int      @default(127) // bitmask Mon=1..Sun=64, 127=daily
+  status      String   @default("active") // active|paused|archived
+  snoozedUntil DateTime?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completions HabitCompletion[]
+
+  @@index([userId, status])
+}
+
+model HabitCompletion {
+  id       String   @id @default(uuid())
+  habitId  String
+  day      String   // YYYY-MM-DD local day
+  outcome  String   @default("done") // done|skipped
+  habit    Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, day])
 }
