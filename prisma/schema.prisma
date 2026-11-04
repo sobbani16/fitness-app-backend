@@ -43,6 +43,8 @@ model User {
   dailySteps       DailySteps[]
   waterLogs        WaterLog[]
   sleepLogs        SleepLog[]
+  gutSymptoms      GutSymptom[]
+  foodTolerances   FoodTolerance[]
   foodLogs         FoodLog[]
   workoutSessions  WorkoutSession[]
   energyRecords    HealthEnergyRecord[]
@@ -2826,4 +2828,32 @@ model ActionFeedback {
   createdAt DateTime @default(now())
 
   @@index([userId, actionKey, createdAt])
+}
+
+// Gut health — member symptom journal. Never infers causality; severity 1-5.
+model GutSymptom {
+  id        String   @id @default(uuid())
+  userId    String
+  symptom   String   // bloating|gas|constipation|diarrhea|reflux|abdominal|stool_frequency
+  severity  Int      @default(3)
+  bristol   Int?     // optional Bristol Stool Form 1-7
+  note      String?
+  loggedAt  DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, loggedAt])
+}
+
+// Individualized food tolerance — DISTINCT from the Allergy model.
+// kind: suspected|intolerance|dislike|exclusion (allergy lives in Allergy).
+model FoodTolerance {
+  id        String   @id @default(uuid())
+  userId    String
+  foodName  String
+  kind      String
+  note      String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, kind])
 }

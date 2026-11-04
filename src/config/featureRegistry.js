@@ -224,6 +224,15 @@ const FEATURES = {
     endpoints: ['/today/recovery'],
     description: 'Sleep/recovery intelligence: 7-day summary, consistency, energy signals.',
   },
+  gut_health: {
+    clientKey: 'gutHealth',
+    class: 'server',
+    group: 'manual',
+    default: false,
+    failOpen: false,
+    endpoints: ['/gut'],
+    description: 'Gut health: fiber/variety summary, symptom journal, food tolerances.',
+  },
   video_search: {
     clientKey: 'videoSearch',
     class: 'server',

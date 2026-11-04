@@ -4,6 +4,7 @@
 // confidence and a concrete action. Repeated dismissals suppress kinds.
 const { getPrisma } = require('../lib/prisma');
 const { getSleepRecoverySummary } = require('./sleepRecovery');
+const { getGutHealthSummary } = require('./gutHealth');
 
 const DAY_MS = 86400000;
 const DISMISS_WINDOW = 14 * DAY_MS;
@@ -65,6 +66,14 @@ const ACTION_DEFS = [
     },
   },
   {
+    key: 'fiber_variety', weight: 50,
+    applies: async (c) => {
+      const s = c.gut?.signals?.find(x => x.key === 'low_fiber' || x.key === 'narrow_variety');
+      if (!s) return null;
+      return { title: 'Add a fiber-rich food today', explanation: 'Beans, whole grains, fruit or veg nudge fiber toward your guide — pick what you tolerate.', evidence: [s.detail], action: { type: 'open', route: 'Suggest' }, confidence: 'partial' };
+    },
+  },
+  {
     key: 'log_water', weight: 55,
     applies: async (c) => {
       if (!c.waterTargetMl || c.waterLoggedMl == null) return null;
@@ -112,6 +121,7 @@ async function buildContext(userId, tz) {
     checkInDue: Boolean(trainer) && !checkIn,
     activePlan: plan || null,
     sleep: await getSleepRecoverySummary(userId).catch(() => null),
+    gut: await getGutHealthSummary(userId).catch(() => null),
   };
 }
 
