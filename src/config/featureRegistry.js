@@ -242,6 +242,15 @@ const FEATURES = {
     endpoints: ['/habits'],
     description: 'User-selected habit tracking: create/pause/snooze/complete/skip.',
   },
+  stress_wellness: {
+    clientKey: 'stressWellness',
+    class: 'server',
+    group: 'manual',
+    default: false,
+    failOpen: false,
+    endpoints: ['/wellness'],
+    description: 'Self-reported stress/mood/fatigue check-ins (non-diagnostic, private).',
+  },
   video_search: {
     clientKey: 'videoSearch',
     class: 'server',

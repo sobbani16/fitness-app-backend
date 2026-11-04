@@ -46,6 +46,7 @@ model User {
   gutSymptoms      GutSymptom[]
   foodTolerances   FoodTolerance[]
   habits           Habit[]
+  wellnessCheckIns WellnessCheckIn[]
   foodLogs         FoodLog[]
   workoutSessions  WorkoutSession[]
   energyRecords    HealthEnergyRecord[]
@@ -2883,4 +2884,19 @@ model HabitCompletion {
   habit    Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
 
   @@unique([habitId, day])
+}
+
+// Wellness check-in — self-reported stress/mood/fatigue. Never diagnostic,
+// never auto-shared with trainers.
+model WellnessCheckIn {
+  id        String   @id @default(uuid())
+  userId    String
+  stress    Int      // 1-5
+  mood      Int      // 1-5
+  fatigue   Int      // 1-5
+  note      String?
+  loggedAt  DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, loggedAt])
 }
