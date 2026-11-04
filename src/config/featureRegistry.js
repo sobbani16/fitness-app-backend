@@ -310,6 +310,15 @@ const FEATURES = {
     endpoints: ['/weekly-review'],
     description: 'Optional weekly personal health review: evidence-only progress, opportunities, next-week focus. Member pull-based; no health details in notifications.',
   },
+  leo_progress_enabled: {
+    clientKey: 'leoProgressEnabled',
+    class: 'server',
+    group: 'manual',
+    default: false,
+    failOpen: false,
+    endpoints: ['/me/progress/unified'],
+    description: 'Unified member progress + deterministic moments powering Leo reaction cues.',
+  },
   video_search: {
     clientKey: 'videoSearch',
     class: 'server',
