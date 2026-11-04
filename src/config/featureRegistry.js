@@ -215,6 +215,15 @@ const FEATURES = {
     endpoints: ['/today/actions/feedback'],
     description: 'Action-loop feedback capture (verdicts/dismissals) feeding health priorities.',
   },
+  sleep_insights: {
+    clientKey: 'sleepInsights',
+    class: 'server',
+    group: 'manual',
+    default: false,
+    failOpen: false,
+    endpoints: ['/today/recovery'],
+    description: 'Sleep/recovery intelligence: 7-day summary, consistency, energy signals.',
+  },
   video_search: {
     clientKey: 'videoSearch',
     class: 'server',

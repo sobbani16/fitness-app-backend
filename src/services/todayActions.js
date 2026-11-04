@@ -3,6 +3,7 @@
 // recommendations. Never invents data — every card carries evidence,
 // confidence and a concrete action. Repeated dismissals suppress kinds.
 const { getPrisma } = require('../lib/prisma');
+const { getSleepRecoverySummary } = require('./sleepRecovery');
 
 const DAY_MS = 86400000;
 const DISMISS_WINDOW = 14 * DAY_MS;
@@ -46,6 +47,21 @@ const ACTION_DEFS = [
     applies: async (c) => {
       if (!c.hasTrainer || !c.checkInDue) return null;
       return { title: 'Send your weekly check-in', explanation: 'Your coach reviews progress and adjusts your plan.', evidence: ['Check-in window open'], action: { type: 'open', route: 'CoachingHub' }, confidence: 'high' };
+    },
+  },
+  {
+    key: 'recovery_lighter', weight: 80,
+    applies: async (c) => {
+      if (c.sleep?.suggestion !== 'lighter_intensity') return null;
+      const ev = c.sleep.signals.map(s => s.detail);
+      return { title: 'Consider a lighter session today', explanation: 'Recent sleep or reported energy is low — a recovery-focused day may serve you better.', evidence: ev, action: { type: 'open', route: 'WorkoutPlan' }, confidence: 'partial' };
+    },
+  },
+  {
+    key: 'sleep_schedule', weight: 40,
+    applies: async (c) => {
+      if (c.sleep?.suggestion !== 'steady_schedule') return null;
+      return { title: 'Try a steadier sleep window', explanation: 'Consistent wake times support training recovery.', evidence: c.sleep.signals.map(s => s.detail), action: { type: 'open', route: 'HealthScoreDetail' }, confidence: 'partial' };
     },
   },
   {
@@ -95,6 +111,7 @@ async function buildContext(userId, tz) {
     hasTrainer: Boolean(trainer),
     checkInDue: Boolean(trainer) && !checkIn,
     activePlan: plan || null,
+    sleep: await getSleepRecoverySummary(userId).catch(() => null),
   };
 }
 

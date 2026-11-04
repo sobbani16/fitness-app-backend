@@ -1,5 +1,6 @@
 const express = require('express');
 const { getTodayActions, recordFeedback } = require('../services/todayActions');
+const { getSleepRecoverySummary } = require('../services/sleepRecovery');
 const { requireFeature } = require('../middleware/requireFeature');
 
 const router = express.Router();
@@ -13,6 +14,11 @@ router.get('/actions', async (req, res, next) => {
     const tz = req.user?.timeZone || req.query.tz || 'UTC';
     res.json(await getTodayActions(getUserId(req), tz));
   } catch (e) { next(e); }
+});
+
+// GET /today/recovery — 7-day sleep/recovery summary behind sleep_insights flag
+router.get('/recovery', requireFeature('sleep_insights'), async (req, res, next) => {
+  try { res.json(await getSleepRecoverySummary(getUserId(req))); } catch (e) { next(e); }
 });
 
 // POST /today/actions/feedback { actionKey, verdict }
