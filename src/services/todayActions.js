@@ -6,6 +6,11 @@ const { getPrisma } = require('../lib/prisma');
 const { getSleepRecoverySummary } = require('./sleepRecovery');
 const { getGutHealthSummary } = require('./gutHealth');
 const { listHabits } = require('./habits');
+const flags = require('./featureFlags/service');
+
+// Promise wrapper that also catches synchronous throws (missing models in
+// lightweight contexts) — missing data degrades to null, never crashes.
+const q = (fn, fallback = null) => Promise.resolve().then(fn).catch(() => fallback);
 
 const DAY_MS = 86400000;
 const DISMISS_WINDOW = 14 * DAY_MS;
@@ -29,9 +34,16 @@ const ACTION_DEFS = [
   {
     key: 'start_workout', weight: 95,
     applies: async (c) => {
+      // Partnership mode: an assigned trainer plan surfaces first, with
+      // attribution. In trainer-led mode a missing trainer plan suppresses
+      // this action entirely — never silently substitute an AI/self plan.
+      if (c.trainerFirst && c.trainerPlan) {
+        return { title: `Continue ${c.trainerPlan.title || 'your workout plan'}`, explanation: 'Assigned by your coach — trainer plans take precedence in your coaching mode.', evidence: [`Trainer plan${c.trainerPlan.version ? ` v${c.trainerPlan.version}` : ''}`], action: { type: 'open', route: 'MyWorkoutPlans', params: { assignmentId: c.trainerPlan.assignmentId } }, confidence: 'high', attribution: 'trainer' };
+      }
+      if (c.trainerStrict) return null;
       const plan = c.activePlan;
       if (!plan) return null;
-      return { title: 'Continue your workout plan', explanation: `Your confirmed plan (v${plan.version}) is ready to follow.`, evidence: [`Plan v${plan.version}`], action: { type: 'open', route: 'WorkoutPlan' }, confidence: 'high' };
+      return { title: 'Continue your workout plan', explanation: `Your confirmed plan (v${plan.version}) is ready to follow.`, evidence: [`Plan v${plan.version}`], action: { type: 'open', route: 'WorkoutPlan' }, confidence: 'high', attribution: 'humai' };
     },
   },
   {
@@ -118,6 +130,20 @@ async function buildContext(userId, tz) {
   ]);
   const mealsLogged = {};
   for (const f of foodLogs) (mealsLogged[f.mealType || 'other'] = true);
+  // Partnership mode (M17): coaching preference + current trainer assignment
+  // decide whether trainer plans take precedence over Humai/self plans.
+  const partnershipOn = await flags.isEnabled('trainer_partnership_enabled', userId).catch(() => false);
+  const [coachPref, trainerAssignment] = await Promise.all([
+    partnershipOn ? q(() => prisma.coachingPreference.findUnique({ where: { userId }, select: { model: true, planPrecedence: true } })) : Promise.resolve(null),
+    partnershipOn && trainer ? q(() => prisma.trainerWorkoutAssignment.findFirst({
+      where: { clientId: userId, status: { in: ['assigned', 'accepted'] }, plan: { active: true, status: 'published' } },
+      orderBy: { assignedAt: 'desc' },
+      include: { plan: { select: { title: true, version: true, trainer: { select: { displayName: true } } } } },
+    })) : Promise.resolve(null),
+  ]);
+  const coachModel = coachPref?.model || 'self_guided';
+  const trainerFirst = Boolean(trainer) && partnershipOn &&
+    (coachModel === 'trainer_led' || (coachModel === 'hybrid' && (coachPref?.planPrecedence || 'trainer_first') === 'trainer_first'));
   return {
     user, dayStr,
     localHour: Number(new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hour12: false }).format(now)),
@@ -129,6 +155,15 @@ async function buildContext(userId, tz) {
     hasTrainer: Boolean(trainer),
     checkInDue: Boolean(trainer) && !checkIn,
     activePlan: plan || null,
+    coachModel,
+    trainerFirst,
+    trainerStrict: Boolean(trainer) && partnershipOn && coachModel === 'trainer_led',
+    trainerPlan: trainerAssignment?.plan ? {
+      assignmentId: trainerAssignment.id,
+      title: trainerAssignment.plan.title,
+      version: trainerAssignment.plan.version,
+      trainerName: trainerAssignment.plan.trainer?.displayName || null,
+    } : null,
     sleep: await getSleepRecoverySummary(userId).catch(() => null),
     gut: await getGutHealthSummary(userId).catch(() => null),
     habits: await listHabits(userId, tz).catch(() => null),
@@ -157,6 +192,7 @@ async function getTodayActions(userId, tz = 'UTC') {
     date: ctx.dayStr,
     timezone: tz,
     goal: ctx.user?.goalType || null,
+    coachingModel: ctx.coachModel,
     actions,
     suppressed: candidates.length - actions.length,
     verdicts: [...VALID_VERDICTS],

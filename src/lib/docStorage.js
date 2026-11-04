@@ -16,7 +16,7 @@ const s3 = S3_BUCKET ? new (require('@aws-sdk/client-s3').S3Client)({
 
 const usingS3 = () => Boolean(s3);
 
-async function put(fileKey, buf) {
+async function put(fileKey, buf, contentType = 'application/pdf') {
   if (!s3) {
     const full = path.join(LOCAL_DIR, fileKey);
     fs.mkdirSync(path.dirname(full), { recursive: true });
@@ -24,7 +24,7 @@ async function put(fileKey, buf) {
     return full; // local path (scanner + streaming use it)
   }
   const { PutObjectCommand } = require('@aws-sdk/client-s3');
-  await s3.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: fileKey, Body: buf, ContentType: 'application/pdf' }));
+  await s3.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: fileKey, Body: buf, ContentType: contentType }));
   return null;
 }
 

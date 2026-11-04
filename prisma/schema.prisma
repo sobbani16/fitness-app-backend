@@ -838,6 +838,9 @@ model TrainerClient {
 
   videoSessions   VideoSession[]
   documentShares  TrainerDocumentShare[]
+  assessments     BaselineAssessment[]
+  outcomePlans    OutcomePlan[]
+  formChecks      FormCheckRequest[]
 
   @@unique([trainerId, clientId])
   @@index([trainerId])
@@ -2819,6 +2822,10 @@ model EntitlementEvent {
 model CoachingPreference {
   userId    String   @id
   model     String   @default("self_guided") // self_guided|humai_assisted|trainer_led|hybrid
+  // hybrid only: whose plan surfaces first when both trainer + Humai plans exist.
+  planPrecedence String  @default("trainer_first") // trainer_first|humai_first
+  // Whether Humai-generated insights may be shown to the trainer workspace.
+  shareInsightsWithTrainer Boolean @default(false)
   updatedAt DateTime @updatedAt
 }
 
@@ -2899,4 +2906,136 @@ model WellnessCheckIn {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, loggedAt])
+}
+
+// ============================================================================
+// COACHING LOOP — intake, shared outcome plans, form checks (M12/M13/M16)
+// ============================================================================
+
+// Coaching intake — progressive baseline assessment per relationship.
+// `data` holds only the sections filled so far (never required up front).
+// Rows are version snapshots: edits after submit create version+1, history
+// is never overwritten. Private health conditions are NOT auto-attached —
+// sharing stays governed by TrainerClientConsent.
+model BaselineAssessment {
+  id           String   @id @default(uuid())
+  relationId   String
+  relation     TrainerClient @relation(fields: [relationId], references: [id], onDelete: Cascade)
+  trainerId    String
+  clientId     String
+  version      Int      @default(1)
+  status       String   @default("in_progress") // in_progress|submitted|reviewed
+  data         Json     @default("{}")
+  supersedesId String?
+  updatedBy    String?
+  submittedAt  DateTime?
+  submittedBy  String?
+  reviewedAt   DateTime?
+  reviewedBy   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([relationId, version])
+  @@index([clientId])
+  @@index([trainerId])
+}
+
+// Shared outcome plan — explicit trainer+member agreement. One active plan
+// per relationship; every revision supersedes the previous version and logs
+// an OutcomePlanAdjustment (member-visible change history).
+model OutcomePlan {
+  id           String   @id @default(uuid())
+  relationId   String
+  relation     TrainerClient @relation(fields: [relationId], references: [id], onDelete: Cascade)
+  trainerId    String
+  clientId     String
+  version      Int      @default(1)
+  status       String   @default("active") // active|superseded|completed|archived
+  note         String?
+  supersedesId String?
+  createdBy    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  goals        OutcomeGoal[]
+  adjustments  OutcomePlanAdjustment[]
+
+  @@unique([relationId, version])
+  @@index([clientId, status])
+  @@index([trainerId, status])
+}
+
+// Outcome goal — baseline/target may be free text or numbers; not every goal
+// needs a numeric score. progressSource says where progress evidence lives.
+model OutcomeGoal {
+  id                 String   @id @default(uuid())
+  planId             String
+  plan               OutcomePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  kind               String   @default("custom") // workout_consistency|strength|functional_movement|dietary_habit|weight_trend|sleep_regularity|confidence|custom
+  title              String
+  baseline           String?
+  target             String?
+  targetDate         DateTime?
+  reviewIntervalDays Int      @default(7)
+  progressSource     String   @default("self_report") // workout_records|weight_trends|check_ins|habit_completions|self_report|trainer_assessment
+  notes              String?
+  status             String   @default("open") // open|met|dropped
+  sortOrder          Int      @default(0)
+  createdAt          DateTime @default(now())
+
+  @@index([planId])
+}
+
+model OutcomePlanAdjustment {
+  id         String   @id @default(uuid())
+  planId     String   // the version this adjustment produced
+  plan       OutcomePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  adjustedBy String   // userId of who made the change
+  summary    String
+  createdAt  DateTime @default(now())
+
+  @@index([planId])
+}
+
+// Exercise form check — trainer requests, member uploads a video with
+// explicit consent, trainer leaves timestamped feedback. Video bytes live in
+// private docStorage; access goes through short-lived signature-checked URLs.
+model FormCheckRequest {
+  id           String   @id @default(uuid())
+  relationId   String
+  relation     TrainerClient @relation(fields: [relationId], references: [id], onDelete: Cascade)
+  trainerId    String
+  clientId     String
+  exerciseKey  String?  // Exercise.id from the library, when linked
+  exerciseName String?
+  note         String?  // trainer's technique notes / what to film
+  status       String   @default("requested") // requested|submitted|reviewed|declined
+  videoKey     String?  // docStorage key — never exposed in responses
+  videoName    String?
+  videoMime    String?
+  videoBytes   Int?
+  consentAt    DateTime? // when the member consented to share the video
+  submittedAt  DateTime?
+  reviewedAt   DateTime?
+  memberAckAt  DateTime? // member confirmed they understood the feedback
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  feedback     FormCheckFeedback[]
+
+  @@index([clientId, status])
+  @@index([trainerId, status])
+  @@index([relationId])
+}
+
+model FormCheckFeedback {
+  id           String   @id @default(uuid())
+  requestId    String
+  request      FormCheckRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  authorId     String   // trainer userId
+  timestampSec Float?   // position in the video; null = general note
+  note         String
+  createdAt    DateTime @default(now())
+
+  @@index([requestId])
 }
