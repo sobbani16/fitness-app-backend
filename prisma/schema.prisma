@@ -3039,3 +3039,20 @@ model FormCheckFeedback {
 
   @@index([requestId])
 }
+
+// Weekly personal health review — generated on demand for a member's own
+// week (Mon–Sun). Separate from the public Myth vs Fact publication and
+// from the plan-scoped WeeklyReview. `data` carries the composed review;
+// progress is only claimed when records support it.
+model WeeklyHealthReview {
+  id        String   @id @default(uuid())
+  userId    String
+  weekOf    DateTime // Monday (UTC) of the reviewed week
+  data      Json     @default("{}")
+  openedAt  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, weekOf])
+  @@index([userId, createdAt])
+}

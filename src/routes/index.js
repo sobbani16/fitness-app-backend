@@ -67,6 +67,7 @@ router.use('/wellness', require('./wellness'));
 router.use('/coaching', require('./coaching'));
 router.use('/trainer/copilot', require('./trainerCopilot'));
 router.use('/form-checks', require('./formChecks'));
+router.use('/weekly-review', require('./weeklyReview'));
 router.use('/ingredients', ingredients);
 router.use('/safety', safety);
 router.use('/trainers', trainers);

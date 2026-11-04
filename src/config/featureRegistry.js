@@ -301,6 +301,15 @@ const FEATURES = {
     endpoints: ['/coaching/preference'],
     description: 'Trainer partnership mode: coaching-model preference + trainer-plan precedence in daily actions.',
   },
+  weekly_health_review_enabled: {
+    clientKey: 'weeklyHealthReviewEnabled',
+    class: 'server',
+    group: 'manual',
+    default: false,
+    failOpen: false,
+    endpoints: ['/weekly-review'],
+    description: 'Optional weekly personal health review: evidence-only progress, opportunities, next-week focus. Member pull-based; no health details in notifications.',
+  },
   video_search: {
     clientKey: 'videoSearch',
     class: 'server',
