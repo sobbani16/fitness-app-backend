@@ -40,7 +40,7 @@ async function composeReview(userId, { tz = 'UTC', weekOf = null } = {}) {
   const complete = weekStart < toStr(mondayOf(today));
   const end = new Date(monday.getTime() + 7 * DAY_MS);
 
-  const [user, foodLogs, sessions, sleep, habits, wellness, relation] = await Promise.all([
+  const [user, foodLogs, sessions, sleep, habits, wellness, relation, checkins, mindPrefs, stepRows] = await Promise.all([
     q(prisma.user.findUnique({ where: { id: userId }, select: { goalType: true } })),
     q(prisma.foodLog.groupBy({ by: ['date'], where: { userId, date: { in: dayList } } })),
     q(prisma.workoutSession.findMany({ where: { userId, startedAt: { gte: monday, lt: end } }, select: { finishedAt: true } })),
@@ -51,6 +51,9 @@ async function composeReview(userId, { tz = 'UTC', weekOf = null } = {}) {
       where: { clientId: userId, status: 'active' },
       include: { trainer: { select: { displayName: true } } },
     })),
+    q(prisma.emotionalCheckIn.findMany({ where: { userId, loggedAt: { gte: monday, lt: end } }, select: { mood: true, energy: true, stress: true, loggedAt: true } })),
+    q(prisma.userMindPreferences.findUnique({ where: { userId }, select: { moduleEnabled: true } })),
+    q(prisma.healthMeasurement.findMany({ where: { userId, metric: 'steps', synthetic: false, startAt: { gte: monday, lt: end } }, select: { value: true, startAt: true } })),
   ]);
   const rel = relation || null;
   const [checkInRow, activePlan, published] = await Promise.all([
@@ -129,6 +132,15 @@ async function composeReview(userId, { tz = 'UTC', weekOf = null } = {}) {
     ? 'Keep the current rhythm going — consistency matters more than intensity.'
     : 'Start small: one workout, one logged meal, one night of decent sleep.');
 
+  const mindEnabled = mindPrefs?.moduleEnabled !== false;
+  const mind = mindEnabled && checkins.length ? {
+    checkins: checkins.length,
+    avgEnergy: +(checkins.reduce((a, c) => a + c.energy, 0) / checkins.length).toFixed(1),
+    avgStress: +(checkins.reduce((a, c) => a + c.stress, 0) / checkins.length).toFixed(1),
+  } : null;
+  if (mind && mind.checkins >= 3 && mind.avgStress >= 4) opportunities.push({ text: 'Your check-ins show a high-stress week — a short breathing or wind-down exercise may help.', evidence: 'mind check-ins' });
+  const wearable = stepRows.length ? { stepRecords: stepRows.length, avgDailySteps: Math.round(stepRows.reduce((a, r) => a + r.value, 0) / Math.max(1, new Set(stepRows.map(r => r.startAt)).size || 7)) } : null;
+
   const summary = completeness === 'sparse'
     ? 'A lighter tracking week — here\'s what the available data shows, plus one simple next step.'
     : `${wentWell.length} thing${wentWell.length === 1 ? '' : 's'} went well${wasDifficult.length ? `, and ${wasDifficult.length} area${wasDifficult.length === 1 ? '' : 's'} looked harder` : ''}. One focus for next week is below.`;
@@ -136,7 +148,7 @@ async function composeReview(userId, { tz = 'UTC', weekOf = null } = {}) {
   return {
     weekOf: weekStart, daysElapsed, complete, timezone: tz,
     goalType: user?.goalType || null,
-    summary, wentWell, wasDifficult,
+    summary, wentWell, wasDifficult, mind, wearable,
     opportunities: topOpportunities, nextWeekFocus,
     progress: evidence, dataCompleteness: completeness,
     trainer: rel ? {

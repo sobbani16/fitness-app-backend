@@ -3085,6 +3085,11 @@ model UserMindPreferences {
   remindersEnabled      Boolean  @default(false)
   aiJournalConsent      Boolean  @default(false) // separate informed consent for AI processing of journals
   checkinSharingConsent Boolean  @default(false) // separate consent for trainer sharing
+  reminderTimeLocal     String?  // "HH:MM" local wall-clock time
+  reminderTimeZone      String?  // IANA zone, e.g. Asia/Kolkata
+  reminderPaused        Boolean  @default(false)
+  quietHoursStart       String?  // "HH:MM" — no reminders inside quiet hours
+  quietHoursEnd         String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }
@@ -3116,6 +3121,29 @@ model BarcodeProduct {
   source            String   @default("catalog") // catalog|off|user|import
   updatedAt         DateTime @updatedAt
   createdAt         DateTime @default(now())
+}
+
+model BarcodeFavorite {
+  id        String   @id @default(uuid())
+  userId    String
+  barcode   String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, barcode])
+  @@index([userId])
+}
+
+model ProductCorrection {
+  id        String   @id @default(uuid())
+  userId    String
+  barcode   String
+  field     String   // name|brand|servingSizeG|ingredients|nutrients
+  oldValue  String?
+  newValue  String
+  createdAt DateTime @default(now())
+
+  @@index([barcode])
+  @@index([userId])
 }
 
 model IngredientEvidenceProfile {

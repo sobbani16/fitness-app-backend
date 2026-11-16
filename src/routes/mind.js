@@ -12,6 +12,7 @@ router.use(requireFeature('mind_habits_enabled'));
 const uid = (req) => req.userId || req.user?.id;
 
 router.get('/preferences', wrap(async (req, res) => res.json({ preferences: await svc.getPreferences(uid(req)) })));
+router.put('/reminders', wrap(async (req, res) => res.json({ preferences: await svc.updateReminderPrefs(uid(req), req.body || {}) })));
 router.put('/preferences', wrap(async (req, res) => res.json({ preferences: await svc.updatePreferences(uid(req), req.body || {}) })));
 
 router.post('/check-ins', wrap(async (req, res) => {

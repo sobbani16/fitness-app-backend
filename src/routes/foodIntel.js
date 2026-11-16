@@ -21,5 +21,8 @@ router.post('/suitability', wrap(async (req, res) => res.json(await svc.checkSui
 router.post('/scan-result', wrap(async (req, res) => res.json(await svc.scanResult(uid(req), req.body || {}))));
 router.post('/alternatives', wrap(async (req, res) => res.json(await svc.alternatives(uid(req), req.body || {}))));
 router.post('/log', wrap(async (req, res) => res.status(201).json({ foodLog: await svc.logScannedFood(uid(req), req.body || {}) })));
+router.post('/barcode/:code/correct', wrap(async (req, res) => res.json({ product: await svc.correctProduct(uid(req), req.params.code, req.body || {}) })));
+router.post('/barcode/:code/favorite', wrap(async (req, res) => res.json(await svc.toggleFavorite(uid(req), req.params.code))));
+router.get('/favorites', wrap(async (req, res) => res.json({ favorites: await svc.listFavorites(uid(req)) })));
 
 module.exports = router;

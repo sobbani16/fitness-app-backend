@@ -2,6 +2,7 @@
 // evidence, deterministic personalized suitability. No fabricated nutrients,
 // no supplement-to-culinary overclaiming, hard exclusions always win.
 const { getPrisma } = require('../lib/prisma');
+const flags = require('./featureFlags/service');
 // Lazy accessor — resolves getPrisma() per call so tests can swap the client.
 const prisma = new Proxy({}, { get: (_t, prop) => getPrisma()[prop] });
 
@@ -126,8 +127,61 @@ async function resolveBarcode(barcode) {
   const code = String(barcode || '').replace(/\D/g, '');
   if (!code) { const e = new Error('barcode required'); e.status = 400; throw e; }
   const product = await prisma.barcodeProduct.findUnique({ where: { barcode: code } });
-  if (!product) return { found: false, barcode: code, nextStep: 'label_photo_or_manual' };
-  return { found: true, barcode: code, product, verified: product.source === 'catalog' };
+  if (product) return { found: true, barcode: code, product, verified: product.source === 'catalog' };
+  const ext = await fetchOpenFoodFacts(code);
+  if (ext) return { found: true, barcode: code, product: ext, verified: false, externalSource: 'openfoodfacts', dataQuality: 'community' };
+  return { found: false, barcode: code, nextStep: 'label_photo_or_manual' };
+}
+
+// Authorized external fallback — Open Food Facts (ODbL). Community data is NEVER
+// treated as verified; provenance + retrieval date are preserved. Failures
+// degrade gracefully to the manual path. Disabled via flag → returns null.
+async function fetchOpenFoodFacts(code) {
+  const on = await flags.isEnabled('food_external_catalog_enabled', null).catch(() => false);
+  if (!on || typeof fetch !== 'function') return null;
+  try {
+    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 4000);
+    const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,serving_size,nutriments,ingredients_text,allergens_tags`, { signal: ctrl.signal, headers: { 'User-Agent': 'HumaiFitness/1.0 (contact: dev@humai.app)' } });
+    clearTimeout(t);
+    if (!r.ok) return null;
+    const j = await r.json();
+    const p = j?.product; if (!p?.product_name) return null;
+    const n = p.nutriments || {};
+    return { barcode: code, name: String(p.product_name).slice(0, 200), brand: p.brands || null,
+      servingSizeG: null, servingLabel: p.serving_size || null,
+      nutrients: { calories: n['energy-kcal_serving'] ?? null, proteinG: n.proteins_serving ?? null, carbsG: n.carbohydrates_serving ?? null, fatG: n.fat_serving ?? null, sugarG: n.sugars_serving ?? null, sodiumMg: n.sodium_serving != null ? n.sodium_serving * 1000 : null },
+      ingredients: p.ingredients_text || null, allergens: (p.allergens_tags || []).map(a => String(a).replace('en:', '')), source: 'openfoodfacts' };
+  } catch { return null; }
+}
+
+// User correction — records provenance (field-level audit) then applies the
+// correction to the shared catalog row marked source='user'.
+const CORRECTABLE = ['name', 'brand', 'servingSizeG', 'servingLabel', 'ingredients'];
+async function correctProduct(userId, barcode, { field, value }) {
+  const code = String(barcode || '').replace(/\D/g, '');
+  if (!code || !CORRECTABLE.includes(field) || value == null) { const e = new Error(`field must be one of ${CORRECTABLE.join('|')} with a value`); e.status = 400; throw e; }
+  const product = await prisma.barcodeProduct.findUnique({ where: { barcode: code } });
+  if (!product) { const e = new Error('unknown barcode — create it first'); e.status = 404; throw e; }
+  const newValue = field === 'servingSizeG' ? String(Number(value)) : String(value).slice(0, 500);
+  if (field === 'servingSizeG' && (!Number.isFinite(Number(value)) || Number(value) <= 0 || Number(value) > 5000)) { const e = new Error('servingSizeG must be 1-5000'); e.status = 400; throw e; }
+  await prisma.productCorrection.create({ data: { userId, barcode: code, field, oldValue: product[field] != null ? String(product[field]) : null, newValue } });
+  return prisma.barcodeProduct.update({ where: { barcode: code }, data: { [field]: field === 'servingSizeG' ? Number(newValue) : newValue, source: 'user' } });
+}
+
+async function toggleFavorite(userId, barcode) {
+  const code = String(barcode || '').replace(/\D/g, '');
+  if (!code) { const e = new Error('barcode required'); e.status = 400; throw e; }
+  const existing = await prisma.barcodeFavorite.findUnique({ where: { userId_barcode: { userId, barcode: code } } });
+  if (existing) { await prisma.barcodeFavorite.delete({ where: { id: existing.id } }); return { favorite: false }; }
+  await prisma.barcodeFavorite.create({ data: { userId, barcode: code } });
+  return { favorite: true };
+}
+
+async function listFavorites(userId) {
+  const favs = await prisma.barcodeFavorite.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 100 });
+  const products = await prisma.barcodeProduct.findMany({ where: { barcode: { in: favs.map(f => f.barcode) } } });
+  const byCode = new Map(products.map(p => [p.barcode, p]));
+  return favs.map(f => ({ barcode: f.barcode, product: byCode.get(f.barcode) || null }));
 }
 
 async function upsertBarcodeProduct(userId, body) {
@@ -329,4 +383,5 @@ async function logScannedFood(userId, { productName, servingG, nutrients = {}, m
   return saved;
 }
 
-module.exports = { EVIDENCE_SEED, ensureEvidenceSeeded, resolveBarcode, upsertBarcodeProduct, getEvidence, listEvidence, checkSuitability, scanResult, explainIngredient, alternatives, logScannedFood, ALIASES };
+module.exports = {
+  correctProduct, toggleFavorite, listFavorites, EVIDENCE_SEED, ensureEvidenceSeeded, resolveBarcode, upsertBarcodeProduct, getEvidence, listEvidence, checkSuitability, scanResult, explainIngredient, alternatives, logScannedFood, ALIASES };

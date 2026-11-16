@@ -339,7 +339,20 @@ function leoSuggestions(text) {
   return { crisis: false, suggestions: out };
 }
 
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+async function updateReminderPrefs(userId, { reminderTimeLocal, reminderTimeZone, reminderPaused, quietHoursStart, quietHoursEnd, remindersEnabled }) {
+  const data = {};
+  for (const [k, v] of [['reminderTimeLocal', reminderTimeLocal], ['quietHoursStart', quietHoursStart], ['quietHoursEnd', quietHoursEnd]]) {
+    if (v !== undefined) { if (v !== null && !HHMM.test(v)) { const e = new Error(`${k} must be HH:MM`); e.status = 400; throw e; } data[k] = v; }
+  }
+  if (reminderTimeZone !== undefined) { if (reminderTimeZone !== null && !/^[A-Za-z_]+\/[A-Za-z_\-]+$|^UTC$/.test(reminderTimeZone)) { const e = new Error('reminderTimeZone must be an IANA zone'); e.status = 400; throw e; } data.reminderTimeZone = reminderTimeZone; }
+  if (reminderPaused !== undefined) data.reminderPaused = Boolean(reminderPaused);
+  if (remindersEnabled !== undefined) data.remindersEnabled = Boolean(remindersEnabled);
+  return prisma.userMindPreferences.upsert({ where: { userId }, create: { userId, ...data }, update: data });
+}
+
 module.exports = {
+  updateReminderPrefs,
   MOODS, CONTEXT_TAGS, TRACKS, GUIDED_EXERCISES, SUGGESTED_HABITS,
   getPreferences, updatePreferences,
   createCheckIn, updateCheckIn, deleteCheckIn, listCheckIns,

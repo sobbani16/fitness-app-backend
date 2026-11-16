@@ -551,6 +551,13 @@ const FEATURES = {
     endpoints: ['/food-intel/evidence'],
     description: 'Reviewed ingredient evidence profiles — only APPROVED/ACTIVE claims surface.',
   },
+  food_external_catalog_enabled: {
+    clientKey: 'foodExternalCatalogEnabled',
+    class: 'core', group: 'food_intel', default: false, failOpen: false,
+    dependsOn: ['food_barcode_scanning_enabled'],
+    endpoints: ['/food-intel/barcode'],
+    description: 'Open Food Facts fallback for unknown barcodes — community data, never verified. Makes an external HTTPS call.',
+  },
   visual_food_recognition_enabled: {
     clientKey: 'visualFoodRecognitionEnabled',
     class: 'ai', group: 'ai', default: false, failOpen: false,
