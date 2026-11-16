@@ -2,7 +2,7 @@
 jest.mock('../src/lib/prisma', () => ({
   healthDataSource: { findUnique: jest.fn(), findMany: jest.fn(), upsert: jest.fn(), update: jest.fn(), delete: jest.fn() },
   healthMeasurement: { create: jest.fn(), findFirst: jest.fn(), findMany: jest.fn(), update: jest.fn(), deleteMany: jest.fn() },
-  healthSyncCursor: { deleteMany: jest.fn() },
+  healthSyncCursor: { deleteMany: jest.fn(), upsert: jest.fn().mockResolvedValue({}) },
   wearableDevice: { updateMany: jest.fn() },
   sleepLog: { findMany: jest.fn() },
   workoutSession: { count: jest.fn() },

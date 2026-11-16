@@ -36,6 +36,7 @@ const applyUndo = async (prisma, cmd) => {
   for (const e of cmd.createdEntities) {
     if (e.kind === 'water') await prisma.waterLog.deleteMany({ where: { id: e.id, userId: cmd.userId } });
     if (e.kind === 'foodLog') await prisma.foodLog.deleteMany({ where: { id: e.id, userId: cmd.userId } });
+    if (e.kind === 'emotionalCheckIn') await prisma.emotionalCheckIn.deleteMany({ where: { id: e.id, userId: cmd.userId } });
     if (e.kind === 'supplementLog') await prisma.supplementLog.deleteMany({ where: { id: e.id, userId: cmd.userId } });
     if (e.kind === 'workoutSession') {
       await prisma.exerciseSet.deleteMany({ where: { workoutSessionId: e.id } });
@@ -72,7 +73,7 @@ router.post('/transcribe', voiceEnabled, wrap(async (req, res) => {
 // proposes candidate fields only — everything is re-validated and resolved
 // server-side; it can never emit an ID or execute anything.
 const VOICE_INTENTS = ['LOG_EXERCISE_SET', 'LOG_FOOD', 'LOG_WATER', 'MARK_SUPPLEMENT_TAKEN',
-  'UPDATE_EXERCISE_SET', 'START_WORKOUT', 'COMPLETE_WORKOUT', 'UNDO_ACTION', 'CANCEL_COMMAND', 'UNKNOWN_INTENT'];
+  'UPDATE_EXERCISE_SET', 'START_WORKOUT', 'COMPLETE_WORKOUT', 'LOG_MOOD', 'UNDO_ACTION', 'CANCEL_COMMAND', 'UNKNOWN_INTENT'];
 
 const NULLABLE = { type: ['number', 'null'] };
 const NULLABLE_STR = { type: ['string', 'null'] };
@@ -83,7 +84,7 @@ const INTENT_SCHEMA = {
       properties: {
         intent: { type: 'string', enum: VOICE_INTENTS }, segment: { type: 'string' },
         exerciseName: NULLABLE_STR, sets: NULLABLE, reps: NULLABLE, weight: NULLABLE, weightUnit: NULLABLE_STR,
-        amountMl: NULLABLE, mealType: NULLABLE_STR, name: NULLABLE_STR,
+        amountMl: NULLABLE, mealType: NULLABLE_STR, name: NULLABLE_STR, mood: NULLABLE_STR, energy: NULLABLE, stress: NULLABLE,
         items: {
           type: 'array', items: {
             type: 'object', additionalProperties: false,
@@ -92,12 +93,12 @@ const INTENT_SCHEMA = {
           },
         },
       },
-      required: ['intent', 'segment', 'exerciseName', 'sets', 'reps', 'weight', 'weightUnit', 'amountMl', 'mealType', 'name', 'items'],
+      required: ['intent', 'segment', 'exerciseName', 'sets', 'reps', 'weight', 'weightUnit', 'amountMl', 'mealType', 'name', 'items', 'mood', 'energy', 'stress'],
     },
   },
 };
 const INTENT_INSTRUCTIONS = `You convert short voice commands from a fitness logging app into structured actions, one action per numbered input segment.
-Intents: LOG_EXERCISE_SET (add sets/reps/weight of an exercise), LOG_FOOD (food items; split every distinct food), LOG_WATER (water amount), MARK_SUPPLEMENT_TAKEN, UPDATE_EXERCISE_SET (change the most recent set), START_WORKOUT, COMPLETE_WORKOUT, UNDO_ACTION, CANCEL_COMMAND, UNKNOWN_INTENT (not a logging command).
+Intents: LOG_EXERCISE_SET (add sets/reps/weight of an exercise), LOG_FOOD (food items; split every distinct food), LOG_WATER (water amount), MARK_SUPPLEMENT_TAKEN, UPDATE_EXERCISE_SET (change the most recent set), START_WORKOUT, COMPLETE_WORKOUT, LOG_MOOD (record how the user feels: mood one of very_low|low|neutral|good|very_good, energy 1-5, stress 1-5), UNDO_ACTION, CANCEL_COMMAND, UNKNOWN_INTENT (not a logging command).
 Rules: never invent IDs or foods not mentioned; keep weightUnit as "lbs" or "kg"; water amounts in ml; food grams only when the user gives a weight (e.g. "150 g"); household measures go in unit with quantity (e.g. "2 slices" -> quantity 2, unit "slice"); unknown or non-command speech -> UNKNOWN_INTENT. Output exactly one action per input segment, in order, echoing the segment text.`;
 
 const numOrNull = v => Number.isFinite(Number(v)) && v !== null ? Number(v) : null;
@@ -114,6 +115,8 @@ function aiAction(raw, segment, ctx) {
     weightUnit: raw.weightUnit === 'kg' ? 'kg' : 'lbs',
     amountMl: numOrNull(raw.amountMl), mealType: raw.mealType || 'meal',
     name: raw.name || null,
+    mood: typeof raw.mood === 'string' ? raw.mood : null,
+    energy: numOrNull(raw.energy), stress: numOrNull(raw.stress),
     items: Array.isArray(raw.items) ? raw.items.filter(i => i && typeof i.name === 'string' && i.name.trim())
       .map(i => ({ name: i.name.trim(), grams: numOrNull(i.grams), quantity: numOrNull(i.quantity), unit: typeof i.unit === 'string' ? i.unit : 'servings' })) : [],
   };
@@ -125,6 +128,7 @@ function aiAction(raw, segment, ctx) {
   else if (intent === 'LOG_FOOD') { missing = e.items.length ? (e.items.some(i => i.grams == null) ? ['grams'] : []) : ['items']; ready = e.items.length > 0 && e.items.every(i => i.grams != null); }
   else if (intent === 'MARK_SUPPLEMENT_TAKEN') { missing = e.name ? [] : ['name']; ready = Boolean(e.name); }
   else if (intent === 'UPDATE_EXERCISE_SET') { missing = [e.reps ? null : 'reps', ctx.lastSetId ? null : 'set'].filter(Boolean); ready = Boolean(e.reps && ctx.lastSetId); }
+  else if (intent === 'LOG_MOOD') { const ok = ['very_low','low','neutral','good','very_good'].includes(e.mood); missing = ok ? [] : ['mood']; ready = ok; }
   return { intent, entities: e, missing, segment, status: ready ? 'ready' : 'needs_review', source: 'ai' };
 }
 
@@ -287,6 +291,18 @@ router.post('/commands/execute', wrap(async (req, res) => {
         await prisma.exerciseSet.update({ where: { id: set.id }, data: { reps } });
         created.push({ kind: 'exerciseSetUpdate', id: set.id, prev: { reps: set.reps } });
         results.push({ intent: a.intent, status: 'saved', detail: `${set.exerciseName} set → ${reps} reps` });
+        break;
+      }
+      case 'LOG_MOOD': {
+        const mindOn = await flags.isEnabled('mind_habits_enabled', userId).catch(() => false);
+        if (!mindOn) { results.push({ intent: a.intent, status: 'skipped', reason: 'Mind & Habits is off for this account' }); break; }
+        const en = Math.min(5, Math.max(1, Math.round(a.entities.energy ?? 3)));
+        const st = Math.min(5, Math.max(1, Math.round(a.entities.stress ?? 3)));
+        const c = await prisma.emotionalCheckIn.create({ data: {
+          userId, mood: a.entities.mood, energy: en, stress: st,
+        } });
+        created.push({ kind: 'emotionalCheckIn', id: c.id });
+        results.push({ intent: a.intent, status: 'saved', detail: `mood logged as ${a.entities.mood.replace('_',' ')}` });
         break;
       }
       case 'START_WORKOUT': {

@@ -103,6 +103,13 @@ const ACTION_DEFS = [
     },
   },
   {
+    key: 'mind_checkin', weight: 42,
+    applies: async (c) => {
+      if (!c.mind || c.mind.off || c.mind.checkedInToday) return null;
+      return { title: 'How are you feeling today?', explanation: 'A 10-second optional check-in helps you spot your own patterns over time.', evidence: ['Mind & Habits enabled'], action: { type: 'open', route: 'MindHome' }, confidence: 'partial' };
+    },
+  },
+  {
     key: 'sync_wearable', weight: 45,
     applies: async (c) => {
       if (!c.hasWearable || !c.wearableStaleHours || c.wearableStaleHours < 48) return null;
@@ -167,6 +174,14 @@ async function buildContext(userId, tz) {
     sleep: await getSleepRecoverySummary(userId).catch(() => null),
     gut: await getGutHealthSummary(userId).catch(() => null),
     habits: await listHabits(userId, tz).catch(() => null),
+    mind: await (async () => {
+      const on = await flags.isEnabled('mind_habits_enabled', userId).catch(() => false);
+      if (!on) return null;
+      const prefs = await getPrisma().userMindPreferences.findUnique({ where: { userId } }).catch(() => null);
+      if (prefs && !prefs.moduleEnabled) return { off: true };
+      const today = await getPrisma().emotionalCheckIn.count({ where: { userId, loggedAt: { gte: start, lt: end } } }).catch(() => 0);
+      return { checkedInToday: today > 0 };
+    })().catch(() => null),
   };
 }
 

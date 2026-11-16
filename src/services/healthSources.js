@@ -122,6 +122,18 @@ async function ingestMeasurements(userId, providerId, records) {
     accepted++;
   }
   await prisma.healthDataSource.update({ where: { id: src.id }, data: { lastSyncAt: new Date(), lastError: errors.length ? `${errors.length} record(s) rejected` : null } });
+  // Advance sync cursors — incremental adapters resume from the newest
+  // checkpoint per metric rather than rescanning.
+  const latestByMetric = {};
+  for (const r of records) { const t = new Date(r.startAt).getTime(); if (!latestByMetric[r.metric] || t > latestByMetric[r.metric]) latestByMetric[r.metric] = t; }
+  for (const [metric, t] of Object.entries(latestByMetric)) {
+    if (typeof prisma.healthSyncCursor?.upsert !== 'function') break;
+    await prisma.healthSyncCursor.upsert({
+      where: { sourceId_metric: { sourceId: src.id, metric } },
+      create: { sourceId: src.id, metric, lastCheckpoint: new Date(t) },
+      update: { lastCheckpoint: new Date(t), retryCount: 0, lastError: null },
+    }).catch(() => {});
+  }
   return { accepted, duplicates, rejected: errors.length, errors: errors.slice(0, 20) };
 }
 
