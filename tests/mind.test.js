@@ -1,12 +1,14 @@
 // Mind & Habits service tests — mocked Prisma, no AI calls.
-jest.mock('../src/lib/prisma', () => ({
+jest.mock('../src/lib/prisma', () => { const db = {
   emotionalCheckIn: { create: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), update: jest.fn(), delete: jest.fn() },
   userMindPreferences: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
   mindExerciseCompletion: { create: jest.fn(), findMany: jest.fn() },
   sleepLog: { findMany: jest.fn() },
   workoutSession: { findMany: jest.fn() },
-}));
-const prisma = require('../src/lib/prisma');
+  habitCompletion: { findMany: jest.fn() },
+}; return { getPrisma: () => db }; });;
+const { getPrisma } = require('../src/lib/prisma');
+const prisma = getPrisma();
 const svc = require('../src/services/mind');
 
 describe('mind service', () => {
@@ -46,11 +48,12 @@ describe('mind service', () => {
     for (let i = 0; i < 12; i++) {
       const day = new Date(Date.now() - i * 864e5);
       checkins.push({ loggedAt: day, mood: i % 2 ? 'good' : 'low', energy: i % 2 ? 5 : 2, stress: 3 });
-      sleeps.push({ date: day, durationMin: i % 2 ? 480 : 300 });
+      sleeps.push({ sleepEnd: day, hoursSlept: i % 2 ? 8 : 5 });
     }
     prisma.emotionalCheckIn.findMany.mockResolvedValue(checkins);
     prisma.sleepLog.findMany.mockResolvedValue(sleeps);
     prisma.workoutSession.findMany.mockResolvedValue([]);
+    prisma.habitCompletion.findMany.mockResolvedValue([]);
     const out = await svc.getInsights('u1');
     expect(out.dataQuality).toBe('ok');
     expect(out.insights.length).toBeGreaterThan(0);

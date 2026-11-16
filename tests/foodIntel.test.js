@@ -1,13 +1,14 @@
 // Food Intelligence tests — barcode, evidence, deterministic suitability.
-jest.mock('../src/lib/prisma', () => ({
+jest.mock('../src/lib/prisma', () => { const db = {
   barcodeProduct: { findUnique: jest.fn(), upsert: jest.fn() },
   ingredientEvidenceProfile: { count: jest.fn(), upsert: jest.fn(), findFirst: jest.fn(), findMany: jest.fn() },
   userAllergy: { findMany: jest.fn() },
   foodPreference: { findMany: jest.fn() },
   userPlanningPreferences: { findUnique: jest.fn() },
   userHealthCondition: { findMany: jest.fn() },
-}));
-const prisma = require('../src/lib/prisma');
+}; return { getPrisma: () => db }; });;
+const { getPrisma } = require('../src/lib/prisma');
+const prisma = getPrisma();
 const svc = require('../src/services/foodIntel');
 
 describe('food intelligence', () => {

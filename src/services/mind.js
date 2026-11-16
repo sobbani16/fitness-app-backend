@@ -1,6 +1,8 @@
 // Mind & Habits service — opt-in emotional wellness. Non-diagnostic by design:
 // no mood inference from wearables, no clinical claims, journals are private.
-const prisma = require('../lib/prisma');
+const { getPrisma } = require('../lib/prisma');
+// Lazy accessor — resolves getPrisma() per call so tests can swap the client.
+const prisma = new Proxy({}, { get: (_t, prop) => getPrisma()[prop] });
 
 const MOODS = ['very_low', 'low', 'neutral', 'good', 'very_good'];
 const MOOD_SCORE = { very_low: 1, low: 2, neutral: 3, good: 4, very_good: 5 };
@@ -209,10 +211,10 @@ async function getInsights(userId, { days = 30 } = {}) {
 
   // Sleep ↔ mood/energy: join check-in days to SleepLog days
   const sleeps = await prisma.sleepLog.findMany({
-    where: { userId, date: { gte: since } },
-    select: { date: true, durationMin: true },
+    where: { userId, sleepEnd: { gte: since } },
+    select: { sleepEnd: true, hoursSlept: true },
   });
-  const sleepByDay = new Map(sleeps.map((s) => [s.date.toISOString().slice(0, 10), s.durationMin || 0]));
+  const sleepByDay = new Map(sleeps.map((s) => [s.sleepEnd.toISOString().slice(0, 10), (s.hoursSlept || 0) * 60]));
   const withSleep = checkins.filter((c) => sleepByDay.has(c.loggedAt.toISOString().slice(0, 10)));
   const insights = [];
 
@@ -261,6 +263,54 @@ async function getInsights(userId, { days = 30 } = {}) {
           : `Your stress check-ins trended higher on days with a logged workout (${withAct.length} check-ins).`,
         sampleSize: withAct.length, confidence: 'low', causal: false,
       });
+    }
+  }
+
+  // Rest days ↔ stress and workout-frequency ↔ energy
+  if (checkins.length >= MIN_OBSERVATIONS) {
+    const avg = (arr, f) => arr.length ? arr.reduce((x, c) => x + f(c), 0) / arr.length : 0;
+    const wk = checkins.map((c) => ({ c, d: c.loggedAt.toISOString().slice(0, 10) }));
+    const onW = wk.filter((x) => workoutDays.has(x.d));
+    const offW = wk.filter((x) => !workoutDays.has(x.d));
+    if (workoutDays.size >= 3 && offW.length >= MIN_OBSERVATIONS / 2 && onW.length >= 3) {
+      const eOn = avg(onW, (x) => x.c.energy), eOff = avg(offW, (x) => x.c.energy);
+      if (Math.abs(eOn - eOff) >= 0.4) {
+        insights.push({ type: 'workout_energy', statement: eOn > eOff
+          ? `On days with a logged workout your energy check-ins trended higher (${wk.length} check-ins).`
+          : `On days with a logged workout your energy check-ins trended lower (${wk.length} check-ins).`,
+          sampleSize: wk.length, confidence: 'low', causal: false });
+      }
+      if (offW.length >= MIN_OBSERVATIONS / 2 && !insights.some((i) => i.type === 'activity_stress')) {
+        const sOff = avg(offW, (x) => x.c.stress);
+        const sAll = avg(wk, (x) => x.c.stress);
+        if (Math.abs(sAll - sOff) >= 0.4) {
+          insights.push({ type: 'restday_stress', statement: sOff > sAll
+            ? `Your stress check-ins trended higher on rest days across ${offW.length} non-workout days.`
+            : `Your stress check-ins trended lower on rest days across ${offW.length} non-workout days.`,
+            sampleSize: offW.length, confidence: 'low', causal: false });
+        }
+      }
+    }
+  }
+
+  // Habit completion ↔ self-reported well-being
+  const habits = await prisma.habitCompletion.findMany({
+    where: { habit: { userId }, day: { gte: since } },
+    select: { day: true },
+  }).catch(() => []);
+  if (habits.length >= 5) {
+    const habitDays = new Set(habits.map((h) => h.day.toISOString().slice(0, 10)));
+    const avg = (arr, f) => arr.length ? arr.reduce((x, c) => x + f(c), 0) / arr.length : 0;
+    const onH = checkins.filter((c) => habitDays.has(c.loggedAt.toISOString().slice(0, 10)));
+    const offH = checkins.filter((c) => !habitDays.has(c.loggedAt.toISOString().slice(0, 10)));
+    if (onH.length >= MIN_OBSERVATIONS / 2 && offH.length >= MIN_OBSERVATIONS / 2) {
+      const mOn = avg(onH, (c) => MOOD_SCORE[c.mood]), mOff = avg(offH, (c) => MOOD_SCORE[c.mood]);
+      if (Math.abs(mOn - mOff) >= 0.4) {
+        insights.push({ type: 'habit_wellbeing', statement: mOn > mOff
+          ? `On days you completed a chosen habit, your check-ins trended toward better mood (${onH.length + offH.length} check-ins).`
+          : `On days you completed a chosen habit, your check-ins trended toward lower mood (${onH.length + offH.length} check-ins).`,
+          sampleSize: onH.length + offH.length, confidence: 'low', causal: false });
+      }
     }
   }
 

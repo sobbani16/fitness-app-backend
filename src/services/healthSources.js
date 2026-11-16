@@ -1,7 +1,9 @@
 // Wearable-ready health platform — provider adapters, idempotent ingest,
 // interval-aware dedup, derived summaries. HUMAI_BAND is registered but
 // NOT_AVAILABLE (no hardware exists). Synthetic provider is internal-only.
-const prisma = require('../lib/prisma');
+const { getPrisma } = require('../lib/prisma');
+// Lazy accessor — resolves getPrisma() per call so tests can swap the client.
+const prisma = new Proxy({}, { get: (_t, prop) => getPrisma()[prop] });
 //
 
 // Provider registry — capabilities are honest; band availability is stubbed.
@@ -191,7 +193,7 @@ async function getRecovery(userId) {
   const [rhr, hrv, sleep, sessions] = await Promise.all([
     prisma.healthMeasurement.findMany({ where: { userId, metric: 'resting_heart_rate', synthetic: false, startAt: { gte: since } }, orderBy: { startAt: 'asc' } }),
     prisma.healthMeasurement.findMany({ where: { userId, metric: { in: ['hrv_sdnn', 'hrv_rmssd'] }, synthetic: false, startAt: { gte: since } }, orderBy: { startAt: 'asc' } }),
-    prisma.sleepLog.findMany({ where: { userId, date: { gte: since } }, orderBy: { date: 'asc' } }),
+    prisma.sleepLog.findMany({ where: { userId, sleepEnd: { gte: since } }, orderBy: { sleepEnd: 'asc' } }),
     prisma.workoutSession.count({ where: { userId, finishedAt: { gte: since } } }),
   ]);
   const coverage = { restingHeartRateDays: rhr.length, hrvDays: hrv.length, sleepNights: sleep.length, workouts: sessions };
@@ -203,7 +205,7 @@ async function getRecovery(userId) {
   const half = Math.floor(sleep.length / 2);
   const trends = [];
   if (sleep.length >= 5) {
-    const recent = avg(sleep.slice(half), (s) => s.durationMin || 0), earlier = avg(sleep.slice(0, half), (s) => s.durationMin || 0);
+    const recent = avg(sleep.slice(half), (s) => (s.hoursSlept || 0) * 60), earlier = avg(sleep.slice(0, half), (s) => (s.hoursSlept || 0) * 60);
     trends.push({ metric: 'sleep', direction: recent > earlier + 10 ? 'improving' : recent < earlier - 10 ? 'declining' : 'steady', note: `Recent average ${Math.round(recent)} min vs earlier ${Math.round(earlier)} min.` });
   }
   if (rhr.length >= 5) {
@@ -240,8 +242,35 @@ function simFixtures(kind, days = 7) {
   return out.map((r) => ({ ...r, quality: 'measured', meta: { synthetic: true } }));
 }
 
+// Workout-load snapshot — documented formula, versioned, no invented score.
+// Resistance: tonnage = Σ sets×reps×weightKg. Cardio: duration minutes.
+async function getWorkoutLoad(userId, days = 28) {
+  const since = new Date(Date.now() - days * 864e5);
+  const sessions = await prisma.workoutSession.findMany({
+    where: { userId, finishedAt: { gte: since } },
+    include: { exerciseSets: { select: { reps: true, weightLbs: true } } },
+    orderBy: { finishedAt: 'asc' },
+  });
+  if (!sessions.length) return { status: 'INSUFFICIENT_DATA', days, sessions: 0 };
+  let tonnageKg = 0, cardioMin = 0;
+  for (const s of sessions) {
+    for (const set of s.exerciseSets || []) tonnageKg += (set.reps || 0) * ((set.weightLbs || 0) / 2.20462);
+    if (!(s.exerciseSets || []).length) cardioMin += s.durationMinutes || 0;
+  }
+  const half = Math.floor(sessions.length / 2) || 1;
+  const recent = sessions.slice(-half), earlier = sessions.slice(0, half);
+  const ton = (arr) => arr.reduce((t, s) => t + (s.exerciseSets || []).reduce((x, st) => x + (st.reps || 0) * ((st.weightLbs || 0) / 2.20462), 0), 0);
+  const dir = ton(recent) > ton(earlier) * 1.15 ? 'increasing' : ton(recent) < ton(earlier) * 0.85 ? 'decreasing' : 'steady';
+  return {
+    status: 'OK', calcVersion: 'workload_v1', days, sessions: sessions.length,
+    resistance: { tonnageKg: Math.round(tonnageKg), direction: dir },
+    cardio: { minutes: Math.round(cardioMin) },
+    disclaimer: 'Documented workload summary — resistance tonnage and cardio minutes tracked separately. Not a clinical score.',
+  };
+}
+
 module.exports = {
   PROVIDERS, PRECEDENCE, VALID_METRICS, listProviders, listSources,
   connectSource, disconnectSource, deleteSourceData,
-  ingestMeasurements, getSeries, getDailySummary, getRecovery, simFixtures, reconcileDaily,
+  ingestMeasurements, getSeries, getDailySummary, getRecovery, getWorkoutLoad, simFixtures, reconcileDaily,
 };

@@ -1,13 +1,14 @@
 // Wearable platform tests — ingest idempotency, dedup, recovery honesty.
-jest.mock('../src/lib/prisma', () => ({
+jest.mock('../src/lib/prisma', () => { const db = {
   healthDataSource: { findUnique: jest.fn(), findMany: jest.fn(), upsert: jest.fn(), update: jest.fn(), delete: jest.fn() },
   healthMeasurement: { create: jest.fn(), findFirst: jest.fn(), findMany: jest.fn(), update: jest.fn(), deleteMany: jest.fn() },
   healthSyncCursor: { deleteMany: jest.fn(), upsert: jest.fn().mockResolvedValue({}) },
   wearableDevice: { updateMany: jest.fn() },
   sleepLog: { findMany: jest.fn() },
   workoutSession: { count: jest.fn() },
-}));
-const prisma = require('../src/lib/prisma');
+}; return { getPrisma: () => db }; });;
+const { getPrisma } = require('../src/lib/prisma');
+const prisma = getPrisma();
 const svc = require('../src/services/healthSources');
 
 const SRC = { id: 's1', userId: 'u1', provider: 'apple_health', connectionState: 'connected' };

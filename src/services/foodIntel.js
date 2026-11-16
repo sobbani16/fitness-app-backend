@@ -1,7 +1,9 @@
 // Food Intelligence service — barcode resolution, reviewed ingredient
 // evidence, deterministic personalized suitability. No fabricated nutrients,
 // no supplement-to-culinary overclaiming, hard exclusions always win.
-const prisma = require('../lib/prisma');
+const { getPrisma } = require('../lib/prisma');
+// Lazy accessor — resolves getPrisma() per call so tests can swap the client.
+const prisma = new Proxy({}, { get: (_t, prop) => getPrisma()[prop] });
 
 // Reviewed educational profiles — written by hand, APPROVED on seed.
 // Each claim: claim, verdict (established|mixed|insufficient|marketing),
@@ -140,13 +142,17 @@ async function upsertBarcodeProduct(userId, body) {
 
 // --- Evidence -----------------------------------------------------------------
 
+// Indian + common aliases → canonical keys (India-first readiness D3)
+const ALIASES = { haldi: 'turmeric', dalchini: 'cinnamon', 'dal chini': 'cinnamon', adrak: 'ginger', adarak: 'ginger', methi: 'fenugreek', alsi: 'flaxseed', 'flax seed': 'flaxseed', dahi: 'yogurt', curd: 'yogurt', jai: 'oats', 'rolled oats': 'oats', lahsun: 'garlic', 'chia seed': 'chia', sabja: 'chia' };
+
 async function getEvidence(ingredientKey) {
   await ensureEvidenceSeeded();
+  const raw = String(ingredientKey).toLowerCase().trim();
   const profile = await prisma.ingredientEvidenceProfile.findFirst({
-    where: { ingredientKey: String(ingredientKey).toLowerCase(), status: { in: ['APPROVED', 'ACTIVE'] } },
+    where: { ingredientKey: ALIASES[raw] || raw, status: { in: ['APPROVED', 'ACTIVE'] } },
     orderBy: { version: 'desc' },
   });
-  if (!profile) return { found: false, ingredientKey };
+  if (!profile) return { found: false, ingredientKey: raw, canonical: ALIASES[raw] || raw };
   return {
     found: true, ingredientKey: profile.ingredientKey, displayName: profile.displayName,
     summary: profile.summary, claims: profile.claims, cautions: profile.cautions,
@@ -259,4 +265,68 @@ async function scanResult(userId, { barcode, ingredientKeys = [], ingredientText
   return out;
 }
 
-module.exports = { EVIDENCE_SEED, ensureEvidenceSeeded, resolveBarcode, upsertBarcodeProduct, getEvidence, listEvidence, checkSuitability, scanResult };
+// Deterministic, evidence-bounded explanation for Leo — template-built from
+// approved claims only; never invents citations.
+async function explainIngredient(ingredientKey, question) {
+  const ev = await getEvidence(ingredientKey);
+  if (!ev.found) return { found: false, message: `I don't have a reviewed evidence profile for "${ingredientKey}" yet.`, citations: [] };
+  const q = String(question || '').toLowerCase();
+  const claims = ev.claims;
+  const relevant = q ? claims.filter((c) => c.claim.toLowerCase().split(/\s+/).some((w) => w.length > 3 && q.includes(w))) : claims;
+  const use = relevant.length ? relevant : claims;
+  const parts = use.map((c) => {
+    const verdict = { established: 'Supported by evidence', mixed: 'Evidence is mixed', insufficient: 'Not supported by current evidence', marketing: 'Mostly a marketing claim' }[c.verdict] || c.verdict;
+    return `${verdict}: ${c.claim}. ${c.applicability}${c.limitations ? ` (${c.limitations})` : ''}`;
+  });
+  const cautions = ev.cautions.map((c) => c.text);
+  return {
+    found: true, ingredient: ev.displayName, summary: ev.summary, answer: parts,
+    cautions, version: ev.version,
+    citations: use.map((c) => c.source).filter(Boolean),
+    disclaimer: 'Educational summary from reviewed evidence records — not medical advice.',
+  };
+}
+
+// Explainable alternatives — same catalog category, hard restrictions applied
+// first, honest "why" strings. Never calls anything medically safe.
+async function alternatives(userId, { ingredientText = '', category, limit = 5 }) {
+  const suit = await checkSuitability(userId, { ingredientText });
+  const blocked = suit.verdict === 'conflict';
+  const candidates = await prisma.ingredientCatalog.findMany({
+    where: category ? { foodType: category } : {},
+    take: 60, orderBy: { name: 'asc' },
+    select: { name: true, foodType: true, cuisine: true },
+  }).catch(() => []);
+  const out = [];
+  const { RESTRICTION_KEYWORDS, keywordsFor } = require('./mealSuggestion');
+  for (const c of candidates) {
+    if (out.length >= limit) break;
+    const n = String(c.name || '').toLowerCase();
+    if (!n || (ingredientText && ingredientText.toLowerCase().includes(n))) continue;
+    // quick deterministic re-check of the candidate against user restrictions
+    const cSuit = await checkSuitability(userId, { ingredientText: n });
+    if (cSuit.verdict === 'conflict') continue;
+    out.push({ name: c.name, category: c.foodType, cuisine: c.cuisine, why: cSuit.verdict === 'suitable' ? 'No conflicts with your saved preferences' : 'Verify the label before choosing', verdict: cSuit.verdict });
+  }
+  return { alternatives: out, note: blocked ? 'Alternatives avoid the conflict found in the scanned item.' : 'Similar-category options from the catalog.', disclaimer: 'Suggestions are filtered by your restrictions — always verify labels.' };
+}
+
+// Add-to-log through the existing FoodLog pipeline with source provenance.
+async function logScannedFood(userId, { productName, servingG, nutrients = {}, mealType = 'meal', barcode }) {
+  if (!productName || !Number.isFinite(Number(servingG)) || Number(servingG) <= 0 || Number(servingG) > 5000) {
+    const e = new Error('productName and servingG (1-5000) required'); e.status = 400; throw e;
+  }
+  const g = Number(servingG);
+  // nutrient values are per serving — scale by grams relative to serving size
+  const n = nutrients || {};
+  const saved = await prisma.foodLog.create({ data: {
+    userId, foodName: String(productName).slice(0, 300), quantityG: g,
+    calories: n.calories ?? 0, proteinG: n.proteinG ?? 0, carbsG: n.carbsG ?? 0,
+    fatG: n.fatG ?? 0, fiberG: n.fiberG ?? null,
+    mealType: String(mealType).slice(0, 30),
+    nutritionSnapshot: { loggedSource: 'food-intel', barcode: barcode || null, perServing: n, reviewRecommended: !barcode },
+  } });
+  return saved;
+}
+
+module.exports = { EVIDENCE_SEED, ensureEvidenceSeeded, resolveBarcode, upsertBarcodeProduct, getEvidence, listEvidence, checkSuitability, scanResult, explainIngredient, alternatives, logScannedFood, ALIASES };
