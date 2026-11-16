@@ -1,5 +1,9 @@
 // Food Intelligence tests — barcode, evidence, deterministic suitability.
+jest.mock('../src/services/featureFlags/service', () => ({ isEnabled: jest.fn(async () => false) }));
 jest.mock('../src/lib/prisma', () => { const db = {
+  barcodeFavorite: { findUnique: jest.fn(), delete: jest.fn(), create: jest.fn(), findMany: jest.fn() },
+  productCorrection: { create: jest.fn() },
+  barcodeProductUpdateHolder: undefined,
   barcodeProduct: { findUnique: jest.fn(), upsert: jest.fn() },
   ingredientEvidenceProfile: { count: jest.fn(), upsert: jest.fn(), findFirst: jest.fn(), findMany: jest.fn() },
   userAllergy: { findMany: jest.fn() },
