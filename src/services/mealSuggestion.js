@@ -252,4 +252,4 @@ async function getMealSuggestions(prisma, userId, { occasion, limit = 5, now = n
   };
 }
 
-module.exports = { getMealSuggestions, resolveOccasion, keywordsFor, OCCASION_TARGET_SHARE };
+module.exports = { getMealSuggestions, resolveOccasion, keywordsFor, OCCASION_TARGET_SHARE, RESTRICTION_KEYWORDS, ALLERGEN_KEYWORDS };

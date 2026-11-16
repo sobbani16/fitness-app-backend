@@ -3056,3 +3056,179 @@ model WeeklyHealthReview {
   @@unique([userId, weekOf])
   @@index([userId, createdAt])
 }
+
+// ============================================================================
+// MIND & HABITS — opt-in emotional wellness (non-diagnostic). Journals are
+// private: never shared with trainers or sent to AI providers without the
+// dedicated consents on UserMindPreferences.
+// ============================================================================
+model EmotionalCheckIn {
+  id          String   @id @default(uuid())
+  userId      String
+  mood        String   // very_low|low|neutral|good|very_good
+  energy      Int      // 1-5
+  stress      Int      // 1-5 perceived
+  emotionTags Json     @default("[]") // e.g. ["calm","anxious","proud"]
+  contextTags Json     @default("[]") // work|family|exercise|sleep|relationships|other
+  journal     String?  // private journal text — access-logged, consent-gated
+  timezone    String   @default("UTC")
+  loggedAt    DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, loggedAt])
+}
+
+model UserMindPreferences {
+  userId                String   @id
+  moduleEnabled         Boolean  @default(true)
+  remindersEnabled      Boolean  @default(false)
+  aiJournalConsent      Boolean  @default(false) // separate informed consent for AI processing of journals
+  checkinSharingConsent Boolean  @default(false) // separate consent for trainer sharing
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model MindExerciseCompletion {
+  id          String   @id @default(uuid())
+  userId      String
+  exerciseKey String
+  trackKey    String   // self_awareness|self_management|social_awareness|relationship_management
+  reflection  String?
+  completedAt DateTime @default(now())
+
+  @@index([userId, completedAt])
+}
+
+// ============================================================================
+// FOOD INTELLIGENCE — barcode resolution + reviewed ingredient evidence.
+// Only APPROVED/ACTIVE profiles surface as established conclusions.
+// ============================================================================
+model BarcodeProduct {
+  barcode           String   @id // GTIN/UPC/EAN digits
+  name              String
+  brand             String?
+  servingSizeG      Float?
+  servingLabel      String?
+  nutrients         Json     @default("{}") // per serving: calories, proteinG, ...
+  ingredients       String?  // raw ingredient list text
+  allergens         Json     @default("[]")
+  source            String   @default("catalog") // catalog|off|user|import
+  updatedAt         DateTime @updatedAt
+  createdAt         DateTime @default(now())
+}
+
+model IngredientEvidenceProfile {
+  id            String   @id @default(uuid())
+  ingredientKey String   // loose key into the ingredient catalog (e.g. 'cinnamon')
+  displayName   String
+  summary       String   // basic nutritional characteristics, plain language
+  claims        Json     @default("[]") // [{claim, verdict, applicability, studyType, dose, limitations, source}]
+  cautions      Json     @default("[]") // [{text, appliesTo}]
+  status        String   @default("DRAFT") // DRAFT|IN_REVIEW|APPROVED|ACTIVE|NEEDS_REVIEW|RETIRED
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  version       Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([ingredientKey, version])
+  @@index([ingredientKey, status])
+}
+
+// ============================================================================
+// WEARABLE-READY HEALTH PLATFORM — device-agnostic sources, devices,
+// measurements, sync cursors, derived summaries. Data source ≠ originating
+// device ≠ measurement ≠ derived summary.
+// ============================================================================
+model WearableDevice {
+  id               String   @id @default(uuid())
+  userId           String
+  provider         String   // apple_health|health_connect|humai_band|internal_sim
+  manufacturer     String?
+  model            String?
+  deviceType       String   @default("wearable") // wearable|phone|sensor|simulated
+  displayName      String?
+  externalDeviceId String?
+  firmwareVersion  String?
+  connectionState  String   @default("connected") // connected|disconnected|revoked
+  lastSyncAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  measurements HealthMeasurement[]
+
+  @@index([userId, provider])
+}
+
+model HealthDataSource {
+  id               String   @id @default(uuid())
+  userId           String
+  provider         String   // apple_health|health_connect|humai_band|internal_sim|manual
+  connectionState  String   @default("connected") // connected|paused|revoked|error
+  permissionScopes Json     @default("[]")
+  lastSyncAt       DateTime?
+  lastAttemptAt    DateTime?
+  lastError        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  measurements HealthMeasurement[]
+  cursors      HealthSyncCursor[]
+
+  @@unique([userId, provider])
+}
+
+model HealthMeasurement {
+  id         String   @id @default(uuid())
+  userId     String
+  sourceId   String?
+  source     HealthDataSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  deviceId   String?
+  device     WearableDevice? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  provider   String
+  externalId String?  // provider-native record id — idempotent upsert key
+  metric     String   // heart_rate|resting_heart_rate|hrv_sdnn|hrv_rmssd|steps|sleep|active_energy|resting_energy|workout
+  value      Float?
+  unit       String   // canonical unit; source unit kept in meta
+  startAt    DateTime
+  endAt      DateTime?
+  receivedAt DateTime @default(now())
+  timezone   String?
+  quality    String?  // measured|estimated|low_quality
+  synthetic  Boolean  @default(false) // internal simulator records — never treated as real
+  meta       Json     @default("{}") // hrv statistic, provider extras, corrections
+
+  @@index([userId, metric, startAt])
+  @@index([provider, externalId])
+}
+
+model HealthSyncCursor {
+  id             String   @id @default(uuid())
+  sourceId       String
+  source         HealthDataSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  metric         String
+  cursor         String? // provider-native anchor (anchor token/offset)
+  lastCheckpoint DateTime?
+  retryCount     Int      @default(0)
+  lastError      String?
+  updatedAt      DateTime @updatedAt
+
+  @@unique([sourceId, metric])
+}
+
+model HealthMetricSummary {
+  id             String   @id @default(uuid())
+  userId         String
+  metric         String
+  periodStart    DateTime
+  periodType     String   @default("day") // day|week|month
+  value          Float
+  unit           String
+  sourceCoverage Json     @default("{}") // providers + record counts contributing
+  calcVersion    String   @default("v1")
+  sufficiency    String   @default("ok") // ok|partial|insufficient
+  computedAt     DateTime @default(now())
+
+  @@unique([userId, metric, periodType, periodStart])
+}

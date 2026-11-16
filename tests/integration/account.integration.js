@@ -70,7 +70,7 @@ test('all schema models are explicitly classified for deletion/export review', (
     'trainerNutritionAssignment', 'trainerNutritionFeedback', 'trainerNutritionPlan', 'messageReport',
     // Financial records retained (anonymized) for accounting; staff profiles.
     'trainerPurchase', 'trainerSubscription', 'trainerPaymentTransaction', 'trainerRefund', 'trainerPayout', 'reviewerProfile'];
-  const children = ['exerciseSet','recipeIngredient','creatorAnalytics','workoutPlanExercise','mealPlanItem','scoreContributor','healthScoreInsight','weeklyMeal','weeklyShoppingList','weeklyShoppingItem','weeklyRecommendation',
+  const children = ['exerciseSet','recipeIngredient','creatorAnalytics','workoutPlanExercise','mealPlanItem','scoreContributor','healthScoreInsight','weeklyMeal','weeklyShoppingList','weeklyShoppingItem','weeklyRecommendation','healthSyncCursor',
     'habitCompletion', 'trainerClientConsent', 'conversation', 'message', 'trainerWorkoutDay', 'trainerWorkoutExercise',
     'trainerWorkoutFeedback', 'trainerNutritionPlanMeal', 'trainerNutritionPlanItem', 'trainerNutritionTargets',
     'outcomeGoal', 'outcomePlanAdjustment', 'formCheckFeedback', 'videoSession', 'videoSessionSummary',
@@ -79,7 +79,7 @@ test('all schema models are explicitly classified for deletion/export review', (
     'knowledgeFAQ', 'contentCorrection', 'trainerCoachingPackage', 'trainerAvailability', 'trainerSessionType',
     'trainerSchedulingPreference', 'trainerCertification', 'trainerDocument', 'coachingGroup', 'trainerEntitlement'];
   const shared = ['ruleEvidence','healthConditionNutrientRule','nutrient','ingredientNutritionProfile','ingredientNutrient','ingredientImport','ingredientServing','ingredientCatalog','healthCondition','allergy','supplement','ingredient','ingredientAttribute','supplementAttribute','conditionRule','supplementRule','role','permission','rolePermission',
-    'exercise', 'exerciseMuscle', 'researchSource', 'knowledgeArticle', 'membershipModule', 'membershipPackage', 'trainerPromotion'];
+    'exercise', 'exerciseMuscle', 'researchSource', 'knowledgeArticle', 'membershipModule', 'membershipPackage', 'trainerPromotion', 'barcodeProduct', 'ingredientEvidenceProfile'];
   expect(models.map(m => modelName(m.name)).filter(m => ![...OWNED,...special,...children,...shared].includes(m))).toEqual([]);
 });
 test('requires session, current password, explicit deletion confirmation; unverified users retain privacy access', async () => {

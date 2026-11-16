@@ -18,6 +18,8 @@ const OWNED = [
   'pushDevice', 'devicePushToken', 'healthEnergyRecord', 'userWorkoutPlan', 'voiceCommand', 'foodTolerance',
   'userEntitlement', 'entitlementEvent', 'knowledgeSavedItem', 'knowledgeQuestionSuggestion',
   'recordingConsent', 'coachingGroupMember', 'groupReadCursor',
+  'emotionalCheckIn', 'userMindPreferences', 'mindExerciseCompletion',
+  'wearableDevice', 'healthDataSource', 'healthMeasurement', 'healthMetricSummary',
 ];
 const INCLUDES = {
   workoutSession: { exerciseSets: true },
@@ -27,6 +29,7 @@ const INCLUDES = {
   weeklyReview: { recommendations: true },
   userRole: { role: true },
   habit: { completions: true },
+  healthDataSource: { measurements: true, cursors: true },
 };
 const POLICY = Object.freeze({ version: '2026-10-18', liveData: 'Deleted immediately when the transaction completes; no recovery grace period.',
   backups: 'Hosting must enforce a maximum of 30 days for backups and operational logs. Restores must replay deletion receipts before serving traffic.',
