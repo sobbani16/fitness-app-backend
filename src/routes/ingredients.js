@@ -85,4 +85,45 @@ router.put('/:id/selection',async(req,res,next)=>{try{
  const data={selectedAt:new Date(),...(req.body.favorite==null?{}:{favorite:req.body.favorite})};
  await getPrisma().userIngredient.upsert({where:{userId_ingredientId:{userId,ingredientId}},create:{userId,ingredientId,...data},update:data});res.json({ok:true});
 }catch(e){next(e);}});
+// POST /ingredients/estimate/log — persist a REVIEWED estimate as a FoodLog
+// row. No shared catalog write: ingredientId stays null; provenance + the
+// user's corrections live in nutritionSnapshot. Client-supplied id makes
+// retried saves idempotent (P2002 -> return existing row).
+router.post('/estimate/log', requireFeature('ai_food_estimation_enabled'), async (req, res, next) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) throw httpError(401, 'Sign in required.');
+    const b = req.body || {};
+    const num = (v, max) => Math.max(0, Math.min(max, Number(v) || 0));
+    if (typeof b.name !== 'string' || !b.name.trim()) throw httpError(400, 'name is required.');
+    if (b.id != null && (typeof b.id !== 'string' || b.id.length > 64)) throw httpError(400, 'id must be ≤64 chars.');
+    if (!['breakfast','lunch','dinner','snack'].includes(b.mealType)) throw httpError(400, 'mealType must be breakfast|lunch|dinner|snack.');
+    const est = (b.estimate && typeof b.estimate === 'object') ? b.estimate : {};
+    const data = {
+      userId, foodName: b.name.trim().slice(0, 200),
+      quantityG: num(b.portionG, 20000), calories: num(b.calories, 15000),
+      proteinG: num(b.proteinG, 2000), carbsG: num(b.carbsG, 2000), fatG: num(b.fatG, 2000), fiberG: num(b.fiberG, 500),
+      mealType: b.mealType,
+      nutritionSnapshot: {
+        provenance: 'ai_estimate', estimateVersion: ESTIMATE_VERSION, reviewed: true,
+        serving: String(est.serving || '').slice(0, 120), confidence: est.confidence || 'low',
+        assumptions: Array.isArray(est.assumptions) ? est.assumptions.slice(0, 8) : [],
+        userCorrections: b.userCorrections === true,
+      },
+    };
+    const prisma = getPrisma();
+    try {
+      const log = await prisma.foodLog.create({ data: { ...(b.id ? { id: b.id } : {}), ...data } });
+      res.status(201).json({ foodLog: log });
+    } catch (e) {
+      if (e.code === 'P2002' && b.id) {
+        const log = await prisma.foodLog.findUnique({ where: { id: b.id } });
+        if (log?.userId !== userId) throw httpError(409, 'Log id conflict.');
+        res.json({ foodLog: log }); return;
+      }
+      throw e;
+    }
+  } catch (e) { next(e); }
+});
+
 module.exports = router;
