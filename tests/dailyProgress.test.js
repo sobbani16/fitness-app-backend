@@ -8,6 +8,7 @@ jest.mock('../src/lib/prisma', () => { const db = {
   habitCompletion: { findMany: jest.fn(async () => []) },
   reminderCategorySetting: { findMany: jest.fn(async () => []) },
   macroGoal: { findUnique: jest.fn(async () => null) },
+  userPlanningPreferences: { findUnique: jest.fn(async () => null) },
   habit: { count: jest.fn(async () => 0) },
   dailyProgressDay: { upsert: jest.fn(async () => ({})) },
 }; return { getPrisma: () => db }; });
@@ -74,5 +75,61 @@ describe('Daily Progress V2', () => {
     const b = await computeDay('u1', { tz: 'America/Chicago', now: late, persist: false });
     expect(a.dayKey).toBe('2026-11-17');
     expect(b.dayKey).toBe('2026-11-16');
+  });
+
+  test('water logged but no meals: hydration earns, nutrition stays honest', async () => {
+    prisma.waterLog.aggregate.mockResolvedValueOnce({ _sum: { amountMl: 1500 } });
+    const r = await computeDay('u1', { tz: TZ, now: MORNING, persist: false });
+    const hyd = r.components.find((c) => c.key === 'hydration');
+    expect(hyd.earned).toBeGreaterThan(0);
+    expect(r.earned).toBeLessThan(50); // water alone can't dominate the day
+  });
+
+  test('finished workout before lunch fulfills activity without gaming nutrition', async () => {
+    prisma.workoutSession.findMany.mockResolvedValueOnce([{ startedAt: MORNING, finishedAt: MORNING }]);
+    const r = await computeDay('u1', { tz: TZ, now: MORNING, persist: false });
+    expect(r.components.find((c) => c.key === 'activity').status).toBe('GOAL_MET');
+    expect(['INSUFFICIENT_DATA', 'NOT_STARTED']).toContain(r.components.find((c) => c.key === 'nutrition').status);
+  });
+
+  test('planned rest day fulfills activity — no workout required (A6)', async () => {
+    // 2026-11-17 is a Tuesday (weekday 2)
+    prisma.userPlanningPreferences.findUnique.mockResolvedValueOnce({ restDays: [2] });
+    const r = await computeDay('u1', { tz: TZ, now: MORNING, persist: false });
+    const act = r.components.find((c) => c.key === 'activity');
+    expect(act.status).toBe('GOAL_MET');
+    expect(act.restDay).toBe(true);
+  });
+
+  test('excess water and steps are capped at goal — no over-reward (A5)', async () => {
+    prisma.waterLog.aggregate.mockResolvedValueOnce({ _sum: { amountMl: 9999 } });
+    prisma.dailySteps.findFirst.mockResolvedValueOnce({ steps: 50000 });
+    const r = await computeDay('u1', { tz: TZ, now: MORNING, persist: false });
+    const hyd = r.components.find((c) => c.key === 'hydration');
+    const act = r.components.find((c) => c.key === 'activity');
+    expect(hyd.progress).toBe(1);
+    expect(act.progress).toBe(1);
+    expect(r.earned).toBeLessThanOrEqual(100);
+  });
+
+  test('late-imported sleep still attributes to the same local day', async () => {
+    prisma.sleepLog.findMany.mockResolvedValueOnce([{ hoursSlept: 6.5, source: 'imported_late' }]);
+    const r = await computeDay('u1', { tz: TZ, now: new Date('2026-11-17T20:00:00Z'), persist: false });
+    expect(r.components.find((c) => c.key === 'sleep').earned).toBeGreaterThan(0);
+    expect(r.dayKey).toBe('2026-11-17');
+  });
+
+  test('overnight workout counts on the local day it finished', async () => {
+    // workout 23:00→00:30 local lands inside today's bounds via startedAt
+    prisma.workoutSession.findMany.mockResolvedValueOnce([{ startedAt: new Date('2026-11-17T04:00:00Z'), finishedAt: new Date('2026-11-17T05:30:00Z') }]);
+    const r = await computeDay('u1', { tz: TZ, now: MORNING, persist: false });
+    expect(r.components.find((c) => c.key === 'activity').status).toBe('GOAL_MET');
+  });
+
+  test('food logged but no sleep: nutrition earns, sleep is INSUFFICIENT_DATA', async () => {
+    prisma.foodLog.findMany.mockResolvedValueOnce([{ calories: 500, mealType: 'breakfast', loggedAt: MORNING }]);
+    const r = await computeDay('u1', { tz: TZ, now: MORNING, persist: false });
+    expect(r.components.find((c) => c.key === 'nutrition').earned).toBeGreaterThan(0);
+    expect(r.components.find((c) => c.key === 'sleep').status).toBe('INSUFFICIENT_DATA');
   });
 });

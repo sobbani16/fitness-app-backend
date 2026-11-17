@@ -42,7 +42,7 @@ async function computeDay(userId, { tz, dayKeyStr, now = new Date(), persist = t
   const local = ld.localParts(now, zone);
   const minsNow = local.minutes;
 
-  const [meals, water, steps, workouts, sleep, habits, prefs, goals] = await Promise.all([
+  const [meals, water, steps, workouts, sleep, habits, prefs, goals, planningPrefs] = await Promise.all([
     prisma.foodLog.findMany({ where: { userId, loggedAt: { gte: startUtc, lt: endUtc } }, select: { calories: true, proteinG: true, fiberG: true, mealType: true, loggedAt: true } }).catch(() => []),
     prisma.waterLog.aggregate({ where: { userId, loggedAt: { gte: startUtc, lt: endUtc } }, _sum: { amountMl: true } }).catch(() => ({ _sum: {} })),
     prisma.dailySteps.findFirst({ where: { userId, date: { gte: startUtc, lt: endUtc } }, select: { steps: true } }).catch(() => null),
@@ -51,7 +51,8 @@ async function computeDay(userId, { tz, dayKeyStr, now = new Date(), persist = t
     prisma.habitCompletion.findMany({ where: { habit: { userId }, day: dk }, select: { outcome: true, habitId: true } }).catch(() => []),
     prisma.reminderCategorySetting.findMany({ where: { userId, category: { startsWith: 'meal:' }, enabled: true }, select: { category: true, times: true } }).catch(() => null),
     prisma.macroGoal.findUnique({ where: { userId }, select: { caloriesTarget: true, proteinTarget: true, fiberTarget: true, waterMlTarget: true } }).catch(() => null),
-  ]).catch(() => [[], { _sum: {} }, null, [], [], [], null, null]);
+    prisma.userPlanningPreferences.findUnique({ where: { userId }, select: { restDays: true } }).catch(() => null),
+  ]).catch(() => [[], { _sum: {} }, null, [], [], [], null, null, null]);
 
   const components = [];
 
@@ -84,14 +85,16 @@ async function computeDay(userId, { tz, dayKeyStr, now = new Date(), persist = t
     source: ['water_log'],
   }));
 
-  // --- Activity 20: workout OR movement goal; rest day satisfies via plan.
+  // --- Activity 20: workout OR movement goal. A coach/user-planned rest day
+  // is honored: following the plan counts as fulfilling the component (A6).
   const finished = workouts.filter((w) => w.finishedAt).length;
   const stepsVal = steps?.steps || 0, stepGoal = steps?.goalSteps || 8000;
-  const actProgress = finished > 0 ? 1 : clamp(stepsVal / stepGoal);
+  const isRestDay = (planningPrefs?.restDays || []).includes(local.weekday);
+  const actProgress = finished > 0 ? 1 : isRestDay ? 1 : clamp(stepsVal / stepGoal);
   components.push(comp('activity', {
-    status: finished ? 'GOAL_MET' : componentStatus(actProgress, stepsVal > 0 || finished > 0, false),
+    status: finished ? 'GOAL_MET' : isRestDay ? 'GOAL_MET' : componentStatus(actProgress, stepsVal > 0 || finished > 0, false),
     progress: actProgress,
-    detail: { note: finished ? `${finished} session${finished > 1 ? 's' : ''} done` : stepsVal ? `${stepsVal.toLocaleString()} steps` : 'Day in progress', steps: stepsVal, stepGoal, sessions: finished },
+    detail: { note: finished ? `${finished} session${finished > 1 ? 's' : ''} done` : isRestDay ? 'Rest day — recovery counts' : stepsVal ? `${stepsVal.toLocaleString()} steps` : 'Day in progress', steps: stepsVal, stepGoal, sessions: finished, restDay: isRestDay },
     source: ['workout_session', 'daily_steps', 'health_measurement'],
   }));
 

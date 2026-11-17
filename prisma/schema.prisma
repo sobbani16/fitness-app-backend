@@ -1263,6 +1263,7 @@ model UserPlanningPreferences {
   householdSize       Int      @default(1)
   availableEquipment  String[]
   dietaryRestrictions String[]
+  restDays            Int[]    @default([]) // planned rest weekdays (0=Sun..6=Sat) — V2 activity honoring
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
