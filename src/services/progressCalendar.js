@@ -93,18 +93,34 @@ function summarize(days, todayKey) {
 // FORWARD — never rewrites history. Starter stays 70 until coverage exists;
 // manual/paused modes are respected and never auto-changed.
 const STARTER_TARGET = 70;
-async function assignWeeklyTarget(userId, { tz, now = new Date() } = {}) {
+function weekKey(now) {
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const day = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - day + 3); // ISO week Thursday
+  const firstThu = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  const fDay = (firstThu.getUTCDay() + 6) % 7;
+  firstThu.setUTCDate(firstThu.getUTCDate() - fDay + 3);
+  const week = 1 + Math.round((d - firstThu) / (7 * 86400e3));
+  return `${d.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+}
+
+async function assignWeeklyTarget(userId, { tz, now = new Date(), force = false } = {}) {
   const zone = ld.resolveZone(tz);
+  const wk = weekKey(now);
   const rows = await prisma.dailyProgressDay.findMany({ where: { userId }, orderBy: { dayKey: 'desc' }, take: 30 });
   const prefs = await prisma.userPlanningPreferences.upsert({ where: { userId }, create: { userId }, update: {} });
   const current = prefs.dailyTarget ?? STARTER_TARGET;
+  if (!force && prefs.targetReviewedWeek === wk) {
+    return { target: current, mode: prefs.targetMode, changed: false, reason: 'already_reviewed', week: wk };
+  }
   if (prefs.targetMode === 'manual' || prefs.targetMode === 'paused') {
-    return { target: current, mode: prefs.targetMode, changed: false, reason: 'user_controlled' };
+    return { target: current, mode: prefs.targetMode, changed: false, reason: 'user_controlled', week: wk };
   }
   const r = adaptiveTarget(rows, current);
-  if (!r.changed) return { target: current, mode: prefs.dailyTarget ? 'adaptive' : 'starter', changed: false, reason: r.reason };
+  await prisma.userPlanningPreferences.update({ where: { userId }, data: { targetReviewedWeek: wk } });
+  if (!r.changed) return { target: current, mode: prefs.dailyTarget ? 'adaptive' : 'starter', changed: false, reason: r.reason, week: wk };
   await prisma.userPlanningPreferences.update({ where: { userId }, data: { dailyTarget: r.target, targetMode: 'adaptive' } });
-  return { target: r.target, previous: current, mode: 'adaptive', changed: true, reason: r.reason, blended: r.blended, avg7: r.avg7, avg30: r.avg30 };
+  return { target: r.target, previous: current, mode: 'adaptive', changed: true, reason: r.reason, blended: r.blended, avg7: r.avg7, avg30: r.avg30, week: wk };
 }
 
 // Week view (local Mon–Sun) + previous-week comparison. Comparisons state
@@ -132,4 +148,4 @@ async function week(userId, { tz, now = new Date() } = {}) {
   };
 }
 
-module.exports = { calendar, week, adaptiveTarget, colorFor, COLOR_POLICY_VERSION };
+module.exports = { calendar, week, adaptiveTarget, assignWeeklyTarget, weekKey, colorFor, COLOR_POLICY_VERSION, STARTER_TARGET };

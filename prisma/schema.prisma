@@ -1266,6 +1266,7 @@ model UserPlanningPreferences {
   restDays            Int[]    @default([]) // planned rest weekdays (0=Sun..6=Sat) — V2 activity honoring
   dailyTarget         Int?    // current assigned daily target (null = starter 70)
   targetMode          String  @default("starter") // starter | adaptive | manual | paused
+  targetReviewedWeek  String? // weekKey (YYYY-Www) last auto-reviewed — idempotency guard
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }

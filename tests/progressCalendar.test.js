@@ -1,6 +1,11 @@
-jest.mock('../src/lib/prisma', () => { const db = {
+jest.mock('../src/lib/prisma', () => { const prefsStore = {}; const db = {
   dailyProgressDay: { findMany: jest.fn(async () => []) },
-  userPlanningPreferences: { findUnique: jest.fn(async () => null) },
+  userPlanningPreferences: {
+    findUnique: jest.fn(async ({ where }) => prefsStore[where.userId] || null),
+    upsert: jest.fn(async ({ where, create, update }) => { prefsStore[where.userId] = { ...(prefsStore[where.userId] || {}), ...create, ...update }; return prefsStore[where.userId]; }),
+    update: jest.fn(async ({ where, data }) => { prefsStore[where.userId] = { ...(prefsStore[where.userId] || {}), ...data }; return prefsStore[where.userId]; }),
+    __store: prefsStore,
+  },
 }; return { getPrisma: () => db }; });
 const { getPrisma } = require('../src/lib/prisma');
 const prisma = getPrisma();
@@ -65,5 +70,28 @@ describe('Adaptive target', () => {
     expect(r.target).toBeLessThanOrEqual(65);
     expect(r.target).toBeGreaterThanOrEqual(55);
     expect(Math.abs(r.target - 60)).toBeLessThanOrEqual(5);
+  });
+});
+
+describe('weekly target assignment', () => {
+  const userId = 'user-target-review';
+  it('idempotent: second review in same ISO week is a no-op', async () => {
+    const { assignWeeklyTarget } = require('../src/services/progressCalendar');
+    await prisma.userPlanningPreferences.upsert({ where: { userId }, create: { userId, dailyTarget: 60 }, update: { dailyTarget: 60, targetMode: 'adaptive', targetReviewedWeek: null } });
+    const now = new Date('2026-11-17T12:00:00Z');
+    const first = await assignWeeklyTarget(userId, { now });
+    expect(first.week).toBe('2026-W47');
+    const second = await assignWeeklyTarget(userId, { now });
+    expect(second.reason).toBe('already_reviewed');
+    expect(second.changed).toBe(false);
+  });
+  it('manual mode is never overwritten by the weekly job', async () => {
+    const { assignWeeklyTarget } = require('../src/services/progressCalendar');
+    await prisma.userPlanningPreferences.update({ where: { userId }, data: { dailyTarget: 80, targetMode: 'manual', targetReviewedWeek: null } });
+    const r = await assignWeeklyTarget(userId, { now: new Date('2026-11-24T12:00:00Z') });
+    expect(r.reason).toBe('user_controlled');
+    const prefs = await prisma.userPlanningPreferences.findUnique({ where: { userId } });
+    expect(prefs.dailyTarget).toBe(80);
+    expect(prefs.targetMode).toBe('manual');
   });
 });
