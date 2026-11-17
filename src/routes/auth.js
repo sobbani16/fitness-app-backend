@@ -81,6 +81,8 @@ router.post('/action-status', async (req, res, next) => {
   try { res.json({ state: await actionStatus(req.body?.token, req.body?.purpose) }); }
   catch (e) { next(e); }
 });
+router.use('/identities', require('./identities'));
+
 router.post('/logout', authenticate, async (req, res, next) => {
   try {
     await getPrisma().authSession.deleteMany({ where: { tokenHash: hashToken(req.headers.authorization.slice(7)) } });

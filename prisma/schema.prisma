@@ -36,6 +36,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  identities UserIdentity[]
+
   healthProfile    UserHealthProfile?
   healthConditions UserHealthCondition[]
   allergies        UserAllergy[]
@@ -1510,6 +1512,23 @@ model AuthSession {
   expiresAt DateTime
   createdAt DateTime @default(now())
 
+  @@index([userId])
+}
+
+// External identity-provider accounts linked to a Humai user (OIDC readiness).
+// Internal User.id stays the sole join key for all health/activity data —
+// provider (iss, sub) pairs are only ever resolved THROUGH this table.
+model UserIdentity {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider  String   // friendly key, e.g. 'forgerock' | 'okta' | 'auth0'
+  issuer    String   // normalized iss (https, no trailing slash)
+  subject   String   // provider's stable sub — never the email
+  createdAt DateTime @default(now())
+  lastUsedAt DateTime?
+
+  @@unique([issuer, subject]) // one external identity -> exactly one user
   @@index([userId])
 }
 

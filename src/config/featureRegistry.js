@@ -558,6 +558,9 @@ const FEATURES = {
     endpoints: ['/food-intel/barcode'],
     description: 'Open Food Facts fallback for unknown barcodes — community data, never verified. Makes an external HTTPS call.',
   },
+  external_identity_linking_enabled: {
+    clientKey: 'externalIdentityLinking', class: 'core', group: 'auth', default: false, failOpen: false,
+  },
   leo_progress_calendar_enabled: {
     clientKey: 'leoProgressCalendarEnabled', class: 'core', group: 'progress', default: false, failOpen: false,
     endpoints: ['/daily-progress/calendar'], description: 'Leo Score Calendar — monthly V2 score grid.',
