@@ -1,7 +1,45 @@
 const express = require('express');
-const { searchIngredients } = require('../services/ingredientService');
-
 const router = express.Router();
+const { searchIngredients } = require('../services/ingredientService');
+const { requireFeature } = require('../middleware/requireFeature');
+const { askJSON } = require('../services/aiProvider');
+const { httpError } = require('../lib/errors');
+const ESTIMATE_VERSION = 1;
+
+// POST /ingredients/estimate — opt-in AI nutrition estimate when the catalog has
+// no good match. Flag-gated, quota'd via askJSON, never writes to any catalog —
+// the response is for user review only (provenance: ai_estimate, unreviewed).
+router.post('/estimate', requireFeature('ai_food_estimation_enabled'), async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) throw httpError(401, 'Sign in required.');
+    const { query, portion, preparation } = req.body || {};
+    if (typeof query !== 'string' || query.trim().length < 2 || query.length > 200) throw httpError(400, 'query must be 2–200 characters.');
+    for (const v of [portion, preparation]) if (v != null && (typeof v !== 'string' || v.length > 200)) throw httpError(400, 'portion/preparation must be ≤200 characters.');
+    const hints = [portion && `portion: ${portion}`, preparation && `preparation: ${preparation}`].filter(Boolean).join('; ');
+    const out = await askJSON('food_estimate', {
+      dishName: { type: 'string' }, servingDescription: { type: 'string' },
+      calories: { type: 'number' }, proteinG: { type: 'number' }, carbsG: { type: 'number' }, fatG: { type: 'number' },
+      confidence: { type: 'string', enum: ['low', 'medium', 'high'] },
+      assumptions: { type: 'array', items: { type: 'string' } },
+      needsClarification: { type: 'array', items: { type: 'string' } },
+    },
+      'Estimate typical nutrition for ONE serving of the named dish. Use typical homemade composition; if the dish is ambiguous (regional variants, unknown oil/portion), set confidence low and list clarifying questions. Numbers are per serving in servingDescription. Never claim exactness.',
+      `Dish: ${query.trim()}${hints ? ` (${hints})` : ''}`, null, userId, { maxOutputTokens: 800 });
+    res.json({ estimate: {
+      name: String(out.dishName || query).slice(0, 120),
+      serving: String(out.servingDescription || '1 serving').slice(0, 120),
+      calories: Math.max(0, Math.round(Number(out.calories) || 0)),
+      proteinG: Math.max(0, Math.round(Number(out.proteinG) * 10) / 10),
+      carbsG: Math.max(0, Math.round(Number(out.carbsG) * 10) / 10),
+      fatG: Math.max(0, Math.round(Number(out.fatG) * 10) / 10),
+      confidence: ['low', 'medium', 'high'].includes(out.confidence) ? out.confidence : 'low',
+      assumptions: Array.isArray(out.assumptions) ? out.assumptions.slice(0, 8).map(a => String(a).slice(0, 200)) : [],
+      needsClarification: Array.isArray(out.needsClarification) ? out.needsClarification.slice(0, 5).map(a => String(a).slice(0, 200)) : [],
+      provenance: { source: 'ai_estimate', version: ESTIMATE_VERSION, reviewed: false },
+    } });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
 
 function getUserId(req) {
   return (req.headers['x-user-id'] || req.query.userId || '').toString().trim();

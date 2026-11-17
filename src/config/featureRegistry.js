@@ -558,6 +558,9 @@ const FEATURES = {
     endpoints: ['/food-intel/barcode'],
     description: 'Open Food Facts fallback for unknown barcodes — community data, never verified. Makes an external HTTPS call.',
   },
+  ai_food_estimation_enabled: {
+    clientKey: 'aiFoodEstimation', class: 'core', group: 'food', default: false, failOpen: false,
+  },
   oidc_login_enabled: {
     clientKey: 'oidcLogin', class: 'core', group: 'auth', default: false, failOpen: false,
   },
