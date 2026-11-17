@@ -83,6 +83,19 @@ router.post('/action-status', async (req, res, next) => {
 });
 router.use('/identities', require('./identities'));
 
+// OIDC exchange — dark until oidc_login_enabled flag + OIDC_* env config exist.
+router.post('/oidc/exchange', async (req, res, next) => {
+  try {
+    const { requireFeature } = require('../middleware/requireFeature');
+    await new Promise((resolve, reject) => requireFeature('oidc_login_enabled')(req, res, (e) => e ? reject(e) : resolve()));
+    const { exchangeCode, oidcLogin } = require('../services/oidc');
+    const { code, codeVerifier, redirectUri, nonce } = req.body || {};
+    const id = await exchangeCode({ code, codeVerifier, redirectUri, nonce });
+    const session = await oidcLogin(id); // provisioning stays off
+    res.json(session);
+  } catch (e) { next(e); }
+});
+
 router.post('/logout', authenticate, async (req, res, next) => {
   try {
     await getPrisma().authSession.deleteMany({ where: { tokenHash: hashToken(req.headers.authorization.slice(7)) } });
