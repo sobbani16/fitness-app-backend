@@ -22,6 +22,13 @@ function colorFor(day, todayKey) {
   return 'RED';
 }
 
+// Same evidence rule colorFor uses: a real record (any component progress or
+// earned points) — an all-gray day is missing data, not a poor day.
+function componentsHaveEvidence(row) {
+  const comps = Array.isArray(row?.components) ? row.components : [];
+  return comps.some((c) => c.status === 'GOAL_MET' || c.status === 'IN_PROGRESS') || (row?.earned ?? 0) > 0;
+}
+
 // Adaptive daily target (§9): 0.6·avg7 + 0.4·avg30, round to 5, ±5 weekly,
 // coverage-gated. Pure heuristic — not medical.
 function adaptiveTarget(days, current = 70) {
@@ -41,9 +48,13 @@ async function calendar(userId, { month, tz, now = new Date() } = {}) {
   const todayKey = ld.dayKey(now, zone);
   const [y, m] = (month || todayKey.slice(0, 7)).split('-').map(Number);
   const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
-  const [rows, prefs] = await Promise.all([
+  const py = m === 1 ? y - 1 : y, pm = m === 1 ? 12 : m - 1;
+  const pmKey = `${py}-${String(pm).padStart(2, '0')}`;
+  const pmDays = new Date(Date.UTC(py, pm, 0)).getUTCDate();
+  const [rows, prefs, lmRows] = await Promise.all([
     prisma.dailyProgressDay.findMany({ where: { userId, dayKey: { gte: `${y}-${String(m).padStart(2, '0')}-01`, lte: `${y}-${String(m).padStart(2, '0')}-${daysInMonth}` } } }),
-    prisma.userPlanningPreferences.findUnique({ where: { userId }, select: { restDays: true } }).catch(() => null),
+    prisma.userPlanningPreferences.findUnique({ where: { userId }, select: { restDays: true, dailyTarget: true } }).catch(() => null),
+    prisma.dailyProgressDay.findMany({ where: { userId, dayKey: { gte: `${pmKey}-01`, lte: `${pmKey}-${pmDays}` } } }),
   ]);
   const byDay = Object.fromEntries(rows.map((d) => [d.dayKey, d]));
   const days = [];
@@ -72,6 +83,15 @@ async function calendar(userId, { month, tz, now = new Date() } = {}) {
       targetToDate: elapsed.reduce((a, d) => a + (d.target ?? 70), 0),
       monthlyTarget: days.reduce((a, d) => a + (d.target ?? 70), 0),
       average: avg, daysMetTarget: metTarget, gray: days.filter((d) => d.color === 'GRAY' && d.dayKey <= todayKey).length,
+      lastMonth: (() => {
+        const le = lmRows.filter((r) => componentsHaveEvidence(r));
+        const leAvg = le.length ? Math.round(le.reduce((a, r) => a + r.earned, 0) / le.length * 10) / 10 : null;
+        return {
+          month: pmKey, recorded: le.length, earned: le.reduce((a, r) => a + r.earned, 0), average: leAvg,
+          daysMetTarget: le.filter((r) => colorFor(r, todayKey) === 'GREEN').length,
+          deltaAvg: avg != null && leAvg != null ? Math.round((avg - leAvg) * 10) / 10 : null,
+        };
+      })(),
     },
     computedAt: now.toISOString(),
   };
