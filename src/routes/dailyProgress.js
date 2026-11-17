@@ -1,5 +1,6 @@
 const express = require('express');
 const { computeDay, history } = require('../services/dailyProgress');
+const { calendar } = require('../services/progressCalendar');
 const { requireFeature } = require('../middleware/requireFeature');
 const { isValidZone } = require('../services/localDay');
 
@@ -29,5 +30,10 @@ router.put('/preferences', wrap(async (req) => {
   });
   return { preferences: { restDays: prefs.restDays } };
 }));
+
+// GET /daily-progress/calendar?month=YYYY-MM — Leo Score Calendar (one query).
+router.get('/calendar', wrap(async (req) => ({
+  calendar: await calendar(uid(req), { month: /^\d{4}-\d{2}$/.test(req.query.month || '') ? req.query.month : undefined, tz: isValidZone(req.query.tz) ? req.query.tz : undefined }),
+})));
 
 module.exports = router;

@@ -3174,6 +3174,7 @@ model DailyProgressDay {
   earned    Int      @default(0)  // points earned 0..100
   applicable Int     @default(100) // points applicable after redistribution
   components Json    // per-component detail: status, earned, applicable, progress, source
+  dailyTarget Int?    // target assigned to THIS day — historical colors never reuse today’s target
   computedAt DateTime @default(now())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
