@@ -558,7 +558,27 @@ const FEATURES = {
     endpoints: ['/food-intel/barcode'],
     description: 'Open Food Facts fallback for unknown barcodes — community data, never verified. Makes an external HTTPS call.',
   },
-  daily_progress_v2_enabled: {
+  daily_progress_coach_enabled: {
+    clientKey: 'dailyProgressCoachEnabled', class: 'core', group: 'progress', default: false, failOpen: false,
+    endpoints: ['/progress-coach'], description: 'Progress Coach — actionable opportunities from real component deficits.',
+  },
+  progress_opportunities_enabled: {
+    clientKey: 'progressOpportunitiesEnabled', class: 'core', group: 'progress', default: false, failOpen: false,
+    endpoints: ['/progress-coach/opportunities'], description: 'Ranked next-action opportunities with projected points.',
+  },
+  consistency_streak_enabled: {
+    clientKey: 'consistencyStreakEnabled', class: 'core', group: 'progress', default: false, failOpen: false,
+    endpoints: ['/progress-coach/streak'], description: 'Consistency streak engine — participation, not perfection.',
+  },
+  leo_progress_coach_enabled: {
+    clientKey: 'leoProgressCoachEnabled', class: 'core', group: 'progress', default: false, failOpen: false,
+    endpoints: ['/progress-coach/ask'], description: 'Deterministic Leo progress-coach answers over real data.',
+  },
+  progress_coach_notifications_enabled: {
+    clientKey: 'progressCoachNotificationsEnabled', class: 'core', group: 'progress', default: false, failOpen: false,
+    endpoints: [], description: 'Opt-in opportunity nudges through reminder architecture (default off).',
+  },
+    daily_progress_v2_enabled: {
     clientKey: 'dailyProgressEnabled',
     class: 'core', group: 'progress', default: false, failOpen: false,
     endpoints: ['/daily-progress'],

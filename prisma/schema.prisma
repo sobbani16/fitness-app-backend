@@ -3154,6 +3154,17 @@ model ProductCorrection {
 
 // V2 "Today's Progress" — deterministic daily goal progress, versioned and
 // idempotent. Separate from the legacy HealthScore snapshots (V1 preserved).
+model UserStreakPreferences {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  pausedUntil  DateTime? // user-controlled pause (illness/travel) — no guilt mechanics
+  pauseDays    String[] @default([]) // explicit local days excluded from streak evaluation
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+}
+
 model DailyProgressDay {
   id        String   @id @default(uuid())
   userId    String

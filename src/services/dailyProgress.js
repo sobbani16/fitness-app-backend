@@ -149,8 +149,8 @@ async function computeDay(userId, { tz, dayKeyStr, now = new Date(), persist = t
   if (persist) {
     await prisma.dailyProgressDay.upsert({
       where: { userId_dayKey: { userId, dayKey: dk } },
-      create: { userId, dayKey: dk, timezone: zone, version: CALC_VERSION, earned, applicable: 100, components },
-      update: { timezone: zone, version: CALC_VERSION, earned, applicable: 100, components, computedAt: now },
+      create: { userId, dayKey: dk, timezone: zone, version: CALC_VERSION, earned: Math.round(earned), applicable: 100, components },
+      update: { timezone: zone, version: CALC_VERSION, earned: Math.round(earned), applicable: 100, components, computedAt: now },
     });
   }
   return payload;
