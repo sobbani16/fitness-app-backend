@@ -59,6 +59,27 @@ d('golden path — Mind & Habits', () => {
     const oh = await get(other, '/mind/check-ins').expect(200);
     expect(oh.body.checkins.length).toBe(0);
 
+    // B8: cross-user headers/query never override the authenticated identity
+    await get(who, '/reminders/preferences').set('x-user-id', other.user.id).expect(200).then(r => {
+      expect(r.body.preferences.userId).toBe(who.user.id);
+    });
+    await get(who, `/reminders/preferences?userId=${other.user.id}`).expect(200).then(r => {
+      expect(r.body.preferences.userId).toBe(who.user.id);
+    });
+    // B2/B3: timezone mode + travel detection
+    await put(who, '/reminders/preferences/timezone', { mode: 'FOLLOW_DEVICE', detectedTimezone: 'America/New_York' }).expect(200);
+    const travel = await put(who, '/reminders/preferences/timezone', { detectedTimezone: 'America/Chicago' }).expect(200);
+    expect(travel.body.preferences.travelDetected).toBe(true);
+    expect(travel.body.preferences.effectiveTimezone).toBe('America/Chicago');
+    await put(who, '/reminders/preferences/timezone', { mode: 'FIXED_TIMEZONE', timezone: 'Asia/Kolkata' }).expect(200).then(r => {
+      expect(r.body.preferences.effectiveTimezone).toBe('Asia/Kolkata');
+    });
+    await put(who, '/reminders/preferences/timezone', { mode: 'FIXED_TIMEZONE', timezone: 'EST' }).expect(400);
+    // V2 daily progress honesty check
+    const prog = await get(who, '/daily-progress/today?tz=America/New_York').expect(200);
+    expect(prog.body.progress.earned).toBeLessThanOrEqual(100);
+    expect(prog.body.progress.version).toBe(2);
+
     // delete
     await request(app).delete(`/mind/check-ins/${c.body.checkin.id}`).set('Authorization', `Bearer ${who.token}`).expect(200);
     expect((await get(who, '/mind/check-ins')).body.checkins.length).toBe(0);

@@ -11,8 +11,11 @@ const limiter = process.env.NODE_ENV === 'test' && process.env.AUTH_TEST_BYPASS 
 // Exposed for tests.
 router.__limiter = limiter;
 
+// Identity: session userId first (authenticate rewrites x-user-id to the
+// verified id for signed-in requests); the header path covers the isolated
+// AUTH_TEST_BYPASS contract only — never reachable in a running server.
 function getUserId(req) {
-  return (req.headers['x-user-id'] || req.body?.userId || '').toString().trim();
+  return (req.userId || req.headers['x-user-id'] || '').toString().trim();
 }
 
 // GET /chat/status — remaining quota for today

@@ -558,6 +558,12 @@ const FEATURES = {
     endpoints: ['/food-intel/barcode'],
     description: 'Open Food Facts fallback for unknown barcodes — community data, never verified. Makes an external HTTPS call.',
   },
+  daily_progress_v2_enabled: {
+    clientKey: 'dailyProgressEnabled',
+    class: 'core', group: 'progress', default: false, failOpen: false,
+    endpoints: ['/daily-progress'],
+    description: "Today's Progress V2 — earned/applicable daily goal progress (separate from legacy Health Score).",
+  },
   visual_food_recognition_enabled: {
     clientKey: 'visualFoodRecognitionEnabled',
     class: 'ai', group: 'ai', default: false, failOpen: false,

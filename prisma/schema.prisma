@@ -1791,6 +1791,11 @@ model ReminderPreference {
   // home-time schedules are followed instead of the current local zone.
   timezone       String?
   timezoneLocked Boolean @default(false)
+  // V2 timezone policy: FOLLOW_DEVICE (default) uses the device's current IANA
+  // zone; FIXED_TIMEZONE pins `timezone` regardless of device location.
+  timezoneMode         String   @default("FOLLOW_DEVICE")
+  lastDetectedTimezone String?  // last device-reported zone, for travel detection
+  scheduleVersion      Int      @default(1) // bumped on reconcile
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3144,6 +3149,25 @@ model ProductCorrection {
 
   @@index([barcode])
   @@index([userId])
+}
+
+// V2 "Today's Progress" — deterministic daily goal progress, versioned and
+// idempotent. Separate from the legacy HealthScore snapshots (V1 preserved).
+model DailyProgressDay {
+  id        String   @id @default(uuid())
+  userId    String
+  dayKey    String   // YYYY-MM-DD in effective timezone
+  timezone  String   // IANA zone used for the day boundary
+  version   Int      @default(2) // calculation version
+  earned    Int      @default(0)  // points earned 0..100
+  applicable Int     @default(100) // points applicable after redistribution
+  components Json    // per-component detail: status, earned, applicable, progress, source
+  computedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, dayKey])
+  @@index([userId, dayKey])
 }
 
 model IngredientEvidenceProfile {

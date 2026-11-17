@@ -20,7 +20,7 @@ const OWNED = [
   'recordingConsent', 'coachingGroupMember', 'groupReadCursor',
   'emotionalCheckIn', 'userMindPreferences', 'mindExerciseCompletion',
   'wearableDevice', 'healthDataSource', 'healthMeasurement', 'healthMetricSummary',
-  'barcodeFavorite', 'productCorrection',
+  'barcodeFavorite', 'productCorrection', 'dailyProgressDay',
 ];
 const INCLUDES = {
   workoutSession: { exerciseSets: true },
