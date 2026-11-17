@@ -77,4 +77,59 @@ async function calendar(userId, { month, tz, now = new Date() } = {}) {
   };
 }
 
-module.exports = { calendar, adaptiveTarget, colorFor, COLOR_POLICY_VERSION };
+function summarize(days, todayKey) {
+  const rec = days.filter((d) => d.dayKey <= todayKey && d.earned != null);
+  return {
+    earned: rec.reduce((a, d) => a + d.earned, 0),
+    target: days.reduce((a, d) => a + (d.target ?? 70), 0),
+    targetToDate: rec.reduce((a, d) => a + (d.target ?? 70), 0),
+    average: rec.length ? Math.round((rec.reduce((a, d) => a + d.earned, 0) / rec.length) * 10) / 10 : null,
+    daysMetTarget: days.filter((d) => d.color === 'GREEN').length,
+    recorded: rec.length,
+  };
+}
+
+// Weekly adaptive-target review (P2): assigns the target for days going
+// FORWARD — never rewrites history. Starter stays 70 until coverage exists;
+// manual/paused modes are respected and never auto-changed.
+const STARTER_TARGET = 70;
+async function assignWeeklyTarget(userId, { tz, now = new Date() } = {}) {
+  const zone = ld.resolveZone(tz);
+  const rows = await prisma.dailyProgressDay.findMany({ where: { userId }, orderBy: { dayKey: 'desc' }, take: 30 });
+  const prefs = await prisma.userPlanningPreferences.upsert({ where: { userId }, create: { userId }, update: {} });
+  const current = prefs.dailyTarget ?? STARTER_TARGET;
+  if (prefs.targetMode === 'manual' || prefs.targetMode === 'paused') {
+    return { target: current, mode: prefs.targetMode, changed: false, reason: 'user_controlled' };
+  }
+  const r = adaptiveTarget(rows, current);
+  if (!r.changed) return { target: current, mode: prefs.dailyTarget ? 'adaptive' : 'starter', changed: false, reason: r.reason };
+  await prisma.userPlanningPreferences.update({ where: { userId }, data: { dailyTarget: r.target, targetMode: 'adaptive' } });
+  return { target: r.target, previous: current, mode: 'adaptive', changed: true, reason: r.reason, blended: r.blended, avg7: r.avg7, avg30: r.avg30 };
+}
+
+// Week view (local Mon–Sun) + previous-week comparison. Comparisons state
+// coverage honestly — a 2-day week is never read as a completed week.
+async function week(userId, { tz, now = new Date() } = {}) {
+  const zone = ld.resolveZone(tz);
+  const todayKey = ld.dayKey(now, zone);
+  const mon = new Date(`${todayKey}T00:00:00Z`);
+  const wd = (mon.getUTCDay() + 6) % 7;
+  mon.setUTCDate(mon.getUTCDate() - wd);
+  const keys = [...Array(14)].map((_, i) => { const d = new Date(mon); d.setUTCDate(d.getUTCDate() + i - 7); return d.toISOString().slice(0, 10); });
+  const rows = await prisma.dailyProgressDay.findMany({ where: { userId, dayKey: { in: keys } } });
+  const byDay = Object.fromEntries(rows.map((r) => [r.dayKey, r]));
+  const mk = (k) => { const r = byDay[k]; return { dayKey: k, weekday: new Date(`${k}T00:00:00Z`).getUTCDay(), earned: r?.earned ?? null, target: r?.dailyTarget ?? null, color: colorFor(r ? { ...r, dayKey: k } : null, todayKey), isToday: k === todayKey }; };
+  const thisWeek = keys.slice(7).map(mk);
+  const lastWeek = keys.slice(0, 7).map(mk);
+  const tw = summarize(thisWeek, todayKey), lw = summarize(lastWeek, todayKey);
+  return {
+    weekStart: keys[7], weekEnd: keys[13], timezone: zone, days: thisWeek,
+    summary: tw,
+    lastWeek: { days: lastWeek, summary: lw },
+    comparison: tw.average != null && lw.average != null
+      ? { deltaAvg: Math.round((tw.average - lw.average) * 10) / 10, note: `This week is ${tw.recorded} of 7 recorded days; last week had ${lw.recorded}.` }
+      : { deltaAvg: null, note: 'Not enough recorded days to compare weeks.' },
+  };
+}
+
+module.exports = { calendar, week, adaptiveTarget, colorFor, COLOR_POLICY_VERSION };

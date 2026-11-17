@@ -1264,6 +1264,8 @@ model UserPlanningPreferences {
   availableEquipment  String[]
   dietaryRestrictions String[]
   restDays            Int[]    @default([]) // planned rest weekdays (0=Sun..6=Sat) — V2 activity honoring
+  dailyTarget         Int?    // current assigned daily target (null = starter 70)
+  targetMode          String  @default("starter") // starter | adaptive | manual | paused
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }

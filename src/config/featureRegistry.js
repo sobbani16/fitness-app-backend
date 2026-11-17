@@ -558,7 +558,19 @@ const FEATURES = {
     endpoints: ['/food-intel/barcode'],
     description: 'Open Food Facts fallback for unknown barcodes — community data, never verified. Makes an external HTTPS call.',
   },
-  daily_progress_coach_enabled: {
+  leo_progress_calendar_enabled: {
+    clientKey: 'leoProgressCalendarEnabled', class: 'core', group: 'progress', default: false, failOpen: false,
+    endpoints: ['/daily-progress/calendar'], description: 'Leo Score Calendar — monthly V2 score grid.',
+  },
+  weekly_progress_dashboard_enabled: {
+    clientKey: 'weeklyProgressDashboardEnabled', class: 'core', group: 'progress', default: false, failOpen: false,
+    endpoints: ['/daily-progress/week'], description: 'Week view — seven scored days + comparisons.',
+  },
+  adaptive_progress_targets_enabled: {
+    clientKey: 'adaptiveProgressTargetsEnabled', class: 'core', group: 'progress', default: false, failOpen: false,
+    endpoints: ['/daily-progress/target'], description: 'Adaptive personal daily targets (weekly review).',
+  },
+    daily_progress_coach_enabled: {
     clientKey: 'dailyProgressCoachEnabled', class: 'core', group: 'progress', default: false, failOpen: false,
     endpoints: ['/progress-coach'], description: 'Progress Coach — actionable opportunities from real component deficits.',
   },

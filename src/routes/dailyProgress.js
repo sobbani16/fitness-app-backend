@@ -1,6 +1,6 @@
 const express = require('express');
 const { computeDay, history } = require('../services/dailyProgress');
-const { calendar } = require('../services/progressCalendar');
+const { calendar, week, assignWeeklyTarget } = require('../services/progressCalendar');
 const { requireFeature } = require('../middleware/requireFeature');
 const { isValidZone } = require('../services/localDay');
 
@@ -30,6 +30,25 @@ router.put('/preferences', wrap(async (req) => {
   });
   return { preferences: { restDays: prefs.restDays } };
 }));
+
+// GET/POST /daily-progress/target — current target + weekly adaptive review.
+router.get('/target', wrap(async (req) => ({ target: await assignWeeklyTarget(uid(req), { tz: isValidZone(req.query.tz) ? req.query.tz : undefined }) })));
+router.put('/target', wrap(async (req) => {
+  const t = Number(req.body?.target), mode = req.body?.mode;
+  const { getPrisma } = require('../lib/prisma');
+  if (mode === 'adaptive') {
+    const prefs = await getPrisma().userPlanningPreferences.upsert({ where: { userId: uid(req) }, create: { userId: uid(req), targetMode: 'adaptive' }, update: { targetMode: 'adaptive' } });
+    return { preferences: { dailyTarget: prefs.dailyTarget, targetMode: prefs.targetMode } };
+  }
+  if (!Number.isInteger(t) || t < 10 || t > 100) throw Object.assign(new Error('target must be 10–100'), { status: 400 });
+  const prefs = await getPrisma().userPlanningPreferences.upsert({ where: { userId: uid(req) }, create: { userId: uid(req), dailyTarget: t, targetMode: mode === 'paused' ? 'paused' : 'manual' }, update: { dailyTarget: t, targetMode: mode === 'paused' ? 'paused' : 'manual' } });
+  return { preferences: { dailyTarget: prefs.dailyTarget, targetMode: prefs.targetMode } };
+}));
+
+// GET /daily-progress/week — Mon–Sun week view + previous-week comparison.
+router.get('/week', wrap(async (req) => ({
+  week: await week(uid(req), { tz: isValidZone(req.query.tz) ? req.query.tz : undefined }),
+})));
 
 // GET /daily-progress/calendar?month=YYYY-MM — Leo Score Calendar (one query).
 router.get('/calendar', wrap(async (req) => ({
