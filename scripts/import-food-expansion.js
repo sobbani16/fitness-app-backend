@@ -33,6 +33,7 @@ function toV5Row(i) {
     expansion_key: i.key,
     import_action: i.importAction,
     notes: i.notes || null,
+    allergens: i.allergens || null,
     needs_raw_cooked_check: i.needsRawCookedCheck === true,
   };
 }

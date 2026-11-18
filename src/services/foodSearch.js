@@ -60,12 +60,18 @@ async function searchFoods({ userId, query, limit = 20, filters = {} }) {
       const rs = await searchIngredients({ userId, query: q, limit, preparation: filters.preparation, productType: filters.productType, verificationLevel: filters.verificationLevel });
       return {
         error: null,
-        items: rs.map((r) => ({
-          type: 'ingredient', id: r.id, name: r.name, score: 1,
+        items: rs.map((r) => {
+          // Same scoring as recipes: exact < prefix < all-tokens < loose.
+          // Loose external matches (score 99 → 5) stay visible but never bury
+          // a local recipe/ingredient that actually matched the query terms.
+          const s = scoreNames([normalize(r.name)], q, tokens);
+          return {
+          type: 'ingredient', id: r.id, name: r.name, score: s === 99 ? 5 : s,
           caloriesPer100g: r.caloriesPer100g, macrosPer100g: r.macrosPer100g,
           servings: r.servings, source: r.source, verificationLevel: r.verificationLevel || (r.source === 'humai-catalog' ? 'GENERIC_COMPOSITION' : 'ESTIMATED'),
           reviewRequired: r.reviewRequired, preparation: r.preparation || null, provenance: r.provenance || null,
-        })),
+          };
+        }),
       };
     } catch (err) {
       // External-catalog failure is not "no match" — surface the distinction.

@@ -1,63 +1,270 @@
-// Relational ingredient-based recipe matching. Inputs resolve to canonical
-// catalog ingredients (name or alias); a recipe line "matches" when its linked
-// ingredientId is among the selected set. Water/salt-type staples never count
-// as missing. Never claims "you have everything" — missing lines are always
-// reported.
+// Relational ingredient-based recipe matching (v2).
+//
+// Inputs may be canonical ingredientIds, catalog identityKeys, or free-text
+// names that resolve through IngredientCatalog name/alias matching. A recipe
+// line "matches" when its linked ingredient is among the selected set;
+// unlinked lines fall back to normalized name comparison. Water/salt-type
+// staples never count as required or missing.
+//
+// Output contract per recipe:
+//   recipe{id,name,cuisine,region,mealType,servings,portionG,prepMinutes,
+//          perServing,verificationLevel,allergens}
+//   availableIngredients[]   — required lines satisfied by the selection
+//   missingRequired[]        — required lines NOT satisfied
+//   missingOptional[]        — optional lines not satisfied (never penalized)
+//   insufficientQuantities[] — user gave a known amount < line needs
+//   quantityAssumed          — true when user gave no amounts (we never
+//                              pretend unknown quantity means "have enough")
+//   coverage (0–1 of required lines), matchScore, status, reasons[]
+//
+// status: ready | missing-one | missing-few | partial | insufficient-quantity
 const { getPrisma } = require('../lib/prisma');
 const { normalize } = require('./ingredientCsv');
 const { httpError } = require('../lib/errors');
 
-const PANTRY = new Set(['water', 'salt', 'ice', 'water for soaking', 'water for cooking', 'warm water']);
+const PANTRY = new Set(['water', 'salt', 'ice', 'water for soaking', 'water for cooking', 'warm water', 'ice cubes', 'black pepper', 'pepper', 'salt and pepper', 'salt to taste']);
+const isPantry = (n) => PANTRY.has(normalize(n));
 
-async function matchRecipes({ userId, ingredients, limit = 12 }) {
-  if (!userId) throw httpError(401, 'Sign in required.');
-  if (!Array.isArray(ingredients) || !ingredients.length || ingredients.length > 20) throw httpError(400, 'ingredients must be 1–20 names.');
-  const prisma = getPrisma();
-  const wanted = [...new Set(ingredients.map(normalize).filter(Boolean))];
-  if (!wanted.length) throw httpError(400, 'ingredients must be non-empty names.');
+// Diet → ingredient-catalog categories a recipe may not contain. Conservative:
+// category strings come from our catalog; absence of a match is NOT proof a
+// recipe is compliant — flagged recipes are excluded, not the reverse.
+const DIET_RULES = {
+  vegan: ['Animal protein', 'Seafood', 'Dairy', 'Eggs'],
+  vegetarian: ['Animal protein', 'Seafood'],
+  eggetarian: ['Animal protein', 'Seafood'],
+  pescatarian: ['Animal protein'],
+};
+const EGG_KEYS = new Set(['egg', 'eggs', 'egg whole', 'egg white', 'egg yolk', 'whole egg', 'omlette', 'omelet', 'omelette']);
+const eggLike = (n) => [...EGG_KEYS].some((e) => normalize(n).includes(e));
 
-  // Resolve selected names → canonical ingredient ids via catalog names+aliases.
-  const catalog = await prisma.ingredientCatalog.findMany({ where: { usable: true }, select: { normalizedName: true, aliases: true, ingredient: { select: { id: true } } } });
-  const selectedIds = new Set();
-  const unresolvedInputs = [];
-  for (const w of wanted) {
-    const variants = new Set([w]);
-    if (w.endsWith('es')) variants.add(w.slice(0, -2));
-    if (w.endsWith('s') && !w.endsWith('ss')) variants.add(w.slice(0, -1));
-    variants.add(`${w}s`);
-    const hits = catalog.filter((c) => [...variants].some((v) => c.normalizedName === v || c.aliases.includes(v) || c.normalizedName.includes(v)) && c.ingredient?.id);
-    if (hits.length) hits.forEach((h) => selectedIds.add(h.ingredient.id));
-    else unresolvedInputs.push(w);
+const ALIAS_TOKENS = { curd: 'yogurt', brinjal: 'eggplant', aubergine: 'eggplant', ladyfinger: 'okra', bhindi: 'okra', cilantro: 'coriander', atta: 'whole wheat flour', sooji: 'semolina', rava: 'semolina', paneer: 'cottage cheese' };
+
+function inputVariants(raw) {
+  const w = normalize(raw);
+  const v = new Set([w]);
+  if (w.endsWith('es')) v.add(w.slice(0, -2));
+  if (w.endsWith('s') && !w.endsWith('ss')) v.add(w.slice(0, -1));
+  v.add(`${w}s`);
+  if (ALIAS_TOKENS[w]) v.add(ALIAS_TOKENS[w]);
+  return [...v].filter(Boolean);
+}
+
+async function loadCatalogIndex(prisma) {
+  const catalog = await prisma.ingredientCatalog.findMany({
+    where: { usable: true },
+    select: { id: true, identityKey: true, normalizedName: true, aliases: true, category: true, sourceRecord: true, ingredient: { select: { id: true, name: true, caloriesPer100g: true, proteinPer100g: true, carbsPer100g: true, fatPer100g: true, fiberPer100g: true } } },
+  });
+  return catalog;
+}
+
+// Resolve mixed inputs {ingredientId}|{identityKey}|{name}[, amountG] →
+// {selected: Map<ingredientId, {amountG, name}>, unresolved: []}.
+function resolveInputs(catalog, items) {
+  const selected = new Map();
+  const unresolved = [];
+  for (const item of items) {
+    const id = typeof item === 'object' && item !== null ? (item.ingredientId || item.ingredientCatalogId || null) : null;
+    const name = typeof item === 'string' ? item : (item.name || item.ingredientName || null);
+    const amountG = typeof item === 'object' && item !== null && Number.isFinite(Number(item.amountG)) ? Number(item.amountG) : null;
+
+    let hits = [];
+    if (id) {
+      hits = catalog.filter((c) => c.id === id || c.ingredient?.id === id || c.identityKey === id);
+      if (!hits.length) {
+        // Unknown id — treat as an opaque user ingredient id so quantity
+        // tracking still works; never fabricate a catalog resolution.
+        hits = [{ ingredient: { id }, identityKey: null, normalizedName: name || id, category: null, sourceRecord: null, direct: true }];
+      }
+    } else if (name) {
+      const vars = inputVariants(name);
+      hits = catalog.filter((c) => c.ingredient?.id && vars.some((v) => c.normalizedName === v || c.aliases.includes(v) || c.normalizedName.includes(v)));
+      if (!hits.length) hits = catalog.filter((c) => c.ingredient?.id && vars.some((v) => v.length >= 3 && c.normalizedName.split(' ').some((t) => t === v)));
+    }
+    if (hits.length) {
+      for (const h of hits) {
+        const iid = h.ingredient.id;
+        if (!selected.has(iid)) selected.set(iid, { name: h.ingredient.name || h.normalizedName, amountG });
+      }
+    } else {
+      unresolved.push(name || id);
+    }
   }
+  return { selected, unresolved };
+}
+
+function lineAllergens(line, catByIngId) {
+  const cat = line.ingredientId ? catByIngId.get(line.ingredientId) : null;
+  const rec = cat?.sourceRecord && typeof cat.sourceRecord === 'object' ? cat.sourceRecord : null;
+  const a = rec?.allergens;
+  if (Array.isArray(a)) return a.map(normalize);
+  if (typeof a === 'string') return a.split(/[,;]/).map(normalize).filter(Boolean);
+  return [];
+}
+
+async function matchIngredients({
+  userId,
+  items,
+  ingredients,       // legacy: plain name array
+  diet = [],
+  allergies = [],
+  cuisine = null,
+  maxPrepMinutes = null,
+  servings = null,
+  limit = 12,
+}) {
+  if (!userId) throw httpError(401, 'Sign in required.');
+  const raw = Array.isArray(items) && items.length ? items : (Array.isArray(ingredients) ? ingredients : []);
+  if (!raw.length || raw.length > 20) throw httpError(400, 'items must be 1–20 ingredients.');
+  const prisma = getPrisma();
+
+  const catalog = await loadCatalogIndex(prisma);
+  const catByIngId = new Map();
+  for (const c of catalog) if (c.ingredient?.id) catByIngId.set(c.ingredient.id, c);
+
+  const { selected, unresolved } = resolveInputs(catalog, raw);
+  const quantityAssumed = raw.every((i) => typeof i === 'string' || !Number.isFinite(Number(i.amountG)));
+
+  const wantedNames = raw.map((i) => (typeof i === 'string' ? i : i.name || i.ingredientName || '')).map(normalize).filter(Boolean);
+  const wantedExpanded = new Set();
+  for (const w of wantedNames) for (const v of inputVariants(w)) wantedExpanded.add(v);
+
+  const allergySet = new Set((Array.isArray(allergies) ? allergies : []).map(normalize).filter(Boolean));
+  const dietSet = new Set((Array.isArray(diet) ? diet : []).map(normalize).filter(Boolean));
+  const bannedCats = new Set();
+  for (const d of dietSet) for (const c of DIET_RULES[d] || []) bannedCats.add(c);
 
   const recipes = await prisma.recipe.findMany({
-    where: { reviewStatus: { not: 'REJECTED' }, OR: [{ isSystem: true }, { creatorId: userId }] },
+    where: {
+      reviewStatus: { not: 'REJECTED' },
+      OR: [{ isSystem: true }, { creatorId: userId }],
+      ...(cuisine ? { cuisine: { equals: cuisine, mode: 'insensitive' } } : {}),
+    },
     include: { ingredients: true },
   });
 
-  const ranked = [];
+  const results = [];
+  let excludedAllergy = 0;
+  let excludedDiet = 0;
+  let excludedTime = 0;
+
   for (const r of recipes) {
-    const required = r.ingredients.filter((l) => !PANTRY.has(normalize(l.ingredientName)));
+    if (maxPrepMinutes && r.prepMinutes && r.prepMinutes > maxPrepMinutes) { excludedTime++; continue; }
+
+    const lines = r.ingredients.filter((l) => !isPantry(l.ingredientName));
+    const required = lines.filter((l) => !l.optional);
+    const optional = lines.filter((l) => l.optional);
     if (!required.length) continue;
-    const matched = required.filter((l) => l.ingredientId && selectedIds.has(l.ingredientId));
-    const nameMatched = required.filter((l) => !l.ingredientId && wanted.some((w) => normalize(l.ingredientName).includes(w)));
-    const missing = required.filter((l) => !(l.ingredientId && selectedIds.has(l.ingredientId)) && !wanted.some((w) => normalize(l.ingredientName).includes(w)));
-    const hits = matched.length + nameMatched.length;
-    if (!hits) continue;
-    ranked.push({
+
+    // Allergy exclusion: recipe-declared allergens OR line-level catalog
+    // allergens intersecting the user's list → excluded outright.
+    if (allergySet.size) {
+      const recipeAlg = (r.allergens || []).map(normalize);
+      const lineAlg = lines.flatMap((l) => lineAllergens(l, catByIngId));
+      if ([...recipeAlg, ...lineAlg].some((a) => allergySet.has(a))) { excludedAllergy++; continue; }
+    }
+
+    // Diet exclusion via catalog categories. Egg-like lines are exempt under
+    // 'eggetarian' (they're in 'Animal protein' alongside meat/fish there).
+    if (bannedCats.size) {
+      const hit = required.find((l) => {
+        const cat = l.ingredientId ? catByIngId.get(l.ingredientId) : null;
+        if (!cat?.category || !bannedCats.has(cat.category)) return false;
+        if (dietSet.has('eggetarian') && eggLike(l.ingredientName)) return false;
+        return true;
+      });
+      if (hit) { excludedDiet++; continue; }
+    }
+
+    const has = (l) => {
+      if (l.ingredientId && selected.has(l.ingredientId)) return true;
+      const ln = normalize(l.ingredientName);
+      return [...wantedExpanded].some((w) => w.length >= 3 && (ln === w || ln.includes(` ${w}`) || ln.startsWith(`${w} `) || ln.includes(w)));
+    };
+
+    const available = required.filter(has);
+    const missingRequired = required.filter((l) => !has(l));
+    const missingOptional = optional.filter((l) => !has(l));
+    const matchedOpt = optional.filter(has);
+    if (!available.length && !matchedOpt.length) continue;
+
+    // Quantity sufficiency — only judged when the user supplied amounts.
+    const insufficient = [];
+    if (!quantityAssumed) {
+      for (const l of available) {
+        const sel = l.ingredientId ? selected.get(l.ingredientId) : null;
+        if (sel && sel.amountG != null && l.amountG && sel.amountG < l.amountG) {
+          insufficient.push({ ingredientName: l.ingredientName, needG: l.amountG, haveG: sel.amountG });
+        }
+      }
+    }
+
+    const coverage = available.length / required.length;
+    const simplicity = 1 / Math.max(1, required.length); // prefer simple recipes
+    const verifiedBonus = r.reviewStatus === 'VERIFIED' ? 0.1 : r.reviewStatus === 'SYSTEM' ? 0.05 : 0;
+    const cuisineBonus = cuisine && r.cuisine && normalize(r.cuisine) === normalize(cuisine) ? 0.05 : 0;
+    const matchScore = Math.round((coverage * 0.7 + simplicity * 0.15 + matchedOpt.length * 0.02 + verifiedBonus + cuisineBonus) * 1000) / 1000;
+
+    const status = insufficient.length && missingRequired.length === 0 ? 'insufficient-quantity'
+      : missingRequired.length === 0 ? 'ready'
+      : missingRequired.length === 1 ? 'missing-one'
+      : missingRequired.length <= Math.ceil(required.length / 2) ? 'missing-few'
+      : 'partial';
+
+    const reasons = [];
+    if (available.length) reasons.push(`You have ${available.length} of ${required.length} required ingredients`);
+    if (missingRequired.length) reasons.push(`Missing ${missingRequired.length}: ${missingRequired.slice(0, 3).map((l) => l.ingredientName).join(', ')}`);
+    if (insufficient.length) reasons.push(`Quantity short on ${insufficient.map((i) => i.ingredientName).join(', ')}`);
+    if (quantityAssumed && available.length) reasons.push('Quantities not provided — shown amounts are recipe targets');
+    if (r.prepMinutes) reasons.push(`~${r.prepMinutes} min`);
+    if (verifiedBonus) reasons.push(r.reviewStatus === 'VERIFIED' ? 'Verified recipe' : 'System recipe');
+
+    results.push({
       recipe: {
         id: r.id, name: r.recipeName, cuisine: r.cuisine, region: r.region, mealType: r.mealType,
-        servings: r.servings, portionG: r.portionG,
+        servings: r.servings, portionG: r.portionG, prepMinutes: r.prepMinutes,
         perServing: { calories: r.calories, proteinG: r.proteinG, carbsG: r.carbsG, fatG: r.fatG, fiberG: r.fiberG },
         verificationLevel: r.reviewStatus === 'VERIFIED' ? 'VERIFIED' : 'ESTIMATED',
+        allergens: r.allergens || [],
       },
-      matched: [...matched.map((l) => l.ingredientName), ...nameMatched.map((l) => l.ingredientName)],
-      missing: missing.map((l) => l.ingredientName),
-      coverage: Math.round((hits / required.length) * 100) / 100,
+      availableIngredients: available.map((l) => ({ name: l.ingredientName, amountG: l.amountG })),
+      missingRequired: missingRequired.map((l) => ({ name: l.ingredientName, amountG: l.amountG })),
+      missingOptional: missingOptional.map((l) => ({ name: l.ingredientName, amountG: l.amountG })),
+      matchedOptional: matchedOpt.map((l) => l.ingredientName),
+      insufficientQuantities: insufficient,
+      quantityAssumed,
+      coverage: Math.round(coverage * 100) / 100,
+      matchScore,
+      status,
+      reasons,
     });
   }
-  ranked.sort((a, b) => b.coverage - a.coverage || a.missing.length - b.missing.length || a.recipe.name.localeCompare(b.recipe.name));
-  return { results: ranked.slice(0, limit), unresolvedInputs };
+
+  results.sort((a, b) => {
+    const order = { ready: 0, 'insufficient-quantity': 1, 'missing-one': 2, 'missing-few': 3, partial: 4 };
+    return (order[a.status] - order[b.status]) || (b.matchScore - a.matchScore) || a.recipe.name.localeCompare(b.recipe.name);
+  });
+
+  return {
+    results: results.slice(0, limit),
+    totalMatched: results.length,
+    unresolvedInputs: unresolved,
+    quantityAssumed,
+    excluded: { allergy: excludedAllergy, diet: excludedDiet, prepTime: excludedTime },
+  };
 }
 
-module.exports = { matchRecipes };
+// Backward-compatible wrapper used by POST /recipes/match (names only).
+async function matchRecipes({ userId, ingredients, limit = 12 }) {
+  const out = await matchIngredients({ userId, items: ingredients, limit });
+  return {
+    unresolvedInputs: out.unresolvedInputs,
+    results: out.results.map((r) => ({
+      recipe: r.recipe,
+      matched: r.availableIngredients.map((i) => i.name),
+      missing: r.missingRequired.map((i) => i.name),
+      coverage: r.coverage,
+    })),
+  };
+}
+
+module.exports = { matchIngredients, matchRecipes };

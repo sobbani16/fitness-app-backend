@@ -561,6 +561,11 @@ const FEATURES = {
   ai_food_estimation_enabled: {
     clientKey: 'aiFoodEstimation', class: 'core', group: 'food', default: false, failOpen: false,
   },
+  recipe_customization_ai_enabled: {
+    clientKey: 'recipeCustomizationAi', class: 'ai', group: 'ai', default: false, failOpen: false,
+    endpoints: ['POST /recipes/:id/customize'],
+    description: 'Opt-in AI recipe customization. Paid calls, quota + kill-switch via askJSON. Backend re-computes all nutrition; AI never supplies macros.',
+  },
   oidc_login_enabled: {
     clientKey: 'oidcLogin', class: 'core', group: 'auth', default: false, failOpen: false,
   },
