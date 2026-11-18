@@ -79,7 +79,7 @@ describe('detectFood structured output', () => {
     // Deterministic local recipe match — no second AI call.
     expect(biryani.recipeMatches[0]).toMatchObject({ recipeId: recipe.id, name: `Ps Biryani ${T}`, reviewStatus: 'RESEARCH_DRAFT', nutritionLevel: 'ESTIMATED' });
     expect(biryani.recipeMatches[0].ingredients.map((i) => i.name)).toContain(ingOil.name);
-    expect(biryani.recipeMatches[0].visuallyConfirmedIngredients).toEqual(expect.arrayContaining([`sk rice ${T}`]));
+    expect(biryani.recipeMatches[0].visuallySuggestedIngredients).toEqual(expect.arrayContaining([`sk rice ${T}`]));
     expect(askJSON).toHaveBeenCalledTimes(1);
   });
 
@@ -130,7 +130,7 @@ describe('photoRecipeMatcher', () => {
     expect(matches[0].recipeId).toBe(recipe.id);
     expect(matches[0].reasons.join(' ')).toMatch(/exact dish name/);
     expect(matches[0].reasons.join(' ')).toMatch(/research draft/i);
-    expect(matches[0].visuallyConfirmedIngredients).toContain(`sk rice ${T}`);
+    expect(matches[0].visuallySuggestedIngredients).toContain(`sk rice ${T}`);
   });
 
   it('returns no candidates for unrelated dishes and never sees other users’ recipes', async () => {

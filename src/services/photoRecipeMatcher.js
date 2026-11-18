@@ -75,7 +75,7 @@ async function matchDetectedFood(food, userId) {
       ingredientId: l.ingredientId, name: l.ingredientName, amountG: l.amountG, optional: l.optional,
     })),
     matchScore: Math.round(s.score * 100) / 100, reasons: s.reasons,
-    visuallyConfirmedIngredients: s.covered,
+    visuallySuggestedIngredients: s.covered,
   }));
 }
 
