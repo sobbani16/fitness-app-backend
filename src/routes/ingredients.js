@@ -66,7 +66,8 @@ router.get('/search', async (req, res) => {
     res.json({ results });
   } catch (err) {
     const status = err.message && /required/i.test(err.message) ? 400 : 500;
-    res.status(err.status || status).json({ error: err.message });
+    const code = (err.status || status) >= 500 ? 'food-search-unavailable' : 'bad-request';
+    res.status(err.status || status).json({ error: err.message, code, retryable: (err.status || status) >= 500 });
   }
 });
 

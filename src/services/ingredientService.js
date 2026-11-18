@@ -129,7 +129,7 @@ async function searchIngredients({ userId, query, limit = 10, preparation, produ
 
   // Tier 1 — the user's own previously-searched ingredients.
   const userRows = await prisma.userIngredient.findMany({
-    where: { userId, ingredient: { normalizedName: { contains: q }, catalogId: null } },
+    where: { userId, ingredient: { normalizedName: { contains: q }, catalogId: null, source: { not: 'test-fixture' } } },
     include: { ingredient: true },
     orderBy: { lastSearchedAt: 'desc' },
     take: limit,
@@ -140,7 +140,7 @@ async function searchIngredients({ userId, query, limit = 10, preparation, produ
 
   // Tier 2 — the central shared catalog. Link hits into the user's table.
   const central = await prisma.ingredient.findMany({
-    where: { normalizedName: { contains: q }, catalogId: null },
+    where: { normalizedName: { contains: q }, catalogId: null, source: { not: 'test-fixture' } },
     take: limit,
   });
   if (central.length) {

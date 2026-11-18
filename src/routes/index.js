@@ -74,6 +74,7 @@ router.use('/mind', require('./mind'));
 router.use('/food-intel', require('./foodIntel'));
 router.use('/health-sources', require('./healthSources'));
 router.use('/ingredients', ingredients);
+router.use('/foods', require('./foods'));
 router.use('/safety', safety);
 router.use('/trainers', trainers);
 // One router serves both mounts: request actions live under /trainer-requests,
