@@ -18,7 +18,18 @@ async function resolveIngredient(prisma, item, catalogByName) {
     if (ing) return ing;
     throw httpError(400, `Unknown ingredientId: ${String(item.ingredientId).slice(0, 60)}`);
   }
-  return catalogByName.get(normalize(item.name || '')) || null;
+  const q = normalize(item.name || '');
+  if (!q) return null;
+  const exact = catalogByName.get(q);
+  if (exact) return exact;
+  // Fallback: shortest catalog name that starts with or contains the query —
+  // preferring the most canonical entry over long descriptive variants.
+  let best = null;
+  for (const [key, ing] of catalogByName) {
+    const hit = key.startsWith(q) ? 0 : key.includes(q) ? 1 : q.split(' ').every((t) => key.includes(t)) ? 2 : -1;
+    if (hit >= 0 && (!best || hit < best.hit || (hit === best.hit && key.length < best.key.length))) best = { hit, key, ing };
+  }
+  return best?.ing || null;
 }
 
 async function computeMealNutrition(userId, input) {
