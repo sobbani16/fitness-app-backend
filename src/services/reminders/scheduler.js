@@ -144,7 +144,7 @@ async function planUser(prisma, userId, now) {
   const since = new Date(now.getTime() - TRIGGER_LOOKBACK_MS);
   const [lastWater, supplementSchedules, links, recentMeals, recentWorkouts] = await Promise.all([
     prisma.waterLog.findFirst({ where: { userId }, orderBy: { loggedAt: 'desc' }, select: { loggedAt: true } }),
-    prisma.supplementSchedule.findMany({ where: { userId, active: true, reminderTime: { not: null } } }),
+    prisma.supplementSchedule.findMany({ where: { userId, active: true, notifyEnabled: true, reminderTime: { not: null } } }),
     prisma.userSupplement.findMany({ where: { userId }, select: { id: true, supplementId: true } }),
     prisma.foodLog.findMany({ where: { userId, loggedAt: { gte: since } }, select: { id: true, mealType: true, loggedAt: true } }),
     prisma.workoutSession.findMany({ where: { userId, finishedAt: { gte: since } }, select: { id: true, finishedAt: true } }),
@@ -210,6 +210,13 @@ function completedFor(category, instance, facts) {
 async function runTick(prisma, { now = new Date(), userIds } = {}) {
   await prisma.reminderInstance.updateMany({ where: { status: 'snoozed', snoozeUntil: { lte: now } }, data: { status: 'pending', snoozeUntil: null } });
   await prisma.reminderInstance.updateMany({ where: { status: 'pending', scheduledFor: { lt: new Date(now.getTime() - INSTANCE_EXPIRY_HOURS * 3600000) } }, data: { status: 'expired' } });
+  // Supplement dose occurrences: revive elapsed snoozes and mark elapsed
+  // pendings MISSED (never treated as proof of non-adherence).
+  try {
+    const occWhere = userIds ? { userId: { in: userIds } } : {};
+    await prisma.supplementDoseOccurrence.updateMany({ where: { ...occWhere, status: 'SNOOZED', snoozeUntil: { lte: now } }, data: { status: 'PENDING', snoozeUntil: null } });
+    await prisma.supplementDoseOccurrence.updateMany({ where: { ...occWhere, status: 'PENDING', scheduledFor: { not: null, lt: new Date(now.getTime() - 12 * 3600000) } }, data: { status: 'MISSED' } });
+  } catch { /* table may predate the v2 migration in test envs */ }
 
   const where = { status: 'pending', scheduledFor: { lte: now }, ...(userIds ? { userId: { in: userIds } } : {}) };
   const due = await prisma.reminderInstance.findMany({ where, take: 500, orderBy: { scheduledFor: 'asc' } });
