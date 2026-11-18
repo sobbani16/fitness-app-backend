@@ -1,15 +1,18 @@
+jest.mock('../src/services/aiProvider', () => ({ askJSON: jest.fn(), aiEnabled: jest.fn(() => true) }));
+
 const request = require('supertest');
 const app = require('../src/app');
 const { getPrisma } = require('../src/lib/prisma');
 const { matchIngredients } = require('../src/services/recipeMatch');
 const { computeFromLines } = require('../src/services/recipeImport');
+const { askJSON } = require('../src/services/aiProvider');
 
 jest.setTimeout(30000);
 
 const uid = `sk-user-${Date.now()}`;
 const prisma = getPrisma();
 const T = Date.now();
-let catEgg, catAvo, catBread, catButter, ingEgg, ingAvo, ingBread, recipe, recipeOpt;
+let catEgg, catAvo, catBread, catButter, catPeanut, ingEgg, ingAvo, ingBread, recipe, recipeOpt;
 
 beforeAll(async () => {
   await prisma.user.create({ data: { id: uid, email: `${uid}@t.dev` } }).catch(() => {});
@@ -24,6 +27,13 @@ beforeAll(async () => {
   catAvo = await mkCat(`sk avocado ${T}`, [], { caloriesPer100g: 160, proteinPer100g: 2, carbsPer100g: 8.5, fatPer100g: 14.7, fiberPer100g: 6.7 });
   catBread = await mkCat(`sk bread ${T}`, [], { caloriesPer100g: 265, proteinPer100g: 9, carbsPer100g: 49, fatPer100g: 3.2, fiberPer100g: 2.7 });
   catButter = await mkCat(`sk butter ${T}`, [], { caloriesPer100g: 717, proteinPer100g: 0.9, carbsPer100g: 0.1, fatPer100g: 81, fiberPer100g: 0 });
+  catPeanut = await prisma.ingredientCatalog.create({ data: {
+    id: `skc_peanut_${T}`, name: `sk peanuts ${T}`, normalizedName: `sk peanuts ${T}`,
+    aliases: [], category: 'Nuts', preparation: 'raw',
+    status: 'GENERIC_COMPOSITION', usable: true, verificationLevel: 'GENERIC_COMPOSITION',
+    sourceRecord: { id: `sk peanuts ${T}`, allergens: ['peanut'] },
+    ingredient: { create: { name: `sk peanuts ${T}`, normalizedName: `sk peanuts ${T}`, source: 'humai-catalog', caloriesPer100g: 567, proteinPer100g: 25.8, carbsPer100g: 16.1, fatPer100g: 49.2, fiberPer100g: 8.5 } },
+  } });
   const ingOf = (c) => prisma.ingredient.findUnique({ where: { catalogId: c.id } });
   ingEgg = await ingOf(catEgg); ingAvo = await ingOf(catAvo); ingBread = await ingOf(catBread); const ingButter = await ingOf(catButter);
 
@@ -55,7 +65,7 @@ afterAll(async () => {
     await prisma.recipeIngredient.deleteMany({ where: { recipeId: r.id } });
     await prisma.recipe.delete({ where: { id: r.id } }).catch(() => {});
   }
-  for (const c of [catEgg, catAvo, catBread, catButter].filter(Boolean)) {
+  for (const c of [catEgg, catAvo, catBread, catButter, catPeanut].filter(Boolean)) {
     const ing = await prisma.ingredient.findUnique({ where: { catalogId: c.id } }).catch(() => null);
     if (ing) await prisma.ingredient.delete({ where: { id: ing.id } }).catch(() => {});
     await prisma.ingredientCatalog.delete({ where: { id: c.id } }).catch(() => {});
@@ -163,6 +173,61 @@ describe('recipe engagement', () => {
   });
   it('rejects bad rating', async () => {
     const res = await request(app).put(`/recipes/${recipe.id}/engagement`).set('x-user-id', uid).send({ rating: 9 });
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('AI recipe customization (mocked provider)', () => {
+  beforeEach(() => askJSON.mockReset());
+  it('applies a valid substitution and recomputes nutrition server-side', async () => {
+    askJSON.mockResolvedValue({
+      changes: [{ action: 'substitute', ingredientName: `sk butter ${T}`, newIngredientName: `sk avocado ${T}`, amountG: 5 }],
+      notes: 'lighter fat', servings: 1,
+    });
+    const res = await request(app).post(`/recipes/${recipe.id}/customize`).set('x-user-id', uid).send({ request: 'lighter fat' });
+    expect(res.status).toBe(200);
+    expect(res.body.changesApplied[0]).toMatch(/Swapped/);
+    const avocadoLine = res.body.proposedLines.find((l) => l.ingredientName === `sk avocado ${T}` && l.amountG === 80 + 5 || l.amountG === 5);
+    expect(res.body.perServing).toBeTruthy();
+    // nutrition recomputed from per-100g — never the model's numbers
+    expect(typeof res.body.perServing.calories).toBe('number');
+    expect(res.body.provenance.nutritionRecomputed).toBe(true);
+  });
+  it('rejects ingredients not in the catalog', async () => {
+    askJSON.mockResolvedValue({ changes: [{ action: 'add', ingredientName: 'unobtainium', amountG: 50 }], notes: '', servings: 1 });
+    const res = await request(app).post(`/recipes/${recipe.id}/customize`).set('x-user-id', uid).send({ request: 'add unobtainium' });
+    expect(res.status).toBe(200);
+    expect(res.body.rejected[0].reason).toMatch(/not in food catalog/);
+  });
+  it('rejects out-of-bounds amounts', async () => {
+    askJSON.mockResolvedValue({ changes: [{ action: 'set_amount', ingredientName: `sk butter ${T}`, amountG: 99999 }], notes: '', servings: 1 });
+    const res = await request(app).post(`/recipes/${recipe.id}/customize`).set('x-user-id', uid).send({ request: 'more butter' });
+    expect(res.body.rejected[0].reason).toMatch(/amount out of bounds/);
+  });
+  it('rejects allergen-conflicting additions', async () => {
+    askJSON.mockResolvedValue({ changes: [{ action: 'add', ingredientName: `sk peanuts ${T}`, amountG: 20 }], notes: '', servings: 1 });
+    const res = await request(app).post(`/recipes/${recipe.id}/customize`).set('x-user-id', uid).send({ request: 'add peanuts', allergies: ['peanut'] });
+    expect(res.body.rejected[0].reason).toMatch(/conflicts with your allergies/);
+  });
+  it('refuses to empty the recipe', async () => {
+    askJSON.mockResolvedValue({ changes: [
+      { action: 'remove', ingredientName: catBread.name }, { action: 'remove', ingredientName: catAvo.name },
+      { action: 'remove', ingredientName: catEgg.name }, { action: 'remove', ingredientName: catButter.name },
+      { action: 'remove', ingredientName: 'Salt' },
+    ], notes: '', servings: 1 });
+    const res = await request(app).post(`/recipes/${recipe.id}/customize`).set('x-user-id', uid).send({ request: 'remove everything' });
+    expect(res.status).toBe(422);
+  });
+  it('propagates provider failures (quota / shutdown / unavailable)', async () => {
+    askJSON.mockRejectedValue(Object.assign(new Error('Daily AI usage limit reached.'), { status: 429 }));
+    const res = await request(app).post(`/recipes/${recipe.id}/customize`).set('x-user-id', uid).send({ request: 'anything' });
+    expect([429, 500]).toContain(res.status);
+    askJSON.mockRejectedValue(Object.assign(new Error('AI service is not configured.'), { status: 503 }));
+    const res2 = await request(app).post(`/recipes/${recipe.id}/customize`).set('x-user-id', uid).send({ request: 'anything' });
+    expect([503, 500]).toContain(res2.status);
+  });
+  it('requires a request string', async () => {
+    const res = await request(app).post(`/recipes/${recipe.id}/customize`).set('x-user-id', uid).send({ request: '' });
     expect(res.status).toBe(400);
   });
 });

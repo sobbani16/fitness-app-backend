@@ -28,6 +28,7 @@ router.post('/match-ingredients', async (req, res, next) => {
       diet: b.diet, allergies: b.allergies, cuisine: b.cuisine,
       maxPrepMinutes: b.maxPrepMinutes == null ? null : Number(b.maxPrepMinutes),
       servings: b.servings == null ? null : Number(b.servings),
+      pantry: b.pantry && typeof b.pantry === 'object' ? b.pantry : {},
       limit,
     }));
   } catch (e) { next(e); }

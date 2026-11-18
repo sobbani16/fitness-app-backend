@@ -22,8 +22,11 @@ const { getPrisma } = require('../lib/prisma');
 const { normalize } = require('./ingredientCsv');
 const { httpError } = require('../lib/errors');
 
-const PANTRY = new Set(['water', 'salt', 'ice', 'water for soaking', 'water for cooking', 'warm water', 'ice cubes', 'black pepper', 'pepper', 'salt and pepper', 'salt to taste']);
-const isPantry = (n) => PANTRY.has(normalize(n));
+// Seasonings/staples assumed in a home kitchen. Users can narrow this to just
+// water/salt/ice (pantry.minimal) or extend it (pantry.extra) per request —
+// never extended automatically to every spice or sauce.
+const PANTRY_CORE = new Set(['water', 'salt', 'ice', 'water for soaking', 'water for cooking', 'warm water', 'ice cubes']);
+const PANTRY_DEFAULT = new Set([...PANTRY_CORE, 'black pepper', 'pepper', 'salt and pepper', 'salt to taste']);
 
 // Diet → ingredient-catalog categories a recipe may not contain. Conservative:
 // category strings come from our catalog; absence of a match is NOT proof a
@@ -111,6 +114,7 @@ async function matchIngredients({
   maxPrepMinutes = null,
   servings = null,
   limit = 12,
+  pantry = {},
 }) {
   if (!userId) throw httpError(401, 'Sign in required.');
   const raw = Array.isArray(items) && items.length ? items : (Array.isArray(ingredients) ? ingredients : []);
@@ -133,6 +137,9 @@ async function matchIngredients({
   const bannedCats = new Set();
   for (const d of dietSet) for (const c of DIET_RULES[d] || []) bannedCats.add(c);
 
+  const pantrySet = new Set([...(pantry.minimal ? PANTRY_CORE : PANTRY_DEFAULT), ...(Array.isArray(pantry.extra) ? pantry.extra.map(normalize) : [])]);
+  const isPantryLine = (n) => pantrySet.has(normalize(n));
+
   const recipes = await prisma.recipe.findMany({
     where: {
       reviewStatus: { not: 'REJECTED' },
@@ -150,7 +157,7 @@ async function matchIngredients({
   for (const r of recipes) {
     if (maxPrepMinutes && r.prepMinutes && r.prepMinutes > maxPrepMinutes) { excludedTime++; continue; }
 
-    const lines = r.ingredients.filter((l) => !isPantry(l.ingredientName));
+    const lines = r.ingredients.filter((l) => !isPantryLine(l.ingredientName));
     const required = lines.filter((l) => !l.optional);
     const optional = lines.filter((l) => l.optional);
     if (!required.length) continue;

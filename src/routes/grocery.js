@@ -33,7 +33,10 @@ router.post('/', async (req, res, next) => {
       if (!name) continue;
       const normalizedName = normalize(name);
       const amountG = Number.isFinite(Number(it.amountG)) ? Math.max(0, Number(it.amountG)) : null;
-      const existing = await prisma.groceryItem.findFirst({ where: { userId, normalizedName, status: 'pending' } });
+      const unitLabel = it.unitLabel ? String(it.unitLabel).slice(0, 40) : null;
+      // Merge only with a pending row of the same name AND same unit label —
+      // "2 tomatoes" and "200 g tomatoes" never combine without a conversion.
+      const existing = await prisma.groceryItem.findFirst({ where: { userId, normalizedName, status: 'pending', unitLabel } });
       if (existing) {
         const updated = await prisma.groceryItem.update({
           where: { id: existing.id },
@@ -47,7 +50,7 @@ router.post('/', async (req, res, next) => {
         const created = await prisma.groceryItem.create({
           data: {
             userId, name, normalizedName, amountG,
-            unitLabel: it.unitLabel ? String(it.unitLabel).slice(0, 40) : null,
+            unitLabel,
             optional: it.optional === true,
             sourceRecipeId: it.sourceRecipeId ? String(it.sourceRecipeId) : null,
           },
