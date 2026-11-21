@@ -228,7 +228,7 @@ const FEATURES = {
     description: 'Shared activity safety evaluation (structural safeguards + review-gated rules).',
   },
   weather_intelligence_v2: {
-    clientKey: 'weatherIntelligenceV2', class: 'server', group: 'manual', default: false, failOpen: false,
+    clientKey: 'weatherIntelligence', class: 'server', group: 'manual', default: false, failOpen: false,
     endpoints: ['GET /weather/environment'],
     description: 'Normalized environmental observation (feels-like, AQI, wind, UV, forecast).',
   },
