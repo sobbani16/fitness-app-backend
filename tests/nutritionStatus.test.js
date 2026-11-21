@@ -33,6 +33,11 @@ describe('nutrientStatus', () => {
     expect(s.nutrients.sugarG.value).toBe(8);
     expect(s.nutrients).not.toHaveProperty('bogus');
   });
+  it('prefers the persistent micronutrients column over the snapshot', async () => {
+    const prisma = prismaOf([{ ...base, fiberG: 2, micronutrients: { sodiumMg: 500 }, nutritionSnapshot: { sodiumMg: 400 } }]);
+    const s = await nutrientStatus(prisma, 'u1', { days: 1 });
+    expect(s.nutrients.sodiumMg.value).toBe(500);
+  });
   it('never returns zero for an empty day', async () => {
     const s = await nutrientStatus(prismaOf([]), 'u1', { days: 7 });
     expect(s.nutrients.proteinG.coverage).toBe('no-data');

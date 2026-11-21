@@ -22,7 +22,7 @@ async function nutrientStatus(prisma, userId, { days = 1, now = new Date(), targ
   const from = dayStart(now); from.setDate(from.getDate() - (span - 1));
   const logs = await prisma.foodLog.findMany({
     where: { userId, loggedAt: { gte: from, lte: now } },
-    select: { calories: true, proteinG: true, carbsG: true, fatG: true, fiberG: true, nutritionSnapshot: true, loggedAt: true },
+    select: { calories: true, proteinG: true, carbsG: true, fatG: true, fiberG: true, nutritionSnapshot: true, micronutrients: true, loggedAt: true },
   });
   const daysWithData = new Set(logs.map(l => dayStart(l.loggedAt).toISOString())).size;
   const nutrients = {};
@@ -31,7 +31,11 @@ async function nutrientStatus(prisma, userId, { days = 1, now = new Date(), targ
     for (const log of logs) {
       let v;
       if (FOODLOG_NATIVE.includes(n.key)) v = log[n.key];
-      else v = snapshotNutrients(log.nutritionSnapshot)[n.key];
+      else {
+        const micros = log.micronutrients && typeof log.micronutrients === 'object' ? log.micronutrients : {};
+        const m = micros[n.key];
+        v = typeof m === 'number' && Number.isFinite(m) ? m : snapshotNutrients(log.nutritionSnapshot)[n.key];
+      }
       if (typeof v === 'number' && Number.isFinite(v)) { total += v; present++; }
       else missing++;
     }

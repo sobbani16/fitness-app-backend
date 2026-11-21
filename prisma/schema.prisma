@@ -193,6 +193,7 @@ model SleepLog {
 model FoodLog {
   ingredientId      String?
   nutritionSnapshot Json?
+  micronutrients    Json?
   id                String  @id @default(uuid())
 
   userId String
