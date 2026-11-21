@@ -49,6 +49,35 @@ router.get('/', (req, res) => {
   }
 });
 
+// GET /recommendations/nutrition-status?days=1|7|30
+// Per-nutrient logged totals + coverage honesty for the window.
+router.get('/nutrition-status', async (req, res) => {
+  const userId = req.userId || req.headers['x-user-id'];
+  if (!userId) return res.status(401).json({ error: 'Authentication required' });
+  const { getPrisma } = require('../lib/prisma');
+  const { nutrientStatus } = require('../services/nutrientStatus');
+  res.json(await nutrientStatus(getPrisma(), userId, { days: num(req.query.days, 1) }));
+});
+
+// GET /recommendations/suggest?occasion=&cuisines=&maxCookingMinutes=&limit=
+// Deterministic eligibility + gap-fit ranking; AI re-rank only when the
+// ai_food_recommendations feature is enabled for this account.
+router.get('/suggest', async (req, res) => {
+  const userId = req.userId || req.headers['x-user-id'];
+  if (!userId) return res.status(401).json({ error: 'Authentication required' });
+  const { getPrisma } = require('../lib/prisma');
+  const { isEnabled } = require('../services/featureFlags/service');
+  const { suggestMeals } = require('../services/nutritionRecommendation');
+  const allowAi = await isEnabled('ai_food_recommendations', userId).catch(() => false);
+  res.json(await suggestMeals(getPrisma(), userId, {
+    occasion: req.query.occasion,
+    cuisines: req.query.cuisines ? String(req.query.cuisines).split(',') : undefined,
+    maxCookingMinutes: req.query.maxCookingMinutes ? num(req.query.maxCookingMinutes, null) : null,
+    limit: num(req.query.limit, 8),
+    allowAi,
+  }));
+});
+
 function num(v, fallback) {
   if (v === undefined || v === null || v === '') return fallback;
   const n = Number(v);

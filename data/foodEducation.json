@@ -1,0 +1,57 @@
+[
+  {
+    "id": "jaggery",
+    "matches": ["jaggery", "gur", "gud"],
+    "title": "Jaggery",
+    "points": [
+      "Jaggery is still predominantly sugar — its trace minerals do not offset its sugar load.",
+      "Per spoon, jaggery and table sugar deliver comparable carbohydrate energy.",
+      "If you limit added sugars, count jaggery toward the same budget."
+    ],
+    "portionNote": "A teaspoon (~5 g) contributes roughly the carbohydrate of the same amount of sugar."
+  },
+  {
+    "id": "dried-fruit-dates",
+    "matches": ["dates", "khajoor", "raisins", "kishmish", "dried apricot", "dried fig", "anjeer"],
+    "title": "Dried fruits & dates",
+    "points": [
+      "Drying concentrates sugars — a small handful carries the carbohydrate of a much larger fresh portion.",
+      "They do contribute fiber and micronutrients, but natural sugars still count toward daily intake.",
+      "Pair with protein or fat (nuts, yogurt) to moderate absorption."
+    ],
+    "portionNote": "2–3 dates or a tablespoon of raisins is a practical serving, not a large bowl."
+  },
+  {
+    "id": "nuts",
+    "matches": ["almonds", "badam", "walnuts", "cashews", "kaju", "pistachio", "peanuts", "moongphali"],
+    "title": "Nuts",
+    "points": [
+      "Mostly unsaturated fats plus protein, fiber and micronutrients — but very calorie-dense.",
+      "Benefits shown for regular small servings, not unlimited snacking.",
+      "Skip entirely with a relevant nut allergy; seeds are not automatically safe substitutes."
+    ],
+    "portionNote": "A small handful (~28–30 g) is the commonly studied serving."
+  },
+  {
+    "id": "ghee",
+    "matches": ["ghee", "clarified butter"],
+    "title": "Ghee",
+    "points": [
+      "Ghee is mostly fat with a high saturated-fat share — a flavor ingredient, not a health supplement.",
+      "A teaspoon adds ~5 g fat; it should be counted within total fat intake.",
+      "Where saturated fat is a concern, unsaturated oils are the usual swap for routine cooking."
+    ],
+    "portionNote": "Measure with a spoon rather than pouring freely — portions drift easily."
+  },
+  {
+    "id": "avocado",
+    "matches": ["avocado"],
+    "title": "Avocado",
+    "points": [
+      "Rich in unsaturated fat and fiber — a reasonable swap for saturated-fat spreads.",
+      "Still energy-dense: half a medium avocado is a meaningful calorie portion.",
+      "It supports dietary quality; no single food corrects blood-lipid markers on its own."
+    ],
+    "portionNote": "About half a medium avocado (~70–100 g flesh) is a typical serving."
+  }
+]
