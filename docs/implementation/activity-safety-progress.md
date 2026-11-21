@@ -4,43 +4,56 @@
 **Resume instructions:** read this file → `git log --oneline` this branch → `docs/implementation/activity-safety-open-issues.md` → continue next exact task.
 
 ## Current phase
-Phase 2→3 transition (inventory complete; evidence register next).
+Phase 4–6 core complete; wiring recommendation producers (Phase 8) + tests next.
 
 ## Completed
 - [x] Phase 1 inventory → `docs/audits/health-activity-current-state.md` (all 12 recommendation producers traced; dead paths verified)
-- [x] Branch created; user WIP from nutrition workstream identified — commits stage activity-safety files only
-- [x] Confirmed existing gating precedent to mirror: `ConditionRule.reviewStatus` (DRAFT→REVIEWED→APPROVED) + `RuleEvidence` + DB CHECK + `scripts/verify-rule-gating.js`
+- [x] Phase 2 evidence register + clinical review queue → `docs/clinical/` (45+ rules, all DRAFT)
+- [x] Phase 3 schema + additive migration `20261221000000_activity_safety_v1` (9 models; Recipe drift excluded; `activitySafetyRule` accessor verified)
+- [x] Phase 4 deterministic engine: `src/services/activitySafety/{constants,activityCatalog,environment,engine,context,index}.js` — multi-dimensional (medical/functional/environmental/personalization), structural safeguards always-on
+- [x] Phase 5 rule registry: `rulesData.js` (71 rules seeded DRAFT via `scripts/seed-activity-safety-rules.js --apply`)
+- [x] Phase 6 env service: `src/services/environmentService.js` — normalized Open-Meteo v2 (feels-like, humidity, wind/gusts, UV forecast, 12h window) + US AQI feed; `alertsAvailable:false` honest; stale marking
+- [x] Routes: `/activity-safety/*` (recommendation, evaluate, symptoms, injuries, feedback, profile) + `GET /weather/environment` — all behind server flags (`activity_safety_engine`, `weather_intelligence_v2`, `health_aware_recommendations`, `activity_safety_shadow_mode`)
 
 ## In progress
-- Phase 2: `docs/clinical/activity-safety-evidence-register.md` + `docs/clinical/clinical-review-queue.md`
+- Phase 8 wiring: voice route symptom/injury capture + recommendation producers on engine
 
 ## Next exact task
-Write evidence register with real citations (CDC PA guidelines, ACOG Committee Opinion 804, ACSM preparticipation screening, EPA AQI, NOAA lightning, AAOS/APTA NWB rehab) — every rule `reviewStatus: pending_review` (DRAFT).
+Route-level tests for `/activity-safety/*` (mocked prisma) + wire voice injury/symptom capture into `src/routes/voice.js` + point mobile weather suggestion at `GET /activity-safety/recommendation` behind flag.
 
-## Files modified (mine only)
-- `docs/audits/health-activity-current-state.md` (new)
-- `docs/implementation/activity-safety-progress.md` (new)
-- `docs/implementation/activity-safety-test-results.md` (new)
-- `docs/implementation/activity-safety-open-issues.md` (new)
+## Files modified (mine only, this session)
+- `src/services/activitySafety/*` (new: constants, activityCatalog, environment, engine, context, index, rulesData)
+- `src/services/environmentService.js` (new)
+- `src/routes/activitySafety.js` (new), `src/routes/weather.js`, `src/routes/index.js`
+- `src/config/featureRegistry.js` (+4 flags)
+- `prisma/schema.prisma` (+9 models + User relations), `prisma/migrations/20261221000000_activity_safety_v1/`
+- `scripts/seed-activity-safety-rules.js`, `tests/activitySafety.engine.test.js`
+- `docs/clinical/*` (evidence register + review queue)
 
 ## Tests executed
-- Backend `tests/weatherService.test.js` 10/10 ✅ (audit)
-- Backend engine probe: `recommendFromBalance` × 20 combos → applyWeather never fires (dead code verified)
-- Mobile `weatherContext.test.ts` + `useWeather.test.js` 15/15 ✅ (audit)
+- `npx jest tests/activitySafety.engine.test.js --runInBand` → **57/57 pass** (S001–S020 family, env bands, injury lifecycle, mobility, rule matching, invariants, recommend pipeline)
+- Module sanity: routes + services load without DB
+- Node probes: NWB ankle, thunderstorm, AQI bands, heat-sensitive MS, expired-clinician-restriction, unmapped body part, stale env — all verified before Jest run
+- Prior: backend weatherService 10/10; mobile weather 15/15 (audit phase)
 
 ## Failing tests
-None from my work. Pre-existing WIP state: `A06` nutrition fixture intentionally red (`docs/nutrition-intelligence/NEXT_SESSION.md`).
+None from activity-safety work. Pre-existing: `A06` nutrition fixture intentionally red (user WIP).
 
 ## Pending migrations
-None yet — Phase 3 will add UserInjury, UserActivityRestriction, UserSymptomReport, ActivitySafetyRule, ActivitySafetyEvaluation, EnvironmentalObservation via `prisma migrate diff --from-migrations --to-schema-datamodel` → create-only migration (per AGENTS.md: never `migrate dev`/`reset`).
+`20261221000000_activity_safety_v1` applied locally (additive, drift-filtered). Production apply pending deploy pipeline.
 
 ## Clinical review blockers
-- ALL activity-safety rules ship DRAFT/`pending_review` — inert until clinician approval (mirrors ConditionRule contract; user's explicit release gate).
+- 71 `activitySafetyRule` rows all `reviewStatus=DRAFT` — inert for live users until clinician APPROVED (migration CHECK requires reviewedBy/reviewedAt).
+- `docs/clinical/clinical-review-queue.md` lists the high-risk cases requiring qualified review before activation.
 
 ## Known limitations (as of this checkpoint)
-- `symptom_pathways` flag registered but no routes exist (nutrition-side placeholder).
-- `decisionEngine.js` is nutrition-scoped; activity engine gets its own multi-dimensional evaluator.
-- No medication model exists — medication-activity flags will be opt-in structured fields, never an inferred med list.
+- `alertsAvailable:false` — Open-Meteo has no NWS alert feed; thunderstorm inferred from WMO codes only. Real alert provider needed for production.
+- UV pulled from nearest forecast hour (free tier has no current UV).
+- `group_indoor` activity category referenced by AS-SYS-004 but not yet in catalog.
+- Voice/coaching/notification producers not yet wired to engine.
+- Mobile still uses local weather buckets — backend recommendation path not yet consumed.
+- `recommend()` alternatives: `rest` is eligible by design (recovery is a valid choice).
 
 ## Commit IDs
-- (pending first checkpoint)
+- `359648e` Phase 1 inventory + progress tracking
+- `9eb0bdd` schema + engine + env service + routes + rules + 57 tests

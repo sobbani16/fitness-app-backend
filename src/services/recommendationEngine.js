@@ -25,6 +25,9 @@ function recommendFromBalance(balance, { weather, mealsLogged } = {}) {
     location: adjusted.location,      // 'outdoor' | 'indoor' | 'either'
     title: adjusted.title,
     reason: adjusted.reason,
+    // Honesty flag: true only when weather actually changed the suggestion.
+    // Callers must not claim "the plan accounts for weather" otherwise.
+    weatherAdjusted: adjusted !== base,
     surplus: s,
     provisional: true,
   };

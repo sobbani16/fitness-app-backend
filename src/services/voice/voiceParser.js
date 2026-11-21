@@ -10,8 +10,86 @@ const splitSegments = text =>
   String(text).split(/;|\.\s+|,\s*(?=\s*(?:and\s+)?(?:add|log|record|start|mark|finish|complete|change|remove|undo|update)\b)|\band then\b/i)
     .map(s => s.trim().replace(/^(and|then|also|please)\s+/i, '')).filter(Boolean);
 
+// Safety capture — voice-reported injuries and symptoms feed the shared
+// activity-safety context, so they must never be parsed as log commands.
+const BODY_PARTS = {
+  'lower back': 'lower_back', 'low back': 'lower_back',
+  ankle: 'ankle', knee: 'knee', hip: 'hip', shoulder: 'shoulder', wrist: 'wrist',
+  elbow: 'elbow', neck: 'neck', back: 'lower_back', hand: 'hand', foot: 'foot',
+  leg: 'leg', arm: 'arm', thigh: 'thigh', calf: 'calf', achilles: 'achilles',
+  hamstring: 'hamstring', groin: 'groin', pelvis: 'pelvis', shin: 'shin',
+};
+const INJURY_TYPES = {
+  sprain: 'sprain', sprained: 'sprain', strain: 'strain', strained: 'strain',
+  pull: 'strain', pulled: 'strain', fracture: 'fracture', broke: 'fracture', broken: 'fracture',
+  dislocat: 'dislocation', tore: 'tear', torn: 'tear', twist: 'sprain', twisted: 'sprain',
+  hurt: 'unspecified', injured: 'unspecified',
+};
+const SYMPTOM_PATTERNS = [
+  [/chest (?:pain|pressure|tightness)/, 'chest_pain'],
+  [/faint|passed out|pass out|blacked out|syncope/, 'syncope'],
+  [/(?:unusual|severe)\s*(?:shortness of )?breath|short of breath|can't breathe|cant breathe|can'?t catch (?:my )?breath/, 'dyspnea_unusual'],
+  [/shortness of breath|breathless/, 'shortness_breath_exertion'],
+  [/dizz|light.?headed/, 'dizziness'],
+  [/palpitation|heart (?:is )?(?:racing|flutter)/, 'palpitations'],
+  [/severe (?:head )?ache|worst headache/, 'severe_headache_sudden'],
+  [/severe pain|pain .*(?:8|9|10)(?:\s*\/\s*10)?|can't bear weight|cant bear weight/, 'severe_pain'],
+  [/(?:joint|knee|ankle) .*(?:gives? (?:way|out)|unstable|buckles)/, 'joint_instability'],
+  [/fever|feeling (?:really )?(?:sick|unwell|ill)|flu/, 'fever'],
+  [/vision (?:changes|blur)/, 'vision_changes'],
+  [/numb(?:ness)?|tingling (?:in my )?(?:arm|hand|face|leg)/, 'numbness_neuro'],
+  [/bleeding/, 'pregnancy_bleeding'], // pregnancy context verified downstream; still routes to review
+  [/low (?:blood )?sugar|hypoglyc/, 'hypoglycemia'],
+  [/weak(?:ness)? (?:in my|on (?:my )?(?:left|right))/, 'abnormal_weakness'],
+];
+
+// Strip trailing temporal/qualifier words and resolve to a catalog part.
+function extractPart(raw) {
+  let s = String(raw || '').trim();
+  for (let words = s.split(' '); words.length; words.pop()) {
+    const cand = words.join(' ');
+    if (BODY_PARTS[cand]) return { part: BODY_PARTS[cand], raw: cand };
+    if (BODY_PARTS[cand.replace(/s$/, '')]) return { part: BODY_PARTS[cand.replace(/s$/, '')], raw: cand };
+  }
+  return { part: null, raw: s };
+}
+
+function safetySegment(seg, t) {
+  // Injury: "I injured/hurt/sprained my [left|right|both] <body part> [yesterday|today|...]"
+  let m = t.match(/\b(?:i\s+)?(?:just\s+)?(injur\w+|hurt|sprain\w+|strain\w+|pull(?:ed)?|fractur\w+|brok\w+|tore|torn|twist\w+|dislocat\w+)\s+(?:my\s+)?((?:left|right|both)\s+)?([a-z ]+?)(?:\s+(?:yesterday|today|this morning|last night|earlier|last week|on\s+\w+day|ago|at|during|while|badly|really))?[.\s!]*$/);
+  if (m && /\binjur|hurt|sprain|strain|pull|fractur|brok|tore|torn|twist|dislocat/.test(m[1])) {
+    const { part, raw } = extractPart(m[3]);
+    const laterality = /both/.test(m[2] || '') ? 'bilateral' : /(left|right)/.test(m[2] || '') ? m[2].trim() : 'na';
+    const typeWord = Object.keys(INJURY_TYPES).find(k => m[1].startsWith(k)) || 'unspecified';
+    if (part) {
+      return { intent: 'REPORT_INJURY', entities: { bodyPart: part, laterality, type: INJURY_TYPES[typeWord] || 'unspecified' }, missing: [], segment: seg, status: 'ready' };
+    }
+    // Unresolvable body part — capture via needs_review so nothing is lost.
+    return { intent: 'REPORT_INJURY', entities: { bodyPart: raw || null, laterality, type: INJURY_TYPES[typeWord] || 'unspecified' }, missing: ['bodyPart'], segment: seg, status: 'needs_review' };
+  }
+  // "my knee really hurts" / "my ankle hurts when I walk"
+  m = t.match(/\bmy\s+((?:left|right|both)\s+)?([a-z ]+?)\s+(?:really\s+)?(?:hurts?|is (?:really )?sore|is killing me|aches?)\b/);
+  if (m) {
+    const { part } = extractPart(m[2]);
+    if (part) {
+      return { intent: 'REPORT_INJURY', entities: { bodyPart: part, laterality: /both/.test(m[1] || '') ? 'bilateral' : /(left|right)/.test(m[1] || '') ? m[1].trim() : 'na', type: 'unspecified' }, missing: [], segment: seg, status: 'ready' };
+    }
+  }
+  // Symptoms — coded reports that drive escalation
+  const codes = [];
+  for (const [re, code] of SYMPTOM_PATTERNS) if (re.test(t)) codes.push(code);
+  if (codes.length) {
+    return { intent: 'REPORT_SYMPTOM', entities: { symptoms: [...new Set(codes)] }, missing: [], segment: seg, status: 'ready' };
+  }
+  return null;
+}
+
 function parseSegment(seg, ctx = {}) {
   const t = seg.toLowerCase().trim();
+
+  // SAFETY — injuries and symptoms are captured before any logging intent.
+  const safety = safetySegment(seg, t);
+  if (safety) return safety;
 
   // UNDO
   if (/^undo\b|^remove (?:the |my )?(?:last|previous|that)/.test(t))

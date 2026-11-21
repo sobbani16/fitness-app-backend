@@ -1,5 +1,8 @@
 const express = require('express');
 const { getPrisma } = require('../lib/prisma');
+const safety = require('../services/activitySafety');
+const { SYMPTOMS_URGENT, BODY_REGIONS } = require('../services/activitySafety/constants');
+const flags = require('../services/featureFlags/service');
 const { parseTranscript } = require('../services/voice/voiceParser');
 const { aiEnabled, askJSON } = require('../services/aiProvider');
 const ingredientNutrition = require('../services/ingredientNutrition');
@@ -49,7 +52,21 @@ const applyUndo = async (prisma, cmd) => {
       where: { id: e.id, userId: cmd.userId },
       data: { finishedAt: e.prev.finishedAt, endedAt: e.prev.endedAt, durationMinutes: e.prev.durationMinutes },
     });
+    if (e.kind === 'userInjury') await prisma.userInjury.deleteMany({ where: { id: e.id, userId: cmd.userId } });
+    if (e.kind === 'symptomReport') await prisma.userSymptomReport.deleteMany({ where: { id: e.id, userId: cmd.userId } });
   }
+};
+
+// Map a spoken workout type to the closest catalog activity for a safety
+// pre-check. Falls back to strength_training (the most general demand).
+const workoutActivityId = name => {
+  const n = String(name || '').toLowerCase();
+  if (/run|jog/.test(n)) return 'outdoor_run';
+  if (/walk|hike/.test(n)) return 'outdoor_walk';
+  if (/cycl|bike|spin/.test(n)) return 'stationary_cycling';
+  if (/swim/.test(n)) return 'swimming';
+  if (/stretch|mobility|yoga/.test(n)) return 'gentle_mobility';
+  return 'strength_training';
 };
 
 // POST /voice/transcribe — audio → text. Returns 503 until a provider is
@@ -306,6 +323,56 @@ router.post('/commands/execute', wrap(async (req, res) => {
         results.push({ intent: a.intent, status: 'saved', detail: `mood logged as ${a.entities.mood.replace('_',' ')}` });
         break;
       }
+      case 'REPORT_INJURY': {
+        // Voice-captured injury report — feeds the shared safety context so
+        // every suggestion respects it from the next evaluation on.
+        const bodyPart = String(a.entities.bodyPart || a.entities.affectedPart || '').toLowerCase().trim();
+        if (!bodyPart || bodyPart.length > 40) { results.push({ intent: a.intent, status: 'skipped', reason: 'affected body part unresolved' }); break; }
+        const laterality = ['left', 'right', 'bilateral', 'na'].includes(a.entities.laterality) ? a.entities.laterality
+          : (/right/i.test(transcript || '') ? 'right' : /left/i.test(transcript || '') ? 'left' : 'na');
+        const pain = Number(a.entities.painLevel);
+        const inj = await prisma.userInjury.create({ data: {
+          userId,
+          type: String(a.entities.type || 'unspecified').slice(0, 60),
+          bodyPart, laterality,
+          status: 'current',
+          painLevel: Number.isFinite(pain) ? Math.min(10, Math.max(0, Math.round(pain))) : null,
+          weightBearingRestriction: a.entities.weightBearingRestriction || null,
+          prohibitedCategories: Array.isArray(a.entities.prohibitedCategories) ? a.entities.prohibitedCategories : [],
+          source: 'voice',
+          injuredAt: new Date(),
+          rehabInstructions: a.entities.notes ? String(a.entities.notes).slice(0, 1000) : null,
+        } });
+        created.push({ kind: 'userInjury', id: inj.id });
+        const followUps = [];
+        if (inj.weightBearingRestriction == null) {
+          followUps.push('Did a clinician give you weight-bearing instructions (e.g., non-weight-bearing)?');
+        }
+        if (!a.entities.type) followUps.push('What kind of injury is it, if you know?');
+        results.push({ intent: a.intent, status: 'saved',
+          detail: `Recorded ${laterality !== 'na' ? `${laterality} ` : ''}${bodyPart} injury — activity suggestions now account for it.`,
+          safety: { injuryId: inj.id, followUps, notPermanent: true, noDiagnosis: true } });
+        break;
+      }
+      case 'REPORT_SYMPTOM': {
+        const codes = (Array.isArray(a.entities.symptoms) ? a.entities.symptoms : [a.entities.symptom])
+          .map(s => String(s || '').toLowerCase().trim()).filter(Boolean);
+        if (!codes.length) { results.push({ intent: a.intent, status: 'skipped', reason: 'symptom unresolved' }); break; }
+        const urgent = codes.filter(c => SYMPTOMS_URGENT.has(c));
+        const report = await prisma.userSymptomReport.create({ data: {
+          userId, symptoms: codes, source: 'voice',
+          severity: ['mild', 'moderate', 'severe'].includes(a.entities.severity) ? a.entities.severity : null,
+          context: 'unspecified', status: 'active',
+          triageOutcome: urgent.length ? 'urgent_escalation' : 'recorded',
+        } });
+        created.push({ kind: 'symptomReport', id: report.id });
+        results.push({ intent: a.intent, status: 'saved',
+          detail: urgent.length
+            ? 'Do not begin a workout. Your reported symptoms may require urgent medical attention — contact local emergency services or seek urgent care now.'
+            : 'Symptom recorded — activity suggestions will account for it.',
+          safety: { urgent: urgent.length > 0, urgentSymptoms: urgent, suppressesActivitySuggestions: true, noDiagnosis: true } });
+        break;
+      }
       case 'START_BREATHING_EXERCISE': {
         const mindOn = await flags.isEnabled('mind_habits_enabled', userId).catch(() => false);
         results.push({ intent: a.intent, status: mindOn ? 'saved' : 'skipped', reason: mindOn ? undefined : 'Mind & Habits is off', detail: 'breathing-2min', navigate: 'MindExercise', params: { exerciseKey: 'breathing-2min' } });
@@ -329,7 +396,20 @@ router.post('/commands/execute', wrap(async (req, res) => {
           startedAt: new Date(), endedAt: new Date(), durationMinutes: 0, source: 'voice',
         } });
         created.push({ kind: 'workoutSession', id: session.id });
-        results.push({ intent: a.intent, status: 'saved', detail: `${a.entities.name || 'Workout'} started` });
+        // Safety pre-check (flag-gated): voice can't bypass the engine. Starting
+        // a workout is the user's action — the engine annotates, never hijacks.
+        let safetyNote;
+        try {
+          if (await flags.isEnabled('activity_safety_engine', userId).catch(() => false)) {
+            const ctx = await safety.loadSafetyContext(prisma, userId);
+            const act = safety.getActivity(workoutActivityId(a.entities.name));
+            const r = safety.evaluate(ctx, act, null, { rules: await safety.loadRules(prisma) });
+            if (safety.DECISION_RANK[r.decision] >= safety.DECISION_RANK.INSUFFICIENT_DATA) {
+              safetyNote = { decision: r.decision, reasons: r.reasons.slice(0, 2) };
+            }
+          }
+        } catch { /* pre-check failure never blocks the user's own action */ }
+        results.push({ intent: a.intent, status: 'saved', detail: `${a.entities.name || 'Workout'} started`, ...(safetyNote ? { safetyNote } : {}) });
         break;
       }
       case 'COMPLETE_WORKOUT': {

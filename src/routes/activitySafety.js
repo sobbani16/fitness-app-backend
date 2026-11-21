@@ -5,6 +5,8 @@
 
 const express = require('express');
 const { getPrisma } = require('../lib/prisma');
+const { getUserId } = require('../middleware/rbac');
+const uid = req => req.userId || getUserId(req);
 const { requireFeature } = require('../middleware/requireFeature');
 const safety = require('../services/activitySafety');
 const { fetchEnvironment, markStale } = require('../services/environmentService');
@@ -41,7 +43,7 @@ async function shadowCheck(req, rec, ctx, env) {
 router.get('/recommendation', requireFeature('health_aware_recommendations'), async (req, res) => {
   try {
     const prisma = getPrisma();
-    const ctx = await safety.loadSafetyContext(prisma, req.userId, {
+    const ctx = await safety.loadSafetyContext(prisma, uid(req), {
       preferences: { restRequested: req.query.rest === 'true' },
     });
     const [env, rules] = await Promise.all([envFor(req), safety.loadRules(prisma)]);
@@ -78,7 +80,7 @@ router.post('/evaluate', requireFeature('activity_safety_engine'), async (req, r
     const activity = safety.getActivity(String(b.activityId || ''));
     if (!activity) return res.status(400).json({ error: 'unknown activityId' });
     const [ctx, env, rules] = await Promise.all([
-      safety.loadSafetyContext(prisma, req.userId, { preferences: b.preferences || {} }),
+      safety.loadSafetyContext(prisma, uid(req), { preferences: b.preferences || {} }),
       envFor(req), safety.loadRules(prisma),
     ]);
     const r = safety.evaluate(ctx, activity, env, { rules });
@@ -98,7 +100,7 @@ router.post('/symptoms', requireFeature('activity_safety_engine'), async (req, r
     const urgent = codes.filter(c => SYMPTOMS_URGENT.has(c));
     const report = await prisma.userSymptomReport.create({
       data: {
-        userId: req.userId,
+        userId: uid(req),
         symptoms: codes,
         severity: ['mild', 'moderate', 'severe'].includes(b.severity) ? b.severity : null,
         context: ['at_rest', 'during_activity', 'after_activity'].includes(b.context) ? b.context : 'unspecified',
@@ -131,7 +133,7 @@ router.post('/injuries', requireFeature('activity_safety_engine'), async (req, r
     if (!bodyPart) return res.status(400).json({ error: 'bodyPart is required' });
     const row = await prisma.userInjury.create({
       data: {
-        userId: req.userId,
+        userId: uid(req),
         type: b.type ? String(b.type).slice(0, 60) : 'unspecified',
         bodyPart,
         laterality: ['left', 'right', 'bilateral', 'na'].includes(b.laterality) ? b.laterality : 'na',
@@ -180,7 +182,7 @@ router.post('/feedback', requireFeature('activity_safety_engine'), async (req, r
     if (!allowed.includes(verdict)) return res.status(400).json({ error: `verdict must be one of ${allowed.join(', ')}` });
     const row = await prisma.activitySafetyFeedback.create({
       data: {
-        userId: req.userId,
+        userId: uid(req),
         evaluationId: b.evaluationId || null,
         activityId: b.activityId ? String(b.activityId) : null,
         verdict,
@@ -203,7 +205,7 @@ router.post('/feedback', requireFeature('activity_safety_engine'), async (req, r
 router.get('/profile', requireFeature('activity_safety_engine'), async (req, res) => {
   try {
     const prisma = getPrisma();
-    const ctx = await safety.loadSafetyContext(prisma, req.userId);
+    const ctx = await safety.loadSafetyContext(prisma, uid(req));
     res.json({
       profilePresent: ctx.profilePresent,
       conditions: [...ctx.conditions],
@@ -231,7 +233,7 @@ router.patch('/injuries/:id', requireFeature('activity_safety_engine'), async (r
       data.clearanceRecordedAt = new Date(b.clearanceRecordedAt);
       data.clearanceNote = String(b.clearanceNote).slice(0, 500);
     }
-    const row = await prisma.userInjury.updateMany({ where: { id: req.params.id, userId: req.userId }, data });
+    const row = await prisma.userInjury.updateMany({ where: { id: req.params.id, userId: uid(req) }, data });
     if (!row.count) return res.status(404).json({ error: 'not_found' });
     res.json({ updated: true });
   } catch (err) { res.status(500).json({ error: 'injury_update_failed', detail: err.message }); }
