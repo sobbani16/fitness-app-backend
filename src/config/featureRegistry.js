@@ -197,6 +197,39 @@ const FEATURES = {
     endpoints: ['/supplements'],
     description: 'Supplement catalog + logging.',
   },
+  // v2 platform — server-enforced, internal-test targeting until launch.
+  health_score_v2: {
+    clientKey: 'healthScoreNext', class: 'server', group: 'manual', default: false, failOpen: false,
+    endpoints: ['GET /daily-progress'], description: 'Daily Progress Score v2 engine (dps-v2).',
+  },
+  nutrition_insights_v2: {
+    clientKey: 'nutritionInsightsNext', class: 'server', group: 'manual', default: false, failOpen: false,
+    endpoints: ['/recommendations'], description: 'Nutrient status + health-aware suggestions.',
+  },
+  scenario_engine: {
+    clientKey: 'scenarioEngine', class: 'server', group: 'manual', default: false, failOpen: false,
+    description: '120-scenario evaluation engine (pending_review rules stay inert).',
+  },
+  goal_switching: {
+    clientKey: 'goalSwitching', class: 'server', group: 'manual', default: false, failOpen: false,
+    description: 'Confirmed goal transitions with history preservation (A10).',
+  },
+  outcome_monitoring: {
+    clientKey: 'outcomeMonitoring', class: 'server', group: 'manual', default: false, failOpen: false,
+    description: '7/14/30-day outcome review (L-series).',
+  },
+  symptom_pathways: {
+    clientKey: 'symptomPathways', class: 'server', group: 'manual', default: false, failOpen: false,
+    description: 'Symptom check-in and escalation routes (G/H series).',
+  },
+  mobile_score_breakdown: {
+    clientKey: 'mobileScoreBreakdown', class: 'server', group: 'manual', default: false, failOpen: false,
+    description: 'Component-level score breakdown surfacing.',
+  },
+  ai_coach_recommendations: {
+    clientKey: 'aiCoachRecommendations', class: 'ai', group: 'ai', default: false, failOpen: false,
+    description: 'AI-personalized recommendation re-ranking (deterministic path unaffected).',
+  },
   health_priorities: {
     clientKey: 'healthPriorities',
     class: 'server',
