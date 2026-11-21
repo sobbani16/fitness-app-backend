@@ -193,6 +193,21 @@ async function buildContext(prisma, userId, now, prefs) {
     workoutDoneToday: workoutToday > 0,
     sentToday,
     lastSentByCategory: Object.fromEntries(lastSends.map(s => [s.category, s.actedAt])),
+    // Urgent-symptom suppression for activity nudges — a workout reminder
+    // must not fire while an urgent symptom report is active. Flag-gated;
+    // failures degrade to false (reminder engine behavior unchanged).
+    safetyUrgent: await (async () => {
+      try {
+        const flags = require('../featureFlags/service');
+        if (!(await flags.isEnabled('activity_safety_engine', userId).catch(() => false))) return false;
+        const { SYMPTOMS_URGENT } = require('../activitySafety/constants');
+        const reports = await prisma.userSymptomReport.findMany({
+          where: { userId, status: 'active', reportedAt: { gte: new Date(now.getTime() - 72 * 3600000) } },
+          select: { symptoms: true },
+        });
+        return reports.some(r => (r.symptoms || []).some(c => SYMPTOMS_URGENT.has(c)));
+      } catch { return false; }
+    })(),
   };
 }
 
@@ -235,7 +250,8 @@ async function runTick(prisma, { now = new Date(), userIds } = {}) {
     const facts = factsByUser[instance.userId];
     const setting = await prisma.reminderCategorySetting.findUnique({ where: { userId_category: { userId: instance.userId, category: instance.category } } });
 
-    const verdict = evaluate({
+    const safetySuppress = facts.safetyUrgent && ['workout', 'movement'].includes(instance.category);
+    const verdict = safetySuppress ? { decision: 'suppress', reason: 'safety_urgent_symptom' } : evaluate({
       now, nowLocal: facts.lp, prefs, setting,
       completed: completedFor(instance.category, instance, facts),
       sleeping: facts.sleeping,
