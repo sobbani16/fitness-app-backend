@@ -26,23 +26,39 @@ async function matchDetectedFood(food, userId) {
   const q = normalize(food.foodName || '');
   if (!q || q.length < 2) return [];
   const tokens = q.split(' ');
+  const base = {
+    reviewStatus: { not: 'REJECTED' },
+    AND: [{ OR: [{ isSystem: true }, { creatorId: userId }] }],
+  };
+  const select = {
+    id: true, recipeName: true, aliases: true, cuisine: true, region: true, servings: true, portionG: true,
+    calories: true, proteinG: true, carbsG: true, fatG: true, fiberG: true, reviewStatus: true, finishedYieldG: true,
+    ingredients: { select: { ingredientId: true, ingredientName: true, amountG: true, optional: true } },
+  };
+  // Exact-phrase/alias hits score highest downstream — fetch them before broad
+  // token matches so a crowded token namespace can't push them out of the
+  // take-limited candidate window (unordered findMany returns an arbitrary subset).
   const rows = await prisma.recipe.findMany({
     where: {
-      reviewStatus: { not: 'REJECTED' },
-      AND: [{ OR: [{ isSystem: true }, { creatorId: userId }] }],
+      ...base,
       OR: [
         { recipeName: { contains: q, mode: 'insensitive' } },
-        ...tokens.filter((t) => t.length >= 4).map((t) => ({ recipeName: { contains: t, mode: 'insensitive' } })),
-        { aliases: { hasSome: [food.foodName.toLowerCase(), q] } },
+        { aliases: { hasSome: [String(food.foodName || '').toLowerCase(), q] } },
       ],
     },
-    select: {
-      id: true, recipeName: true, aliases: true, cuisine: true, region: true, servings: true, portionG: true,
-      calories: true, proteinG: true, carbsG: true, fatG: true, fiberG: true, reviewStatus: true, finishedYieldG: true,
-      ingredients: { select: { ingredientId: true, ingredientName: true, amountG: true, optional: true } },
-    },
+    select,
     take: 20,
   });
+  const tokenConds = tokens.filter((t) => t.length >= 4)
+    .map((t) => ({ recipeName: { contains: t, mode: 'insensitive' } }));
+  if (rows.length < 20 && tokenConds.length) {
+    const extra = await prisma.recipe.findMany({
+      where: { ...base, id: { notIn: rows.map((r) => r.id) }, OR: tokenConds },
+      select,
+      take: 20 - rows.length,
+    });
+    rows.push(...extra);
+  }
   const cuisines = (food.cuisineCandidates || []).map(normalize);
   const visible = (food.visibleIngredients || []).map((i) => i.name);
   const scored = rows.map((r) => {
