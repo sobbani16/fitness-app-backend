@@ -50,6 +50,8 @@ model User {
   habits           Habit[]
   wellnessCheckIns WellnessCheckIn[]
   foodLogs         FoodLog[]
+  dailyScoreSnapshots DailyScoreSnapshot[]
+  goalHistories      GoalHistory[]
   workoutSessions  WorkoutSession[]
   energyRecords    HealthEnergyRecord[]
   workoutPlans     UserWorkoutPlan[]
@@ -111,8 +113,6 @@ model Allergy {
   name String @unique
 
   userAllergies UserAllergy[]
-  dailyScoreSnapshots DailyScoreSnapshot[]
-  goalHistories GoalHistory[]
 }
 
 model UserAllergy {
