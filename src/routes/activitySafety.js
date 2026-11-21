@@ -1,0 +1,240 @@
+// /activity-safety — shared safety evaluation entry points.
+// Every recommendation producer routes through services/activitySafety so no
+// path can bypass the same policy. All routes are feature-flag gated;
+// DRAFT clinical rules never fire for real users (APPROVED-only load).
+
+const express = require('express');
+const { getPrisma } = require('../lib/prisma');
+const { requireFeature } = require('../middleware/requireFeature');
+const safety = require('../services/activitySafety');
+const { fetchEnvironment, markStale } = require('../services/environmentService');
+const { SYMPTOMS_URGENT } = require('../services/activitySafety/constants');
+
+const router = express.Router();
+
+const body = req => (req.body && typeof req.body === 'object' ? req.body : {});
+const num = v => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+
+async function envFor(req) {
+  const lat = num(req.query.lat ?? body(req).lat);
+  const lon = num(req.query.lon ?? body(req).lon);
+  if (lat == null || lon == null) return null; // unknown location → env unknown (never "clear")
+  try {
+    return markStale(await fetchEnvironment(lat, lon));
+  } catch {
+    return { available: false }; // provider failure → unknown, not safe
+  }
+}
+
+async function shadowCheck(req, rec, ctx, env) {
+  const prisma = getPrisma();
+  // Shadow mode: persist the full per-candidate eval set for offline diffing.
+  try {
+    if (rec.results) {
+      await Promise.all(rec.results.slice(0, 12).map(r => safety.persistEvaluation(prisma, r, ctx, { shadow: true })));
+    }
+  } catch (err) { req.log?.warn?.({ err }, 'activity-safety shadow persist failed'); }
+}
+
+// GET /activity-safety/recommendation?lat=&lon=
+// The unified suggestion — per-candidate decisions + chosen suggestion.
+router.get('/recommendation', requireFeature('health_aware_recommendations'), async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const ctx = await safety.loadSafetyContext(prisma, req.userId, {
+      preferences: { restRequested: req.query.rest === 'true' },
+    });
+    const [env, rules] = await Promise.all([envFor(req), safety.loadRules(prisma)]);
+    const rec = safety.recommend(ctx, env, { rules });
+    shadowCheck(req, rec, ctx, env);
+    res.json({
+      disposition: rec.disposition,
+      policyVersion: rec.policyVersion,
+      suggestion: rec.suggestion,
+      requiredData: rec.requiredData || [],
+      urgent: rec.urgent || null,
+      activities: (rec.results || []).map(r => ({
+        activityId: r.candidateActivityId,
+        decision: r.decision,
+        suppressed: r.suppressed || false,
+        reasons: r.reasons,
+        requiredData: r.requiredData,
+        alternatives: r.allowedAlternatives,
+        betterTime: r.betterTime,
+      })),
+      environment: env ? { available: env.available !== false, stale: !!env.stale, hazards: undefined } : { available: false },
+      noMedicalClaims: true,
+    });
+  } catch (err) { res.status(500).json({ error: 'evaluation_failed', detail: err.message }); }
+});
+
+// POST /activity-safety/evaluate {activityId, lat?, lon?}
+// Single-activity check — used by coaching/voice/notification pre-checks
+// before any specific activity is suggested.
+router.post('/evaluate', requireFeature('activity_safety_engine'), async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const b = body(req);
+    const activity = safety.getActivity(String(b.activityId || ''));
+    if (!activity) return res.status(400).json({ error: 'unknown activityId' });
+    const [ctx, env, rules] = await Promise.all([
+      safety.loadSafetyContext(prisma, req.userId, { preferences: b.preferences || {} }),
+      envFor(req), safety.loadRules(prisma),
+    ]);
+    const r = safety.evaluate(ctx, activity, env, { rules });
+    res.json({ ...r, alternatives: undefined, noMedicalClaims: true });
+  } catch (err) { res.status(500).json({ error: 'evaluation_failed', detail: err.message }); }
+});
+
+// POST /activity-safety/symptoms {symptoms:[codes], severity?, context?, notes?}
+// Capture a self-reported symptom. Urgent codes return escalation guidance —
+// deterministic templates, no diagnosis.
+router.post('/symptoms', requireFeature('activity_safety_engine'), async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const b = body(req);
+    const codes = (Array.isArray(b.symptoms) ? b.symptoms : []).map(s => String(s).toLowerCase().trim()).filter(Boolean);
+    if (!codes.length) return res.status(400).json({ error: 'at least one symptom code is required' });
+    const urgent = codes.filter(c => SYMPTOMS_URGENT.has(c));
+    const report = await prisma.userSymptomReport.create({
+      data: {
+        userId: req.userId,
+        symptoms: codes,
+        severity: ['mild', 'moderate', 'severe'].includes(b.severity) ? b.severity : null,
+        context: ['at_rest', 'during_activity', 'after_activity'].includes(b.context) ? b.context : 'unspecified',
+        persistence: ['resolving', 'persistent', 'worsening'].includes(b.persistence) ? b.persistence : null,
+        source: b.source === 'voice' ? 'voice' : 'manual',
+        triageOutcome: urgent.length ? 'urgent_escalation' : 'recorded',
+        status: 'active',
+      },
+    });
+    res.status(201).json({
+      reportId: report.id,
+      disposition: urgent.length ? 'urgent_escalation' : 'recorded',
+      message: urgent.length
+        ? 'Do not begin a workout. Your reported symptoms may require urgent medical attention — contact local emergency services or seek urgent care now.'
+        : 'Symptom recorded. Activity suggestions will account for it. If symptoms are severe, worsening, or worry you, seek medical advice.',
+      suppressesActivitySuggestions: true, // active symptoms always pause suggestions
+      urgentSymptoms: urgent,
+      noDiagnosis: true,
+    });
+  } catch (err) { res.status(500).json({ error: 'symptom_report_failed', detail: err.message }); }
+});
+
+// POST /activity-safety/injuries — self-reported injury; engine sees it on the
+// next evaluation automatically (inputsStamp changes → cached evals invalid).
+router.post('/injuries', requireFeature('activity_safety_engine'), async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const b = body(req);
+    const bodyPart = String(b.bodyPart || '').toLowerCase().trim();
+    if (!bodyPart) return res.status(400).json({ error: 'bodyPart is required' });
+    const row = await prisma.userInjury.create({
+      data: {
+        userId: req.userId,
+        type: b.type ? String(b.type).slice(0, 60) : 'unspecified',
+        bodyPart,
+        laterality: ['left', 'right', 'bilateral', 'na'].includes(b.laterality) ? b.laterality : 'na',
+        status: 'current',
+        painLevel: num(b.painLevel),
+        weightBearingRestriction: b.weightBearingRestriction || null,
+        prohibitedCategories: Array.isArray(b.prohibitedCategories) ? b.prohibitedCategories : [],
+        source: b.source === 'voice' ? 'voice' : 'self_reported',
+        injuredAt: b.injuredAt ? new Date(b.injuredAt) : new Date(),
+        rehabInstructions: b.notes ? String(b.notes).slice(0, 1000) : null,
+        expectedReassessmentAt: b.expectedReassessmentAt ? new Date(b.expectedReassessmentAt) : null,
+      },
+    });
+    res.status(201).json({
+      injuryId: row.id,
+      message: 'Recorded. Activity suggestions now account for it — this is a self-reported record, not a medical assessment. Follow any clinician guidance you have received.',
+      followUps: followUpQuestions(row),
+      noDiagnosis: true,
+    });
+  } catch (err) { res.status(500).json({ error: 'injury_report_failed', detail: err.message }); }
+});
+
+// Necessary follow-ups only — each answer changes the restriction applied.
+function followUpQuestions(injury) {
+  const qs = [];
+  if (injury.weightBearingRestriction == null) {
+    qs.push({ id: 'weight_bearing', ask: 'Did a clinician give you weight-bearing instructions (e.g., non-weight-bearing)?', options: ['non_weight_bearing', 'partial', 'full', 'no_clinician_guidance'] });
+  }
+  if (injury.expectedReassessmentAt == null) {
+    qs.push({ id: 'reassessment', ask: 'Do you have a follow-up or reassessment date?', type: 'date_or_none' });
+  }
+  if (injury.type === 'unspecified') {
+    qs.push({ id: 'type', ask: 'What kind of injury is it, if you know?', options: ['sprain', 'strain', 'fracture', 'pain_unspecified', 'other'] });
+  }
+  return qs;
+}
+
+// POST /activity-safety/feedback — recommendation feedback that can update
+// restrictions or trigger reassessment; never auto-permanent.
+router.post('/feedback', requireFeature('activity_safety_engine'), async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const b = body(req);
+    const verdict = String(b.verdict || b.type || '').trim();
+    const allowed = ['not_comfortable', 'causes_pain', 'have_injury', 'clinician_advised_against', 'want_rest', 'suggest_else', 'inaccurate', 'helpful'];
+    if (!allowed.includes(verdict)) return res.status(400).json({ error: `verdict must be one of ${allowed.join(', ')}` });
+    const row = await prisma.activitySafetyFeedback.create({
+      data: {
+        userId: req.userId,
+        evaluationId: b.evaluationId || null,
+        activityId: b.activityId ? String(b.activityId) : null,
+        verdict,
+        detail: (b.detail || b.note) ? String(b.detail || b.note).slice(0, 1000) : null,
+        resultingAction: 'none',
+      },
+    });
+    const actions = [];
+    if (verdict === 'want_rest') {
+      actions.push('Suggestions paused for today at your request — rest is a valid choice.');
+    }
+    if (['clinician_advised_against', 'causes_pain', 'have_injury'].includes(verdict)) {
+      actions.push('Tell us the affected body part or clinician restriction and we will apply it to future suggestions. A one-time report is not a permanent ban — you can update it anytime.');
+    }
+    res.status(201).json({ feedbackId: row.id, actions });
+  } catch (err) { res.status(500).json({ error: 'feedback_failed', detail: err.message }); }
+});
+
+// GET /activity-safety/profile — correction UX snapshot.
+router.get('/profile', requireFeature('activity_safety_engine'), async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const ctx = await safety.loadSafetyContext(prisma, req.userId);
+    res.json({
+      profilePresent: ctx.profilePresent,
+      conditions: [...ctx.conditions],
+      injuries: ctx.injuries.map(i => ({ id: i.id, bodyPart: i.bodyPart, status: i.status, weightBearingRestriction: i.weightBearingRestriction })),
+      surgeries: ctx.surgeries.map(s => ({ id: s.id, procedureCategory: s.procedureCategory, status: s.status })),
+      restrictions: ctx.restrictions.map(r => ({ id: r.id, categories: r.categories, severity: r.severity, status: r.status, expiresAt: r.expiresAt })),
+      activeSymptoms: ctx.symptomReports.map(s => ({ id: s.id, symptoms: s.symptoms, reportedAt: s.reportedAt })),
+      mobility: ctx.mobility,
+      pregnancyStatus: ctx.pregnancyStatus,
+    });
+  } catch (err) { res.status(500).json({ error: 'profile_load_failed', detail: err.message }); }
+});
+
+// PATCH /activity-safety/injuries/:id — update status (e.g., recovering/resolved)
+// or reassessment date. Explicitly never auto-resolved by elapsed time.
+router.patch('/injuries/:id', requireFeature('activity_safety_engine'), async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const b = body(req);
+    const data = {};
+    if (['current', 'recovering', 'resolved'].includes(b.status)) data.status = b.status;
+    if (b.weightBearingRestriction != null) data.weightBearingRestriction = String(b.weightBearingRestriction);
+    if (b.expectedReassessmentAt) data.expectedReassessmentAt = new Date(b.expectedReassessmentAt);
+    if (b.clearanceRecordedAt && b.clearanceNote) {
+      data.clearanceRecordedAt = new Date(b.clearanceRecordedAt);
+      data.clearanceNote = String(b.clearanceNote).slice(0, 500);
+    }
+    const row = await prisma.userInjury.updateMany({ where: { id: req.params.id, userId: req.userId }, data });
+    if (!row.count) return res.status(404).json({ error: 'not_found' });
+    res.json({ updated: true });
+  } catch (err) { res.status(500).json({ error: 'injury_update_failed', detail: err.message }); }
+});
+
+module.exports = router;

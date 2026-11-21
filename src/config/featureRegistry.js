@@ -222,6 +222,25 @@ const FEATURES = {
     clientKey: 'symptomPathways', class: 'server', group: 'manual', default: false, failOpen: false,
     description: 'Symptom check-in and escalation routes (G/H series).',
   },
+  activity_safety_engine: {
+    clientKey: 'activitySafetyEngine', class: 'server', group: 'manual', default: false, failOpen: false,
+    endpoints: ['/activity-safety'],
+    description: 'Shared activity safety evaluation (structural safeguards + review-gated rules).',
+  },
+  weather_intelligence_v2: {
+    clientKey: 'weatherIntelligenceV2', class: 'server', group: 'manual', default: false, failOpen: false,
+    endpoints: ['GET /weather/environment'],
+    description: 'Normalized environmental observation (feels-like, AQI, wind, UV, forecast).',
+  },
+  health_aware_recommendations: {
+    clientKey: 'healthAwareRecommendations', class: 'server', group: 'manual', default: false, failOpen: false,
+    endpoints: ['GET /activity-safety/recommendation'],
+    description: 'Recommendation pipeline output gated through the safety engine.',
+  },
+  activity_safety_shadow_mode: {
+    clientKey: 'activitySafetyShadowMode', class: 'server', group: 'manual', default: false, failOpen: false,
+    description: 'Persist shadow evaluations for old-vs-new outcome comparison without affecting users.',
+  },
   mobile_score_breakdown: {
     clientKey: 'mobileScoreBreakdown', class: 'server', group: 'manual', default: false, failOpen: false,
     description: 'Component-level score breakdown surfacing.',

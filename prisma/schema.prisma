@@ -57,6 +57,14 @@ model User {
   workoutPlans     UserWorkoutPlan[]
   groceryItems     GroceryItem[]
   recipeEngagements RecipeEngagement[]
+
+  activityProfile       UserActivityProfile?
+  injuries              UserInjury[]
+  surgeries             UserSurgery[]
+  activityRestrictions  UserActivityRestriction[]
+  symptomReports        UserSymptomReport[]
+  safetyEvaluations     ActivitySafetyEvaluation[]
+  safetyFeedback        ActivitySafetyFeedback[]
 }
 
 model UserHealthProfile {
@@ -1911,8 +1919,9 @@ model RuleEvidence {
   evidenceNotes   String
   createdAt       DateTime                      @default(now())
   updatedAt       DateTime                      @updatedAt
-  nutrientRules   HealthConditionNutrientRule[]
-  ingredientRules ConditionRule[]
+  nutrientRules       HealthConditionNutrientRule[]
+  ingredientRules     ConditionRule[]
+  activitySafetyRules ActivitySafetyRule[]
 }
 
 model HealthConditionNutrientRule {
@@ -3875,4 +3884,279 @@ model ScenarioDefinition {
   reviewStatus String   @default("pending_review")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+// ============================================================================
+// ACTIVITY SAFETY — health-aware activity recommendations (Phase 3)
+// Structured safety profile: injuries, surgeries, restrictions, symptoms,
+// mobility/medication flags. Unknown status is stored as unknown (null),
+// never as false. All clinical rules ship DRAFT until clinician review —
+// the ActivitySafetyRule_check constraint forbids silent approval.
+// ============================================================================
+
+// Mobility, accessibility, reproductive and medication-activity context.
+// Coarse opt-in flags only — never an inferred medication list, never an
+// inferred pregnancy status.
+model UserActivityProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+
+  // Mobility & accessibility (I/E)
+  walkingAbility       String? // 'full' | 'limited' | 'unable' | null=unknown
+  mobilityAids         Json    @default("[]") // e.g. ["cane","walker","orthotic","prosthetic"]
+  wheelchairUser       Boolean @default(false)
+  balanceLimitation    Boolean @default(false)
+  standingToleranceMin Int?
+  accessibilityNeeds   Json    @default("{}")
+  preferredAdaptations Json    @default("[]")
+
+  // Reproductive health — voluntary only, never inferred (III.G)
+  pregnancyStatus String? // 'pregnant' | 'postpartum' | 'none' | 'declined' | null=unknown
+  postpartumWeeks Int?
+
+  // Medication-activity flags — coarse opt-in classes only (III.F):
+  // heat_sensitivity | dehydration_risk | hypoglycemia_risk |
+  // heart_rate_interpretation | balance_sedation
+  medicationActivityFlags Json @default("[]")
+
+  // Personal fitness (III.H)
+  fitnessExperience    String? // 'beginner' | 'intermediate' | 'advanced'
+  activityPreferences  Json    @default("[]")
+  desiredIntensity     String? // 'light' | 'moderate' | 'vigorous'
+
+  // Provenance & consent per section (III.I):
+  //   { mobility: {scope, consentedAt}, pregnancy: {...}, medication: {...} }
+  consentScopes Json @default("{}")
+  //   { field: {source, collectedAt, lastConfirmedAt, confidence} }
+  provenance Json @default("{}")
+
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Injuries — an injury is not automatically a permanent restriction; status
+// transitions are explicit. A clinician-documented restriction stays active
+// until resolved/expired even if the user reports feeling better.
+model UserInjury {
+  id     String @id @default(uuid())
+  userId String
+
+  type       String // 'sprain'|'fracture'|'strain'|'tendinopathy'|'dislocation'|'contusion'|'post_surgical'|'undiagnosed_pain'|'other'
+  bodyPart   String // normalized region key: ankle|knee|hip|lower_back|shoulder|wrist|foot|achilles|neck|hand|elbow|leg|arm|pelvis
+  laterality String @default("na") // 'left'|'right'|'bilateral'|'na'
+  status     String @default("current") // 'current'|'recovering'|'resolved'
+  injuredAt  DateTime?
+  painLevel  Int? // self-reported 0-10
+
+  weightBearingRestriction String? // 'non_weight_bearing'|'partial'|'as_tolerated'|'full'
+  rangeOfMotionRestriction String?
+  prohibitedCategories     Json     @default("[]") // activity category keys — see ACTIVITY_CATEGORIES
+  rehabInstructions        String?
+  expectedReassessmentAt   DateTime?
+  clearanceRecordedAt      DateTime? // clinician clearance *recorded* — never inferred
+  clearanceNote            String?
+
+  source       String  @default("self_reported") // 'self_reported'|'clinician_documented'|'voice'|'feedback'
+  sourceDetail Json    @default("{}")
+  resolvedAt   DateTime?
+
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([bodyPart])
+}
+
+// Surgery — never infer clearance from elapsed time; restrictions and
+// per-activity clearance are recorded explicitly.
+model UserSurgery {
+  id     String @id @default(uuid())
+  userId String
+
+  procedureCategory String // 'orthopedic'|'cardiac'|'abdominal'|'cesarean'|'other'
+  procedureDetail   String?
+  performedAt       DateTime?
+  recoveryStage     String? // clinician-documented stage, free text key
+
+  clinicianRestrictions Json @default("[]") // activity category keys
+  activityClearance     Json @default("{}") // {activityKey: 'cleared'|'restricted'|'unknown'}
+  reassessAt            DateTime?
+
+  status          String   @default("recovering") // 'recovering'|'cleared'|'long_term_restricted'
+  source          String   @default("self_reported")
+  relatedInjuryId String?
+
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+}
+
+// Documented activity restrictions — clinician-documented or self-reported.
+// `status` lifecycle is explicit; nothing auto-clears on 'feeling better'.
+model UserActivityRestriction {
+  id     String @id @default(uuid())
+  userId String
+
+  categories  Json @default("[]") // activity category keys (see engine ACTIVITY_CATEGORIES)
+  bodyRegions Json @default("[]")
+  severity    String @default("prohibited") // 'prohibited' | 'modify'
+  reason      String?
+
+  source        String    @default("self_reported") // 'self_reported'|'clinician_documented'|'product_feedback'
+  clinicianNote String?
+  documentedAt  DateTime?
+
+  status     String    @default("active") // 'active'|'expired'|'resolved'|'superseded'
+  expiresAt  DateTime?
+  reassessAt DateTime?
+  resolvedAt DateTime?
+  resolvedBy String?
+
+  relatedInjuryId  String?
+  relatedSurgeryId String?
+
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+}
+
+// Structured symptom reports — screening aid, not a diagnostic instrument.
+model UserSymptomReport {
+  id     String @id @default(uuid())
+  userId String
+
+  // codes: chest_pain|chest_pressure|dizziness|syncope|dyspnea_unusual|
+  // palpitations|severe_pain|joint_instability|fever|abnormal_weakness|
+  // pregnancy_bleeding|pregnancy_contractions|pregnancy_fluid_leak|
+  // pregnancy_calf_pain|vision_changes|severe_headache|numbness|hypoglycemia
+  symptoms    Json   @default("[]")
+  severity    String? // 'mild'|'moderate'|'severe'
+  context     String? // 'at_rest'|'during_activity'|'after_activity'|'unspecified'
+  persistence String? // 'resolving'|'persistent'|'worsening'
+  status      String  @default("active") // 'active'|'resolved'|'expired'
+  source      String  @default("manual") // 'manual'|'voice'|'check_in'
+
+  reportedAt    DateTime @default(now())
+  resolvedAt    DateTime?
+  triageOutcome String? // engine disposition recorded at report time
+
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([userId, status, reportedAt])
+}
+
+// Activity safety rules — mirrors the ConditionRule gating contract:
+// APPROVED requires reviewedBy + reviewedAt + evidenceSourceId (enforced by
+// ActivitySafetyRule_check); consumers filter reviewStatus='APPROVED' at the
+// query level so unreviewed rules can never fire for real users.
+model ActivitySafetyRule {
+  id       String @id @default(uuid())
+  ruleCode String @unique // 'AS-MSK-001' — matches evidence register §B
+
+  name        String
+  category    String // 'core'|'musculoskeletal'|'cardiovascular'|'respiratory'|'metabolic'|'pregnancy'|'neurological'|'systemic'|'recovery'|'older_adults'|'environmental'|'personalization'
+  description String?
+
+  // Matching criteria, evaluated deterministically by the engine:
+  //   appliesTo: {symptomCodes:[], injuryTypes:[], bodyParts:[],
+  //               restrictionCategories:[], conditionKeys:[],
+  //               profileFlags:[], envHazards:[], activityCategories:[]}
+  //   exclusion: same shape — negated match
+  appliesTo    Json   @default("{}")
+  exclusion    Json   @default("{}")
+  requiredData Json   @default("[]")
+  severity     String @default("info") // 'info'|'caution'|'high'
+
+  effect     String // ALLOW|MODIFY|DEFER_OUTDOOR|BLOCK_ACTIVITY|NEEDS_CLINICAL_REVIEW|URGENT_ESCALATION|INSUFFICIENT_DATA
+  reason     String?
+  actionHint String?
+  // 'conservative' = treat missing material data as worst-case;
+  // 'insufficient' = yield INSUFFICIENT_DATA; 'skip' = rule inert on missing
+  missingDataBehavior String @default("conservative")
+
+  evidenceSourceId String?        @db.Uuid
+  evidence         RuleEvidence?  @relation(fields: [evidenceSourceId], references: [id], onDelete: Restrict)
+  evidenceRef      String? // register source ID, e.g. 'ACOG_804'
+  evidenceClass    String // 'established_contraindication'|'condition_precaution'|'supported_adaptation'|'product_default'|'hypothesis'
+
+  reviewStatus ClinicalRuleReview @default(DRAFT)
+  version      Int                @default(1)
+  reviewedBy   String?
+  reviewedAt   DateTime?
+  reviewDueAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([reviewStatus, category])
+}
+
+// Decision provenance — enough to explain why a recommendation was made or
+// suppressed. Minimizes raw medical detail: rule IDs + dimensions, not notes.
+model ActivitySafetyEvaluation {
+  id     String @id @default(uuid())
+  userId String
+
+  activityId   String
+  decision     String
+  dimensions   Json @default("{}") // {medical, functional, environmental, personalization}
+  ruleIds      Json @default("[]")
+  reasons      Json @default("[]")
+  restrictions Json @default("[]")
+  requiredData Json @default("[]")
+  alternatives Json @default("[]")
+
+  policyVersion    String
+  environmentObsId String?
+  shadow           Boolean @default(false)
+
+  expiresAt DateTime?
+
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// Normalized weather/environment snapshot — every measurement carries
+// freshness + quality so missing data is never mistaken for "safe".
+model EnvironmentalObservation {
+  id        String   @id @default(uuid())
+  provider  String   @default("open-meteo")
+  latitude  Float
+  longitude Float
+
+  observedAt    DateTime
+  fetchedAt     DateTime @default(now())
+  payload       Json     @default("{}") // normalized: temp/apparent/humidity/precip/wind/gusts/uv/aqi/pollutants/codes/alerts/forecast[]
+  qualityStatus String   @default("ok") // 'ok'|'partial'|'stale'|'unavailable'
+  expiresAt     DateTime
+
+  @@index([latitude, longitude, observedAt])
+}
+
+// Recommendation feedback (Phase 9) — can update preferences, create a
+// documented restriction, or trigger reevaluation. A one-time preference
+// never becomes a permanent medical contraindication automatically.
+model ActivitySafetyFeedback {
+  id     String @id @default(uuid())
+  userId String
+
+  evaluationId    String?
+  activityId      String?
+  verdict         String // 'not_comfortable'|'causes_pain'|'have_injury'|'clinician_advised_against'|'want_rest'|'suggest_else'
+  detail          String?
+  resultingAction String? // 'restriction_created'|'preference_updated'|'reeval_requested'|'symptom_prompt'|'none'
+
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
