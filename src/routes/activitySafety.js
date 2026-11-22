@@ -173,6 +173,29 @@ router.post('/injuries', requireFeature('activity_safety_engine'), async (req, r
   } catch (err) { res.status(500).json({ error: 'injury_report_failed', detail: err.message }); }
 });
 
+// GET /activity-safety/injuries — full rows for the injury-management screen.
+// Each row carries its own provenance + which fields the caller may edit, so
+// the client renders locks instead of duplicating the clinician-lock logic.
+router.get('/injuries', requireFeature('activity_safety_engine'), async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const rows = await prisma.userInjury.findMany({
+      where: { userId: uid(req) },
+      orderBy: [{ status: 'asc' }, { injuredAt: 'desc' }],
+    });
+    const order = { current: 0, recovering: 1, resolved: 2 };
+    rows.sort((a, b) => (order[a.status] ?? 3) - (order[b.status] ?? 3));
+    res.json({
+      injuries: rows.map(r => ({
+        ...r,
+        clinicianDocumented: r.source === 'clinician_documented',
+        lockedFields: r.source === 'clinician_documented' ? [...CLINICIAN_LOCKED] : [],
+        editableFields: r.source === 'clinician_documented' ? [...INJURY_EDITABLE].filter(f => !CLINICIAN_LOCKED.has(f)) : [...INJURY_EDITABLE],
+      })),
+    });
+  } catch (err) { res.status(500).json({ error: 'injury_list_failed', detail: err.message }); }
+});
+
 // Necessary follow-ups only — each answer changes the restriction applied.
 function followUpQuestions(injury) {
   const qs = [];

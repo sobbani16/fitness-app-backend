@@ -319,6 +319,34 @@ describe('PATCH /activity-safety/injuries/:id — validation and clinician lock'
   });
 });
 
+describe('GET /activity-safety/injuries — management list', () => {
+  test('returns full rows ordered current→resolved with provenance metadata', async () => {
+    mockPrisma.userInjury.findMany.mockResolvedValueOnce([
+      { id: 'r1', type: 'sprain', bodyPart: 'ankle', laterality: 'left', status: 'resolved', source: 'self_reported', injuredAt: '2026-10-01T00:00:00Z' },
+      { id: 'c1', type: 'post_surgical', bodyPart: 'knee', laterality: 'right', status: 'current', source: 'clinician_documented', injuredAt: '2026-11-01T00:00:00Z' },
+      { id: 's1', type: 'strain', bodyPart: 'wrist', laterality: 'na', status: 'current', source: 'self_reported', injuredAt: '2026-11-15T00:00:00Z' },
+    ]);
+    const res = await request(app).get('/activity-safety/injuries').set('x-user-id', 'u1');
+    expect(res.status).toBe(200);
+    expect(mockPrisma.userInjury.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: 'u1' } }));
+    const rows = res.body.injuries;
+    expect(rows.map(r => r.id)).toEqual(['c1', 's1', 'r1']); // current first (input order within status), resolved last
+    const clin = rows.find(r => r.id === 'c1');
+    expect(clin.clinicianDocumented).toBe(true);
+    expect(clin.lockedFields).toEqual(expect.arrayContaining(['weightBearingRestriction', 'prohibitedCategories', 'clearanceNote']));
+    expect(clin.editableFields).not.toContain('weightBearingRestriction');
+    const self = rows.find(r => r.id === 's1');
+    expect(self.clinicianDocumented).toBe(false);
+    expect(self.lockedFields).toEqual([]);
+    expect(self.editableFields).toContain('weightBearingRestriction');
+  });
+  test('empty list → 200 with empty array', async () => {
+    const res = await request(app).get('/activity-safety/injuries').set('x-user-id', 'u1');
+    expect(res.status).toBe(200);
+    expect(res.body.injuries).toEqual([]);
+  });
+});
+
 // Restore flag env state — in-band jest shares process.env across suites.
 afterAll(() => {
   GATED_KEYS.forEach(k => setFlag(k, 'true'));
