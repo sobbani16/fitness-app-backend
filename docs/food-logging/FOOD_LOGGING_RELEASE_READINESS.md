@@ -2,12 +2,14 @@
 
 Date: 2026-11-22 (final pass). Scope: the food-logging subsystem only.
 
-## Verdict: CONDITIONAL GO for staged rollout — blocked only on deployment authorization
+## Verdict: CONDITIONAL GO for staged rollout — blocked on deployment authorization + one re-verification gate
 
 Every originally identified defect is fixed and device-verified; the serving/nutrition/
-persistence/unknown-nutrient pipeline is correct with regression coverage. Remaining
-gates are procedural, not code: commits are local (18 ahead of origin, unpushed) and no
-production deploy has been authorized or performed.
+persistence/unknown-nutrient pipeline is correct with regression coverage. A new defect
+(FL-REC-01, recipe re-pick dead after ETag 304) was found during device verification and
+fixed in code — its on-device confirmation awaits a bundle/update containing the fix.
+Remaining gates are procedural, not code: commits are local (unpushed), no production
+deploy has been authorized or performed, and menu-scan is flag-blocked on the dev backend.
 
 ## VERIFIED — done and evidenced
 
@@ -41,10 +43,10 @@ production deploy has been authorized or performed.
 | Photo description → tikka masala | **PASS** (desc path) | exit 0; AI detect → review gate → save; fiber unknown flagged |
 | Nutrition label → typed text | **PASS** (typed path) | exit 0; extract → review → 240 g/230 kcal logged; `reviewed:true`; sugar/sodium null preserved |
 | Camera capture (photo/label/menu OCR) | **PARTIAL** | simulator cannot exercise physical camera; post-capture pipeline fully verified via typed/photo-library paths |
-| Menu scan (photo library) | RUNNING | menu PNG injected via simctl; flow written |
-| Quick add (water/weight) | RUNNING | deterministic parser; food phrases route to search/voice by design |
-| Recent foods + favorites + repeat | RUNNING | flow written |
-| Recipe search → log | RUNNING | flow written |
+| Menu scan (photo library) | **BLOCKED** | `menu_scanning` flag=false on the only running dev backend (env owned by parallel session); entry gated. Menu PNG injected via simctl; flow written but cannot pass the gate |
+| Quick add (water/weight) | **PASS** | Maestro exit 0; "+250 ml" quick action + typed "drank 500 ml" → parse → save; counter updated |
+| Recent foods + favorites + repeat | **PASS** | Maestro exit 0; save → Recent list → ♡ → Favorites → ↻ repeat → "Copied from a saved meal" → review → save; Postgres snapshot keeps `selectedServing:"1 slice"`, `servingGrams:32`, `nutrientUnknowns` |
+| Recipe search → log | **PARTIAL** | search→results→tap verified. Defect **FL-REC-01** found+fixed: repeat `/recipes/:id/nutrition` GETs return 304 (NSURLSession ETag revalidation) → axios rejects → row `catch{}` silently dead → re-picking a fetched recipe no-ops. Fix: accept 304 in `getRecipeNutrition` + `catch { setError(true) }` (in `f34e263`). Preview-on-select re-verify BLOCKED: installed app is a published EAS-update bundle (no dev client) — needs a bundle/update containing the fix |
 
 ## Data quality risks remaining
 
@@ -55,6 +57,8 @@ production deploy has been authorized or performed.
 ## BLOCKED / NOT DONE
 
 - **Deployment**: local branch `feat/activity-safety-engine` is 18 ahead of `origin` — fixes unpushed; staging backend (`activity-safety-staging-staging.up.railway.app`, live 200) runs an older deploy. Push + Railway deploy requires explicit authorization. Post-deploy synthetic checks (health, barcode resolve, food-log create/readback, flag posture) scripted but not executed against prod.
+- **FL-REC-01 re-verification**: fix committed; needs an app bundle containing it (installed sim app is EAS-update bound, no dev client — local edits don't reach it).
+- **Menu scan**: `menu_scanning` flag off on the running dev backend; enabling requires restarting the owner's backend process — not permitted mid-session.
 - **Physical camera paths**: untestable on simulator — marked PARTIAL above.
 - **Mobile build vs deployed backend**: EAS `staging` profile targets the staging backend; a staging device build + flag posture check is the remaining pre-prod step.
 
@@ -71,7 +75,8 @@ Mobile `feat/muscle-explorer-v2`: `6be8f18` format tests · `e4eb95b` display+vo
 
 ## Recommended order
 
-1. Complete the 4 in-flight device flows (windows contested by parallel owner automation — runs are serialized and retry on infra failures).
-2. Push commits (authorization needed) → Railway staging deploy → synthetic checks → staging mobile build.
-3. Human-verify the 38-food unresolved queue or explicitly scope the launch list.
-4. Physical-device pass for camera paths before GA.
+1. Publish/build an app bundle containing the FL-REC-01 fix → re-verify recipe select→preview→save on device.
+2. Enable `menu_scanning` on the dev backend (env flag; owned session) → run the photo-library menu flow.
+3. Push commits (authorization needed) → Railway staging deploy → synthetic checks → staging mobile build.
+4. Human-verify the 38-food unresolved queue or explicitly scope the launch list.
+5. Physical-device pass for camera paths before GA.
