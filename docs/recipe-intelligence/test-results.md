@@ -1,7 +1,7 @@
 # Test Results — Recipe Intelligence
 
 **Measured:** 2026-11-21, `npx jest` in-band on the six suites that exercise
-recipe-intelligence paths. **79 tests / 6 suites — all passing.** No
+recipe-intelligence paths. **80 tests / 6 suites — all passing.** No
 result below was claimed without a run; scenario IDs map to
 `scenario-registry.json`.
 
@@ -12,7 +12,7 @@ result below was claimed without a run; scenario IDs map to
 | `recipeConstraints.test.js` | 23 | Constraint engine, F-1 tamper regression, boundary matching, provenance |
 | `recipeValidate.test.js` | 14 | Staged validator: identity/allergen/pattern/medical/limits/equipment/safety |
 | `recipeGenerate.test.js` | 8 | AI candidates, retry budget, fallback, NO_ELIGIBLE_RECIPE, flag-off |
-| `recipeE2E.test.js` | 5 | generate→save→customize on an allergic profile |
+| `recipeE2E.test.js` | 6 | generate→save→customize + ISO-001 cross-user isolation |
 | `smartKitchen.test.js` | (regression) | Constraint engine reuse in mealSuggestion path |
 | `foodIntel.test.js` | (regression) | Shared `LABEL_ANIMAL_TERMS` consolidation |
 
@@ -31,13 +31,13 @@ result below was claimed without a run; scenario IDs map to
 | SAVE-001/002 | posted status never trusted; valid→RESEARCH_DRAFT | recipeGenerate/E2E |
 | E2E-001 | full pipeline honors allergy end-to-end | recipeE2E |
 | EQUIP-001/002 | unknown equipment mention → clarify; known→pass | recipeValidate |
+| ISO-001 | per-user constraints + owner-scoped saves, no cross-user leak | recipeE2E |
 
 ## Pending scenario coverage (top risk)
 
 CACHE-001 (no cache layer yet — currently fail-open-by-absence since every
-call recomputes), STALE-002, MULTI-001/002, PORTION-003, ISO-001
-(cross-user recipe-name collision — mitigated by `ai:` sourceKey but not
-isolation-tested), PERF-001, FLAG-002 (kill-switch mid-request), LABEL-005.
+call recomputes), STALE-002, MULTI-001/002, PORTION-003, PERF-001,
+FLAG-002 (kill-switch mid-request), LABEL-005.
 
 ## Known test-harness artifacts
 

@@ -16,12 +16,12 @@
 | 8 | Revalidation after every transformation | ✅ | `/customize` revalidates |
 | 9 | Observability: counters + audit + admin endpoints | ✅ | `metrics.js`, `SafetyAuditLog`, admin routes |
 | 10 | Data-quality findings reviewed + fixed | ⚠️ partially | report done; 150 missing-instr / 55 unlinked / 138 allergen gaps need data work |
-| 11 | Cross-user isolation test | ⚠️ scoped, unproven | owner-scoped queries; ISO-001 test pending |
+| 11 | Cross-user isolation test | ✅ | ISO-001 in recipeE2E — per-user constraints, owner-scoped saves |
 | 12 | Caching/versioning layer | ❌ not built | CACHE-001/STALE-002 pending — current no-cache posture is safe but costly |
-| 13 | Mobile generation surface | ❌ not built | Phase 11 pending |
+| 13 | Mobile generation surface | ✅ code done | `RecipeByIngredients` generate flow, mobile `a4c2dbf`; flag-gated |
 | 14 | Ranking/personalization beyond hard filter | ❌ not built | Phase 9 pending |
 | 15 | Performance measurements vs targets | ⚠️ component-cost only | PERF-001 pending |
-| 16 | Full-repo regression (`npm test`) | ⚠️ targeted only | 79 tests green; full suite not run |
+| 16 | Full-repo regression (`npm test`) | ⚠️ targeted only | 80 tests green; full suite not run |
 | 17 | Production synthetic-user check behind flag | ❌ | requires deploy + flag control |
 | 18 | Human clinical review of rules + evidence | ❌ | `medical-rule-evidence.md` protocol |
 | 19 | DB migration | ✅ n/a | no schema changes — existing models reused |
@@ -33,8 +33,8 @@
 testing behind `ai_recipe_generation_enabled` off-by-default, continued
 data-quality work, and clinical review kickoff.
 
-Blocking items for user-facing release: gates **7, 10, 13** minimum;
-recommended also **11, 12, 15, 16, 17**.
+Blocking items for user-facing release: gates **7, 10** minimum;
+recommended also **12, 14, 15, 16, 17**.
 
 ## Rollback posture
 

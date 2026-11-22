@@ -109,4 +109,36 @@ describe('E2E: generate → save → customize under an allergy profile', () => 
     expect(res.body.violations.some((v) => v.ruleId.startsWith('ALLERGEN'))).toBe(true);
     expect(prisma.recipe.create).not.toHaveBeenCalled();
   });
+
+  // ISO-001: a second user with no allergy must not see user A's restrictions,
+  // and saved recipes must be creator-scoped — not shared by recipeName.
+  test('cross-user isolation: per-user constraints and owner-scoped saves', async () => {
+    // User B has no allergy; user A's peanut allergy must not leak into B's run.
+    let allergyRows = [{ allergy: { name: 'Peanuts' } }];
+    prisma.userAllergy.findMany.mockImplementation(async (args) =>
+      args?.where?.userId === 'u-allergic' ? allergyRows : []);
+
+    askJSON.mockResolvedValueOnce({ candidates: [GOOD], notes: '' });
+    const genB = await request(app).post('/recipes/generate')
+      .set('x-user-id', 'u-clean')
+      .send({ items: [{ name: 'rice' }, { name: 'tomato' }], servings: 2 });
+    expect(genB.status).toBe(200);
+    expect(genB.body.candidates[0].validation.status).toBe('PASS');
+
+    // B saves a recipe — creatorId is B's, not A's; name is disambiguated, not shared.
+    prisma.recipe.create.mockResolvedValueOnce({ id: 'savedB', recipeName: 'Tomato Rice · ai-99999999', servings: 2, reviewStatus: 'RESEARCH_DRAFT', sourceKey: 'ai:u-clean:y' });
+    const saveB = await request(app).post('/recipes/save-generated')
+      .set('x-user-id', 'u-clean')
+      .send({ candidate: GOOD });
+    expect(saveB.status).toBe(201);
+    expect(prisma.recipe.create.mock.calls[0][0].data.creatorId).toBe('u-clean');
+    expect(prisma.recipe.create.mock.calls[0][0].data.sourceKey).toContain('u-clean');
+
+    // A's allergy still applies to A — isolation is per-user, not global state.
+    const bad = { ...GOOD, ingredients: [{ ingredientName: 'peanut butter', amountG: 30, unit: 'g', optional: false }] };
+    const saveA = await request(app).post('/recipes/save-generated')
+      .set('x-user-id', 'u-allergic')
+      .send({ candidate: bad });
+    expect(saveA.status).toBe(422);
+  });
 });
