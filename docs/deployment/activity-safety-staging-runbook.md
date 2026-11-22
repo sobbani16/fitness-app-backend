@@ -38,6 +38,20 @@ Enable **one at a time**, verify, then proceed:
 restrictions persist; recommendations simply stop reading them. Additive
 migration needs no rollback.
 
+### Step 0 — Preflight (automated)
+
+`node scripts/staging-preflight.js [--base-url <staging>]` verifies, without
+deploying anything: `DATABASE_URL` + `AUTH_LINK_SECRET` set; all four safety
+flags default-off; `prisma migrate status` clean; rule inventory (71 rows,
+0 APPROVED, 2 `unsupported_input`); Open-Meteo/NWS reachability; a live Delhi
+env probe exercising the gov CA bundle (`alertsCoverage=imd-cap` expected).
+Optional env: `DATA_GOV_IN_API_KEY` (CPCB measured AQI — absent →
+`aqiMeasuredCoverage:'unconfigured'`, modeled AQI continues), `OPENAI_API_KEY`,
+`POSTHOG_API_KEY`. Migration order: `20261221000000_activity_safety_v1` →
+`20261222000000_activity_safety_input_status` (additive column, verified
+applied 2026-12 — the dev DB had it recorded-but-not-run; preflight catches
+this drift class).
+
 ## 3. Synthetic test accounts (never real users)
 
 | Account | Seed state | Expected |
@@ -56,7 +70,7 @@ migration needs no rollback.
 
 1. **Smoke:** `GET /activity-safety/profile` per synthetic account → reflects seeded state.
 2. **Workflow suite locally first:** `npx jest tests/activitySafety.e2e.test.js --runInBand` (stateful happy-path).
-3. **NWS probe (real call):** `node -e "require('./src/services/environmentService').fetchEnvironment(40.7,-74).then(o=>console.log(o.alertsCoverage))"` → `nws-us`. Paris `(48.85,2.35)` → `unsupported`.
+3. **Alert probes (real calls):** NYC `(40.7,-74)` → `alertsCoverage:'nws-us'`; Delhi `(28.61,77.21)` → `'imd-cap'` (gov CA bundle required — bundled under `certs/`); Paris `(48.85,2.35)` → `'unsupported'`. With `DATA_GOV_IN_API_KEY` + a CPCB station in radius: `aqiSource='cpcb'`; without key → `'unconfigured'`; without station → `'no-station-coverage'`.
 4. **Shadow diff:** `node scripts/activity-safety-shadow-diff.js --recent=5 --json` → ids/codes only in output; verify no reason/injury text.
 5. **Shadow matrix:** `node scripts/activity-safety-shadow-report.js` → regenerate `docs/audits/activity-safety-shadow-report.md`; confirm zero LOOSER rows.
 6. **Producer spot-checks:** progressCoach COMPLETE_WORKOUT suppressed for `syn-nwb`; trainer assign shows conflict flags; chat exercise-push replaced by deflection copy for `syn-urgent`.
