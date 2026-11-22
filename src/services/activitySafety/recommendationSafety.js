@@ -30,6 +30,7 @@ async function invalidateSafetyAdvice(prisma, userId, reason = 'safety_record_ch
   const notif = await prisma.notification.deleteMany({
     where: { userId, read: false, type: { in: [...ACTIVITY_ADVICE_TYPES] } },
   }).catch(() => ({ count: 0 }));
+  try { require('./observe').observe('safety.invalidation', { reason, count: notif.count, userId }); } catch {}
   return { recommendationsStale: rec.count, notificationsSuppressed: notif.count };
 }
 
@@ -42,7 +43,7 @@ async function activityAdviceAllowed(prisma, userId, { gate } = {}) {
     const { safetyGate } = require('./gate');
     const g = gate || await safetyGate(prisma, userId);
     if (!g?.enabled) return { allowed: true, via: 'gate-disabled' };
-    if (g.suppressActivityPushes || g.reviewRequired) return { allowed: false, via: g.status || 'review' };
+    if (g.suppressActivityPushes || g.reviewRequired) { require('./observe').observe('safety.push.suppressed', { via: g.status || 'review', userId }); return { allowed: false, via: g.status || 'review' }; }
     return { allowed: g.activityPushOk !== false, via: 'gate' };
   } catch { return { allowed: false, via: 'gate-error' }; } // fail closed
 }

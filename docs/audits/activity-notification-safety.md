@@ -22,3 +22,9 @@ Every safety-record write route (`POST /symptoms`, `POST /injuries`, `PATCH /inj
 - `ACTIVITY_ADVICE_TYPES` is a known-type set — a producer using a new notification type must register it or its pushes bypass suppression (documented for producers; monitoring §8 emits `safety.notification.untyped` if an unknown type reaches the suppression check).
 - Mobile-side cached suggestions are covered separately by the client invalidation bus (Phase-14).
 - `Recommendation` rows are not currently written by activity-safety endpoints (compute-live) — the stale mechanism pre-covers future persisted producers.
+
+## Phase-17 §8 monitoring + §9 pool root cause
+
+**§8** — `src/services/activitySafety/observe.js`: code/count-only events (`safety.invalidation`, `safety.push.suppressed`, `safety.gate.error`, `safety.notification.untyped`, `safety.env.outage`, `safety.rule.inert_unexplained`); high-severity events log a single structured line; `ALERTS` map defines paging thresholds. No symptom/injury/restriction text in any event.
+
+**§9 root cause** — connection-burst flake: Postgres `max_connections=100`; long-lived dev processes held ~27 (19-day `node src/index.js` ≈9, two `next-server` ≈18) before tests began; test-time PrismaClient pools stacked on top → transient exhaustion under the full in-band run. Fix: `getPrisma()` caps `connection_limit=5` under `NODE_ENV=test` (datasource URL param). Verified: test-mode client connects and queries. Residual: heavy parallel dev tooling can still contend; documented, not concealed.
