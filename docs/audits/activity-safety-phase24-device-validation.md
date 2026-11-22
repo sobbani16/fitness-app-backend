@@ -1,6 +1,6 @@
 # Phase 24 — Device Validation
 
-Backend under test: `activity-safety-staging` @ `ef57443` (commitHash-verified).
+Backend under test: `activity-safety-staging` @ `ef57443`; redeployed to `29d8de6` after concurrent user pushes — `GET /injuries` re-verified live (4 rows, 1 clinician, lockedFields correct), health 200.
 Mobile build: staging EAS APK containing `InjuriesScreen` (built from `8c1d819`).
 Device: Pixel 8 AVD (emulator-5554, Android 36). PIA disconnected during all
 device work (kill-switch was a proven NAT-interference source in earlier

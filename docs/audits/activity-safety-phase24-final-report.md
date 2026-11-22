@@ -3,7 +3,7 @@
 ## Commits
 - Backend `feat/activity-safety-engine`: `ef57443` — `GET /activity-safety/injuries`
   (full rows, provenance, clinician-lock metadata). Deployed; staging SHA
-  commitHash-verified `ef57443`, health 200.
+  commitHash-verified; auto-redeployed to `29d8de6` after concurrent user pushes — `GET /injuries` re-verified live on the newer SHA, health 200.
 - Mobile `feat/muscle-explorer-v2`: `8c1d819` — `InjuriesScreen`, API
   expansion (`listInjuries`, full-field `updateInjury`), navigator wiring;
   `b9c2852` — device-found layout fix (edit `Card` replaces `ListRow`).
