@@ -7,7 +7,11 @@
 //   4. All writes audit-logged; DELETE /me resets fixture state for the caller.
 // Fixture data goes through the same models loadSafetyContext reads — the
 // deployed evaluate endpoint is never special-cased.
-if (process.env.NODE_ENV === 'production') {
+// Railway staging runs NODE_ENV=production — the real prod gate is
+// RAILWAY_ENVIRONMENT_NAME when present, NODE_ENV otherwise.
+const _railEnv = process.env.RAILWAY_ENVIRONMENT_NAME;
+const _isProd = _railEnv ? _railEnv === 'production' : process.env.NODE_ENV === 'production';
+if (_isProd) {
   throw new Error('safetyFixtures must never load in production (SAFETY_STATE_FIXTURE)');
 }
 const express = require('express');

@@ -25,7 +25,9 @@ async function envFor(req) {
   // OPS-REQ-4: server-side env fixture — non-prod only, synthetic users only,
   // never a client field. Per-user fixture (set via /test-fixtures) wins over
   // the optional global SAFETY_ENV_FIXTURE JSON.
-  const hasFixture = process.env.NODE_ENV !== 'production'
+  const railEnv = process.env.RAILWAY_ENVIRONMENT_NAME;
+  const isProdEnv = railEnv ? railEnv === 'production' : process.env.NODE_ENV === 'production';
+  const hasFixture = !isProdEnv
     && (process.env.SAFETY_STATE_FIXTURE === '1' || process.env.SAFETY_ENV_FIXTURE);
   if (hasFixture) {
     try {
