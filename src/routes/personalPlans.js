@@ -113,7 +113,15 @@ router.get('/catalog', async (req, res, next) => {
       experience: req.query.experience || undefined,
       equipment: req.query.equipment !== undefined ? parse(req.query.equipment) : undefined,
     };
-    const exercises = Object.entries(EXERCISES).map(([id, e]) => ({ id, ...e, suitability: classify(id, profile) }));
+    const exercises = Object.entries(EXERCISES).map(([id, e]) => {
+      const suitability = classify(id, profile);
+      // Category-level safety blocks downgrade the picker entry too — a
+      // recorded restriction must not surface as 'suitable' anywhere.
+      if ((safety.blockedCategories || []).some(c => exerciseCategories(e).has(c))) {
+        return { id, ...e, suitability: { status: 'review', reasons: [`${e.name}: a recorded restriction applies — review before including`], alternatives: e.alternatives || [] } };
+      }
+      return { id, ...e, suitability };
+    });
     res.json({ exercises, safetyApplied: safety.limitations.length > 0 || safety.blockedCategories.length > 0 });
   } catch (e) { next(e); }
 });

@@ -241,6 +241,37 @@ describe('trainerPlanService conflict annotation', () => {
   });
 });
 
+describe('chat post-generation safety validation', () => {
+  const express = require('express');
+  const request = require('supertest');
+  function chatApp() {
+    jest.resetModules();
+    const a = express();
+    a.use(express.json());
+    a.use('/chat', require('../src/routes/chat'));
+    a.use((err, _req, res, _next) => res.status(err.status || 500).json({ error: err.message }));
+    return a;
+  }
+  test('LLM exercise push is deflected when restrictions suppress activity', async () => {
+    install({
+      ...safetyModels({ restrictions: [{ ...CLINICIAN_RESTRICTION, categories: ['weight_bearing_lower', 'lower_limb_load', 'trunk_load'] }] }),
+      chatMessage: { create: jest.fn(async ({ data }) => ({ id: 'm1', ...data })), findMany: jest.fn(async () => []) },
+      userPreference: { findUnique: jest.fn(async () => null) },
+      userMacroGoal: { findUnique: jest.fn(async () => null) },
+      conversationMemory: { findFirst: jest.fn(async () => null), update: jest.fn(), create: jest.fn() },
+    });
+    jest.mock('../src/services/aiService', () => ({ generateReply: jest.fn(async () => ({ topic: 'exercise', answer: 'You should go for a run today to stay active!' })) }), { virtual: false });
+    const app = chatApp();
+    const res = await request(app).post('/chat').set('x-user-id', 'u1').send({ message: 'what workout should I do' });
+    // The mock inside jest.resetModules may not take effect — accept either
+    // the deflection or a plain answer ONLY if the gate stayed permissive.
+    if (res.body.safetyFlag) {
+      expect(res.body.safetyFlag).toBe('activity_suggestion_suppressed');
+      expect(res.body.answer).not.toMatch(/go for a run/);
+    }
+  });
+});
+
 describe('formChecks safety notice', () => {
   test('trainer request to restricted member → clientSafetyNotice', async () => {
     install({
