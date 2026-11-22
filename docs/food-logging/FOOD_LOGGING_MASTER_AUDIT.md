@@ -54,9 +54,14 @@ Maestro `maestro/food-logging-verify.yaml` exit 0; screenshots at `~/.maestro/te
 
 ## Open defects / gaps queue
 
-- VOICE-001: voice execute drops household-unit foods lacking grams (needs serving resolution parity with manual flow).
-- VOICE-002: unknown nutrients written as 0 in voice path (`?? 0`) — silently zeroes missing values.
-- BC-001: barcode/log falls back to 100 g when product servingSizeG absent (verify preservation of manufacturer serving).
-- DATA-001: catalog coverage — 61 servings across 18 priority foods only; full catalog coverage report in Phase 14.
+- VOICE-001 (CONFIRMED): `/voice/commands/execute` LOG_FOOD requires `item.grams`; household-unit items are skipped unless grams supplied — no servingId resolution.
+- VOICE-002 (CONFIRMED): voice path writes `?? 0` for missing nutrients — silently zeroes unknowns.
+- BC-001 (CONFIRMED): `logScannedFood` snapshot stores `perServing` nutrients but no serving label/id — reopening a scanned product falls back to grams.
+- BC-002 (CONFIRMED): `logScannedFood` writes `?? 0` for missing macros.
+- SEC-NOTE: `servingCount<=0` coerces to 1 silently rather than 400 (harmless but inconsistent).
+- EDIT-NOTE: no edit-in-place anywhere — POST is idempotent create-by-id (same id → 200 no-op, cross-owner → 409). Edits = delete+create. Documented, working as designed.
+- PHASE-8-NOTE: Smart Portion Memory not implemented anywhere — always defaults to first serving/grams.
+- DATA-001: catalog coverage — 58 servings across 18 ingredients; 210/228 (92%) usable catalog items have no serving. See FOOD_LOGGING_SERVING_COVERAGE.md.
+- DATA-005: BarcodeProduct table empty — every barcode scan misses.
 - DATA-002: `rice_cooked` has no catalog/ingredient row.
 - QA-001: FoodEntryScreen repeat path shows restored serving from snapshot; when serving deleted/changed upstream, fallback = grams (safe, needs test).
