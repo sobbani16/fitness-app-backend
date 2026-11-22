@@ -1,0 +1,157 @@
+{
+  "generated": "2026-11-22T02:49:08.680Z",
+  "mode": "apply",
+  "verified": {
+    "relink": [],
+    "catalogAllergens": [
+      {
+        "name": "Feta cheese",
+        "from": [
+          "milk"
+        ],
+        "to": [
+          "milk"
+        ]
+      }
+    ],
+    "recipeAllergens": [
+      {
+        "recipeId": "5ce6cb80-1879-4827-9b80-0cb50f73cd86",
+        "name": "Greek Salad",
+        "to": [
+          "dairy",
+          "milk"
+        ]
+      },
+      {
+        "recipeId": "0b8d900a-52a7-4803-aaa2-47d874151c88",
+        "name": "Shakshuka",
+        "to": [
+          "egg",
+          "dairy",
+          "eggs",
+          "milk"
+        ]
+      },
+      {
+        "recipeId": "880d1e53-ef1c-4046-a699-b66aa9f28202",
+        "name": "Menemen",
+        "to": [
+          "egg",
+          "dairy",
+          "eggs",
+          "milk"
+        ]
+      }
+    ],
+    "poultryTempAdded": []
+  },
+  "assumptions": {
+    "relink": [
+      {
+        "lineId": "6480bd2f-0550-44e5-944a-401646e57704",
+        "name": "wrap",
+        "to": "Flour tortilla"
+      }
+    ]
+  },
+  "needsHuman": {
+    "unlinkedLines": [
+      {
+        "id": "787267f3-3248-42b3-a955-3c7f79c2ebf4",
+        "name": "vegetables"
+      },
+      {
+        "id": "aca3a97e-ba56-471e-be71-eff634eb361c",
+        "name": "cottage cheese"
+      },
+      {
+        "id": "7c04089c-1b0a-48da-9acc-e1dea3c9e129",
+        "name": "mixed fruit"
+      },
+      {
+        "id": "cf280272-9082-430f-9e0f-b3bb195b2736",
+        "name": "vegetables"
+      },
+      {
+        "id": "bd1b87ca-2064-471d-819e-ed373cb842ee",
+        "name": "mixed greens"
+      },
+      {
+        "id": "d0eb0943-8457-48a2-b5e1-22313204140e",
+        "name": "vegetables"
+      },
+      {
+        "id": "432b75f1-4506-408d-8722-0a5d47a097c8",
+        "name": "vegetables"
+      },
+      {
+        "id": "6761f76c-abc4-46f8-8d6e-32c7a29a7c09",
+        "name": "mixed vegetables"
+      },
+      {
+        "id": "06ee22a9-339e-45ec-9168-3a45c581c337",
+        "name": "mixed berries"
+      },
+      {
+        "id": "b9960eae-ffaf-46f6-9f4f-2a9fd7936373",
+        "name": "protein bar"
+      },
+      {
+        "id": "c23e1590-9c3c-40f5-8ab6-50a76f065936",
+        "name": "almond milk"
+      },
+      {
+        "id": "fa54cf77-2326-4824-a74d-56b14415be2c",
+        "name": "vegetables"
+      },
+      {
+        "id": "37441ddd-3ea6-40ed-9d92-843b96cacbc9",
+        "name": "tuna"
+      },
+      {
+        "id": "37863a22-aa65-43dd-ab05-02c8d2561820",
+        "name": "vegetables"
+      },
+      {
+        "id": "8357682c-fc6c-44b1-8115-ef4b86538c59",
+        "name": "turkey meatballs"
+      },
+      {
+        "id": "5134ce88-0f67-47c4-9566-11abbee8c22a",
+        "name": "vegetables"
+      }
+    ],
+    "tempNoInstructions": [
+      "Chicken stir-fry with rice",
+      "Chicken thigh with brown rice",
+      "Turkey meatballs with pasta",
+      "Andhra chicken curry",
+      "Gongura chicken curry",
+      "Kodi vepudu",
+      "Chicken 65",
+      "Chicken fried rice",
+      "Hyderabadi chicken biryani",
+      "Chicken pulao",
+      "Butter chicken",
+      "Chicken tikka masala",
+      "Chicken korma",
+      "Chicken chettinad",
+      "Chicken soup",
+      "Chicken tikka",
+      "Chicken breast with sweet potato",
+      "Grilled chicken salad",
+      "Turkey wrap"
+    ]
+  },
+  "summary": {
+    "relinkApplied": 0,
+    "relinkPlanned": 0,
+    "relinkAssumption": 1,
+    "relinkNeedsHuman": 16,
+    "catalogAllergenUpdates": 1,
+    "recipeAllergenUpdates": 3,
+    "poultryTempSteps": 0,
+    "glucoseFix": false
+  }
+}

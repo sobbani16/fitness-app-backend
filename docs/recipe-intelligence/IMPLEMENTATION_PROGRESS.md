@@ -46,7 +46,8 @@
 7. ~~save-generated persistence + limits + equipment stages + E2E~~ **DONE** (commit 6c537a1); ~~Phase 15 DB-quality report~~ **DONE** (real findings: 150 missing instructions, 62 meat-no-temp, 138 undeclared allergen lines, 55 unlinked lines, 44 catalog allergen-hint gaps, 1 genuine macro defect, all 48 clinical rules DRAFT).
 8. ~~remaining deliverable docs~~ **DONE — all 13 written**; verdict in `release-readiness.md`: NOT production-ready — blocking gates 7 (no approved clinical rules), 10 (data-quality fixes), 13 (mobile surface).
 9. ~~Phase 11 mobile surface~~ **DONE** (mobile commit a4c2dbf: generateRecipes/saveGeneratedRecipe API + Generate button, validation-status chips, save→revalidate flow in RecipeByIngredients; graceful 404 when flag off); ~~ISO-001~~ **DONE** (cross-user isolation test — 80 green).
-10. NEXT: Phase 9 ranking layer; caching/versioning (CACHE-001/STALE-002); full `npm test` regression; PERF-001 measurements.
+10. ~~full `npm test` regression~~ **DONE** (1444 green; sk-prefix DB-interference found+fixed); ~~Objective-1 data remediation~~ **DONE** (scripts/remediate-recipe-data.js, verified-tier applied: 38 relinks, 42 catalog declarations, 183/258 recipes now declared, 31 temp steps, GLUCOSE capped; residuals: 150 missing instructions + 16 composite lines + 9 recipe flags — all needs-human or documented FPs).
+11. NEXT: Objective-2 clinical-rule approval workflow; Phase 9 ranking; safe caching (CACHE-001/STALE-002); PERF-001; synthetic-user flag verification.
 
 ## Blockers / open decisions (need owner)
 

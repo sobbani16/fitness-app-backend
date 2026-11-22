@@ -1,7 +1,22 @@
 # Database Quality Report — Recipe Intelligence (Phase 15)
 
 **Generated:** 2026-11-21 · **Method:** read-only inspection via `scripts/recipe-data-quality.js` → raw JSON at `database-quality-raw.json`
-**Scope:** local development DB (authorized read-only). No data was modified.
+**Scope:** local development DB.
+**Remediation:** `scripts/remediate-recipe-data.js` (dry-run default, `--apply`) — tiered corrections: VERIFIED applied, ASSUMPTION/NEEDS-HUMAN withheld. Full plan: `data-remediation-plan.json`.
+
+## Post-remediation deltas (2026-11-21, applied to local dev DB)
+
+| Issue | Before | After | What remains & why |
+|---|---|---|---|
+| Unlinked ingredient lines | 55 | **17** | 16 composites/proprietaries with no catalog equivalent (`cottage cheese`, `mixed vegetables`, `tuna`, `protein bar`, `almond milk`, `turkey meatballs`, `mixed fruit/greens/berries`) + 1 assumption-tier (`wrap`). Needs catalog additions or human mapping. |
+| Recipes w/ allergen-hint lines lacking declarations | 138 | **9** | 4 heuristic false-positives (`Jowar roti`, `Ragi roti`, `Ragi malt` — millets, not wheat; `Apple with peanut butter` — `butter`→milk FP) + `Thai Red/Green Curry`, `Tom Kha Gai`, `Mango Sticky Rice`, `Lentil soup with bread` — likely real (fish sauce / bread line) but line-level evidence unverifiable → needs-human. |
+| Catalog allergen-hint gaps | 44 | **5** | All heuristic false-positives: 3 millet flours; `Peanut butter plain` (`butter`→milk); `Coconut milk, canned` (correctly declared `tree nuts`, not dairy). |
+| Meat recipes w/o temp guidance | 62 | **31** | 31 got appended poultry-temp instruction steps (74°C/165°F standard). Remaining 31 have **no instructions at all** — same needs-human gap as below. |
+| Recipes missing instructions | 150 | **150** | Requires human-authored instructions — not derivable. Validator correctly holds these at NEEDS_CLARIFICATION. |
+| Macro sum > 100g/100g | 1 | **0** | `GLUCOSE` row capped 107→100 (physical max; conservative over-estimate — `carbsPer100g` is non-nullable so null was impossible). |
+| Implausible macro flags | 5 | 5 | Documented threshold false-positives (whey/dried-egg protein 77–84g/100g is legitimate). Recommend raising bound to ~95g. |
+
+**Applied:** 38 verified relinks (with nutrition snapshots), 42 catalog allergen declarations (incl. string `'dairy'`→array normalization), recipe-allergen merges across passes → **183/258 recipes now carry derived declarations** (from 4), 31 poultry-temp steps, 1 macro cap. **Withheld:** `wrap`→tortilla (assumption), all instruction authoring, composite relinks — no fabricated declarations or nutrition.
 
 ## Headline counts
 
