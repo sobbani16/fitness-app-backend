@@ -1,0 +1,102 @@
+{
+  "checkpoint": "2026-11-22-cycle-20",
+  "repos": {
+    "backend": "c82a94a"
+  },
+  "test_dbs": {
+    "fitness_test": "unit/integration (connection-safe via setupAfterEnv)",
+    "fitness_auth_readiness": "platformE2E real-auth, schema pushed"
+  },
+  "scenarios": "72/120; 7 fixtures documented as non-clinical engineering-reviewable",
+  "usda": {
+    "key": "present",
+    "dry_run": "10/10 fetched",
+    "dev_candidates": 175,
+    "test_id_matches": 0,
+    "test_eligible_ceiling": 40,
+    "test_profiles": 0,
+    "schema_corrections": "source=USDA enum; no sourceBatch col -> sourceDataset marker; verifiedAt NULL=unverified; nutrient ref table empty",
+    "rollback_test": "PASS (synthetic: idempotent upsert, batch-scoped delete, cascade clean, re-rollback safe)",
+    "authorization": "pending owner - fitness_test only, <=40 rows",
+    "eligible": 40,
+    "nutrient_rows": 716,
+    "nutrient_seed": 26,
+    "manifest": "data/usda-preview-manifest.json",
+    "unit_skips": 0,
+    "missing_core": 9,
+    "status": "awaiting authorization",
+    "executed": true,
+    "inserted": {
+      "nutrients": 26,
+      "profiles": 40,
+      "joins": 716,
+      "total": 782
+    },
+    "integrity": "0 orphans/missing parents/negative/unit mismatches; verifiedAt NULL on all",
+    "consumer_gating": "unverified profiles correctly invisible to verifiedAt-gated consumers (fail-closed)",
+    "rollback": "ready, not executed (separate approval)",
+    "ids_file": "data/usda-preview-1-inserted-ids.json"
+  },
+  "flags": "all medical OFF; 0 clinical approvals",
+  "known_residuals": [
+    "exercises.route 405-vs-400 \u2014 instrumented, not root-caused"
+  ],
+  "suite_runs": {
+    "clean": 4,
+    "one_recurrence": "Run C 2-fail unidentified; durable JSON logs now in var/test-reports/"
+  },
+  "exercises_405": "instrumented DIAG; no recurrence in run E; mechanism unproven",
+  "flag_cache_fix": "FF_CACHE_TTL_MS=0 in test setup \u2014 60s per-user cache was leaking flag state across suites sharing userIds; post-fix run clean 5,520/0f",
+  "review_workflow": "IMPLEMENTED: /super-admin/nutrition-profiles (NUTRITION_DATA_REVIEW) \u2014 approve/reject/changes/revoke, optimistic concurrency, audit trail; 8/8 unit + real-DB E2E pass",
+  "mobile_provenance": "labels verified honest; unverified batch cannot render verified",
+  "suite": {
+    "r1": "5527p/1f(socket-transient)",
+    "r2": "5528p/0f",
+    "platformE2E": "3/3"
+  },
+  "usda_pending": 40,
+  "usda_approved": 0,
+  "suites": {
+    "stab1": "5802p/16f",
+    "stab2": "5831p/2f(owner mid-edit)",
+    "stab3": "5832p/1f(scheduling boundary flake)",
+    "platformE2E": "3/3"
+  },
+  "fixed": "activitySafety.e2e mock missing findFirst (owner's clinician_documented change)",
+  "owner_new_work": "Smart Fiber Intelligence landed: 7 flags all OFF, /fiber routes, 2 new models, mobile card + chat/voice grounding",
+  "stability": "seq24-28: 3/5 clean on 54cfb2e/5,960 tests; authSweep 401->200 transient (new class, watchlisted); zero repeats, zero 403-class",
+  "suite_sequence": "4/5 clean (seq1-5); 1 flake asyncScenarios.api transient error-body",
+  "fiber_audit": "VERIFIED \u2014 confirmed/estimated/unknown taxonomy, no soluble/insoluble inference, default-basis honesty, supplement path label-only+fail-closed",
+  "fiber_flags": "7 flags OFF verified live (403/404); supplement in medical group, AI/voice in ai kill group",
+  "fiber_e2e": "daily/target 200 w/ provenance; supplement 403 independent gate",
+  "reviewer": "API live; 40 pending/0 approved; checklist in USDA_REVIEWER_HANDOFF.md",
+  "suite_seq2": "8/9 valid runs clean; residual ~1 403-class auth-boundary flake per ~4-5 runs, mechanism unproven, ruled out: env pollution/DB wipes/pool exhaustion",
+  "fixes": "connection_limit=2 pool bound in tests/setup.js; reverted own broken two-arg expect",
+  "scenario_mechanism": "hash-chained reviewer decisions in data/scenarioReviewDecisions.json via scripts/submit-scenario-review.js \u2014 matrix still 72/120, zero self-approvals",
+  "fiber_rollout": "SMART_FIBER_ROLLOUT_PLAN.md \u2014 stages 1-4 wellness-eligible, 5-7 (supplement/AI/voice) stay OFF",
+  "mobile_e2e": "maestro flows updated by owner; device run pending",
+  "flake_root_cause": "FF_CACHE_TTL_MS='0' falsy\u219260s cache stayed live; stale per-user flag leak across suites. FIXED: env honored + afterEach resetCache",
+  "post_fix_suite": "150/150, 5849 pass, 0 fail",
+  "ios_maestro": "dismiss PASS, auth-cycle PASS, food-logging FAIL \u2014 \u00d7100 nutrient display defect + save not reaching backend (owner file)",
+  "android_maestro": "BLOCKED \u2014 device-server died on emulator-5554, needs driver reinstall",
+  "pending": "4 more clean runs for stability claim; Android retry; owner fixes FoodEntry \u00d7100",
+  "P0_root_cause": "serving-qty absorbed stray keyboard input (225\u00d732g=7200g) \u2192 per100\u00d772 inflation; save taps hit open pad \u2192 never submitted",
+  "P0_fix": "portionGuard 5000g clamp (qty+scale paths), Keyboard.dismiss on save, save cap aligned; 14/14 regression tests, tsc clean",
+  "device_verify": "BLOCKED \u2014 iOS XCUITest driver dies ~75s (post-reboot too); Android device-server dead; rerun required by owner",
+  "files": "src/services/portionGuard.ts (new), FoodEntryScreen.tsx, foodLoggingPortions.test.ts (new)",
+  "driver_dx": "~75s crashes = concurrent sessions + 0.07GB free RAM; owner running maestro on both sims; driver healthy uncontended",
+  "device_status": "owner driving verification; my P0 code fix live in metro bundle",
+  "driver_cause2": "stale xcodebuild relaunches killed runners (terminate-for-debugging); plus deterministic death at 45s optional Email wait \u2014 shortened to 12s",
+  "deepest": "95% journey verified on-device pre-death; save-confirm assert still unobserved",
+  "blocker": "owner sessions resumed on both sims; single-session window still needed",
+  "food_logging_p0": "CLOSED on iOS \u2014 maestro PASS + FoodLog 1795380822083-jgaa2o persisted (64g,158kcal,8.3/26.2/2.7/4.5)",
+  "p0_root_cause": "iOS decimal-pad no-dismiss: taps outside ScrollView never close pad; pad occluded Save; taps mutated focused servings field (2->22->704g). Fixed via InputAccessoryView Done bar.",
+  "android": "CI-ready on feat/pose-coaching-impl@75de24f; needs gh dispatch + E2E_STAGING_* secrets; local emulator retired",
+  "serving_restoration": "VERIFIED not-a-defect; repeatMeal.ts extracted + 8 tests (22/22)",
+  "backend_stability": "seq20-23: 2 clean, activitySafety mock-gap flake (owner dirty file), 1 socket drop; zero 403-class since flag-TTL fix",
+  "usda_batch": "reseed wiped \u2192 rematerialized via new scripts/rematerialize-usda-preview.js: 40 pending / 0 approved",
+  "usda_persistence": "rematerialize-usda-preview.js makes batch deterministic; manifest immutable; 40/0 restored",
+  "staging_fixture": "MILK 55kcal/100g, 1 cup=236g, deterministic first result \u2014 verified via API",
+  "android_ci": "pinned maestro 2.12.1 (npm E404 defect fixed, 6e52cd5); expected 260/16/24/10/0 @472g; awaits secrets+dispatch",
+  "ci_dispatch": "OWNER-GATED: no gh/token on host; cmd ready on feat/pose-coaching-impl@6e52cd5"
+}
