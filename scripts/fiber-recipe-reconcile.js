@@ -38,9 +38,15 @@ async function computeRecipe(p, recipe) {
     if (!l.ingredientId) { unresolved.push(l.ingredientName); continue; }
     const ing = await p.ingredient.findUnique({ where: { id: l.ingredientId }, select: { name: true, fiberPer100g: true } });
     if (!ing || ing.fiberPer100g == null) { unresolved.push(l.ingredientName); continue; }
-    const g = (Number(l.amountG) || 0) * ing.fiberPer100g / 100;
+    // Dry-basis catalog rows must not be multiplied into a cooked recipe
+    // portion — 150 g of dry lentils is not the 150 g of lentils in a soup.
+    // Flag them as unresolved so the recipe is held for catalog review rather
+    // than silently overstated.
+    const dryBasis = /\(dry\)|\bdry\b|uncooked/i.test(ing.name);
+    const g = dryBasis ? 0 : (Number(l.amountG) || 0) * ing.fiberPer100g / 100;
     total += g;
-    parts.push(`${l.ingredientName}: ${l.amountG}g × ${ing.fiberPer100g}/100g = ${g.toFixed(2)}g`);
+    if (dryBasis) unresolved.push(`${l.ingredientName} (dry-basis catalog row "${ing.name}" — cooked basis needed)`);
+    else parts.push(`${l.ingredientName}: ${l.amountG}g × ${ing.fiberPer100g}/100g = ${g.toFixed(2)}g`);
   }
   const servings = recipe.servings || 1;
   return { perServing: total / servings, parts, unresolved };
@@ -67,12 +73,16 @@ async function computeRecipe(p, recipe) {
     const before = r.fiberG;
     const after = Math.round(perServing * 10) / 10;
     const delta = after - (before ?? 0);
-    const changed = Math.abs(delta) >= 0.5;
-    report.push({ id: r.id, name: r.recipeName, before, after, delta: Math.round(delta * 10) / 10, unresolved, parts });
     console.log(`== ${r.recipeName} [${r.reviewStatus}] servings=${r.servings}`);
     console.log(`   stored=${before}  computed=${perServing.toFixed(2)}  proposed=${after}  Δ=${delta.toFixed(1)}`);
     parts.forEach((x) => console.log(`     ${x}`));
-    if (unresolved.length) console.log(`     unresolved lines (excluded): ${unresolved.join(', ')}`);
+    if (unresolved.length) {
+      // HELD recipes are excluded from the apply set entirely — a partial
+      // recompute is worse than the stale value it replaces.
+      console.log(`     HELD — unresolved lines (excluded): ${unresolved.join(', ')}`);
+      continue;
+    }
+    report.push({ id: r.id, name: r.recipeName, before, after, delta: Math.round(delta * 10) / 10, unresolved, parts });
     console.log(`     UPDATE "Recipe" SET "fiberG" = ${after} WHERE id = '${r.id}';`);
     console.log(`     ROLLBACK: UPDATE "Recipe" SET "fiberG" = ${before} WHERE id = '${r.id}';`);
   }

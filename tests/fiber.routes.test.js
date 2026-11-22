@@ -16,6 +16,7 @@ jest.mock('../src/lib/prisma', () => ({
     userAllergy: { findMany: async () => mockStore.allergies },
     foodPreference: { findMany: async () => mockStore.foodPrefs },
     foodLog: { findMany: async () => mockStore.foodLogs, findFirst: async ({ where }) => mockStore.foodLogs.find((l) => l.id === where.id && l.userId === where.userId) || null },
+    userRole: { findFirst: async ({ where }) => (mockStore.roles || []).some((r) => where.role.name.in.includes(r)) ? { id: 'r1' } : null },
     supplementLog: { findMany: async () => mockStore.suppLogs },
     weeklyNutritionPlan: { findFirst: async () => null },
     fiberDailyRecommendation: { upsert: async () => ({}) },
@@ -44,7 +45,7 @@ beforeEach(() => {
   Object.keys(mockFlags).forEach((k) => delete mockFlags[k]);
   mockStore.user = { id: USER, dateOfBirth: new Date('1990-01-01'), gender: 'female', timeZone: 'UTC', goalType: null };
   mockStore.macroGoal = { caloriesTarget: 2000, fiberTarget: 30 };
-  mockStore.conditions = []; mockStore.allergies = []; mockStore.foodPrefs = []; mockStore.foodLogs = []; mockStore.suppLogs = [];
+  mockStore.conditions = []; mockStore.allergies = []; mockStore.foodPrefs = []; mockStore.foodLogs = []; mockStore.suppLogs = []; mockStore.roles = [];
 });
 
 describe('flag enforcement (all fiber flags default OFF)', () => {
@@ -103,12 +104,19 @@ describe('response contracts', () => {
     expect(res.body.safety.verdict).toBe('ok');
   });
   it('PUT /fiber/target stores override with provenance; clearing nulls basis', async () => {
+    mockStore.roles = ['CLINICAL_REVIEWER'];
     const res = await request(app).put('/fiber/target').set('x-user-id', USER).send({ targetG: 22, note: 'GI doc', clinicianDirected: true });
     expect(res.status).toBe(200);
     expect(res.body.fiberTargetBasis).toBe('clinician');
     const res2 = await request(app).put('/fiber/target').set('x-user-id', USER).send({ targetG: null });
     expect(res2.status).toBe(200);
     expect(res2.body.fiberTargetBasis).toBeNull();
+  });
+  it('PUT /fiber/target downgrades clinician-directed provenance for members', async () => {
+    mockStore.roles = ['MEMBER'];
+    const res = await request(app).put('/fiber/target').set('x-user-id', USER).send({ targetG: 22, clinicianDirected: true });
+    expect(res.status).toBe(200);
+    expect(res.body.fiberTargetBasis).toBe('custom'); // members cannot attest clinician provenance
   });
   it('PUT /fiber/target rejects out-of-range values', async () => {
     const res = await request(app).put('/fiber/target').set('x-user-id', USER).send({ targetG: 500 });
