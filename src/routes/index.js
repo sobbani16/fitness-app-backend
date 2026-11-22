@@ -104,6 +104,7 @@ router.use('/progress-coach', progressCoach);
 router.use('/reminders', reminders);
 router.use('/videos', videos);
 router.use('/health-data', healthData);
+router.use('/pose-coaching', require('./poseCoaching'));
 router.use('/personal-plans', personalPlans);
 router.use('/menu-analysis', menuAnalysis);
 router.use('/voice', voice);
@@ -126,6 +127,7 @@ router.use('/communication', communication);
 router.use('/academy', academy.router);
 router.use('/editorial', editorial.router);
 router.use('/super-admin/ingredient-evidence', require('./adminEvidence'));
+router.use('/super-admin/nutrition-profiles', require('./nutritionReview'));
 router.use('/super-admin', editorial.router); // same perms: SUPER_ADMIN_PANEL + scoped perms gate every route
 
 module.exports = router;
