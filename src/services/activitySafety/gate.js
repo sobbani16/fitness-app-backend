@@ -275,6 +275,8 @@ async function planSafetyConflicts(prisma, clientUserId, plan, { gate, detail = 
       }
     }
   }
+  const reviewCount = conflicts.filter(c => c.status === 'review' || c.status === 'unevaluated').length;
+  if (reviewCount) { try { require('./observe').observe('safety.exercise.review', { count: reviewCount, userId: clientUserId }); } catch {} }
   return {
     available: true,
     status: g.status,

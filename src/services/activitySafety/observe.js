@@ -28,6 +28,7 @@ function observe(event, meta = {}) {
 // alert thresholds for a monitoring backend (documented contract)
 const ALERTS = {
   'safety.notification.untyped': 'page — activity advice may bypass safety suppression',
+  'safety.exercise.review': 'alert at >10/plan-hour — exercise metadata coverage gap; a spike means new imports landed without demand data',
   'safety.gate.error': 'page within 1h — decisions degrading to fail-closed',
   'safety.env.outage': 'alert at >20% requests/5min — outdoor recommendations rely on honest unknown state',
   'safety.suppression.spike': 'alert at >3× baseline — may indicate bad data import rather than true risk',
