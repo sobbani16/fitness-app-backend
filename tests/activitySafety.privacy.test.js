@@ -143,4 +143,18 @@ describe('P-2/P-3 trainer clinical detail requires explicit grant', () => {
     expect(frow.status).toBe('conflict'); // full detail only via grant — categories visible
     expect(JSON.stringify(full)).toContain('lower_limb_load');
   });
+  test('partial exercise metadata (null mechanic/equipment) yields qualified review verdict, never unqualified clear', async () => {
+    // A null-mechanic exercise skips weight-bearing/valsalva derivation — its
+    // "clear" is not evaluable, so it must surface as review-required.
+    const plan = { days: [{ dayIndex: 0, exercises: [{ exerciseName: 'Mystery Lift', exerciseId: 'ex-partial' }] }] };
+    mockPrisma.exercise = { findUnique: jest.fn(async () => ({ id: 'ex-partial', name: 'Mystery Lift', mechanic: null, equipment: null, category: 'strength', muscles: [{ muscle: 'quadriceps', role: 'primary' }] })) };
+    mockPrisma.userActivityRestriction.findMany.mockResolvedValue([]);
+    const res = await planSafetyConflicts(mockPrisma, 'u1', plan);
+    const row = res.conflicts.find(c => c.exerciseName === 'Mystery Lift');
+    expect(row.status).toBe('review');
+    // A fully-mapped exercise with no conflicting restrictions produces NO row.
+    mockPrisma.exercise.findUnique = jest.fn(async () => ({ id: 'ex-full', name: 'Seated Curl', mechanic: 'isolation', equipment: 'dumbbell', category: 'strength', muscles: [{ muscle: 'biceps-brachii', role: 'primary' }] }));
+    const res2 = await planSafetyConflicts(mockPrisma, 'u1', { days: [{ dayIndex: 0, exercises: [{ exerciseName: 'Seated Curl', exerciseId: 'ex-full' }] }] });
+    expect(res2.conflicts.filter(c => c.status === 'review')).toHaveLength(0);
+  });
 });

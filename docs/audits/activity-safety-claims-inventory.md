@@ -27,3 +27,15 @@ Working document for qualified regulatory/legal review (US + India). **Not a leg
 - Clinical rules stay DRAFT + inactive — nothing medical reaches users until reviewed.
 - Missing data → `INSUFFICIENT_DATA`, never "safe".
 - Emergency copy uses declared region, never geo-inferred.
+
+## Phase-18 finalization — suppression recommendations pending counsel
+
+Until qualified US + India review completes, the following should remain suppressed or DRAFT-gated:
+
+1. **Any condition-specific activity restriction reaching users** — DRAFT rules already enforce this; keep `health_aware_recommendations` off in production.
+2. **Urgent-symptom escalation copy in marketing/feature descriptions** — describing triage behavior externally creates claims; internal behavior itself is conservative.
+3. **"Clinically validated"/"evidence-based" language** — zero rules are clinically approved; no such claim may be made.
+4. **Trainer-facing safety detail beyond `summary`** — remains behind `safety_restrictions` consent; counsel should review whether even consent-gated sharing has CDS implications.
+5. **India severe-weather/AQI feature copy** — coverage is honest (`imd-cap` live-verified, CPCB modeled-vs-measured labeled) but availability claims in marketing need counsel sign-off per jurisdiction.
+
+These are engineering-suppression recommendations, not legal determinations.

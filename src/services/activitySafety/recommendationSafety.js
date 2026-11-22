@@ -48,4 +48,14 @@ async function activityAdviceAllowed(prisma, userId, { gate } = {}) {
   } catch { return { allowed: false, via: 'gate-error' }; } // fail closed
 }
 
-module.exports = { ACTIVITY_ADVICE_TYPES, latestSafetyEventAt, invalidateSafetyAdvice, activityAdviceAllowed };
+// Read-side guard: the ONLY safe way to serve persisted safety advice. Any
+// future API/notification reader MUST go through this so stale-stamped rows
+// cannot resurface. Returns rows excluding staleAt (and completed).
+async function freshSafetyRecommendations(prisma, userId, { type } = {}) {
+  return prisma.recommendation.findMany({
+    where: { userId, completed: false, staleAt: null, ...(type ? { recommendationType: type } : {}) },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+module.exports = { ACTIVITY_ADVICE_TYPES, latestSafetyEventAt, invalidateSafetyAdvice, activityAdviceAllowed, freshSafetyRecommendations };
