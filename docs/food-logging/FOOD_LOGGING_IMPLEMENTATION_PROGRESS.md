@@ -57,3 +57,25 @@ Evidence: `~/.maestro/tests/2026-11-22_000628/food-logging-verify/takeScreenshot
 **Tooling note:** Maestro iOS matches element text EXACTLY; RN tab items expose `Foo, tab, N of 5`; debugger banner overlays bottom button — point-tap ✕ (92%,93%).
 
 RESUME POINT unchanged minus cleared blocker: Phase 2 map → Phase 3 DB audit → Phase 8 portion memory → Phase 9 voice/barcode/photo → Phase 11 security → Phase 14 coverage → Phase 15 deliverables.
+
+## 2026-11-22 s8 — Phases 2,3,6,8,10,11 executed
+
+**Phase 2 — entry-point map:** 19 flows mapped in `FOOD_LOGGING_MASTER_AUDIT.md` (search, repeat, copy, quick-add, recipes, barcode, label-scan, photo, voice, manual/custom, saved templates, offline/outbox, scale, menu-scan, water). New finding: **VOICE-001** — `/voice/commands/execute` LOG_FOOD requires `item.grams`; household-unit items ("2 slices") are skipped unless the interpreter supplies grams. **VOICE-002** — voice path writes `?? 0` for missing nutrients (silently zeroes unknowns vs catalog-null semantics).
+
+**Phase 3 — DB audit:** `FOOD_LOGGING_DATABASE_QUALITY_REPORT.md` written. Key numbers: 420 ingredients / 228 catalog (all usable) / 58 serving rows on **18 ingredients** / **210 usable catalog items (92%) have no serving** / 277 FoodLogs / 0 orphans / 0 negative-or-implausible nutrients / 21 missing fiber / **all 228 catalog rows `GENERIC_COMPOSITION`** / BarcodeProduct **0 rows** / **260/277 logs have no nutritionSnapshot** (pre-snapshot era — treated as weight entries) / 14 non-test duplicate normalized-name groups / 10 test-fixture ingredient rows excluded from search.
+
+**Phase 6 — search validation:** `bread` → Breadcrumbs, Pita (2 servings), White (8), Whole-wheat (1); `whole wheat` → exact record #1; `egg/chicken/apple/milk/rice/oats` all return relevant items with serving counts surfaced. Injection-safe (Prisma). Ranking acceptable — alphabetical within tier, verified items present.
+
+**Phase 8 — Smart Portion Memory:** **FEATURE ABSENT.** No portion-memory implementation on either side (`portionMemory`/`lastServing` greps empty); unit always defaults to first serving/grams. Recorded as gap, not regression.
+
+**Phase 10 — edit-in-place:** **FEATURE ABSENT by design.** No PUT/PATCH on `/food-logs`; mobile always generates a new id (`Date.now()-random`) → POST is a pure create; repeated delivery of the same id is a no-op (409 cross-user). Edit semantics = delete+create. Round-trip VERIFIED on device s7.
+
+**Phase 11 — security/isolation:** unauthenticated GET/POST → 401; cross-user GET → 404 (verified, `web-1793…` invisible to synthetic acct); same-id cross-user POST → 409; injection in `q`/`date` → safe/400; `quantityG` bounds (-5, 999999, "abc") → 400; `servingCount` -2/0 → coerced to default (NOT rejected — see SEC-NOTE below); `servingCount` 99999 → 400 (weight bound); invalid/cross-ingredient `servingId` → 400; foodName 5000 chars → truncated to 300.
+
+**SEC-NOTE:** `servingCount<=0` silently coerces to 1 instead of rejecting — harmless (produces count-1 snapshot) but inconsistent with `servingId` strictness. Suggest rejecting non-finite/negative counts for symmetry.
+
+**Test state:** backend jest — 128 suites pass incl. every food/ingredient/meal/nutrition suite (foodExpansion, meals.route, ingredients.route, ingredientCatalog, nutritionStatus, foodIntel, foodDetector, mealAnalyzer, mealSuggest, ingredientV5/Impact). 8 suite failures are TEST_DATABASE_URL isolation issues (academy, asyncScenarios, smartKitchen, trainerNutrition, photoScan, identity, exerciseLibrary) — pre-existing env, not food-logging. Mobile: `tsc --noEmit` clean, 74 suites/426 tests pass. `food-logging-verify.js` 14/14 green on final code.
+
+**Commits:** `3b4934c` master audit + DB quality report.
+
+**RESUME POINT:** Phase 4 canonical model review (largely documented in DB report), Phase 5 deterministic nutrition engine deep-check, Phase 7 UX labels (FL-002 verified; estimate-labeling on other flows), Phase 9 voice/barcode/photo functional audit on device, Phase 12 E2E matrix, Phase 13 real env, Phase 14 coverage report (serving-coverage doc written — **coverage gate FAILS at 7.9%**), Phase 15 final verdict.
