@@ -164,6 +164,43 @@ describe('over-restriction guards — a restriction never blocks what it does no
   });
 });
 
+describe('shadow over-restriction — a rule must not prohibit via unrelated category matching', () => {
+  const ALL = RULES.map(r => ({ ...r, ruleCode: r.code }));
+  const evalAll = (ctx, activityId, env) => evaluateActivity({ context: { ...H(), ...ctx }, activity: ACTIVITIES[activityId], env, rules: ALL });
+
+  test('upper-limb restriction + full draft set — walking stays eligible (no category drift)', () => {
+    const ctx = { restrictions: [{ status: 'active', categories: ['upper_limb_load'], bodyRegions: [], severity: 'prohibited', source: 'clinician_documented' }] };
+    expect(evalAll(ctx, 'outdoor_walk', MILD).decision).not.toBe('BLOCK_ACTIVITY');
+    expect(evalAll(ctx, 'indoor_walk', null).decision).not.toBe('BLOCK_ACTIVITY');
+  });
+  test('healthy user + full draft set — no category-less prohibition; info markers may annotate', () => {
+    const res = evalAll(H(), 'indoor_walk', null);
+    expect(res.decision).not.toBe('BLOCK_ACTIVITY');
+    expect(res.decision).not.toBe('NEEDS_CLINICAL_REVIEW');
+    expect(res.decision).not.toBe('URGENT_ESCALATION');
+  });
+  test('NWB ankle boundary — shadow blocks standing overhead work via weight_bearing_lower (mechanically consistent; adjudicated in queue ADJ-003)', () => {
+    const ctx = { injuries: [{ status: 'current', type: 'fracture', bodyPart: 'ankle', weightBearingRestriction: 'non_weight_bearing' }] };
+    const res = evalAll(ctx, 'overhead_lifting', null);
+    // weightBearing 'full' standing load crosses the ankle — the draft rule's
+    // block is arguable, flagged for reviewer, not silently accepted.
+    expect(res.decision).toBe('BLOCK_ACTIVITY');
+    expect(registryIds(res)).toContain('AS-MSK-001');
+    // …while genuinely non-weight-bearing options remain eligible:
+    expect(evalAll(ctx, 'upper_body_ergometer', null).decision).not.toBe('BLOCK_ACTIVITY');
+  });
+  test('no rule can produce LOOSER than live on the structural floor — NWB walk stays blocked under all drafts', () => {
+    const ctx = { injuries: [{ status: 'current', type: 'fracture', bodyPart: 'ankle', weightBearingRestriction: 'non_weight_bearing' }] };
+    expect(evalAll(ctx, 'outdoor_walk', MILD).decision).toBe('BLOCK_ACTIVITY');
+    expect(evalAll(ctx, 'group_fitness_class', null).decision).toBe('BLOCK_ACTIVITY');
+  });
+  test('blanket prohibition leaves rest fallback reachable — rest is never an exercise verdict', () => {
+    const ctx = { restrictions: [{ status: 'active', categories: ['weight_bearing_lower', 'lower_limb_load', 'upper_limb_load', 'trunk_load', 'impact', 'balance_challenging'], bodyRegions: ['lower_limb', 'upper_limb', 'trunk'], severity: 'prohibited', source: 'clinician_documented' }] };
+    expect(evalAll(ctx, 'seated_movement', null).decision).toBe('BLOCK_ACTIVITY');
+    expect(evalAll(ctx, 'rest', null).decision).not.toBe('URGENT_ESCALATION'); // non-exercise fallback stays evaluable
+  });
+});
+
 describe('coexistence + missing data', () => {
   test('NWB ankle + diabetes — injury block dominates; condition does not block walking', () => {
     const ctx = { conditionKeys: ['diabetes_t2'], injuries: [{ status: 'current', type: 'fracture', bodyPart: 'ankle', weightBearingRestriction: 'non_weight_bearing' }] };

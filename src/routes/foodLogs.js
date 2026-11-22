@@ -26,11 +26,17 @@ router.post('/',async(req,res,next)=>{
   const existing=await prisma.foodLog.findUnique({where:{id:b.id}});
   if(existing){if(existing.userId!==userId)throw httpError(409,'Meal id conflict');return res.json(existing);}
   if(b.ingredientId){
-   const calculated=await require('../services/ingredientNutrition').calculate(b.ingredientId,{grams:data.quantityG});
+   // servingId + servingCount make the catalog the authoritative conversion;
+   // quantityG alone stays supported for weight entries.
+   const servingCount=Number.isFinite(Number(b.servingCount))&&Number(b.servingCount)>0?Number(b.servingCount):undefined;
+   const calculated=typeof b.servingId==='string'&&b.servingId
+     ?await require('../services/ingredientNutrition').calculate(b.ingredientId,{servingId:b.servingId,count:servingCount??1})
+     :await require('../services/ingredientNutrition').calculate(b.ingredientId,{grams:data.quantityG});
+   if(calculated.serving)data.quantityG=calculated.grams;
    const edited=['calories','proteinG','carbsG','fatG','fiberG'].some(k=>data[k]!=null && (calculated.nutrition[k]==null || Math.abs(data[k]-calculated.nutrition[k])>(k==='calories'?0.51:0.051)));
    data.ingredientId=b.ingredientId;
    const catalogRevisionAtSelection=typeof b.catalogRevision==='string'?b.catalogRevision.slice(0,64):null;
-   data.nutritionSnapshot={...calculated.provenance,catalogRevisionAtSelection,catalogChangedSinceSelection:!!catalogRevisionAtSelection && catalogRevisionAtSelection!==calculated.provenance.revision,grams:data.quantityG,loggedFoodName:data.foodName,selectedServing:b.selectedServing && typeof b.selectedServing==='string'?b.selectedServing.slice(0,200):null,calculated:calculated.nutrition,saved:{calories:data.calories,proteinG:data.proteinG,carbsG:data.carbsG,fatG:data.fatG,fiberG:data.fiberG},userEdited:edited,loggedSource:edited?'user-entered correction':'catalog calculation'};
+   data.nutritionSnapshot={...calculated.provenance,catalogRevisionAtSelection,catalogChangedSinceSelection:!!catalogRevisionAtSelection && catalogRevisionAtSelection!==calculated.provenance.revision,grams:data.quantityG,loggedFoodName:data.foodName,selectedServing:b.selectedServing && typeof b.selectedServing==='string'?b.selectedServing.slice(0,200):null,servingId:typeof b.servingId==='string'?b.servingId.slice(0,80):calculated.serving?.id??null,servingGrams:calculated.serving?.grams??null,calculated:calculated.nutrition,saved:{calories:data.calories,proteinG:data.proteinG,carbsG:data.carbsG,fatG:data.fatG,fiberG:data.fiberG},userEdited:edited,loggedSource:edited?'user-entered correction':'catalog calculation'};
   } else data.nutritionSnapshot={loggedSource:'user-entered or external estimate',grams:data.quantityG};
   if(b.nutritionProfileId&&b.ingredientId){
    if(typeof b.nutritionProfileId!=='string'||!/^[0-9a-f-]{36}$/i.test(b.nutritionProfileId))throw httpError(400,'Invalid nutrition profile');
