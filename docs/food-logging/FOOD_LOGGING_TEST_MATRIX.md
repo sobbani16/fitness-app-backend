@@ -33,13 +33,13 @@ Status legend: PASS (verified, evidence cited), PARTIAL, FAIL, N/A. Verified 202
 | BC | barcode | volume declarations never treated as mass | PASS | `servingUnit`/`servingSizeMl`/`servingSizeG` split; Coca-Cola `servingSizeG: null`, `servingSizeMl: 330`; 16 jest cases |
 | FLOW | photo (desc) | description → AI detect → review gate → save | PASS (desc path) / PARTIAL (camera) | device exit 0; `fiberG` null → `nutrientUnknowns`; physical camera untested on sim |
 | FLOW | label (typed) | typed text → extract → review → portion → save | PASS (typed path) / PARTIAL (camera OCR) | device exit 0; 240 g / 230 kcal logged; sugar/sodium nulls preserved; `reviewed: true` |
-| FLOW | menu scan | library photo → items → select → save; honest labels | RUNNING | photo-library fallback; PARTIAL until complete |
-| FLOW | quick add | "+250 ml water" + typed "drank 500 ml" | RUNNING | deterministic parser; water/weight only |
-| FLOW | recent foods | list → heart → repeat → save | RUNNING | |
-| FLOW | favorites | toggle → Favorite foods list → repeat → save | RUNNING | |
-| FLOW | recipes | recipe search → select → review → save | RUNNING | |
+| FLOW | menu scan | library photo → items → select → save; honest labels | BLOCKED | `menu_scanning` flag=false on the only running dev backend (env owned by parallel session); photo-library fallback exists but entry is gated. Camera leg untested regardless |
+| FLOW | quick add | "+250 ml water" + typed "drank 500 ml" | PASS | Maestro exit 0; water counter updated; deterministic parser verified (water/weight only) |
+| FLOW | recent foods | list → heart → repeat → save | PASS | Maestro exit 0; save→alert→Recent list→row visible; Postgres snapshot keeps `selectedServing:"1 slice"`, `servingGrams:32`, `nutrientUnknowns` |
+| FLOW | favorites | toggle → Favorite foods list → repeat → save | PASS | Maestro exit 0; ♡→Favorites list shows meal; repeat → "Copied from a saved meal" → review → save |
+| FLOW | recipes | recipe search → select → review → save | PARTIAL — defect found+fixed, re-verify pending bundle | Device evidence surfaced **FL-REC-01**: repeat `/recipes/:id/nutrition` GETs return 304 (NSURLSession ETag revalidation); axios rejects 304 → row `catch{}` silently dead → re-picking a fetched recipe no-ops. Fixed: `getRecipeNutrition` accepts 304 + silent catch now `setError(true)` (mobile commit in `f34e263`). Search→results→tap verified; preview-on-select needs a bundle containing the fix (installed app is a published EAS-update bundle, no dev client) |
 | E2E-001 | exact record | bread: search→slices→kcal→save→reopen | PASS | Maestro flow exit 0 |
-| E2E-002 | repeat meal | recent repeat → review → save | RUNNING | part of recent-favorites flow |
+| E2E-002 | repeat meal | recent repeat → review → save | PASS | part of recent-favorites flow; Postgres `nutritionSnapshot` verified |
 | ENV | prod | production env + post-deploy verify | NOT DONE | local-only so far |
 | COV | coverage | ≥60% catalog with household serving | PASS | **83.3%** (190/228); 38-item unresolved queue documented |
 
@@ -48,3 +48,5 @@ Status legend: PASS (verified, evidence cited), PARTIAL, FAIL, N/A. Verified 202
 - Camera capture (photo/label/menu camera paths) cannot be exercised on a simulator — typed-text/photo-library fallbacks were used. Marked PARTIAL for the camera leg; the post-capture pipeline is fully verified.
 - Quick-add food parsing is intentionally limited to water + weight ("never guessed") — food phrases route to search/voice paths instead.
 - Test environment: parallel Maestro/XCTest sessions on the same simulator UDID cause driver-port contention and mid-run kills. All device flows must run serialized with no competing automation.
+- The simulator install is a published EAS-update bundle (EXUpdates, no dev client) bound to `localhost:4000`. Local mobile-code edits do not reach it — device re-verification of client-side fixes requires a new published update or a dev-client build install.
+- Backend churn during verification (owner's parallel sessions spawning/killing dev and test backends on :4000/:4100/:4199, NODE_ENV=test instances with separate DBs) repeatedly invalidated the device session and flag state mid-run. Flow statuses reflect the last stable-window result.
