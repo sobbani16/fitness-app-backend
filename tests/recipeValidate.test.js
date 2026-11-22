@@ -4,6 +4,7 @@
 jest.mock('../src/lib/prisma', () => { const db = {
   userAllergy: { findMany: jest.fn(async () => []) },
   userHealthCondition: { findMany: jest.fn(async () => []) },
+  healthConditionNutrientRule: { findMany: jest.fn(async () => []) },
   foodPreference: { findMany: jest.fn(async () => []) },
   userPlanningPreferences: { findUnique: jest.fn(async () => null) },
   foodInventory: { findMany: jest.fn(async () => []) },
@@ -41,11 +42,14 @@ const CATALOG = [
   cat('c_flour', 'flour', { category: 'Grain', ingredientId: 'i_flour' }),
 ];
 
-function constraintsFor({ allergies = [], prefs = [], restrictions = null, conditions = [] } = {}) {
+function constraintsFor({ allergies = [], prefs = [], restrictions = null, conditions = [], nutrientRules = [], planning = null } = {}) {
   prisma.userAllergy.findMany.mockResolvedValue(allergies.map((name) => ({ allergy: { name } })));
   prisma.foodPreference.findMany.mockResolvedValue(prefs);
-  prisma.userPlanningPreferences.findUnique.mockResolvedValue(restrictions ? { dietaryRestrictions: restrictions } : null);
+  prisma.userPlanningPreferences.findUnique.mockResolvedValue(
+    planning || (restrictions ? { dietaryRestrictions: restrictions } : null),
+  );
   prisma.userHealthCondition.findMany.mockResolvedValue(conditions);
+  prisma.healthConditionNutrientRule.findMany.mockResolvedValue(nutrientRules);
   prisma.ingredientCatalog.findMany.mockResolvedValue(CATALOG);
   return loadConstraints('u1', {});
 }
@@ -231,6 +235,51 @@ describe('validateGeneratedRecipe', () => {
     }, c, { prisma });
     expect(out.status).toBe('FAIL');
     expect(out.violations.some((x) => x.stage === 'substitution' && x.severity === 'block')).toBe(true);
+  });
+
+  test('medical nutrient LIMIT: exceeded blocks; uncomputable nutrient on a hard limit → review', async () => {
+    // Rice fixture: 5g protein /100g → 400g serving = 20g; use a 15g LIMIT.
+    const c = await constraintsFor({
+      conditions: [{ active: true, condition: { id: 'c1', name: 'CKD', conditionRules: [] } }],
+      nutrientRules: [
+        { id: 'nr1', code: 'CKD-PRO-01', action: 'LIMIT', severity: 'HIGH', thresholdValue: 15, thresholdUnit: 'g', thresholdBasis: 'PER_SERVING', version: 1,
+          nutrient: { code: 'protein', name: 'Protein', unit: 'g' }, healthCondition: { name: 'CKD' } },
+        { id: 'nr2', code: 'CKD-NA-01', action: 'LIMIT', severity: 'HIGH', thresholdValue: 500, thresholdUnit: 'mg', thresholdBasis: 'PER_SERVING', version: 1,
+          nutrient: { code: 'sodium', name: 'Sodium', unit: 'mg' }, healthCondition: { name: 'CKD' } },
+      ],
+    });
+    const recipe = { name: 'Big Bowl', servings: 1, ingredients: [line('rice', 400)], instructions: ['cook rice'] };
+    const out = await validateGeneratedRecipe(recipe, c, { prisma });
+    expect(out.status).toBe('FAIL');
+    expect(out.violations.some((x) => x.ruleId === 'LIMIT_EXCEEDED' && /protein/i.test(x.reason))).toBe(true);
+    // Sodium isn't computable from macro-only data → review, never zero.
+    expect(out.violations.some((x) => x.ruleId === 'LIMIT_UNVERIFIABLE' && /sodium/i.test(x.reason))).toBe(true);
+  });
+
+  test('DRAFT nutrient rules stay inert — loadConstraints queries APPROVED only', async () => {
+    const c = await constraintsFor({ conditions: [{ active: true, condition: { id: 'c1', name: 'CKD', conditionRules: [] } }] });
+    expect(prisma.healthConditionNutrientRule.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ reviewStatus: 'APPROVED' }),
+    }));
+    expect(c.hard.nutrientLimits).toEqual([]);
+  });
+
+  test('equipment gap clarifies only when user equipment is known', async () => {
+    const withEquip = await constraintsFor();
+    // no equipment in profile → no false clarify
+    const noProfile = await validateGeneratedRecipe({
+      name: 'Roast', servings: 2, ingredients: [line('chicken breast', 300)],
+      instructions: ['roast chicken breast in the oven at 165F internal'], equipment: ['oven'],
+    }, withEquip, { prisma });
+    expect(noProfile.violations.some((x) => x.ruleId === 'EQUIPMENT_MISSING')).toBe(false);
+
+    const c2 = await constraintsFor({ planning: { dietaryRestrictions: [], availableEquipment: ['stove'] } });
+    const out = await validateGeneratedRecipe({
+      name: 'Roast', servings: 2, ingredients: [line('chicken breast', 300)],
+      instructions: ['roast chicken breast in the oven until it reaches 165°F'], equipment: ['oven'],
+    }, c2, { prisma });
+    expect(out.status).toBe('NEEDS_CLARIFICATION');
+    expect(out.violations.some((x) => x.ruleId === 'EQUIPMENT_MISSING' && /oven/i.test(x.reason))).toBe(true);
   });
 
   test('recipe-declared allergen blocks even when lines look clean', async () => {

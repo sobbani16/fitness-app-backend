@@ -84,6 +84,95 @@ router.post('/generate', require('../middleware/requireFeature').requireFeature(
   } catch (e) { next(e); }
 });
 
+// POST /recipes/save-generated — persist a validated AI candidate.
+// The posted candidate is RE-VALIDATED server-side against current
+// constraints — a client can never claim a pre-validated recipe. Persists
+// as RESEARCH_DRAFT (generated content is never VERIFIED automatically)
+// with a disambiguated name (Recipe.recipeName is globally unique, F-9).
+router.post('/save-generated', require('../middleware/requireFeature').requireFeature('ai_recipe_generation_enabled'), async (req, res, next) => {
+  try {
+    const db = require('../lib/prisma').getPrisma();
+    const userId = req.userId || req.headers['x-user-id'];
+    if (!userId) return res.status(401).json({ error: 'Sign in required.' });
+    const cand = req.body?.candidate;
+    if (!cand || typeof cand !== 'object') return res.status(400).json({ error: 'candidate object required.' });
+    const { loadConstraints } = require('../services/recipes/constraints');
+    const { validateGeneratedRecipe, loadCatalog, catAllergens, recordValidation } = require('../services/recipes/validate');
+    const metrics = require('../services/recipes/metrics');
+    const crypto = require('crypto');
+    const { normalize } = require('../services/ingredientCsv');
+
+    const constraints = await loadConstraints(userId, {});
+    const catalog = await loadCatalog(db);
+    const validation = await validateGeneratedRecipe(cand, constraints, { prisma: db, catalog });
+    metrics.inc(`save_generated.${validation.status}`);
+    await recordValidation(db, { userId, input: { name: cand?.name }, validation });
+    if (validation.status === 'FAIL') {
+      return res.status(422).json({ error: 'Candidate fails validation — cannot save.', violations: validation.violations });
+    }
+
+    const lines = (Array.isArray(cand.ingredients) ? cand.ingredients : []).map((l) => {
+      const name = String(l.ingredientName || l.name || '').trim();
+      const cat = catalog.byName.get(normalize(name));
+      return { name, amountG: Number(l.amountG) || 0, optional: !!l.optional, cat };
+    }).filter((l) => l.name && l.amountG > 0);
+
+    const allergens = [...new Set(lines.flatMap((l) => catAllergens(l.cat)))];
+    const instructions = (Array.isArray(cand.instructions) ? cand.instructions : [])
+      .map((s, i) => (typeof s === 'string' ? { step: i + 1, text: s } : { step: s.step ?? i + 1, ...s }));
+
+    const per = validation.nutrition.perServing || {};
+    const sourceKey = `ai:${userId}:${crypto.randomUUID()}`;
+    const uniqueName = `${String(cand.name || cand.recipeName || 'Generated recipe').slice(0, 90)} · ai-${crypto.randomUUID().slice(0, 8)}`;
+    const recipe = await db.recipe.create({
+      data: {
+        creatorId: userId,
+        recipeName: uniqueName,
+        description: String(cand.description || '').slice(0, 500) || null,
+        mealType: cand.mealType || null,
+        cuisine: cand.cuisine || null,
+        prepMinutes: Number.isFinite(Number(cand.estimatedMinutes)) ? Math.min(600, Math.max(1, Math.round(Number(cand.estimatedMinutes)))) : null,
+        servings: Number.isFinite(Number(cand.servings)) ? Math.min(20, Math.max(1, Math.round(Number(cand.servings)))) : 1,
+        reviewStatus: 'RESEARCH_DRAFT',
+        sourceKey,
+        isSystem: false,
+        instructions,
+        allergens,
+        safetyNotes: validation.warnings.length ? validation.warnings.slice(0, 10) : null,
+        calories: per.calories ?? null,
+        proteinG: per.proteinG ?? null,
+        carbsG: per.carbsG ?? null,
+        fatG: per.fatG ?? null,
+        fiberG: per.fiberG ?? null,
+        nutritionSource: {
+          kind: 'AI_GENERATED_VALIDATED',
+          validatorVersion: validation.validatorVersion,
+          constraintVersion: constraints.version,
+          validationStatus: validation.status,
+          computedLines: validation.nutrition.computedLines,
+          unresolvedLines: validation.nutrition.missingLines,
+          provenance: 'ingredient_per100_deterministic',
+        },
+        ingredients: {
+          create: lines.map((l) => ({
+            ingredientId: l.cat?.ingredient?.id || null,
+            ingredientName: l.cat?.name || l.name,
+            amountG: l.amountG,
+            optional: l.optional,
+            nutritionSnapshot: l.cat?.ingredient ? { per100: { calories: l.cat.ingredient.caloriesPer100g, proteinG: l.cat.ingredient.proteinPer100g, carbsG: l.cat.ingredient.carbsPer100g, fatG: l.cat.ingredient.fatPer100g, fiberG: l.cat.ingredient.fiberPer100g }, source: 'catalog' } : null,
+          })),
+        },
+      },
+    });
+    metrics.inc('save_generated.saved');
+    res.status(201).json({
+      recipe: { id: recipe.id, name: recipe.recipeName, servings: recipe.servings, reviewStatus: recipe.reviewStatus, sourceKey },
+      validation: { status: validation.status, violations: validation.violations },
+      provenance: { source: 'ai_generated_saved', reviewRequired: true, nutritionRecomputed: true },
+    });
+  } catch (e) { next(e); }
+});
+
 // allergens, verification, caller's engagement.
 router.get('/:id', async (req, res, next) => {
   try {

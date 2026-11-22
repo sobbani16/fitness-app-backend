@@ -147,9 +147,11 @@ async function loadConstraints(userId, request = {}) {
   const medicalConditions = [];
   const blockedAttributes = new Set();
   const warnRules = [];
+  const conditionIds = [];
   for (const uc of userConditions) {
     const cond = uc.condition;
     if (!cond) continue;
+    conditionIds.push(cond.id);
     const rules = (cond.conditionRules || []).map(r => ({
       id: r.id, code: r.ruleCode || null, attribute: r.attribute, target: r.target,
       action: r.clinicalAction || r.action, severity: r.clinicalSeverity || null,
@@ -159,6 +161,34 @@ async function loadConstraints(userId, request = {}) {
     for (const r of rules) {
       if (r.target === 'ingredient' && r.action === 'block' && r.attribute) blockedAttributes.add(r.attribute);
       else if (r.attribute) warnRules.push({ attribute: r.attribute, action: r.action, reason: r.reason, conditionName: cond.name });
+    }
+  }
+
+  // ---- medical nutrient limits (APPROVED nutrient rules) ------------------
+  // HealthConditionNutrientRule: LIMIT/MONITOR thresholds per nutrient for the
+  // user's active conditions. DRAFT/REVIEWED rules are inert — same posture
+  // as ingredient rules. Missing computed values fail to 'review', not zero.
+  const nutrientLimits = [];
+  if (conditionIds.length) {
+    let nutrientRules = [];
+    try {
+      nutrientRules = await prisma.healthConditionNutrientRule.findMany({
+        where: { healthConditionId: { in: conditionIds }, reviewStatus: 'APPROVED' },
+        include: { nutrient: true, healthCondition: true },
+      });
+    } catch { nutrientRules = []; }
+    for (const r of nutrientRules) {
+      nutrientLimits.push({
+        ruleId: r.id, code: r.code,
+        nutrientKey: normalize(r.nutrient?.code || r.nutrient?.name || ''),
+        nutrientUnit: r.nutrient?.unit || null,
+        action: r.action, severity: r.severity || null,
+        thresholdValue: r.thresholdValue != null ? Number(r.thresholdValue) : null,
+        thresholdUnit: r.thresholdUnit || r.nutrient?.unit || null,
+        thresholdBasis: r.thresholdBasis || 'PER_SERVING',
+        conditionName: r.healthCondition?.name || null,
+        version: r.version || null,
+      });
     }
   }
 
@@ -256,6 +286,7 @@ async function loadConstraints(userId, request = {}) {
     patterns,
     medicalConditions,
     warnRules,
+    nutrientLimits,
   };
 
   return {

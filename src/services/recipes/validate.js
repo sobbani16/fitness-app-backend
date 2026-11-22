@@ -239,6 +239,49 @@ async function validateGeneratedRecipe(recipe, constraints, ctx = {}) {
   }
   stagePass('nutrition');
 
+  // ---- 9b. medical nutrient limits --------------------------------------------
+  // APPROVED HealthConditionNutrientRule thresholds vs computed values.
+  // Missing nutrient data on a hard limit → review (never treated as zero).
+  const nutrientValue = (code, basis) => {
+    if (!per) return undefined;
+    const k = normalize(code).replace(/[\s-]+/g, '_');
+    const serving = { calories: per.calories, energy: per.calories, kcal: per.calories, protein: per.proteinG, carbohydrate: per.carbsG, carbs: per.carbsG, fat: per.fatG, total_fat: per.fatG, fiber: per.fiberG, fibre: per.fiberG, dietary_fiber: per.fiberG }[k];
+    if (serving == null) return undefined;
+    if (basis === 'PER_100G') {
+      const totalG = lines.reduce((s, l) => s + (l.amountG || 0), 0);
+      return totalG > 0 ? (serving * (servings || 1) * 100) / totalG : undefined;
+    }
+    return serving; // PER_SERVING and DAILY compare against one serving
+  };
+  for (const lim of constraints?.nutrientLimits || constraints?.hard?.nutrientLimits || []) {
+    if (!['LIMIT', 'AVOID_IF_INDICATED', 'MONITOR', 'PRIORITIZE'].includes(lim.action)) continue;
+    const isHard = lim.action === 'LIMIT' || lim.action === 'AVOID_IF_INDICATED';
+    const value = nutrientValue(lim.nutrientKey, lim.thresholdBasis);
+    if (value == null || !Number.isFinite(value)) {
+      mark('limits', 'LIMIT_UNVERIFIABLE', isHard ? 'review' : 'warn',
+        `${lim.nutrientKey || 'nutrient'}: cannot verify ${lim.action} threshold — nutrient not computed from ingredient data${lim.conditionName ? ` (${lim.conditionName})` : ''}`);
+      continue;
+    }
+    if (!Number.isFinite(lim.thresholdValue)) {
+      mark('limits', 'LIMIT_NO_THRESHOLD', 'review', `${lim.nutrientKey}: ${lim.action} rule has no threshold value`);
+      continue;
+    }
+    const rounded = Math.round(value * 10) / 10;
+    if (isHard && value > lim.thresholdValue) {
+      mark('limits', 'LIMIT_EXCEEDED', 'block', `${lim.nutrientKey} ${rounded}${lim.nutrientUnit || ''} exceeds ${lim.thresholdValue}${lim.thresholdUnit || ''} ${lim.thresholdBasis?.toLowerCase() || 'per serving'}${lim.conditionName ? ` (${lim.conditionName})` : ''}`);
+    } else if (lim.action === 'MONITOR' && value > lim.thresholdValue) {
+      mark('limits', 'LIMIT_MONITOR', 'warn', `${lim.nutrientKey} ${rounded}${lim.nutrientUnit || ''} is above the monitored level${lim.conditionName ? ` (${lim.conditionName})` : ''}`);
+    } else if (lim.action === 'PRIORITIZE' && value < lim.thresholdValue) {
+      mark('limits', 'TARGET_BELOW', 'warn', `${lim.nutrientKey} ${rounded}${lim.nutrientUnit || ''} below prioritized target${lim.conditionName ? ` (${lim.conditionName})` : ''}`);
+    }
+  }
+  // MacroGoal sanity: one serving consuming most of the daily budget is a
+  // portion-design problem, not a safety violation → warn.
+  if (per?.calories != null && constraints?.limits?.caloriesTarget && per.calories > constraints.limits.caloriesTarget * 0.75) {
+    mark('limits', 'PORTION_DOMINANT', 'warn', `one serving is ~${Math.round((per.calories / constraints.limits.caloriesTarget) * 100)}% of the daily calorie target`);
+  }
+  stagePass('limits');
+
   // ---- 10-12. feasibility / safety / servings --------------------------------
   const joinedText = instructions.join(' ');
   if (!instructions.length) mark('feasibility', 'INSTRUCTIONS_MISSING', 'clarify', 'no cooking instructions provided');
@@ -258,6 +301,17 @@ async function validateGeneratedRecipe(recipe, constraints, ctx = {}) {
         mark('feasibility', 'INSTRUCTION_EXTRA_INGREDIENT', 'clarify', `instructions use "${s}" which is not in the ingredient list`);
       }
     }
+  }
+  // Equipment: declared + instruction-detected vs the user's available set.
+  // Missing → clarify (profile may be stale) — feasibility, not safety.
+  const EQUIPMENT_TERMS = ['oven', 'air fryer', 'airfryer', 'blender', 'pressure cooker', 'instant pot', 'slow cooker', 'microwave', 'grill', 'food processor', 'stand mixer', 'rice cooker', 'toaster', 'stovetop', 'broiler', 'steamer', 'deep fryer'];
+  const declaredEq = (Array.isArray(recipe?.equipment) ? recipe.equipment : []).map(normalize);
+  const detectedEq = EQUIPMENT_TERMS.filter((t) => textHasTerm(joinedText, t));
+  const owned = new Set((constraints?.equipment || []).map(normalize));
+  if (owned.size) {
+    const missingEq = [...new Set([...declaredEq, ...detectedEq])]
+      .filter((e) => ![...owned].some((o) => o === e || o.includes(e) || e.includes(o) || o.replace(/\s+/g, '') === e.replace(/\s+/g, '')));
+    if (missingEq.length) mark('feasibility', 'EQUIPMENT_MISSING', 'clarify', `requires equipment not listed as available: ${missingEq.slice(0, 4).join(', ')}`);
   }
   stagePass('feasibility');
 
@@ -339,4 +393,4 @@ async function recordValidation(prisma, { userId, input, validation }) {
   } catch { /* audit write failure is non-fatal by design */ }
 }
 
-module.exports = { validateGeneratedRecipe, VALIDATOR_VERSION, SAFETY_RULES, loadCatalog, recordValidation };
+module.exports = { validateGeneratedRecipe, VALIDATOR_VERSION, SAFETY_RULES, loadCatalog, recordValidation, catAllergens };
