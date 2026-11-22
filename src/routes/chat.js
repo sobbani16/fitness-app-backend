@@ -58,7 +58,7 @@ router.post('/', requireFeature('ai_coach'), async (req, res) => {
     // requested rest, unverifiable state). The flag does not weaken recorded
     // restrictions — it only decides whether the check runs.
     const sGate = await safetyGate(getPrisma(), userId).catch(() => null);
-    if (sGate?.enabled && sGate.suppressActivityPushes && reply?.answer && ACTIVITY_SUGGESTION_RE.test(reply.answer)) {
+    if (sGate?.enabled && (sGate.suppressActivityPushes || sGate.activityPushOk === false) && reply?.answer && ACTIVITY_SUGGESTION_RE.test(reply.answer)) {
       return res.json({
         topic: reply.topic || 'safety',
         answer: 'A recorded restriction or recent report means activity suggestions are paused for you right now — rest is a valid choice. If symptoms are new or worsening, consider seeking medical care.',

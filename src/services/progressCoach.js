@@ -74,9 +74,9 @@ async function opportunities(userId, { tz, now = new Date() } = {}) {
   // can't confirm any compatible activity (urgent symptom, documented
   // restriction, requested rest, or unverifiable safety state).
   const opps = progress.components.map((c) => opportunity(c, progress, zone)).filter(Boolean)
-    .filter((o) => !(o.component === 'activity' && gate.suppressActivityPushes));
+    .filter((o) => !(o.component === 'activity' && gate.activityPushOk === false));
   const out = { dayKey: progress.dayKey, earned: progress.earned, applicable: progress.applicable, version: CALC_VERSION, top: rank(opps, mins).slice(0, 3), all: rank(opps, mins) };
-  if (gate.enabled && gate.suppressActivityPushes) out.activitySafety = { status: gate.status, activityPushesSuppressed: true };
+  if (gate.enabled && gate.activityPushOk === false) out.activitySafety = { status: gate.status, activityPushesSuppressed: true };
   return out;
 }
 

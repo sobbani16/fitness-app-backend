@@ -141,6 +141,10 @@ async function safetyGate(prisma, userId, { now = new Date(), env = null, rules 
   const db = prisma || getPrisma();
   try {
     const ctx = await loadSafetyContext(db, userId, { now });
+    // A profile-level rest preference feeds the engine's suppression channel.
+    if (ctx.desiredIntensity === 'rest') {
+      ctx.preferences = { ...(ctx.preferences || {}), restRequested: true };
+    }
     const ruleRows = rules ?? await Promise.resolve()
       .then(() => db.activitySafetyRule.findMany({ where: { reviewStatus: 'APPROVED' } }))
       .catch(() => []);
@@ -153,11 +157,16 @@ async function safetyGate(prisma, userId, { now = new Date(), env = null, rules 
       : eligible.length ? 'suggestion'
       : results.some(r => r.decision === 'BLOCK_ACTIVITY' || r.decision === 'NEEDS_CLINICAL_REVIEW') ? 'no_safe_candidate'
       : 'no_suggestion';
+    // "Push your planned workout" requires the generic workout proxy to be
+    // fully ALLOW — a MODIFY verdict means the plan needs adjustment first.
+    const genericWorkout = results.find(r => r.candidateActivityId === 'strength_training');
     const derived = deriveLimitations(ctx);
     return {
       enabled: true,
       status: disposition,
       suppressActivityPushes: !PUSH_STATUSES.has(disposition),
+      genericWorkoutAllowed: genericWorkout?.decision === 'ALLOW',
+      activityPushOk: disposition === 'suggestion' && genericWorkout?.decision === 'ALLOW',
       urgentSymptoms: urgent ? (ctx.symptomReports || []).flatMap(s => (s.symptoms || []).filter(c => SYMPTOMS_URGENT.has(c))) : [],
       ...derived,
       context: ctx,
