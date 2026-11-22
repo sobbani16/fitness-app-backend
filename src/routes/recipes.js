@@ -58,6 +58,32 @@ router.get('/:id/nutrition', async (req, res) => {
 });
 
 // GET /recipes/:id — full detail for the cooking flow: lines, instructions,
+// POST /recipes/generate — AI recipe candidates, deterministically validated.
+// Body: {items[], diet[], allergies[], exclusions[], cuisine, mealType,
+//        maxPrepMinutes, servings, equipment[], limit}
+// AI never supplies nutrition or safety verdicts; every candidate runs the
+// full validator before it can be returned. Flag-gated + quota via askJSON.
+router.post('/generate', require('../middleware/requireFeature').requireFeature('ai_recipe_generation_enabled'), async (req, res, next) => {
+  try {
+    const userId = req.userId || req.headers['x-user-id'];
+    if (!userId) return res.status(401).json({ error: 'Sign in required.' });
+    const b = req.body || {};
+    const { generateRecipes } = require('../services/recipes/generate');
+    const out = await generateRecipes({
+      userId,
+      items: Array.isArray(b.items) ? b.items.slice(0, 20) : [],
+      diet: Array.isArray(b.diet) ? b.diet.slice(0, 10) : [],
+      allergies: Array.isArray(b.allergies) ? b.allergies.slice(0, 20) : [],
+      exclusions: Array.isArray(b.exclusions) ? b.exclusions.slice(0, 20) : [],
+      cuisine: b.cuisine, mealType: b.mealType,
+      maxPrepMinutes: b.maxPrepMinutes, servings: b.servings,
+      equipment: Array.isArray(b.equipment) ? b.equipment.slice(0, 10) : null,
+      limit: Math.min(3, Math.max(1, Number(b.limit) || 3)),
+    });
+    res.json(out);
+  } catch (e) { next(e); }
+});
+
 // allergens, verification, caller's engagement.
 router.get('/:id', async (req, res, next) => {
   try {
@@ -110,6 +136,7 @@ router.post('/:id/customize', require('../middleware/requireFeature').requireFea
     const { computeFromLines } = require('../services/recipeImport');
     const { askJSON } = require('../services/aiProvider');
     const { loadConstraints, hasTerm, violatesHard } = require('../services/recipes/constraints');
+    const { validateGeneratedRecipe } = require('../services/recipes/validate');
 
     const recipe = await db.recipe.findFirst({
       where: { id: req.params.id, reviewStatus: { not: 'REJECTED' }, OR: [{ isSystem: true }, { creatorId: String(userId) }] },
@@ -231,6 +258,23 @@ router.post('/:id/customize', require('../middleware/requireFeature').requireFea
       portionG: servings === recipe.servings ? recipe.portionG : null,
     });
 
+    // Every transformation re-validates the whole recipe against the user's
+    // authoritative constraints — the validator independently recomputes the
+    // proposal (schema → identity → hard filters → nutrition → safety).
+    const validation = await validateGeneratedRecipe({
+      name: recipe.recipeName,
+      servings,
+      allergens: recipe.allergens,
+      finishedYieldG: recipe.finishedYieldG,
+      portionG: recipe.portionG,
+      ingredients: finalLines.map((l) => ({ ingredientName: l.ingredientName, ingredientId: l.ingredientId, amountG: l.amountG, optional: l.optional })),
+      instructions: recipe.instructions || [],
+    }, constraints, { prisma: db });
+    for (const v of validation.violations) {
+      if (v.severity === 'warn') warnings.push(v.reason);
+      else warnings.push(`${v.ruleId}: ${v.reason}`);
+    }
+
     // Safety: if a swap introduced a user allergen via recipe-level allergen
     // list, warn explicitly (declared allergens, not a guarantee).
     const declared = (recipe.allergens || []).map(normalize);
@@ -248,7 +292,8 @@ router.post('/:id/customize', require('../middleware/requireFeature').requireFea
       proposedLines: finalLines.map((l) => ({ ingredientId: l.ingredientId, ingredientName: l.ingredientName, amountG: Math.round(l.amountG * 10) / 10, optional: l.optional })),
       perServing,
       warnings,
-      provenance: { source: 'ai_customization', reviewRequired: true, nutritionRecomputed: true },
+      validation: { status: validation.status, violations: validation.violations, validatorVersion: validation.validatorVersion },
+      provenance: { source: 'ai_customization', reviewRequired: true, nutritionRecomputed: true, revalidated: true },
     });
   } catch (e) { next(e); }
 });

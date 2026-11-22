@@ -1,8 +1,8 @@
 # Recipe Intelligence — IMPLEMENTATION_PROGRESS
 
 **Program:** AI recipe generation + validation (master prompt, 20 phases)
-**Last update:** 2026-11-21 (session 2)
-**Current phase:** Phase 1 in progress — normalized constraint engine built + wired into match/customize; taxonomy consolidation + validation pipeline next
+**Last update:** 2026-11-21 (session 2, continued)
+**Current phase:** Phase 1 ✅ engine · Phase 5 ✅ validator core · Phase 4+8 ✅ generation+fallback — next: ranking (9), caching/versioning (12), observability (17), scenario registry (14), mobile UX (11)
 
 ## Resume protocol
 
@@ -19,8 +19,8 @@
 | Phase 0 audit (repo + DB) | ✅ `docs/recipe-intelligence/00-current-state-audit.md` — incl. gap matrix + live DB counts |
 | Deliverable docs (13 required) | 2/13 written (audit + this file); `constraint-taxonomy.md` next |
 | Schema changes | none yet |
-| Code changes | `src/services/recipes/constraints.js` (new), `src/services/recipeMatch.js`, `src/routes/recipes.js` |
-| Tests added | `tests/recipeConstraints.test.js` — 23/23 pass; adjacent suites green (smartKitchen, recipes.route, foodIntel — 57 total) |
+| Code changes | `recipes/constraints.js`, `recipes/validate.js`, `recipes/generate.js` (new); `recipeMatch.js`, `routes/recipes.js`, `foodIntel.js` (shared LABEL_ANIMAL_TERMS), `config/featureRegistry.js` (`ai_recipe_generation_enabled`, fail-closed) |
+| Tests added | recipeConstraints 23 + recipeValidate 14 + recipeGenerate 8 = 45 new; all green; adjacent suites unaffected (79 total incl. existing) |
 | DB audit (Phase 15) | baseline counts captured in audit §7; full report pending |
 | Safety/clinical review | nothing new enabled; all clinical rules remain DRAFT/inert |
 
@@ -38,9 +38,10 @@
 
 1. ~~`src/services/recipes/constraints.js`~~ **DONE** — `loadConstraints`/`violatesHard`/`textHasTerm`; classes: allergy/medical(APPROVED-gated)/exclusion/pattern/dislike/limits/soft/equipment/availability/unknown.
 2. ~~Retrofit `recipeMatch.matchIngredients` + `/customize`~~ **DONE** — both call `loadConstraints`; `excluded` response now reports `{allergy,diet,prepTime,exclusion,condition}`.
-3. `constraint-taxonomy.md` deliverable + retire `foodIntel`/`mealSuggestion` duplicate keyword tables behind the shared module (parity-or-stricter tests; keep `checkSuitability` API stable).
-4. `validateGeneratedRecipe` staged pipeline + typed outcomes (schema → identity → quantity → decompose → allergy → exclusions → pattern → medical → nutrition → feasibility → safety → serving → substitution → eligibility).
-5. `generate.js` via `askJSON` + feature flag + route.
+3. ~~`constraint-taxonomy.md`~~ **DONE** + `foodIntel` now imports shared `LABEL_ANIMAL_TERMS` (full keyword-table retirement deferred — `checkSuitability` API consumers need parity tests first).
+4. ~~`validateGeneratedRecipe` staged pipeline~~ **DONE** — `recipes/validate.js` v1: schema → identity → quantity → decompose → allergen/exclusion/pattern/medical → nutrition → feasibility → safety → servings → substitution; typed PASS/FAIL/NEEDS_CLARIFICATION/NEEDS_REVIEW; `/customize` now revalidates post-transformation (F-5 partially closed — persisted validation + instruction↔line consistency still open).
+5. ~~`generate.js` via `askJSON` + flag + route~~ **DONE** — `POST /recipes/generate` behind `ai_recipe_generation_enabled`; one bounded correction attempt (failed ruleIds fed back); VERIFIED-recipe fallback via matchIngredients; `no_eligible_recipe` outcome.
+6. NEXT: scenario registry (`scenario-registry.json`) mapping rules → executable tests; observability (generation/validation counters); `recipeName @unique` disambiguation for saved generated recipes; mobile generate surface.
 
 ## Blockers / open decisions (need owner)
 
@@ -52,3 +53,4 @@
 
 - 2026-11-21 s1: repo+DB discovery complete; audit + progress docs written; no code/DB changes.
 - 2026-11-21 s2: `constraints.js` constraint engine (word-boundary + plural-tolerant matching — `egg`≠`eggplant`, `nut`≠`walnut`); `matchIngredients` + `/customize` consume server-side constraints (F-1 closed); added `/customize` hard-check on proposed adds/swaps incl. condition-rule attributes; `excluded` counters extended (`exclusion`,`condition`); 23 new tests green; neighboring suites green (57 tests).
+- 2026-11-21 s2b: `recipes/validate.js` staged validator (fail-closed identity for allergic users; compound/decompose review; deterministic nutrition; poultry/raw-egg/raw-flour/rice safety rules); `/customize` revalidates transformed recipes; `recipes/generate.js` + `POST /recipes/generate` behind new `ai_recipe_generation_enabled` flag; `foodIntel` uses shared `LABEL_ANIMAL_TERMS`; +22 tests (45 total recipe-intelligence).

@@ -3,6 +3,7 @@
 // no supplement-to-culinary overclaiming, hard exclusions always win.
 const { getPrisma } = require('../lib/prisma');
 const flags = require('./featureFlags/service');
+const { LABEL_ANIMAL_TERMS } = require('./recipes/constraints');
 // Lazy accessor — resolves getPrisma() per call so tests can swap the client.
 const prisma = new Proxy({}, { get: (_t, prop) => getPrisma()[prop] });
 
@@ -246,8 +247,8 @@ async function checkSuitability(userId, { ingredientKeys = [], allergens = [], i
   // Dietary restrictions — hard exclusions via the canonical restriction map
   const planning = await prisma.userPlanningPreferences.findUnique({ where: { userId } }).catch(() => null);
   // Animal-derived additives that appear on labels but not in meal names —
-  // supplement the canonical restriction map for label scanning only.
-  const LABEL_ANIMAL_TERMS = ['gelatin', 'gelatine', 'lard', 'tallow', 'carmine', 'cochineal', 'isinglass', 'rennet'];
+  // LABEL_ANIMAL_TERMS is shared with the recipe-constraint module.
+
   for (const r of planning?.dietaryRestrictions || []) {
     const key = String(r).toLowerCase().replace(/[\s-]+/g, '_');
     let words = RESTRICTION_KEYWORDS[key] || [key.replace(/_/g, ' ')];

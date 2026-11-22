@@ -618,6 +618,11 @@ const FEATURES = {
     endpoints: ['POST /recipes/:id/customize'],
     description: 'Opt-in AI recipe customization. Paid calls, quota + kill-switch via askJSON. Backend re-computes all nutrition; AI never supplies macros.',
   },
+  ai_recipe_generation_enabled: {
+    clientKey: 'aiRecipeGeneration', class: 'ai', group: 'ai', default: false, failOpen: false,
+    endpoints: ['POST /recipes/generate'],
+    description: 'AI recipe candidate generation. Candidates are validated by the deterministic pipeline before display; AI never supplies nutrition or safety verdicts. Paid calls, quota + kill-switch via askJSON.',
+  },
   oidc_login_enabled: {
     clientKey: 'oidcLogin', class: 'core', group: 'auth', default: false, failOpen: false,
   },
