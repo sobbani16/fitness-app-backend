@@ -312,6 +312,16 @@ router.post('/:id/customize', require('../middleware/requireFeature').requireFea
         applied.push(`Removed ${target.ingredientName}`);
       } else if (act === 'substitute' || act === 'add') {
         const newName = String(act === 'add' ? ch.ingredientName : ch.newIngredientName || '').trim();
+        // Hard-constraint term match on the raw name runs BEFORE catalog
+        // resolution: an unresolvable "peanut oil" must read as an allergy
+        // conflict, not a catalog miss.
+        const nameViol = violatesHard(constraints.hard, { text: newName, allergens: [], category: null, tags: [], attributes: [] });
+        if (nameViol) {
+          const reason = nameViol.ruleId.startsWith('ALLERGEN')
+            ? `"${newName}" conflicts with your allergies`
+            : `"${newName}" conflicts with your saved restrictions`;
+          rejected.push({ change: ch, reason }); continue;
+        }
         const cat = byName.get(normalize(newName));
         if (!cat?.ingredient) { rejected.push({ change: ch, reason: `"${newName}" not in food catalog` }); continue; }
         // Added ingredients run through the same hard-constraint check as
