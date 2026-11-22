@@ -96,7 +96,8 @@ const cleanLabel = (p) => {
     if (detail?.foodPortions.length) {
       const usable = detail.foodPortions.filter((p) => {
         const lbl = cleanLabel(p);
-        return !/^[0-9\s]+$/.test(lbl) && !/^1\s+(portion|undetermined)$/.test(lbl); // drop "1 90000" junk rows
+        return !/^[0-9\s]+$/.test(lbl) && !/^1\s+(portion|undetermined)$/.test(lbl) // drop "1 90000" junk rows
+          && !/^\d+(\.\d+)?\s*(oz|ounces?|lbs?|g|grams?|kg|ml|fl\s?oz)$/i.test(lbl); // drop pure weight-unit pseudo-servings
       });
       servings.push(...usable.slice(0, 12).map((p, i) => ({
         id: `srv_${catalogId}_${p.sequenceNumber ?? i}`,

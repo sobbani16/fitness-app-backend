@@ -15,11 +15,19 @@ function normalize(s) {
   return (s || '').trim().toLowerCase();
 }
 
+// Labels that are only a weight/volume amount ("1 oz", "4 oz") duplicate the
+// built-in Grams/Ounces options — they must never outrank a true household
+// serving like "1 slice" as the client's default unit.
+const WEIGHT_UNIT_LABEL = /^\d+(\.\d+)?\s*(oz|ounces?|lbs?|g|grams?|kg|ml|fl\s?oz)$/i;
+function sortServings(servings) {
+  return [...servings].sort((a, b) => Number(WEIGHT_UNIT_LABEL.test((b.label || '').trim())) - Number(WEIGHT_UNIT_LABEL.test((a.label || '').trim())));
+}
+
 // USDA rows carry a labeled household measure ("1 slice") plus its weight in
 // sourceMetadata. When no catalog servings exist, surface it as a serving so
 // clients can offer natural units instead of bare grams.
 function derivedServings(ingredient) {
-  if (ingredient.servings?.length) return ingredient.servings;
+  if (ingredient.servings?.length) return sortServings(ingredient.servings);
   const meta = ingredient.sourceMetadata;
   const unit = (meta?.servingSizeUnit || '').toLowerCase();
   if (meta?.householdServingFullText && Number.isFinite(meta?.servingSize) && meta.servingSize > 0 && ['g', 'gm', 'ml'].includes(unit)) {
