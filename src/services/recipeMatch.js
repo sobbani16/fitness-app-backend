@@ -21,6 +21,7 @@
 const { getPrisma } = require('../lib/prisma');
 const { normalize } = require('./ingredientCsv');
 const { httpError } = require('../lib/errors');
+const { loadConstraints, violatesHard, hasTerm } = require('./recipes/constraints');
 
 // Seasonings/staples assumed in a home kitchen. Users can narrow this to just
 // water/salt/ice (pantry.minimal) or extend it (pantry.extra) per request —
@@ -132,10 +133,15 @@ async function matchIngredients({
   const wantedExpanded = new Set();
   for (const w of wantedNames) for (const v of inputVariants(w)) wantedExpanded.add(v);
 
-  const allergySet = new Set((Array.isArray(allergies) ? allergies : []).map(normalize).filter(Boolean));
+  // Server-side constraints are authoritative (F-1): profile allergies,
+  // NEVER_RECOMMEND foods, saved restrictions, and APPROVED condition-rule
+  // blocks merge with request params — which can only narrow, never widen.
+  const constraints = await loadConstraints(userId, { allergies, diet });
+  const hard = constraints.hard;
   const dietSet = new Set((Array.isArray(diet) ? diet : []).map(normalize).filter(Boolean));
-  const bannedCats = new Set();
-  for (const d of dietSet) for (const c of DIET_RULES[d] || []) bannedCats.add(c);
+  const eggetarian = dietSet.has('eggetarian') || hard.patterns.some((p) => p.key === 'eggetarian');
+  const bannedCats = new Set([...hard.bannedCategories]);
+  for (const d of dietSet) for (const c of DIET_RULES[d] || []) bannedCats.add(normalize(c));
 
   const pantrySet = new Set([...(pantry.minimal ? PANTRY_CORE : PANTRY_DEFAULT), ...(Array.isArray(pantry.extra) ? pantry.extra.map(normalize) : [])]);
   const isPantryLine = (n) => pantrySet.has(normalize(n));
@@ -149,10 +155,27 @@ async function matchIngredients({
     include: { ingredients: true },
   });
 
+  // IngredientAttribute lookup for condition-rule blocks — one query across
+  // every candidate recipe's linked ingredients, only when rules can fire.
+  const attrsByIng = new Map();
+  if (hard.bannedAttributes.size) {
+    const linkedIds = [...new Set(recipes.flatMap((r) => r.ingredients.map((l) => l.ingredientId).filter(Boolean)))];
+    if (linkedIds.length) {
+      const rows = await prisma.ingredientAttribute.findMany({ where: { ingredientId: { in: linkedIds } } });
+      for (const row of rows) {
+        if (!attrsByIng.has(row.ingredientId)) attrsByIng.set(row.ingredientId, []);
+        attrsByIng.get(row.ingredientId).push(row.attribute);
+      }
+    }
+  }
+  const attrsOf = (r) => [...new Set(r.ingredients.flatMap((l) => (l.ingredientId ? attrsByIng.get(l.ingredientId) || [] : [])))];
+
   const results = [];
   let excludedAllergy = 0;
   let excludedDiet = 0;
   let excludedTime = 0;
+  let excludedExclusion = 0;
+  let excludedCondition = 0;
 
   for (const r of recipes) {
     if (maxPrepMinutes && r.prepMinutes && r.prepMinutes > maxPrepMinutes) { excludedTime++; continue; }
@@ -162,12 +185,20 @@ async function matchIngredients({
     const optional = lines.filter((l) => l.optional);
     if (!required.length) continue;
 
-    // Allergy exclusion: recipe-declared allergens OR line-level catalog
-    // allergens intersecting the user's list → excluded outright.
-    if (allergySet.size) {
-      const recipeAlg = (r.allergens || []).map(normalize);
-      const lineAlg = lines.flatMap((l) => lineAllergens(l, catByIngId));
-      if ([...recipeAlg, ...lineAlg].some((a) => allergySet.has(a))) { excludedAllergy++; continue; }
+    // Hard-constraint check (server-merged): declared + text allergens,
+    // exclusion terms (NEVER_RECOMMEND / exclude: / request), banned
+    // nutritionSource tags, APPROVED condition-rule attributes.
+    const viol = violatesHard(hard, {
+      text: [r.recipeName, ...lines.map((l) => l.ingredientName)].join(' '),
+      allergens: [...(r.allergens || []).map(normalize), ...lines.flatMap((l) => lineAllergens(l, catByIngId))],
+      tags: Array.isArray(r.nutritionSource?.tags) ? r.nutritionSource.tags : [],
+      attributes: attrsOf(r),
+    });
+    if (viol) {
+      if (viol.ruleId.startsWith('ALLERGEN')) excludedAllergy++;
+      else if (viol.ruleId === 'CONDITION_ATTR') excludedCondition++;
+      else excludedExclusion++;
+      continue;
     }
 
     // Diet exclusion via catalog categories. Egg-like lines are exempt under
@@ -175,8 +206,8 @@ async function matchIngredients({
     if (bannedCats.size) {
       const hit = required.find((l) => {
         const cat = l.ingredientId ? catByIngId.get(l.ingredientId) : null;
-        if (!cat?.category || !bannedCats.has(cat.category)) return false;
-        if (dietSet.has('eggetarian') && eggLike(l.ingredientName)) return false;
+        if (!cat?.category || !hasTerm(bannedCats, cat.category)) return false;
+        if (eggetarian && eggLike(l.ingredientName)) return false;
         return true;
       });
       if (hit) { excludedDiet++; continue; }
@@ -256,7 +287,7 @@ async function matchIngredients({
     totalMatched: results.length,
     unresolvedInputs: unresolved,
     quantityAssumed,
-    excluded: { allergy: excludedAllergy, diet: excludedDiet, prepTime: excludedTime },
+    excluded: { allergy: excludedAllergy, diet: excludedDiet, prepTime: excludedTime, exclusion: excludedExclusion, condition: excludedCondition },
   };
 }
 

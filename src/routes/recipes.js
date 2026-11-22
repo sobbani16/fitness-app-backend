@@ -109,6 +109,7 @@ router.post('/:id/customize', require('../middleware/requireFeature').requireFea
     const { normalize } = require('../services/ingredientCsv');
     const { computeFromLines } = require('../services/recipeImport');
     const { askJSON } = require('../services/aiProvider');
+    const { loadConstraints, hasTerm, violatesHard } = require('../services/recipes/constraints');
 
     const recipe = await db.recipe.findFirst({
       where: { id: req.params.id, reviewStatus: { not: 'REJECTED' }, OR: [{ isSystem: true }, { creatorId: String(userId) }] },
@@ -120,7 +121,10 @@ router.post('/:id/customize', require('../middleware/requireFeature').requireFea
     const request = String(b.request || '').trim();
     if (!request || request.length > 500) return res.status(400).json({ error: 'request must be 1–500 characters.' });
     const targetServings = Number.isFinite(Number(b.servings)) ? Math.min(20, Math.max(1, Math.round(Number(b.servings)))) : null;
-    const userAllergies = Array.isArray(b.allergies) ? b.allergies.map(normalize).filter(Boolean) : [];
+    // Server-side constraints are authoritative (F-1): profile allergies and
+    // saved restrictions always apply; request allergies can only narrow.
+    const constraints = await loadConstraints(userId, { allergies: b.allergies });
+    const userAllergenTerms = constraints.hard.allergenTerms;
 
     const lineSummary = recipe.ingredients.map((l) => ({ name: l.ingredientName, amountG: l.amountG, optional: l.optional }));
     const out = await askJSON('recipe_customization', {
@@ -142,13 +146,13 @@ router.post('/:id/customize', require('../middleware/requireFeature').requireFea
     },
       'You are adjusting a recipe for a user. You may ONLY change ingredient amounts, remove optional/existing lines, add common ingredients, or substitute one ingredient for another. ' +
       'You never invent nutrient values. Amounts are grams. Respect the user request literally; if you cannot safely satisfy it, return empty changes and explain in notes.',
-      `Recipe: ${recipe.recipeName} (servings ${recipe.servings})\nIngredients: ${JSON.stringify(lineSummary)}\nUser request: ${request}${targetServings ? `\nTarget servings: ${targetServings}` : ''}${userAllergies.length ? `\nUser allergies (never introduce these): ${userAllergies.join(', ')}` : ''}`,
+      `Recipe: ${recipe.recipeName} (servings ${recipe.servings})\nIngredients: ${JSON.stringify(lineSummary)}\nUser request: ${request}${targetServings ? `\nTarget servings: ${targetServings}` : ''}${userAllergenTerms.size ? `\nUser allergies (never introduce these, including derivatives): ${[...userAllergenTerms].slice(0, 40).join(', ')}` : ''}`,
       null, userId, { maxOutputTokens: 1200 });
 
     // ---- Backend validation ----
     const catalog = await db.ingredientCatalog.findMany({
       where: { usable: true },
-      include: { ingredient: { select: { id: true, caloriesPer100g: true, proteinPer100g: true, carbsPer100g: true, fatPer100g: true, fiberPer100g: true } } },
+      include: { ingredient: { select: { id: true, caloriesPer100g: true, proteinPer100g: true, carbsPer100g: true, fatPer100g: true, fiberPer100g: true, attributes: { select: { attribute: true } } } } },
     });
     const byName = new Map();
     for (const c of catalog) for (const n of [c.normalizedName, ...c.aliases]) if (c.ingredient && !byName.has(n)) byName.set(n, c);
@@ -193,8 +197,21 @@ router.post('/:id/customize', require('../middleware/requireFeature').requireFea
         const newName = String(act === 'add' ? ch.ingredientName : ch.newIngredientName || '').trim();
         const cat = byName.get(normalize(newName));
         if (!cat?.ingredient) { rejected.push({ change: ch, reason: `"${newName}" not in food catalog` }); continue; }
-        if (userAllergies.length && catAllergens(cat).some((a) => userAllergies.includes(a))) {
-          rejected.push({ change: ch, reason: `"${newName}" conflicts with your allergies` }); continue;
+        // Added ingredients run through the same hard-constraint check as
+        // matching: allergens (declared + name text), saved exclusions, and
+        // APPROVED condition-rule attributes.
+        const addViol = violatesHard(constraints.hard, {
+          text: cat.name,
+          allergens: catAllergens(cat),
+          category: cat.category,
+          tags: Array.isArray(cat.sourceRecord?.tags) ? cat.sourceRecord.tags : [],
+          attributes: (cat.ingredient.attributes || []).map((a) => a.attribute),
+        });
+        if (addViol) {
+          const reason = addViol.ruleId.startsWith('ALLERGEN')
+            ? `"${newName}" conflicts with your allergies`
+            : `"${newName}" conflicts with your saved restrictions`;
+          rejected.push({ change: ch, reason }); continue;
         }
         const newline = { ingredientId: cat.ingredient.id, ingredientName: cat.name, amountG: g, optional: act === 'add', _per100: per100For(cat.ingredient.id) };
         if (act === 'substitute') Object.assign(target, newline, { optional: target.optional });
@@ -217,7 +234,7 @@ router.post('/:id/customize', require('../middleware/requireFeature').requireFea
     // Safety: if a swap introduced a user allergen via recipe-level allergen
     // list, warn explicitly (declared allergens, not a guarantee).
     const declared = (recipe.allergens || []).map(normalize);
-    const allergenNote = userAllergies.length && declared.some((a) => userAllergies.includes(a))
+    const allergenNote = declared.some((a) => hasTerm(userAllergenTerms, a))
       ? 'This recipe declares an allergen on your list — review before cooking.'
       : null;
     if (allergenNote) warnings.push(allergenNote);
