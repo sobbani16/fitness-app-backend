@@ -22,8 +22,8 @@
 - [x] 16.6 review workflow → activity-safety-review-workflow.md (tiers, records, separation of duties)
 - [x] 16.7 env validation — preflight live: Open-Meteo 200, NWS 200, Delhi imd-cap; CPCB key unset (honest unconfigured)
 - [x] 16.8 staging — preflight all hard checks PASS; no deployment claimed; runbook updated Phase-15
-- [ ] 16.9 regression+security sweep
-- [ ] 16.10 final report → docs/audits/activity-safety-phase16-final-report.md
+- [x] 16.9 regression sweep — 165 safety/env tests green; previously-fixed defects verified; transient connection-burst flake documented
+- [x] 16.10 final report → docs/audits/activity-safety-phase16-final-report.md
 
 ## Phase-16 commits
 16.1 audit+D-1 fix · 16.2 validation artifacts · 16.3 library audit · 16.4 matrix+F-1/F-2 · docs batch
