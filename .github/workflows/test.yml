@@ -48,6 +48,8 @@ jobs:
         run: npx prisma generate && npx prisma migrate deploy
       - name: Seed RBAC roles (tests expect ADMIN etc.)
         run: npm run db:seed-rbac
+      - name: Seed ingredient catalog (tests expect real macros)
+        run: node prisma/seed-foods.js
       - name: Jest (in-band, JSON artifact)
         run: npx jest --runInBand --json --outputFile=jest-results.json
       - name: Jest (golden-path E2E vs disposable DB)
