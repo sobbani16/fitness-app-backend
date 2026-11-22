@@ -46,6 +46,8 @@ jobs:
         run: npx prisma validate
       - name: Prisma generate + migrate deploy (test DB)
         run: npx prisma generate && npx prisma migrate deploy
+      - name: Seed RBAC roles (tests expect ADMIN etc.)
+        run: npm run db:seed-rbac
       - name: Jest (in-band, JSON artifact)
         run: npx jest --runInBand --json --outputFile=jest-results.json
       - name: Jest (golden-path E2E vs disposable DB)
