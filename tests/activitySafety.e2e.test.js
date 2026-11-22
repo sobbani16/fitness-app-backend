@@ -16,12 +16,18 @@ const mockPrisma = {
   user: { findUnique: jest.fn(async ({ where }) => ({ id: where.id, dateOfBirth: new Date('1990-01-01'), activityLevel: 'moderate', goalType: 'fitness' })) },
   userActivityProfile: { findUnique: jest.fn(async () => null) },
   userInjury: {
-    findMany: jest.fn(async ({ where }) => store.injuries.filter(i => i.userId === where.userId && where.status.in.includes(i.status))),
+    findFirst: jest.fn(async ({ where }) => store.injuries.find(i => i.id === where.id && i.userId === where.userId) || null),
+    findMany: jest.fn(async ({ where }) => store.injuries.filter(i => i.userId === where.userId && (!where.status?.in || where.status.in.includes(i.status)))),
     create: jest.fn(async ({ data }) => { const r = { id: nid(), updatedAt: new Date(), ...data }; store.injuries.push(r); return r; }),
     updateMany: jest.fn(async ({ where, data }) => {
       let n = 0;
       for (const i of store.injuries) if (i.id === where.id && i.userId === where.userId) { Object.assign(i, data, { updatedAt: new Date() }); n++; }
       return { count: n };
+    }),
+    deleteMany: jest.fn(async ({ where }) => {
+      const before = store.injuries.length;
+      store.injuries = store.injuries.filter(i => !(i.id === where.id && i.userId === where.userId));
+      return { count: before - store.injuries.length };
     }),
   },
   userSurgery: { findMany: jest.fn(async ({ where }) => store.surgeries.filter(s => s.userId === where.userId)) },
@@ -34,6 +40,18 @@ const mockPrisma = {
   activitySafetyRule: { findMany: jest.fn(async () => []) }, // zero APPROVED rules
   activitySafetyEvaluation: { create: jest.fn(async ({ data }) => { const r = { id: nid(), ...data }; store.evaluations.push(r); return r; }) },
   activitySafetyFeedback: { create: jest.fn(async ({ data }) => { const r = { id: nid(), ...data }; store.feedback.push(r); return r; }) },
+  // Invalidation path (recommendationSafety.invalidateSafetyAdvice) touches these —
+  // sync property access on an undefined model throws before .catch() applies.
+  recommendation: {
+    findMany: jest.fn(async () => []),
+    updateMany: jest.fn(async () => ({ count: 0 })),
+  },
+  notification: {
+    deleteMany: jest.fn(async () => ({ count: 0 })),
+  },
+  exercise: {
+    findUnique: jest.fn(async () => null),
+  },
 };
 jest.mock('../src/lib/prisma', () => ({ getPrisma: () => mockPrisma }));
 // Deterministic env: mild conditions, no alerts (recommendation pipeline runs).
