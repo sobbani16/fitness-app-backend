@@ -229,4 +229,10 @@ function evidence() {
   ];
 }
 
-module.exports = { sequenceMeal, isMixedDish, roleFor, SEQUENCE_VERSION, MIN_COMPONENT_FIBER_G, MIN_FIBER_PER_100G };
+// Returns the first mixed-dish term found in free text (for assistant answers).
+function mixedDishIn(text) {
+  const m = MIXED_DISH_RE.exec(String(text || ''));
+  return m ? m[0] : null;
+}
+
+module.exports = { sequenceMeal, isMixedDish, mixedDishIn, roleFor, SEQUENCE_VERSION, MIN_COMPONENT_FIBER_G, MIN_FIBER_PER_100G };

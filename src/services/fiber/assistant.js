@@ -13,13 +13,22 @@
 
 const { getPrisma } = require('../../lib/prisma');
 const { dailyFiber } = require('./dailyEngine');
-const { sequenceMeal } = require('./sequencing');
+const { sequenceMeal, mixedDishIn } = require('./sequencing');
+const { weeklyReview } = require('./weeklyReview');
 const { FIBER_SUPPLEMENT_RE, EDUCATION } = require('./supplementCheck');
 
 const FIBER_WORD_RE = /fiber|fibre|isabgol|psyllium|roughage/i;
 
 function isFiberQuestion(message) {
-  return FIBER_WORD_RE.test(message) || /eat\s+first|meal\s+order|food\s+order/i.test(message);
+  return FIBER_WORD_RE.test(message) || /eat\s+first|meal\s+order|food\s+order|eating\s+order|separated.*order|sequenc/i.test(message);
+}
+
+// Follow-ups without a fiber keyword — only fiber-routed when the caller says
+// the conversation is already inside a fiber thread (see chat.js thread map).
+const FIBER_FOLLOWUP_RE = /what.*(add|eat|have|make|cook|suggest|swap|change)|what about|how about|and (for |my )?(dinner|lunch|breakfast|supper)|anything else|what else|more of|better option/i;
+
+function isFiberQuestionWithContext(message, inFiberThread) {
+  return isFiberQuestion(message) || !!(inFiberThread && FIBER_FOLLOWUP_RE.test(message));
 }
 
 const fmt = (v) => (v == null ? null : Math.round(Number(v) * 10) / 10);
@@ -38,7 +47,9 @@ function foodPhrase(message) {
   for (const re of FOOD_PATTERNS) {
     const m = re.exec(message);
     if (!m) continue;
-    const phrase = m[1].replace(/[?.!]/g, '').trim();
+    // Drop articles/possessives inside the capture ("quinoa a good" → "quinoa",
+    // "my dal" → "dal") so catalog matching sees the bare food name.
+    const phrase = m[1].replace(/[?.!]/g, '').replace(/\b(a|an|the|my|some|any|much|many)\b/g, ' ').replace(/\s+/g, ' ').trim();
     if (phrase && phrase.length >= 3 && phrase.length <= 60) return phrase;
   }
   return null;
@@ -116,7 +127,21 @@ function suggestionAnswer(engine) {
   return `You have ${gap != null ? `~${fmt(gap)} g` : 'some'} fiber left${t != null ? ` toward your ${t} g goal` : ''}. Food options: ${picks.map((p) => `${p.food} (${p.serving}, ~${p.approxFiberG} g)`).join('; ')}.`;
 }
 
-async function sequenceAnswer(prisma, userId) {
+// "Why isn't biryani split into an order?" — when the question names a known
+// mixed dish, explain the rule directly instead of sequencing their last log.
+
+
+function weeklyAnswer(review) {
+  if (!review || !review.headline) return 'I need a few logged days to talk about your week — nothing reliable to report yet.';
+  const pick = (review.patterns || [])[0];
+  return `${review.headline}${pick?.suggestion ? ` ${pick.suggestion}` : ''}`;
+}
+
+async function sequenceAnswer(prisma, userId, message) {
+  const dish = mixedDishIn(message || '');
+  if (dish) {
+    return `“${dish}” is a mixed dish — its fiber comes blended into the whole portion, so there’s no honest “eat this part first” to suggest. Ordering only applies to separately edible components (e.g. a side of vegetables, dal, or salad).`;
+  }
   const log = await prisma.foodLog.findFirst({
     where: { userId, nutritionSnapshot: { not: null } },
     orderBy: { loggedAt: 'desc' },
@@ -148,10 +173,12 @@ function supplementQuestionAnswer(message) {
  * Answer a fiber question deterministically, or decline.
  * @param {string} userId
  * @param {string} message
+ * @param {{ inFiberThread?: boolean }} [ctx] — set by the caller when the
+ *   previous exchange was a grounded fiber answer (conversation follow-up).
  * @returns {{ handled: true, topic: string, answer: string, source: string } | { handled: false }}
  */
-async function groundFiberAnswer(userId, message) {
-  if (typeof message !== 'string' || !isFiberQuestion(message)) return { handled: false };
+async function groundFiberAnswer(userId, message, ctx = {}) {
+  if (typeof message !== 'string' || !isFiberQuestionWithContext(message, ctx.inFiberThread)) return { handled: false };
   const prisma = getPrisma();
   const text = message.toLowerCase();
 
@@ -161,8 +188,14 @@ async function groundFiberAnswer(userId, message) {
     if (FIBER_SUPPLEMENT_RE.test(text) || /fiber supplement/i.test(text)) {
       return { handled: true, topic: 'fiber_supplement', answer: supplementQuestionAnswer(text), source: 'fiber-supplement-education' };
     }
-    if (/eat\s+first|first.*eat|meal\s+order|food\s+order|sequenc/i.test(text)) {
-      return { handled: true, topic: 'meal_sequence', answer: await sequenceAnswer(prisma, userId), source: 'fiber-sequence' };
+    if (/eat\s+first|first.*eat|meal\s+order|food\s+order|sequenc|eating order/i.test(text)) {
+      return { handled: true, topic: 'meal_sequence', answer: await sequenceAnswer(prisma, userId, text), source: 'fiber-sequence' };
+    }
+    // Weekly review before the generic add/suggest branch — "how was my fiber
+    // this week" must not be read as "what should I add".
+    if (/\b(this|last|past)\s+week|weekly|last (7|seven) days|7-day|seven-day/i.test(text)) {
+      const review = await weeklyReview(userId, {}).catch(() => null);
+      return { handled: true, topic: 'weekly_fiber', answer: weeklyAnswer(review), source: 'fiber-weekly-review' };
     }
     // Food-specific questions ("does dal…", "how much fiber is in oats") must
     // resolve before the daily-total branch — "how much fiber" alone would
@@ -189,4 +222,4 @@ async function groundFiberAnswer(userId, message) {
   }
 }
 
-module.exports = { groundFiberAnswer, isFiberQuestion };
+module.exports = { groundFiberAnswer, isFiberQuestion, FIBER_FOLLOWUP_RE };
