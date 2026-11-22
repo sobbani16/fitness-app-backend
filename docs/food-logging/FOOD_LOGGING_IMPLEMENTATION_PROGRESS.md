@@ -79,3 +79,13 @@ RESUME POINT unchanged minus cleared blocker: Phase 2 map → Phase 3 DB audit �
 **Commits:** `3b4934c` master audit + DB quality report.
 
 **RESUME POINT:** Phase 4 canonical model review (largely documented in DB report), Phase 5 deterministic nutrition engine deep-check, Phase 7 UX labels (FL-002 verified; estimate-labeling on other flows), Phase 9 voice/barcode/photo functional audit on device, Phase 12 E2E matrix, Phase 13 real env, Phase 14 coverage report (serving-coverage doc written — **coverage gate FAILS at 7.9%**), Phase 15 final verdict.
+
+## 2026-11-22 s9 — defect fixes landed (VOICE-001, BC-001)
+
+- **VOICE-001 FIXED** (`6e48104`): `aiAction` readiness accepts `quantity+unit`; execute resolves `item.unit` against `IngredientServing` labels ("slice"→`1 slice`), generic units (`serving`/`portion`) fall back to the first household serving, grams items unchanged. Snapshot now carries servingId/selectedServing/servingGrams/servingCount like `/food-logs`. Verified live: "slice"→`1 slice`→2 count→64 g→158.08 kcal.
+- **VOICE-002 reclassified**: schema-level — `calories/proteinG/carbsG/fatG` are non-nullable Float columns, so unknowns must store 0; truth preserved in `nutritionSnapshot.calculated` (nulls retained). Matches every other write path. Documented, no code change.
+- **BC-001 FIXED** (`6e48104` + mobile `2323b45`): `logScannedFood` accepts `servingLabel`; snapshot stores `selectedServing/servingGrams/servingCount` so reopening a scanned product restores its natural unit (FoodEntry repeat path reads these fields already).
+- **BC-002 reclassified**: same non-nullable-column constraint as VOICE-002; raw `perServing` snapshot preserves client-sent nulls. Documented.
+- Suites: voice 14/14, foodIntel+nutritionStatus+foodExpansion 26/26, mobile tsc clean + 426/426.
+- `FOOD_LOGGING_RELEASE_READINESS.md` written — **verdict NOT production-ready**: coverage gate 7.9% (needs ≥60%), barcode-product table empty, flows need device passes, prod verify outstanding.
+- RESUME POINT: serving-coverage expansion (DATA-001) → device passes for barcode/photo/label/menu flows → prod deploy + verify.
