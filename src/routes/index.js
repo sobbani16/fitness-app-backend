@@ -96,6 +96,7 @@ router.use('/macro-score', macroScore);
 router.use('/health-score', healthScore);
 router.use('/weekly-plan', weeklyPlan);
 router.use('/food-logs', foodLogs);
+router.use('/fiber', require('./fiber'));
 router.use('/daily-stats', dailyStats);
 router.use('/label-scanner', labelScanner);
 router.use('/daily-progress', dailyProgress);

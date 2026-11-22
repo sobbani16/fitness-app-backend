@@ -104,7 +104,7 @@ router.post('/transcribe', voiceEnabled, wrap(async (req, res) => {
 // proposes candidate fields only — everything is re-validated and resolved
 // server-side; it can never emit an ID or execute anything.
 const VOICE_INTENTS = ['LOG_EXERCISE_SET', 'LOG_FOOD', 'LOG_WATER', 'MARK_SUPPLEMENT_TAKEN',
-  'UPDATE_EXERCISE_SET', 'START_WORKOUT', 'COMPLETE_WORKOUT', 'LOG_MOOD', 'START_BREATHING_EXERCISE', 'SHOW_MOOD_TRENDS', 'CREATE_REFLECTION_REMINDER', 'UNDO_ACTION', 'CANCEL_COMMAND', 'UNKNOWN_INTENT'];
+  'UPDATE_EXERCISE_SET', 'START_WORKOUT', 'COMPLETE_WORKOUT', 'LOG_MOOD', 'START_BREATHING_EXERCISE', 'SHOW_MOOD_TRENDS', 'CREATE_REFLECTION_REMINDER', 'ASK_FIBER', 'UNDO_ACTION', 'CANCEL_COMMAND', 'UNKNOWN_INTENT'];
 
 const NULLABLE = { type: ['number', 'null'] };
 const NULLABLE_STR = { type: ['string', 'null'] };
@@ -129,7 +129,7 @@ const INTENT_SCHEMA = {
   },
 };
 const INTENT_INSTRUCTIONS = `You convert short voice commands from a fitness logging app into structured actions, one action per numbered input segment.
-Intents: LOG_EXERCISE_SET (add sets/reps/weight of an exercise), LOG_FOOD (food items; split every distinct food), LOG_WATER (water amount), MARK_SUPPLEMENT_TAKEN, UPDATE_EXERCISE_SET (change the most recent set), START_WORKOUT, COMPLETE_WORKOUT, LOG_MOOD (record how the user feels: mood one of very_low|low|neutral|good|very_good, energy 1-5, stress 1-5), START_BREATHING_EXERCISE (open the breathing exercise), SHOW_MOOD_TRENDS (open mood trends/insights), CREATE_REFLECTION_REMINDER (enable the optional evening reflection reminder in Mind preferences), UNDO_ACTION, CANCEL_COMMAND, UNKNOWN_INTENT (not a logging command).
+Intents: LOG_EXERCISE_SET (add sets/reps/weight of an exercise), LOG_FOOD (food items; split every distinct food), LOG_WATER (water amount), MARK_SUPPLEMENT_TAKEN, UPDATE_EXERCISE_SET (change the most recent set), START_WORKOUT, COMPLETE_WORKOUT, LOG_MOOD (record how the user feels: mood one of very_low|low|neutral|good|very_good, energy 1-5, stress 1-5), START_BREATHING_EXERCISE (open the breathing exercise), SHOW_MOOD_TRENDS (open mood trends/insights), CREATE_REFLECTION_REMINDER (enable the optional evening reflection reminder in Mind preferences), ASK_FIBER (a question about dietary fiber, fiber in foods, or fiber supplements — informational only, never a logging action), UNDO_ACTION, CANCEL_COMMAND, UNKNOWN_INTENT (not a logging command).
 Rules: never invent IDs or foods not mentioned; keep weightUnit as "lbs" or "kg"; water amounts in ml; food grams only when the user gives a weight (e.g. "150 g"); household measures go in unit with quantity (e.g. "2 slices" -> quantity 2, unit "slice"); unknown or non-command speech -> UNKNOWN_INTENT. Output exactly one action per input segment, in order, echoing the segment text.`;
 
 const numOrNull = v => Number.isFinite(Number(v)) && v !== null ? Number(v) : null;
@@ -160,7 +160,7 @@ function aiAction(raw, segment, ctx) {
   else if (intent === 'MARK_SUPPLEMENT_TAKEN') { missing = e.name ? [] : ['name']; ready = Boolean(e.name); }
   else if (intent === 'UPDATE_EXERCISE_SET') { missing = [e.reps ? null : 'reps', ctx.lastSetId ? null : 'set'].filter(Boolean); ready = Boolean(e.reps && ctx.lastSetId); }
   else if (intent === 'LOG_MOOD') { const ok = ['very_low','low','neutral','good','very_good'].includes(e.mood); missing = ok ? [] : ['mood']; ready = ok; }
-  else if (['START_BREATHING_EXERCISE','SHOW_MOOD_TRENDS','CREATE_REFLECTION_REMINDER'].includes(intent)) { ready = true; }
+  else if (['START_BREATHING_EXERCISE','SHOW_MOOD_TRENDS','CREATE_REFLECTION_REMINDER','ASK_FIBER'].includes(intent)) { ready = true; }
   return { intent, entities: e, missing, segment, status: ready ? 'ready' : 'needs_review', source: 'ai' };
 }
 
@@ -189,6 +189,16 @@ router.post('/interpret', voiceEnabled, wrap(async (req, res) => {
   const ctx = context || {};
   const parsed = parseTranscript(transcript, ctx);
   await aiFillUnknown(parsed.actions, ctx, uid(req));
+  // Fiber questions get a deterministic answer at execute time — flag-gated;
+  // the same engine code that answers chat answers voice.
+  const fiberVoice = await flags.isEnabled('fiber_voice_enabled', uid(req)).catch(() => false);
+  const { isFiberQuestion } = require('../services/fiber/assistant');
+  for (const a of parsed.actions) {
+    if (a.intent === 'UNKNOWN_INTENT' && fiberVoice && isFiberQuestion(a.segment || '')) {
+      a.intent = 'ASK_FIBER'; a.status = 'ready'; a.missing = [];
+      continue;
+    }
+  }
   for (const a of parsed.actions) {
     if (a.intent === 'LOG_EXERCISE_SET' && a.entities.exerciseName) {
       a.matches = await resolveExercise(prisma, a.entities.exerciseName);
@@ -485,6 +495,16 @@ router.post('/commands/execute', wrap(async (req, res) => {
         await applyUndo(prisma, last);
         await prisma.voiceCommand.update({ where: { id: last.id }, data: { undoneAt: new Date() } });
         results.push({ intent: a.intent, status: 'saved', detail: 'Last action undone' });
+        break;
+      }
+      case 'ASK_FIBER': {
+        // Deterministic fiber answer — same engine as chat. Flag re-checked
+        // server-side at execution; answers create no entities and need no undo.
+        const on = await flags.isEnabled('fiber_voice_enabled', userId).catch(() => false);
+        if (!on) { results.push({ intent: a.intent, status: 'skipped', reason: 'fiber voice answers are off for this account' }); break; }
+        const grounded = await require('../services/fiber/assistant').groundFiberAnswer(userId, String(a.segment || transcript || '')).catch(() => ({ handled: false }));
+        if (!grounded.handled) { results.push({ intent: a.intent, status: 'skipped', reason: 'could not answer from fiber data' }); break; }
+        results.push({ intent: a.intent, status: 'answered', detail: grounded.answer });
         break;
       }
       case 'CANCEL_COMMAND':

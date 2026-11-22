@@ -3,6 +3,7 @@ const { generateReply } = require('../services/aiService');
 const { createDailyLimiter } = require('../services/rateLimiter');
 const { requireFeature } = require('../middleware/requireFeature');
 const { safetyGate } = require('../services/activitySafety/gate');
+const flags = require('../services/featureFlags/service');
 const { getPrisma } = require('../lib/prisma');
 
 const router = express.Router();
@@ -49,6 +50,17 @@ router.post('/', requireFeature('ai_coach'), async (req, res) => {
         used: gate.used,
         remaining: 0,
       });
+    }
+
+    // Fiber questions are answered deterministically by the engine — the LLM
+    // never sees them, so numbers can't be fabricated. Requires the
+    // fiber_ai_enabled flag on top of ai_coach.
+    const fiberOn = await flags.isEnabled('fiber_ai_enabled', userId).catch(() => false);
+    if (fiberOn) {
+      const grounded = await require('../services/fiber/assistant').groundFiberAnswer(userId, message).catch(() => ({ handled: false }));
+      if (grounded.handled) {
+        return res.json({ topic: grounded.topic, answer: grounded.answer, source: grounded.source, quota: { limit: gate.limit, used: gate.used, remaining: gate.remaining } });
+      }
     }
 
     const reply = await generateReply(message, userId);

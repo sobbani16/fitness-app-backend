@@ -362,6 +362,9 @@ model RecipeIngredient {
 
   fatG Float?
 
+  // Per-line fiber snapshot (nullable — NULL = not measured, never read as 0).
+  fiberG Float?
+
   @@index([recipeId])
 }
 
@@ -1333,10 +1336,68 @@ model MacroGoal {
   carbsTarget    Float    @default(250)
   fatTarget      Float    @default(70)
   fiberTarget    Float    @default(30)
+  // Fiber target provenance (Smart Fiber Intelligence):
+  //   formula   — derived 14 g/1,000 kcal or age/sex reference value
+  //   custom    — user-set override
+  //   clinician — clinician-prescribed override (target or restriction)
+  //   default   — legacy 30 g fallback, never personalized
+  // NULL on pre-existing rows = "unknown provenance"; the fiber engine
+  // reports it as a stored value without claiming how it was chosen.
+  fiberTargetBasis String?
+  fiberTargetNote  String?
   waterMlTarget  Int      @default(2000)
   source         String   @default("default") // default, custom, trainer, nutritionist
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+// ============================================================================
+// SMART FIBER INTELLIGENCE
+// ============================================================================
+
+// Cached DailyFiberRecommendationEngine output per user-day. Recompute-on-read
+// is authoritative; this row is an audit/invalidation record — `inputsHash`
+// changes whenever food logs, supplement logs, health conditions, targets or
+// plan data change, so stale outputs are detectable rather than served.
+model FiberDailyRecommendation {
+  id           String   @id @default(uuid())
+  userId       String
+  date         String // local day key YYYY-MM-DD
+  timezone     String   @default("UTC")
+  inputsHash   String // sha256 of the resolved inputs
+  ruleVersion  String // engine rule version, e.g. fiber-rules-v1
+  targetG      Float?
+  confirmedG   Float    @default(0)
+  estimatedG   Float?
+  unknownMeals Int      @default(0) // logs with unmeasured fiber
+  payload      Json // full engine output (suggestions, safety, explanations)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+// Audit trail for fiber-supplement (e.g. psyllium) eligibility evaluations.
+// Every check is persisted — including suppressed recommendations — so
+// clinical review can see what was gated and why. Never stores a dose the
+// system invented: only label-derived values and user-confirmed amounts.
+model FiberSupplementCheck {
+  id             String   @id @default(uuid())
+  userId         String
+  supplementId   String?
+  productId      String?
+  outcome        String // eligible | eligible_with_warnings | suppressed_safety | suppressed_unverified | not_applicable
+  reasons        Json // machine-readable reason codes + human-readable notes
+  labelFiberG    Float? // fiber per labeled serving when verified
+  servingKnown   Boolean @default(false)
+  ruleVersion    String
+  userConfirmed  Boolean  @default(false) // explicit user confirmation happened
+  confirmedAt    DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([supplementId])
 }
 
 // Cached daily scores so trend queries are fast.
