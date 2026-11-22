@@ -579,7 +579,7 @@ const FEATURES = {
   mind_ai_coaching_enabled: {
     clientKey: 'mindAiCoachingEnabled',
     class: 'ai', group: 'ai', default: false, failOpen: false,
-    dependsOn: ['mind_habits_enabled', 'ai_coach_enabled'],
+    dependsOn: ['mind_habits_enabled', 'ai_coach'],
     endpoints: [],
     description: 'AI coaching on mind context — requires separate aiJournalConsent for journal data.',
   },
