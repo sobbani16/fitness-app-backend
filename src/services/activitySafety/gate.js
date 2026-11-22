@@ -185,9 +185,21 @@ async function safetyGate(prisma, userId, { now = new Date(), env = null, rules 
 // differs from the local catalog; only objectively derivable categories are
 // emitted. 'seated-only'/'balance' limitations cannot be assessed from these
 // fields and are handled at the activity level instead.
-const DB_LEG = new Set(['quadriceps', 'glutes', 'hamstrings', 'calves', 'adductors', 'abductors', 'hip flexors', 'gluteals']);
-const DB_UPPER = new Set(['chest', 'pectorals', 'lats', 'shoulders', 'delts', 'traps', 'biceps', 'triceps', 'forearms']);
-const DB_TRUNK = new Set(['abdominals', 'lower back', 'middle back', 'obliques', 'erector spinae', 'posterior chain']);
+// Muscle vocab covers BOTH the latin/hyphenated codes in the exercise DB
+// (biceps-brachii, pectoralis-major, gluteus-maximus, …) and generic aliases.
+// Convention: back/shoulder-girdle movers (lats, traps, serratus) map to
+// upper-limb load; abdominal/spinal movers map to trunk load.
+// sternocleidomastoid (neck) intentionally unmapped — no engine category.
+const DB_LEG = new Set(['quadriceps', 'glutes', 'hamstrings', 'calves', 'adductors', 'abductors', 'hip flexors', 'gluteals',
+  'gastrocnemius', 'soleus', 'gluteus-maximus', 'gluteus-medius']);
+const DB_UPPER = new Set(['chest', 'pectorals', 'lats', 'shoulders', 'delts', 'traps', 'biceps', 'triceps', 'forearms',
+  'pectoralis-major', 'latissimus-dorsi', 'deltoids', 'trapezius', 'biceps-brachii', 'triceps-brachii',
+  'brachialis', 'brachioradialis', 'forearm-flexors', 'forearm-extensors', 'serratus-anterior']);
+const DB_TRUNK = new Set(['abdominals', 'lower back', 'middle back', 'obliques', 'erector spinae', 'posterior chain',
+  'rectus-abdominis', 'erector-spinae']);
+// Equipment aliases → engine-normalized (DB uses 'kettlebells', 'bodyweight').
+const DB_EQUIP_ALIAS = { kettlebells: 'kettlebell', bodyweight: 'body only', 'body-weight': 'body only' };
+const normEquip = (e) => DB_EQUIP_ALIAS[(e || '').toLowerCase()] || (e || '').toLowerCase();
 
 function dbExerciseCategories(ex = {}) {
   const cats = new Set();
@@ -197,11 +209,12 @@ function dbExerciseCategories(ex = {}) {
   if (mset.some(m => DB_LEG.has(m))) cats.add(C.LOWER_LIMB_LOAD);
   if (mset.some(m => DB_UPPER.has(m))) cats.add(C.UPPER_LIMB_LOAD);
   if (mset.some(m => DB_TRUNK.has(m))) cats.add(C.TRUNK_LOAD);
+  const eq = normEquip(ex.equipment);
   const standingLoad = cats.has(C.LOWER_LIMB_LOAD) && ex.mechanic === 'compound'
-    && ['barbell', 'dumbbell', 'kettlebell', 'body only', 'other'].includes(ex.equipment || '');
+    && ['barbell', 'dumbbell', 'kettlebell', 'body only', 'other', 'e-z curl bar'].includes(eq);
   if (standingLoad) cats.add(C.WEIGHT_BEARING_LOWER);
   if ((ex.category || '').toLowerCase() === 'plyometrics') { cats.add(C.IMPACT); cats.add(C.WEIGHT_BEARING_LOWER); }
-  if (ex.mechanic === 'compound' && ['barbell', 'machine', 'kettlebell', 'other'].includes(ex.equipment || '')) cats.add(C.VALSALVA);
+  if (ex.mechanic === 'compound' && ['barbell', 'machine', 'kettlebell', 'other'].includes(eq)) cats.add(C.VALSALVA);
   return cats;
 }
 
