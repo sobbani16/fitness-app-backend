@@ -23,3 +23,4 @@
 ## Next session
 - Mobile suite run (`fitness-app-mobile` typecheck/jest/lint) — not yet executed this phase.
 - Human-owned: staging provisioning, clinical review of 71 DRAFT rules, regulatory review of claims inventory, CPCB key.
+phase17 mobile: tsc clean, 73 suites/423 tests pass
