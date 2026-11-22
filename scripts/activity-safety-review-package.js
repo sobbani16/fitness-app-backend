@@ -358,3 +358,4 @@ for (const r of RULES) {
 test += `});\n`;
 require('fs').writeFileSync(require('path').join(__dirname, '../tests/activitySafety.reviewPackage.test.js'), test);
 console.log(`package: ${RULES.length} rules · reachable: ${reachable.length} · mirrors: ${mirrors.join(',') || 'none'} · unsupported: ${unsupported.join(',') || 'none'} · inert: ${inert.join(',') || 'none'}`);
+module.exports = { exampleSpec, verified, reachable, mirrors, conf, triggerFor, mergeCtx };

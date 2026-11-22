@@ -1,0 +1,4186 @@
+{
+  "summary": {
+    "generatedAt": "2026-11-22T04:24:49.532Z",
+    "total": 71,
+    "reachable": 65,
+    "mirrors": 4,
+    "unsupported": 2,
+    "inertBug": 0,
+    "physicianTier": 29,
+    "unmappedEvidence": []
+  },
+  "rules": [
+    {
+      "ruleId": "AS-CORE-001",
+      "name": "Urgent symptom escalation",
+      "category": "core",
+      "dimension": "medical",
+      "purpose": "Reported symptom may require urgent medical attention — activity suggestions suppressed.",
+      "effect": "URGENT_ESCALATION",
+      "severity": "high",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "intentional-mirror",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "URGENT_ESCALATION",
+        "fired": false
+      },
+      "triggers": [
+        {
+          "group": "symptomCodes",
+          "token": "chest_pain",
+          "channel": "symptomCodes"
+        },
+        {
+          "group": "symptomCodes",
+          "token": "chest_pressure",
+          "channel": "symptomCodes"
+        },
+        {
+          "group": "symptomCodes",
+          "token": "syncope",
+          "channel": "symptomCodes"
+        },
+        {
+          "group": "symptomCodes",
+          "token": "dyspnea_unusual",
+          "channel": "symptomCodes"
+        },
+        {
+          "group": "symptomCodes",
+          "token": "numbness_neuro",
+          "channel": "symptomCodes"
+        },
+        {
+          "group": "symptomCodes",
+          "token": "pregnancy_bleeding",
+          "channel": "symptomCodes"
+        },
+        {
+          "group": "symptomCodes",
+          "token": "pregnancy_contractions",
+          "channel": "symptomCodes"
+        },
+        {
+          "group": "symptomCodes",
+          "token": "pregnancy_fluid_leak",
+          "channel": "symptomCodes"
+        },
+        {
+          "group": "symptomCodes",
+          "token": "pregnancy_calf_pain",
+          "channel": "symptomCodes"
+        },
+        {
+          "group": "symptomCodes",
+          "token": "vision_changes",
+          "channel": "symptomCodes"
+        },
+        {
+          "group": "symptomCodes",
+          "token": "severe_headache_sudden",
+          "channel": "symptomCodes"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-CV-001",
+          "shared": [
+            "symptomCodes:chest_pain",
+            "symptomCodes:chest_pressure"
+          ]
+        },
+        {
+          "other": "AS-CV-004",
+          "shared": [
+            "symptomCodes:syncope"
+          ]
+        },
+        {
+          "other": "AS-RESP-005",
+          "shared": [
+            "symptomCodes:dyspnea_unusual"
+          ]
+        },
+        {
+          "other": "AS-PREG-002",
+          "shared": [
+            "symptomCodes:pregnancy_bleeding",
+            "symptomCodes:pregnancy_contractions",
+            "symptomCodes:pregnancy_fluid_leak",
+            "symptomCodes:pregnancy_calf_pain"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "ACSM_SCREEN_2015",
+          "org": "ACSM",
+          "note": "ACSM preparticipation screening update (Riebe 2015) — urgent-symptom referral; reviewer verifies symptom list vs current ACSM algorithm.",
+          "tier": "physician-or-clinical-exercise-physiologist"
+        },
+        {
+          "ref": "PARQ_PLUS",
+          "org": "PAR-Q+",
+          "note": "PAR-Q+ 2021 evidence-based screening — general readiness gating; verify wording alignment.",
+          "tier": "clinical-exercise-physiologist"
+        },
+        {
+          "ref": "ACOG_804",
+          "org": "ACOG",
+          "note": "ACOG Committee Opinion 804 (2020) physical activity in pregnancy/postpartum — absolute+relative contraindications; verify each trigger against the table.",
+          "tier": "obstetric-specialist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": [
+        "structural-urgent-mirror: short-circuit precedes rule eval — by design; cannot appear in ruleIds"
+      ]
+    },
+    {
+      "ruleId": "AS-CORE-002",
+      "name": "Documented prohibition respected",
+      "category": "core",
+      "dimension": "medical",
+      "purpose": "A documented activity prohibition cannot be overridden by goals, fitness scores, or weather.",
+      "effect": "BLOCK_ACTIVITY",
+      "severity": "high",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "BLOCK_ACTIVITY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "restrictionCategories",
+          "token": "__match_activity__",
+          "channel": "restrictionCategories"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "PRODUCT-POLICY",
+          "org": "internal",
+          "note": "Engineering policy marker — no external clinical claim; still requires reviewer signoff on the policy itself.",
+          "tier": "product+clinical"
+        }
+      ],
+      "falsePositiveRisk": "broad-trigger block — check single-token sufficiency",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-CORE-003",
+      "name": "Unknown screening with risk flags",
+      "category": "core",
+      "dimension": "medical",
+      "purpose": "Screening status unknown with risk indicators — light activity only pending profile completion.",
+      "effect": "INSUFFICIENT_DATA",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "INSUFFICIENT_DATA",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "screening_incomplete+risk_flags_present",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [
+        "health_screening"
+      ],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "ACSM_SCREEN_2015",
+          "org": "ACSM",
+          "note": "ACSM preparticipation screening update (Riebe 2015) — urgent-symptom referral; reviewer verifies symptom list vs current ACSM algorithm.",
+          "tier": "physician-or-clinical-exercise-physiologist"
+        },
+        {
+          "ref": "PARQ_PLUS",
+          "org": "PAR-Q+",
+          "note": "PAR-Q+ 2021 evidence-based screening — general readiness gating; verify wording alignment.",
+          "tier": "clinical-exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-CORE-004",
+      "name": "No diagnostic framing",
+      "category": "core",
+      "dimension": "medical",
+      "purpose": "Wording constraint: never present a symptom questionnaire as a diagnosis.",
+      "effect": "MODIFY",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "__always__",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-PREG-006",
+          "shared": [
+            "profileFlags:__always__"
+          ]
+        },
+        {
+          "other": "AS-PER-005",
+          "shared": [
+            "profileFlags:__always__"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "PARQ_PLUS",
+          "org": "PAR-Q+",
+          "note": "PAR-Q+ 2021 evidence-based screening — general readiness gating; verify wording alignment.",
+          "tier": "clinical-exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": [
+        "always-fires info marker — verify it never escalates a decision"
+      ]
+    },
+    {
+      "ruleId": "AS-MSK-001",
+      "name": "Non-weight-bearing order",
+      "category": "msk",
+      "dimension": "functional",
+      "purpose": "Active non-weight-bearing restriction on the affected limb.",
+      "effect": "BLOCK_ACTIVITY",
+      "severity": "high",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "BLOCK_ACTIVITY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "wb_non_weight_bearing",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "activityCategories",
+          "token": "weight_bearing_lower",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "APTA_ANKLE_2021",
+          "org": "APTA/JOSPT",
+          "note": "JOSPT ankle instability/return-to-sport guidance — non-weight-bearing and graded-loading framing; verify thresholds.",
+          "tier": "sports-physio-or-physician"
+        }
+      ],
+      "falsePositiveRisk": "broad-trigger block — check single-token sufficiency",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-MSK-002",
+      "name": "Acute injury ≤72h",
+      "category": "msk",
+      "dimension": "functional",
+      "purpose": "Acute injury window — defer to non-affected modalities per documented guidance.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "acute_injury_72h",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "APTA_ANKLE_2021",
+          "org": "APTA/JOSPT",
+          "note": "JOSPT ankle instability/return-to-sport guidance — non-weight-bearing and graded-loading framing; verify thresholds.",
+          "tier": "sports-physio-or-physician"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": [
+        "threshold-bearing — numeric trigger needs specialist signoff vs guidance bands"
+      ]
+    },
+    {
+      "ruleId": "AS-MSK-003",
+      "name": "Joint instability",
+      "category": "msk",
+      "dimension": "functional",
+      "purpose": "Documented joint instability — avoid cutting/impact on that joint.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "gentle_mobility",
+        "decision": "NEEDS_CLINICAL_REVIEW",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "joint_instability",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "activityCategories",
+          "token": "balance_challenging",
+          "channel": "activity catalog demand match"
+        },
+        {
+          "group": "activityCategories",
+          "token": "impact",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "APTA_ANKLE_2021",
+          "org": "APTA/JOSPT",
+          "note": "JOSPT ankle instability/return-to-sport guidance — non-weight-bearing and graded-loading framing; verify thresholds.",
+          "tier": "sports-physio-or-physician"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-MSK-004",
+      "name": "Active rehab plan is input, not override",
+      "category": "msk",
+      "dimension": "functional",
+      "purpose": "Follow the documented rehabilitation phase — never extend beyond it.",
+      "effect": "MODIFY",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "rehab_plan_active",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "clinician-document",
+          "org": "clinician",
+          "note": "Clinician-documented input — rule acts on clinician-entered restriction data.",
+          "tier": "documenting-clinician"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-MSK-005",
+      "name": "Severe undiagnosed pain / post-fall",
+      "category": "msk",
+      "dimension": "functional",
+      "purpose": "Severe pain, inability to bear weight, or post-fall pain needs evaluation first.",
+      "effect": "NEEDS_CLINICAL_REVIEW",
+      "severity": "high",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "NEEDS_CLINICAL_REVIEW",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "severe_undiagnosed_pain",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "profileFlags",
+          "token": "post_fall_pain",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "PRODUCT-POLICY",
+          "org": "internal",
+          "note": "Engineering policy marker — no external clinical claim; still requires reviewer signoff on the policy itself.",
+          "tier": "product+clinical"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-MSK-006",
+      "name": "DOMS only",
+      "category": "msk",
+      "dimension": "functional",
+      "purpose": "Benign soreness — lighter intensity, never labeled an injury.",
+      "effect": "MODIFY",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "symptomCodes",
+          "token": "muscle_soreness_doms",
+          "channel": "symptomCodes"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "DOMS_ACSM",
+          "org": "ACSM",
+          "note": "ACSM DOMS position content — delayed-onset soreness ≠ injury; verify MODIFY-vs-ALLOW calibration.",
+          "tier": "clinical-exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-MSK-007",
+      "name": "Chronic joint pain / OA",
+      "category": "msk",
+      "dimension": "functional",
+      "purpose": "Joint symptoms — favor lower-impact options; never prohibit walking outright.",
+      "effect": "MODIFY",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_run",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "conditionKeys",
+          "token": "osteoarthritis",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "activityCategories",
+          "token": "impact",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "HHS_PAG_2018",
+          "org": "HHS",
+          "note": "HHS Physical Activity Guidelines 2nd ed (2018) — general guidance + older-adult balance framing.",
+          "tier": "qualified-exercise-professional"
+        },
+        {
+          "ref": "CDC_PA_ADULTS",
+          "org": "CDC/HHS",
+          "note": "US physical-activity guidelines — general volume framing; verify no over-restriction of appropriate activity.",
+          "tier": "qualified-exercise-professional"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-MSK-008",
+      "name": "Post-surgical, undocumented restrictions",
+      "category": "msk",
+      "dimension": "functional",
+      "purpose": "Recovery without documented clearance — never inferred from elapsed time.",
+      "effect": "NEEDS_CLINICAL_REVIEW",
+      "severity": "high",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "NEEDS_CLINICAL_REVIEW",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "post_surgical_undocumented",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [
+        "surgical_restrictions"
+      ],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "PRODUCT-POLICY",
+          "org": "internal",
+          "note": "Engineering policy marker — no external clinical claim; still requires reviewer signoff on the policy itself.",
+          "tier": "product+clinical"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-CV-001",
+      "name": "Unexplained chest pain / recent cardiac event",
+      "category": "cv",
+      "dimension": "medical",
+      "purpose": "Chest pain requires urgent medical attention — do not begin a workout.",
+      "effect": "URGENT_ESCALATION",
+      "severity": "high",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "intentional-mirror",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "URGENT_ESCALATION",
+        "fired": false
+      },
+      "triggers": [
+        {
+          "group": "symptomCodes",
+          "token": "chest_pain",
+          "channel": "symptomCodes"
+        },
+        {
+          "group": "symptomCodes",
+          "token": "chest_pressure",
+          "channel": "symptomCodes"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-CORE-001",
+          "shared": [
+            "symptomCodes:chest_pain",
+            "symptomCodes:chest_pressure"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "ACSM_SCREEN_2015",
+          "org": "ACSM",
+          "note": "ACSM preparticipation screening update (Riebe 2015) — urgent-symptom referral; reviewer verifies symptom list vs current ACSM algorithm.",
+          "tier": "physician-or-clinical-exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": [
+        "structural-urgent-mirror: short-circuit precedes rule eval — by design; cannot appear in ruleIds"
+      ]
+    },
+    {
+      "ruleId": "AS-CV-002",
+      "name": "Stable CAD / completed rehab",
+      "category": "cv",
+      "dimension": "medical",
+      "purpose": "Stable cardiac condition — moderate intensity per rehabilitation guidance; screen intensity increases.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_run",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "conditionKeys",
+          "token": "cad",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "conditionKeys",
+          "token": "cardiac_rehab",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "activityCategories",
+          "token": "vigorous",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "AHA_RESISTANCE_CVD",
+          "org": "AHA",
+          "note": "AHA scientific statement on resistance exercise in CVD — Valsalva/BP-response precautions.",
+          "tier": "physician"
+        },
+        {
+          "ref": "ACSM_SCREEN_2015",
+          "org": "ACSM",
+          "note": "ACSM preparticipation screening update (Riebe 2015) — urgent-symptom referral; reviewer verifies symptom list vs current ACSM algorithm.",
+          "tier": "physician-or-clinical-exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-CV-003",
+      "name": "Uncontrolled hypertension",
+      "category": "cv",
+      "dimension": "medical",
+      "purpose": "Documented uncontrolled hypertension — follow clinician guidance scope.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_run",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "hypertension_uncontrolled",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "activityCategories",
+          "token": "vigorous",
+          "channel": "activity catalog demand match"
+        },
+        {
+          "group": "activityCategories",
+          "token": "valsalva",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "ACSM_SCREEN_2015",
+          "org": "ACSM",
+          "note": "ACSM preparticipation screening update (Riebe 2015) — urgent-symptom referral; reviewer verifies symptom list vs current ACSM algorithm.",
+          "tier": "physician-or-clinical-exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-CV-004",
+      "name": "Syncope/dizziness current vs history",
+      "category": "cv",
+      "dimension": "medical",
+      "purpose": "Current dizziness/syncope symptoms should be reviewed before exertion.",
+      "effect": "NEEDS_CLINICAL_REVIEW",
+      "severity": "high",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "NEEDS_CLINICAL_REVIEW",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "symptomCodes",
+          "token": "syncope",
+          "channel": "symptomCodes"
+        },
+        {
+          "group": "symptomCodes",
+          "token": "dizziness",
+          "channel": "symptomCodes"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-CORE-001",
+          "shared": [
+            "symptomCodes:syncope"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "PARQ_PLUS",
+          "org": "PAR-Q+",
+          "note": "PAR-Q+ 2021 evidence-based screening — general readiness gating; verify wording alignment.",
+          "tier": "clinical-exercise-physiologist"
+        },
+        {
+          "ref": "ACSM_SCREEN_2015",
+          "org": "ACSM",
+          "note": "ACSM preparticipation screening update (Riebe 2015) — urgent-symptom referral; reviewer verifies symptom list vs current ACSM algorithm.",
+          "tier": "physician-or-clinical-exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-CV-005",
+      "name": "Stable heart failure",
+      "category": "cv",
+      "dimension": "medical",
+      "purpose": "Stable heart failure — supervised/moderate activity per rehab guidance.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_run",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "conditionKeys",
+          "token": "heart_failure",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "activityCategories",
+          "token": "vigorous",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "AHA statement",
+          "org": "AHA",
+          "note": "Generic AHA statement ref — reviewer must identify the specific statement for this rule.",
+          "tier": "physician"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-RESP-001",
+      "name": "Asthma/EIB + USG AQI",
+      "category": "resp",
+      "dimension": "medical",
+      "purpose": "Air quality may aggravate respiratory symptoms — indoor option or postpone.",
+      "effect": "DEFER_OUTDOOR",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "DEFER_OUTDOOR",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "conditionKeys",
+          "token": "asthma",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "conditionKeys",
+          "token": "eib",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "envHazards",
+          "token": "aqi_usg",
+          "channel": "envHazards"
+        },
+        {
+          "group": "envHazards",
+          "token": "aqi_unhealthy",
+          "channel": "envHazards"
+        },
+        {
+          "group": "envHazards",
+          "token": "aqi_hazardous",
+          "channel": "envHazards"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-RESP-002",
+          "shared": [
+            "conditionKeys:asthma",
+            "conditionKeys:eib",
+            "envHazards:aqi_unhealthy",
+            "envHazards:aqi_hazardous"
+          ]
+        },
+        {
+          "other": "AS-RESP-003",
+          "shared": [
+            "conditionKeys:asthma",
+            "conditionKeys:eib"
+          ]
+        },
+        {
+          "other": "AS-RESP-006",
+          "shared": [
+            "envHazards:aqi_unhealthy",
+            "envHazards:aqi_hazardous"
+          ]
+        },
+        {
+          "other": "AS-ENV-005",
+          "shared": [
+            "envHazards:aqi_hazardous"
+          ]
+        },
+        {
+          "other": "AS-ENV-006",
+          "shared": [
+            "envHazards:aqi_unhealthy"
+          ]
+        },
+        {
+          "other": "AS-ENV-007",
+          "shared": [
+            "envHazards:aqi_usg"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "EPA_AQI",
+          "org": "EPA",
+          "note": "US AQI bands (101–150 USG, 151–200 unhealthy, 201+ very unhealthy) + AirNow activity guidance; verify band edges used by environmentService.",
+          "tier": "exercise-physiologist"
+        },
+        {
+          "ref": "EPA_AQ_ACTIVITY",
+          "org": "EPA",
+          "note": "EPA/AirNow activity guidance per AQI band — verify outdoor deferral bands.",
+          "tier": "exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-RESP-002",
+      "name": "Asthma + wildfire smoke",
+      "category": "resp",
+      "dimension": "medical",
+      "purpose": "Smoke exposure deferred per EPA wildfire guidance.",
+      "effect": "DEFER_OUTDOOR",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "DEFER_OUTDOOR",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "conditionKeys",
+          "token": "asthma",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "conditionKeys",
+          "token": "eib",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "envHazards",
+          "token": "smoke",
+          "channel": "envHazards"
+        },
+        {
+          "group": "envHazards",
+          "token": "aqi_unhealthy",
+          "channel": "envHazards"
+        },
+        {
+          "group": "envHazards",
+          "token": "aqi_hazardous",
+          "channel": "envHazards"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-RESP-001",
+          "shared": [
+            "conditionKeys:asthma",
+            "conditionKeys:eib",
+            "envHazards:aqi_unhealthy",
+            "envHazards:aqi_hazardous"
+          ]
+        },
+        {
+          "other": "AS-RESP-003",
+          "shared": [
+            "conditionKeys:asthma",
+            "conditionKeys:eib"
+          ]
+        },
+        {
+          "other": "AS-RESP-006",
+          "shared": [
+            "envHazards:aqi_unhealthy",
+            "envHazards:aqi_hazardous"
+          ]
+        },
+        {
+          "other": "AS-ENV-005",
+          "shared": [
+            "envHazards:aqi_hazardous"
+          ]
+        },
+        {
+          "other": "AS-ENV-006",
+          "shared": [
+            "envHazards:aqi_unhealthy"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "EPA_WILDFIRE",
+          "org": "EPA",
+          "note": "EPA wildfire-smoke/AQI guidance — verify smoke-hazard behavior vs AQI bands.",
+          "tier": "exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-RESP-003",
+      "name": "Asthma + cold dry air",
+      "category": "resp",
+      "dimension": "medical",
+      "purpose": "Cold air can trigger symptoms — warm up, cover, shorten exposure.",
+      "effect": "MODIFY",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "conditionKeys",
+          "token": "asthma",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "conditionKeys",
+          "token": "eib",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "envHazards",
+          "token": "cold_caution",
+          "channel": "envHazards"
+        },
+        {
+          "group": "envHazards",
+          "token": "cold_danger",
+          "channel": "envHazards"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-RESP-001",
+          "shared": [
+            "conditionKeys:asthma",
+            "conditionKeys:eib"
+          ]
+        },
+        {
+          "other": "AS-RESP-002",
+          "shared": [
+            "conditionKeys:asthma",
+            "conditionKeys:eib"
+          ]
+        },
+        {
+          "other": "AS-NEURO-006",
+          "shared": [
+            "envHazards:cold_caution"
+          ]
+        },
+        {
+          "other": "AS-ENV-008",
+          "shared": [
+            "envHazards:cold_caution",
+            "envHazards:cold_danger"
+          ]
+        },
+        {
+          "other": "AS-PER-004",
+          "shared": [
+            "envHazards:cold_danger"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "EPA_AQ_ACTIVITY",
+          "org": "EPA",
+          "note": "EPA/AirNow activity guidance per AQI band — verify outdoor deferral bands.",
+          "tier": "exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-RESP-004",
+      "name": "Active respiratory infection",
+      "category": "resp",
+      "dimension": "medical",
+      "purpose": "Active illness — conservative modification pending clinical review of fever rules.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "NEEDS_CLINICAL_REVIEW",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "symptomCodes",
+          "token": "fever",
+          "channel": "symptomCodes"
+        },
+        {
+          "group": "symptomCodes",
+          "token": "systemic_illness",
+          "channel": "symptomCodes"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-SYS-003",
+          "shared": [
+            "symptomCodes:fever",
+            "symptomCodes:systemic_illness"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "PRODUCT-POLICY",
+          "org": "internal",
+          "note": "Engineering policy marker — no external clinical claim; still requires reviewer signoff on the policy itself.",
+          "tier": "product+clinical"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-RESP-005",
+      "name": "Unexplained breathlessness",
+      "category": "resp",
+      "dimension": "medical",
+      "purpose": "Unusual shortness of breath may require urgent attention.",
+      "effect": "URGENT_ESCALATION",
+      "severity": "high",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "intentional-mirror",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "URGENT_ESCALATION",
+        "fired": false
+      },
+      "triggers": [
+        {
+          "group": "symptomCodes",
+          "token": "severe_dyspnea",
+          "channel": "symptomCodes"
+        },
+        {
+          "group": "symptomCodes",
+          "token": "dyspnea_unusual",
+          "channel": "symptomCodes"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-CORE-001",
+          "shared": [
+            "symptomCodes:dyspnea_unusual"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "PARQ_PLUS",
+          "org": "PAR-Q+",
+          "note": "PAR-Q+ 2021 evidence-based screening — general readiness gating; verify wording alignment.",
+          "tier": "clinical-exercise-physiologist"
+        },
+        {
+          "ref": "ACSM_SCREEN_2015",
+          "org": "ACSM",
+          "note": "ACSM preparticipation screening update (Riebe 2015) — urgent-symptom referral; reviewer verifies symptom list vs current ACSM algorithm.",
+          "tier": "physician-or-clinical-exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": [
+        "structural-urgent-mirror: short-circuit precedes rule eval — by design; cannot appear in ruleIds"
+      ]
+    },
+    {
+      "ruleId": "AS-RESP-006",
+      "name": "AQI bands (general)",
+      "category": "resp",
+      "dimension": "medical",
+      "purpose": "Unhealthy AQI — outdoor exertion deferred per EPA guidance.",
+      "effect": "DEFER_OUTDOOR",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "DEFER_OUTDOOR",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "envHazards",
+          "token": "aqi_unhealthy",
+          "channel": "envHazards"
+        },
+        {
+          "group": "envHazards",
+          "token": "aqi_hazardous",
+          "channel": "envHazards"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-RESP-001",
+          "shared": [
+            "envHazards:aqi_unhealthy",
+            "envHazards:aqi_hazardous"
+          ]
+        },
+        {
+          "other": "AS-RESP-002",
+          "shared": [
+            "envHazards:aqi_unhealthy",
+            "envHazards:aqi_hazardous"
+          ]
+        },
+        {
+          "other": "AS-ENV-005",
+          "shared": [
+            "envHazards:aqi_hazardous"
+          ]
+        },
+        {
+          "other": "AS-ENV-006",
+          "shared": [
+            "envHazards:aqi_unhealthy"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "EPA_AQI",
+          "org": "EPA",
+          "note": "US AQI bands (101–150 USG, 151–200 unhealthy, 201+ very unhealthy) + AirNow activity guidance; verify band edges used by environmentService.",
+          "tier": "exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-DM-001",
+      "name": "Insulin-treated diabetes + recent hypoglycemia",
+      "category": "dm",
+      "dimension": "unknown",
+      "purpose": "Recent hypoglycemia — pre-activity glucose check and carbs-available per ADA; never dose insulin.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_run",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "hypoglycemia_risk",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "profileFlags",
+          "token": "recent_hypoglycemia",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "activityCategories",
+          "token": "vigorous",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "ADA_PA_2016",
+          "org": "ADA",
+          "note": "ADA position statement: physical activity/exercise and diabetes (2016) — hypoglycemia risk windows, foot care, retinopathy caveats.",
+          "tier": "physician-or-CDE"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-DM-002",
+      "name": "Hyperglycemia + ketones",
+      "category": "dm",
+      "dimension": "unknown",
+      "purpose": "Vigorous activity with ketones present can worsen status — defer until resolved.",
+      "effect": "DEFER_OUTDOOR",
+      "severity": "high",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_run",
+        "decision": "DEFER_OUTDOOR",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "hyperglycemia_ketones",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "activityCategories",
+          "token": "vigorous",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "ADA_PA_2016",
+          "org": "ADA",
+          "note": "ADA position statement: physical activity/exercise and diabetes (2016) — hypoglycemia risk windows, foot care, retinopathy caveats.",
+          "tier": "physician-or-CDE"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-DM-003",
+      "name": "Peripheral neuropathy / foot ulcer history",
+      "category": "dm",
+      "dimension": "unknown",
+      "purpose": "Foot complications — foot checks and reduced-impact options.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_run",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "conditionKeys",
+          "token": "neuropathy",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "activityCategories",
+          "token": "impact",
+          "channel": "activity catalog demand match"
+        },
+        {
+          "group": "activityCategories",
+          "token": "weight_bearing_lower",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "ADA_PA_2016",
+          "org": "ADA",
+          "note": "ADA position statement: physical activity/exercise and diabetes (2016) — hypoglycemia risk windows, foot care, retinopathy caveats.",
+          "tier": "physician-or-CDE"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-DM-004",
+      "name": "Proliferative retinopathy",
+      "category": "dm",
+      "dimension": "unknown",
+      "purpose": "Avoid jarring/straining per ADA guidance.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_run",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "conditionKeys",
+          "token": "retinopathy",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "activityCategories",
+          "token": "impact",
+          "channel": "activity catalog demand match"
+        },
+        {
+          "group": "activityCategories",
+          "token": "valsalva",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "ADA_PA_2016",
+          "org": "ADA",
+          "note": "ADA position statement: physical activity/exercise and diabetes (2016) — hypoglycemia risk windows, foot care, retinopathy caveats.",
+          "tier": "physician-or-CDE"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-DM-005",
+      "name": "Stable diabetes — no categorical prohibition",
+      "category": "dm",
+      "dimension": "unknown",
+      "purpose": "Stable diabetes without complications does not prohibit activity.",
+      "effect": "ALLOW",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "ALLOW",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "conditionKeys",
+          "token": "diabetes_t1",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "conditionKeys",
+          "token": "diabetes_t2",
+          "channel": "conditionKeys"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "ADA_PA_2016",
+          "org": "ADA",
+          "note": "ADA position statement: physical activity/exercise and diabetes (2016) — hypoglycemia risk windows, foot care, retinopathy caveats.",
+          "tier": "physician-or-CDE"
+        },
+        {
+          "ref": "CDC_PA_ADULTS",
+          "org": "CDC/HHS",
+          "note": "US physical-activity guidelines — general volume framing; verify no over-restriction of appropriate activity.",
+          "tier": "qualified-exercise-professional"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": [
+        "threshold-bearing — numeric trigger needs specialist signoff vs guidance bands"
+      ]
+    },
+    {
+      "ruleId": "AS-ENDO-001",
+      "name": "Heat-sensitive medication/endocrine flag",
+      "category": "endo",
+      "dimension": "medical",
+      "purpose": "Heat sensitivity — timing/shade/hydration precautions (no prescriptive amounts).",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "heat_sensitivity",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "envHazards",
+          "token": "heat_extreme_caution",
+          "channel": "envHazards"
+        },
+        {
+          "group": "envHazards",
+          "token": "heat_danger",
+          "channel": "envHazards"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-PREG-004",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-NEURO-001",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-AGE-003",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-ENV-003",
+          "shared": [
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-ENV-004",
+          "shared": [
+            "envHazards:heat_extreme_caution"
+          ]
+        },
+        {
+          "other": "AS-PER-004",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "CDC_EXTREME_HEAT",
+          "org": "CDC",
+          "note": "CDC extreme-heat guidance — verify apparent-temp thresholds + population exclusions.",
+          "tier": "exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-PREG-001",
+      "name": "Uncomplicated pregnancy — activity encouraged",
+      "category": "preg",
+      "dimension": "medical",
+      "purpose": "Pregnancy is not an activity ban; avoid documented supine-prolonged/contact-fall patterns.",
+      "effect": "MODIFY",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "contact_sport",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "pregnancy",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "activityCategories",
+          "token": "contact_fall_risk",
+          "channel": "activity catalog demand match"
+        },
+        {
+          "group": "activityCategories",
+          "token": "supine_prolonged",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "ACOG_804",
+          "org": "ACOG",
+          "note": "ACOG Committee Opinion 804 (2020) physical activity in pregnancy/postpartum — absolute+relative contraindications; verify each trigger against the table.",
+          "tier": "obstetric-specialist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-PREG-002",
+      "name": "Pregnancy warning symptoms",
+      "category": "preg",
+      "dimension": "medical",
+      "purpose": "Pregnancy warning sign — stop activity and seek care.",
+      "effect": "URGENT_ESCALATION",
+      "severity": "high",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "intentional-mirror",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "URGENT_ESCALATION",
+        "fired": false
+      },
+      "triggers": [
+        {
+          "group": "symptomCodes",
+          "token": "pregnancy_bleeding",
+          "channel": "symptomCodes"
+        },
+        {
+          "group": "symptomCodes",
+          "token": "pregnancy_contractions",
+          "channel": "symptomCodes"
+        },
+        {
+          "group": "symptomCodes",
+          "token": "pregnancy_fluid_leak",
+          "channel": "symptomCodes"
+        },
+        {
+          "group": "symptomCodes",
+          "token": "pregnancy_calf_pain",
+          "channel": "symptomCodes"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-CORE-001",
+          "shared": [
+            "symptomCodes:pregnancy_bleeding",
+            "symptomCodes:pregnancy_contractions",
+            "symptomCodes:pregnancy_fluid_leak",
+            "symptomCodes:pregnancy_calf_pain"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "ACOG_804",
+          "org": "ACOG",
+          "note": "ACOG Committee Opinion 804 (2020) physical activity in pregnancy/postpartum — absolute+relative contraindications; verify each trigger against the table.",
+          "tier": "obstetric-specialist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": [
+        "structural-urgent-mirror: short-circuit precedes rule eval — by design; cannot appear in ruleIds"
+      ]
+    },
+    {
+      "ruleId": "AS-PREG-003",
+      "name": "High-risk pregnancy documented restriction",
+      "category": "preg",
+      "dimension": "medical",
+      "purpose": "Documented pregnancy restriction — follow clinician instruction exactly.",
+      "effect": "NEEDS_CLINICAL_REVIEW",
+      "severity": "high",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "BLOCK_ACTIVITY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "pregnancy_high_risk",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "restrictionCategories",
+          "token": "__any__",
+          "channel": "restrictionCategories"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "ACOG_804",
+          "org": "ACOG",
+          "note": "ACOG Committee Opinion 804 (2020) physical activity in pregnancy/postpartum — absolute+relative contraindications; verify each trigger against the table.",
+          "tier": "obstetric-specialist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-PREG-004",
+      "name": "Pregnancy + heat",
+      "category": "preg",
+      "dimension": "medical",
+      "purpose": "Overheating precaution per ACOG — cooler hours/indoor.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "pregnancy",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "envHazards",
+          "token": "heat_extreme_caution",
+          "channel": "envHazards"
+        },
+        {
+          "group": "envHazards",
+          "token": "heat_danger",
+          "channel": "envHazards"
+        },
+        {
+          "group": "envHazards",
+          "token": "heat_sensitive_danger",
+          "channel": "envHazards"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-ENDO-001",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-NEURO-001",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-AGE-003",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-ENV-003",
+          "shared": [
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-ENV-004",
+          "shared": [
+            "envHazards:heat_extreme_caution"
+          ]
+        },
+        {
+          "other": "AS-PER-004",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger",
+            "envHazards:heat_sensitive_danger"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "ACOG_804",
+          "org": "ACOG",
+          "note": "ACOG Committee Opinion 804 (2020) physical activity in pregnancy/postpartum — absolute+relative contraindications; verify each trigger against the table.",
+          "tier": "obstetric-specialist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-PREG-005",
+      "name": "Postpartum return",
+      "category": "preg",
+      "dimension": "medical",
+      "purpose": "Gradual return; surgical recovery per clinician; pelvic-floor symptoms → review.",
+      "effect": "MODIFY",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_run",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "postpartum",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "activityCategories",
+          "token": "vigorous",
+          "channel": "activity catalog demand match"
+        },
+        {
+          "group": "activityCategories",
+          "token": "impact",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "ACOG_804",
+          "org": "ACOG",
+          "note": "ACOG Committee Opinion 804 (2020) physical activity in pregnancy/postpartum — absolute+relative contraindications; verify each trigger against the table.",
+          "tier": "obstetric-specialist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-PREG-006",
+      "name": "Pregnancy never inferred",
+      "category": "preg",
+      "dimension": "medical",
+      "purpose": "Pregnancy status is a voluntary profile field — never inferred from other data.",
+      "effect": "ALLOW",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "ALLOW",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "__always__",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-CORE-004",
+          "shared": [
+            "profileFlags:__always__"
+          ]
+        },
+        {
+          "other": "AS-PER-005",
+          "shared": [
+            "profileFlags:__always__"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "PRODUCT-POLICY",
+          "org": "internal",
+          "note": "Engineering policy marker — no external clinical claim; still requires reviewer signoff on the policy itself.",
+          "tier": "product+clinical"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": [
+        "always-fires info marker — verify it never escalates a decision"
+      ]
+    },
+    {
+      "ruleId": "AS-NEURO-001",
+      "name": "MS + heat",
+      "category": "neuro",
+      "dimension": "medical",
+      "purpose": "Heat sensitivity with MS — cooling, timing, indoor alternatives.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "conditionKeys",
+          "token": "ms",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "envHazards",
+          "token": "heat_extreme_caution",
+          "channel": "envHazards"
+        },
+        {
+          "group": "envHazards",
+          "token": "heat_danger",
+          "channel": "envHazards"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-ENDO-001",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-PREG-004",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-AGE-003",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-ENV-003",
+          "shared": [
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-ENV-004",
+          "shared": [
+            "envHazards:heat_extreme_caution"
+          ]
+        },
+        {
+          "other": "AS-PER-004",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "NMSS_HEAT",
+          "org": "NMSS",
+          "note": "National MS Society heat-sensitivity guidance (Uhthoff) — temperature thresholds need specialist check.",
+          "tier": "physician/neurology"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-NEURO-002",
+      "name": "Seizure precautions",
+      "category": "neuro",
+      "dimension": "medical",
+      "purpose": "Seizure history — supervision/buddy guidance for water and heights; never prohibit.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "swimming",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "conditionKeys",
+          "token": "seizure",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "activityCategories",
+          "token": "water_immersion",
+          "channel": "activity catalog demand match"
+        },
+        {
+          "group": "activityCategories",
+          "token": "balance_challenging",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "EPILEPSY_EXERCISE",
+          "org": "ILAE/specialist",
+          "note": "Exercise & epilepsy consensus guidance — seizure-trigger precautions; specialist review required.",
+          "tier": "physician/neurology"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-NEURO-003",
+      "name": "Parkinson's / balance impairment",
+      "category": "neuro",
+      "dimension": "medical",
+      "purpose": "Balance impairment — supported/assistive adaptations.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "gentle_mobility",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "conditionKeys",
+          "token": "parkinsons",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "activityCategories",
+          "token": "balance_challenging",
+          "channel": "activity catalog demand match"
+        },
+        {
+          "group": "activityCategories",
+          "token": "impact",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "PARKINSON_EXERCISE",
+          "org": "specialist",
+          "note": "Parkinson disease exercise guidance — balance/gait precautions; specialist review.",
+          "tier": "physician/neurology"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-NEURO-004",
+      "name": "Wheelchair user — evaluate, never default-inactive",
+      "category": "neuro",
+      "dimension": "medical",
+      "purpose": "Evaluate accessible candidates (upper-body/seated/adapted) — never default to no activity.",
+      "effect": "MODIFY",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "wheelchair",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "WHO_PA_2020",
+          "org": "WHO",
+          "note": "WHO 2020 guidelines on physical activity & sedentary behaviour — verify volume framing per population.",
+          "tier": "qualified-exercise-professional"
+        },
+        {
+          "ref": "CDC_PA_ADULTS",
+          "org": "CDC/HHS",
+          "note": "US physical-activity guidelines — general volume framing; verify no over-restriction of appropriate activity.",
+          "tier": "qualified-exercise-professional"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-NEURO-005",
+      "name": "Stroke recovery undocumented",
+      "category": "neuro",
+      "dimension": "medical",
+      "purpose": "Stroke recovery follows the rehab plan; undocumented → review.",
+      "effect": "NEEDS_CLINICAL_REVIEW",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "NEEDS_CLINICAL_REVIEW",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "conditionKeys",
+          "token": "stroke_recovery",
+          "channel": "conditionKeys"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [
+        "rehab_plan"
+      ],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "clinician-doc",
+          "org": "clinician",
+          "note": "Clinician-documented input — rule acts on clinician-entered restriction data.",
+          "tier": "documenting-clinician"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-NEURO-006",
+      "name": "Fall-risk flag",
+      "category": "neuro",
+      "dimension": "medical",
+      "purpose": "Fall risk — environment-aware footing caution.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "fall_risk",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "envHazards",
+          "token": "heavy_precip",
+          "channel": "envHazards"
+        },
+        {
+          "group": "envHazards",
+          "token": "cold_caution",
+          "channel": "envHazards"
+        },
+        {
+          "group": "envHazards",
+          "token": "high_wind",
+          "channel": "envHazards"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-RESP-003",
+          "shared": [
+            "envHazards:cold_caution"
+          ]
+        },
+        {
+          "other": "AS-AGE-002",
+          "shared": [
+            "profileFlags:fall_risk"
+          ]
+        },
+        {
+          "other": "AS-ENV-008",
+          "shared": [
+            "envHazards:cold_caution"
+          ]
+        },
+        {
+          "other": "AS-ENV-012",
+          "shared": [
+            "envHazards:heavy_precip"
+          ]
+        },
+        {
+          "other": "AS-PER-004",
+          "shared": [
+            "envHazards:heavy_precip"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "CDC_STEADI",
+          "org": "CDC",
+          "note": "CDC STEADI fall-risk screening — balance/fall-risk activity precautions for older adults.",
+          "tier": "physician-or-clinical-exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-SYS-001",
+      "name": "Dialysis / fluid restriction",
+      "category": "sys",
+      "dimension": "medical",
+      "purpose": "Fluid restriction documented — no generic hydration targets.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "conditionKeys",
+          "token": "dialysis",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "conditionKeys",
+          "token": "ckd",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "profileFlags",
+          "token": "fluid_restriction",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "NKF_CKD_EXERCISE",
+          "org": "NKF",
+          "note": "National Kidney Foundation exercise guidance for CKD — dialysis-day and access-site precautions.",
+          "tier": "physician/nephrology"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-SYS-002",
+      "name": "Significant anemia",
+      "category": "sys",
+      "dimension": "medical",
+      "purpose": "Documented anemia — follow clinician guidance scope.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_run",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "conditionKeys",
+          "token": "anemia",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "activityCategories",
+          "token": "vigorous",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "clinician-doc",
+          "org": "clinician",
+          "note": "Clinician-documented input — rule acts on clinician-entered restriction data.",
+          "tier": "documenting-clinician"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-SYS-003",
+      "name": "Fever / systemic illness current",
+      "category": "sys",
+      "dimension": "medical",
+      "purpose": "Active systemic illness — defer exertion until recovered.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "NEEDS_CLINICAL_REVIEW",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "symptomCodes",
+          "token": "fever",
+          "channel": "symptomCodes"
+        },
+        {
+          "group": "symptomCodes",
+          "token": "systemic_illness",
+          "channel": "symptomCodes"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-RESP-004",
+          "shared": [
+            "symptomCodes:fever",
+            "symptomCodes:systemic_illness"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "PRODUCT-POLICY",
+          "org": "internal",
+          "note": "Engineering policy marker — no external clinical claim; still requires reviewer signoff on the policy itself.",
+          "tier": "product+clinical"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-SYS-004",
+      "name": "Immunosuppression exposure context",
+      "category": "sys",
+      "dimension": "medical",
+      "purpose": "Immunosuppression — exposure-context caution.",
+      "effect": "MODIFY",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "group_fitness_class",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "conditionKeys",
+          "token": "immunosuppressed",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "activityCategories",
+          "token": "group_indoor",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "clinician-doc",
+          "org": "clinician",
+          "note": "Clinician-documented input — rule acts on clinician-entered restriction data.",
+          "tier": "documenting-clinician"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-SYS-005",
+      "name": "Cancer treatment fatigue",
+      "category": "sys",
+      "dimension": "medical",
+      "purpose": "Treatment-related fatigue — fatigue-adapted options; rest is valid.",
+      "effect": "MODIFY",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "conditionKeys",
+          "token": "cancer_treatment",
+          "channel": "conditionKeys"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "ACSM_CANCER_2019",
+          "org": "ACSM",
+          "note": "ACSM roundtable on exercise for cancer survivors (2019) — fatigue/lymphedema/immunosuppression precautions.",
+          "tier": "physician-or-clinical-exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-REC-001",
+      "name": "Rest preference respected",
+      "category": "rec",
+      "dimension": "personalization",
+      "purpose": "User chose rest — no reframing, no guilt, no calorie compensation.",
+      "effect": "MODIFY",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "rest_requested",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "PRODUCT-POLICY",
+          "org": "internal",
+          "note": "Engineering policy marker — no external clinical claim; still requires reviewer signoff on the policy itself.",
+          "tier": "product+clinical"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-REC-002",
+      "name": "Poor sleep / high fatigue",
+      "category": "rec",
+      "dimension": "personalization",
+      "purpose": "Lighter option offered without obligation.",
+      "effect": "MODIFY",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_run",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "high_fatigue",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "profileFlags",
+          "token": "poor_sleep",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "activityCategories",
+          "token": "vigorous",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "PRODUCT-POLICY",
+          "org": "internal",
+          "note": "Engineering policy marker — no external clinical claim; still requires reviewer signoff on the policy itself.",
+          "tier": "product+clinical"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-REC-003",
+      "name": "Repeated skips + distress",
+      "category": "rec",
+      "dimension": "personalization",
+      "purpose": "Soften suggestions; supportive copy only — never diagnose.",
+      "effect": "MODIFY",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "unsupported_input",
+      "reachability": "unsupported",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "ALLOW",
+        "fired": false
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "distress_signals",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "PRODUCT-POLICY",
+          "org": "internal",
+          "note": "Engineering policy marker — no external clinical claim; still requires reviewer signoff on the policy itself.",
+          "tier": "product+clinical"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "INERT — cannot fire",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": [
+        "UNSUPPORTED_INPUT: no validated collection path — intentionally inactive"
+      ]
+    },
+    {
+      "ruleId": "AS-REC-004",
+      "name": "Compulsive-exercise pattern",
+      "category": "rec",
+      "dimension": "personalization",
+      "purpose": "Unverified pattern flags — soften suggestions; queued for clinical review.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "unsupported_input",
+      "reachability": "unsupported",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "ALLOW",
+        "fired": false
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "compulsive_pattern_flags",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "PRODUCT-POLICY",
+          "org": "internal",
+          "note": "Engineering policy marker — no external clinical claim; still requires reviewer signoff on the policy itself.",
+          "tier": "product+clinical"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "INERT — cannot fire",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": [
+        "UNSUPPORTED_INPUT: no validated collection path — intentionally inactive"
+      ]
+    },
+    {
+      "ruleId": "AS-AGE-001",
+      "name": "Age alone never disqualifies",
+      "category": "age",
+      "dimension": "unknown",
+      "purpose": "Age alone does not disqualify outdoor activity.",
+      "effect": "ALLOW",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "ALLOW",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "age_65_plus",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-AGE-003",
+          "shared": [
+            "profileFlags:age_65_plus"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "HHS_PAG_2018",
+          "org": "HHS",
+          "note": "HHS Physical Activity Guidelines 2nd ed (2018) — general guidance + older-adult balance framing.",
+          "tier": "qualified-exercise-professional"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": [
+        "threshold-bearing — numeric trigger needs specialist signoff vs guidance bands"
+      ]
+    },
+    {
+      "ruleId": "AS-AGE-002",
+      "name": "Frailty/balance flags",
+      "category": "age",
+      "dimension": "unknown",
+      "purpose": "Balance-aware adaptation plus strength emphasis.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "gentle_mobility",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "frailty",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "profileFlags",
+          "token": "fall_risk",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "activityCategories",
+          "token": "balance_challenging",
+          "channel": "activity catalog demand match"
+        },
+        {
+          "group": "activityCategories",
+          "token": "impact",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-NEURO-006",
+          "shared": [
+            "profileFlags:fall_risk"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "HHS_PAG_2018",
+          "org": "HHS",
+          "note": "HHS Physical Activity Guidelines 2nd ed (2018) — general guidance + older-adult balance framing.",
+          "tier": "qualified-exercise-professional"
+        },
+        {
+          "ref": "CDC_STEADI",
+          "org": "CDC",
+          "note": "CDC STEADI fall-risk screening — balance/fall-risk activity precautions for older adults.",
+          "tier": "physician-or-clinical-exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-AGE-003",
+      "name": "Age-flagged reduced heat tolerance",
+      "category": "age",
+      "dimension": "unknown",
+      "purpose": "Reduced heat tolerance — cooler hours/hydration cues.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "age_65_plus",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "envHazards",
+          "token": "heat_extreme_caution",
+          "channel": "envHazards"
+        },
+        {
+          "group": "envHazards",
+          "token": "heat_danger",
+          "channel": "envHazards"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-ENDO-001",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-PREG-004",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-NEURO-001",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-AGE-001",
+          "shared": [
+            "profileFlags:age_65_plus"
+          ]
+        },
+        {
+          "other": "AS-ENV-003",
+          "shared": [
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-ENV-004",
+          "shared": [
+            "envHazards:heat_extreme_caution"
+          ]
+        },
+        {
+          "other": "AS-PER-004",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "CDC_EXTREME_HEAT",
+          "org": "CDC",
+          "note": "CDC extreme-heat guidance — verify apparent-temp thresholds + population exclusions.",
+          "tier": "exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": [
+        "threshold-bearing — numeric trigger needs specialist signoff vs guidance bands"
+      ]
+    },
+    {
+      "ruleId": "AS-AGE-004",
+      "name": "Osteoporosis documented",
+      "category": "age",
+      "dimension": "unknown",
+      "purpose": "Bone-loading precautions per ACSM.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_run",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "conditionKeys",
+          "token": "osteoporosis",
+          "channel": "conditionKeys"
+        },
+        {
+          "group": "activityCategories",
+          "token": "impact",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "ACSM_BONE_2004",
+          "org": "ACSM",
+          "note": "ACSM position stand on physical activity & bone health — osteoporosis loading/fracture-risk framing; verify flexion/rotation restrictions vs current guidance.",
+          "tier": "physician-or-clinical-exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "physician/specialist",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-ENV-001",
+      "name": "Thunderstorm",
+      "category": "env",
+      "dimension": "environmental",
+      "purpose": "Lightning risk — exposed outdoor deferred (NWS).",
+      "effect": "DEFER_OUTDOOR",
+      "severity": "high",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "DEFER_OUTDOOR",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "envHazards",
+          "token": "thunderstorm",
+          "channel": "envHazards"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-PER-004",
+          "shared": [
+            "envHazards:thunderstorm"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "NWS_LIGHTNING",
+          "org": "NWS",
+          "note": "NWS lightning-safety guidance (\"when thunder roars, go indoors\").",
+          "tier": "exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-ENV-002",
+      "name": "Severe alert active",
+      "category": "env",
+      "dimension": "environmental",
+      "purpose": "Active severe-weather alert.",
+      "effect": "DEFER_OUTDOOR",
+      "severity": "high",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "DEFER_OUTDOOR",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "envHazards",
+          "token": "severe_alert",
+          "channel": "envHazards"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "NWS",
+          "org": "NWS",
+          "note": "National Weather Service alert severity semantics.",
+          "tier": "engineering-verified"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-ENV-003",
+      "name": "Heat index danger",
+      "category": "env",
+      "dimension": "environmental",
+      "purpose": "NWS danger band — outdoor exertion deferred.",
+      "effect": "DEFER_OUTDOOR",
+      "severity": "high",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "DEFER_OUTDOOR",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "envHazards",
+          "token": "heat_danger",
+          "channel": "envHazards"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-ENDO-001",
+          "shared": [
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-PREG-004",
+          "shared": [
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-NEURO-001",
+          "shared": [
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-AGE-003",
+          "shared": [
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-PER-004",
+          "shared": [
+            "envHazards:heat_danger"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "NWS_HEAT_INDEX",
+          "org": "NWS",
+          "note": "NWS heat-index bands (caution/extreme caution/danger/extreme danger) — verify mapping.",
+          "tier": "exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-ENV-004",
+      "name": "Extreme-caution heat + flags",
+      "category": "env",
+      "dimension": "environmental",
+      "purpose": "Extreme-caution heat band — cooler hours/shorter/indoor.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "envHazards",
+          "token": "heat_extreme_caution",
+          "channel": "envHazards"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-ENDO-001",
+          "shared": [
+            "envHazards:heat_extreme_caution"
+          ]
+        },
+        {
+          "other": "AS-PREG-004",
+          "shared": [
+            "envHazards:heat_extreme_caution"
+          ]
+        },
+        {
+          "other": "AS-NEURO-001",
+          "shared": [
+            "envHazards:heat_extreme_caution"
+          ]
+        },
+        {
+          "other": "AS-AGE-003",
+          "shared": [
+            "envHazards:heat_extreme_caution"
+          ]
+        },
+        {
+          "other": "AS-PER-004",
+          "shared": [
+            "envHazards:heat_extreme_caution"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "NWS_HEAT_INDEX",
+          "org": "NWS",
+          "note": "NWS heat-index bands (caution/extreme caution/danger/extreme danger) — verify mapping.",
+          "tier": "exercise-physiologist"
+        },
+        {
+          "ref": "CDC_EXTREME_HEAT",
+          "org": "CDC",
+          "note": "CDC extreme-heat guidance — verify apparent-temp thresholds + population exclusions.",
+          "tier": "exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-ENV-005",
+      "name": "AQI ≥201",
+      "category": "env",
+      "dimension": "environmental",
+      "purpose": "Very unhealthy/hazardous AQI — outdoor deferred.",
+      "effect": "DEFER_OUTDOOR",
+      "severity": "high",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "DEFER_OUTDOOR",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "envHazards",
+          "token": "aqi_hazardous",
+          "channel": "envHazards"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-RESP-001",
+          "shared": [
+            "envHazards:aqi_hazardous"
+          ]
+        },
+        {
+          "other": "AS-RESP-002",
+          "shared": [
+            "envHazards:aqi_hazardous"
+          ]
+        },
+        {
+          "other": "AS-RESP-006",
+          "shared": [
+            "envHazards:aqi_hazardous"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "EPA_AQI",
+          "org": "EPA",
+          "note": "US AQI bands (101–150 USG, 151–200 unhealthy, 201+ very unhealthy) + AirNow activity guidance; verify band edges used by environmentService.",
+          "tier": "exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-ENV-006",
+      "name": "AQI 151–200",
+      "category": "env",
+      "dimension": "environmental",
+      "purpose": "Unhealthy AQI — outdoor exertion deferred.",
+      "effect": "DEFER_OUTDOOR",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "DEFER_OUTDOOR",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "envHazards",
+          "token": "aqi_unhealthy",
+          "channel": "envHazards"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-RESP-001",
+          "shared": [
+            "envHazards:aqi_unhealthy"
+          ]
+        },
+        {
+          "other": "AS-RESP-002",
+          "shared": [
+            "envHazards:aqi_unhealthy"
+          ]
+        },
+        {
+          "other": "AS-RESP-006",
+          "shared": [
+            "envHazards:aqi_unhealthy"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "EPA_AQI",
+          "org": "EPA",
+          "note": "US AQI bands (101–150 USG, 151–200 unhealthy, 201+ very unhealthy) + AirNow activity guidance; verify band edges used by environmentService.",
+          "tier": "exercise-physiologist"
+        },
+        {
+          "ref": "EPA_AQ_ACTIVITY",
+          "org": "EPA",
+          "note": "EPA/AirNow activity guidance per AQI band — verify outdoor deferral bands.",
+          "tier": "exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-ENV-007",
+      "name": "AQI USG + sensitive",
+      "category": "env",
+      "dimension": "environmental",
+      "purpose": "USG AQI with sensitivity flags — shorten/lighter/indoor.",
+      "effect": "MODIFY",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "envHazards",
+          "token": "aqi_usg",
+          "channel": "envHazards"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-RESP-001",
+          "shared": [
+            "envHazards:aqi_usg"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "EPA_AQI",
+          "org": "EPA",
+          "note": "US AQI bands (101–150 USG, 151–200 unhealthy, 201+ very unhealthy) + AirNow activity guidance; verify band edges used by environmentService.",
+          "tier": "exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-ENV-008",
+      "name": "Wind chill bands",
+      "category": "env",
+      "dimension": "environmental",
+      "purpose": "Cold exposure bands — frostbite risk precautions.",
+      "effect": "MODIFY",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "DEFER_OUTDOOR",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "envHazards",
+          "token": "cold_danger",
+          "channel": "envHazards"
+        },
+        {
+          "group": "envHazards",
+          "token": "cold_caution",
+          "channel": "envHazards"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-RESP-003",
+          "shared": [
+            "envHazards:cold_caution",
+            "envHazards:cold_danger"
+          ]
+        },
+        {
+          "other": "AS-NEURO-006",
+          "shared": [
+            "envHazards:cold_caution"
+          ]
+        },
+        {
+          "other": "AS-PER-004",
+          "shared": [
+            "envHazards:cold_danger"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "NWS_WINDCHILL",
+          "org": "NWS",
+          "note": "NWS windchill frostbite-time bands — verify threshold mapping.",
+          "tier": "exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-ENV-009",
+      "name": "UV ≥8",
+      "category": "env",
+      "dimension": "environmental",
+      "purpose": "Very high UV — timing/shade guidance.",
+      "effect": "MODIFY",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "envHazards",
+          "token": "uv_extreme",
+          "channel": "envHazards"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "EPA_UV",
+          "org": "EPA",
+          "note": "EPA UV-index exposure guidance.",
+          "tier": "exercise-physiologist"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-ENV-010",
+      "name": "Missing environmental data",
+      "category": "env",
+      "dimension": "environmental",
+      "purpose": "No outdoor-safety claim is made when conditions cannot be verified.",
+      "effect": "INSUFFICIENT_DATA",
+      "severity": "caution",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "INSUFFICIENT_DATA",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "env_unknown",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [
+        "environmental_observation"
+      ],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "PRODUCT-POLICY",
+          "org": "internal",
+          "note": "Engineering policy marker — no external clinical claim; still requires reviewer signoff on the policy itself.",
+          "tier": "product+clinical"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-ENV-011",
+      "name": "Stale observation",
+      "category": "env",
+      "dimension": "environmental",
+      "purpose": "Stale data is never the basis of a safety claim.",
+      "effect": "INSUFFICIENT_DATA",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "INSUFFICIENT_DATA",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "env_stale",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "PRODUCT-POLICY",
+          "org": "internal",
+          "note": "Engineering policy marker — no external clinical claim; still requires reviewer signoff on the policy itself.",
+          "tier": "product+clinical"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-ENV-012",
+      "name": "Ordinary rain",
+      "category": "env",
+      "dimension": "environmental",
+      "purpose": "Rain alone is not a contraindication — caution note only.",
+      "effect": "MODIFY",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "envHazards",
+          "token": "heavy_precip",
+          "channel": "envHazards"
+        },
+        {
+          "group": "activityCategories",
+          "token": "outdoor_exposed",
+          "channel": "activity catalog demand match"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-NEURO-006",
+          "shared": [
+            "envHazards:heavy_precip"
+          ]
+        },
+        {
+          "other": "AS-PER-004",
+          "shared": [
+            "envHazards:heavy_precip"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "PRODUCT-POLICY",
+          "org": "internal",
+          "note": "Engineering policy marker — no external clinical claim; still requires reviewer signoff on the policy itself.",
+          "tier": "product+clinical"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-PER-001",
+      "name": "Preference rank-boost",
+      "category": "per",
+      "dimension": "personalization",
+      "purpose": "Preference-matched eligible activities rank first.",
+      "effect": "ALLOW",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "ALLOW",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "preference_match",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "PRODUCT-POLICY",
+          "org": "internal",
+          "note": "Engineering policy marker — no external clinical claim; still requires reviewer signoff on the policy itself.",
+          "tier": "product+clinical"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-PER-002",
+      "name": "Planned workout + adverse conditions",
+      "category": "per",
+      "dimension": "personalization",
+      "purpose": "Offer indoor/timing alternative while keeping the plan the user's choice.",
+      "effect": "MODIFY",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "workout_planned",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        },
+        {
+          "group": "envHazards",
+          "token": "__any__",
+          "channel": "envHazards"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "PRODUCT-POLICY",
+          "org": "internal",
+          "note": "Engineering policy marker — no external clinical claim; still requires reviewer signoff on the policy itself.",
+          "tier": "product+clinical"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-PER-003",
+      "name": "Rest day suppresses suggestions",
+      "category": "per",
+      "dimension": "personalization",
+      "purpose": "Rest day — suggestions suppressed entirely.",
+      "effect": "MODIFY",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "MODIFY",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "rest_day",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [],
+      "guidance": [
+        {
+          "ref": "PRODUCT-POLICY",
+          "org": "internal",
+          "note": "Engineering policy marker — no external clinical claim; still requires reviewer signoff on the policy itself.",
+          "tier": "product+clinical"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-PER-004",
+      "name": "Forecast better-time offer",
+      "category": "per",
+      "dimension": "personalization",
+      "purpose": "Offer a time-shift only when forecast data supports it.",
+      "effect": "MODIFY",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "outdoor_walk",
+        "decision": "DEFER_OUTDOOR",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "envHazards",
+          "token": "heat_danger",
+          "channel": "envHazards"
+        },
+        {
+          "group": "envHazards",
+          "token": "heat_extreme_caution",
+          "channel": "envHazards"
+        },
+        {
+          "group": "envHazards",
+          "token": "heat_sensitive_danger",
+          "channel": "envHazards"
+        },
+        {
+          "group": "envHazards",
+          "token": "thunderstorm",
+          "channel": "envHazards"
+        },
+        {
+          "group": "envHazards",
+          "token": "heavy_precip",
+          "channel": "envHazards"
+        },
+        {
+          "group": "envHazards",
+          "token": "cold_danger",
+          "channel": "envHazards"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-RESP-003",
+          "shared": [
+            "envHazards:cold_danger"
+          ]
+        },
+        {
+          "other": "AS-ENDO-001",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-PREG-004",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger",
+            "envHazards:heat_sensitive_danger"
+          ]
+        },
+        {
+          "other": "AS-NEURO-001",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-NEURO-006",
+          "shared": [
+            "envHazards:heavy_precip"
+          ]
+        },
+        {
+          "other": "AS-AGE-003",
+          "shared": [
+            "envHazards:heat_extreme_caution",
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-ENV-001",
+          "shared": [
+            "envHazards:thunderstorm"
+          ]
+        },
+        {
+          "other": "AS-ENV-003",
+          "shared": [
+            "envHazards:heat_danger"
+          ]
+        },
+        {
+          "other": "AS-ENV-004",
+          "shared": [
+            "envHazards:heat_extreme_caution"
+          ]
+        },
+        {
+          "other": "AS-ENV-008",
+          "shared": [
+            "envHazards:cold_danger"
+          ]
+        },
+        {
+          "other": "AS-ENV-012",
+          "shared": [
+            "envHazards:heavy_precip"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "PRODUCT-POLICY",
+          "org": "internal",
+          "note": "Engineering policy marker — no external clinical claim; still requires reviewer signoff on the policy itself.",
+          "tier": "product+clinical"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": []
+    },
+    {
+      "ruleId": "AS-PER-005",
+      "name": "No calorie-compensation framing",
+      "category": "per",
+      "dimension": "personalization",
+      "purpose": "No suggestion is framed as food compensation.",
+      "effect": "ALLOW",
+      "severity": "info",
+      "reviewStatus": "DRAFT",
+      "inputStatus": "supported",
+      "reachability": "reachable",
+      "executableExample": {
+        "activityId": "seated_movement",
+        "decision": "ALLOW",
+        "fired": true
+      },
+      "triggers": [
+        {
+          "group": "profileFlags",
+          "token": "__always__",
+          "channel": "derived flags (conditions/pregnancy/age/wheelchair/med-flags) + caller flags"
+        }
+      ],
+      "exclusions": {},
+      "requiredData": [],
+      "missingDataBehavior": "conservative",
+      "coFiringRules": [
+        {
+          "other": "AS-CORE-004",
+          "shared": [
+            "profileFlags:__always__"
+          ]
+        },
+        {
+          "other": "AS-PREG-006",
+          "shared": [
+            "profileFlags:__always__"
+          ]
+        }
+      ],
+      "guidance": [
+        {
+          "ref": "PRODUCT-POLICY",
+          "org": "internal",
+          "note": "Engineering policy marker — no external clinical claim; still requires reviewer signoff on the policy itself.",
+          "tier": "product+clinical"
+        }
+      ],
+      "falsePositiveRisk": "low",
+      "falseNegativeRisk": "low",
+      "reviewerTier": "qualified-exercise-professional",
+      "flags": [
+        "always-fires info marker — verify it never escalates a decision"
+      ]
+    }
+  ]
+}
