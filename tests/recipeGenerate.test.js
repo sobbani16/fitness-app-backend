@@ -12,6 +12,7 @@ jest.mock('../src/lib/prisma', () => { const db = {
   ingredientCatalog: { findMany: jest.fn() },
   recipe: { findMany: jest.fn(async () => []) },
   ingredientAttribute: { findMany: jest.fn(async () => []) },
+  safetyAuditLog: { create: jest.fn(async () => ({})) },
 }; return { getPrisma: () => db }; });
 
 const request = require('supertest');
@@ -72,6 +73,15 @@ describe('generateRecipes', () => {
     expect(out.candidates[0].nutrition.perServing.calories).toBeGreaterThan(0);
     expect(out.candidates[0].provenance.source).toBe('ai_generated');
     expect(askJSON).toHaveBeenCalledTimes(1);
+    // Validation decisions are audited (privacy-conscious: status/ruleIds only)
+    // and counted in metrics.
+    expect(prisma.safetyAuditLog.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ checkType: 'recipe_validation', passed: true, userId: 'u1' }),
+    }));
+    const snap = require('../src/services/recipes/metrics').snapshot();
+    expect(snap.counters['generate.attempt']).toBeGreaterThan(0);
+    expect(snap.counters['validate.status.PASS']).toBeGreaterThan(0);
+    expect(snap.counters['generate.outcome.ok']).toBeGreaterThan(0);
   });
 
   test('allergic user: AI-proposed allergen is rejected, clean sibling survives', async () => {

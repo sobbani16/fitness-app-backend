@@ -136,7 +136,8 @@ router.post('/:id/customize', require('../middleware/requireFeature').requireFea
     const { computeFromLines } = require('../services/recipeImport');
     const { askJSON } = require('../services/aiProvider');
     const { loadConstraints, hasTerm, violatesHard } = require('../services/recipes/constraints');
-    const { validateGeneratedRecipe } = require('../services/recipes/validate');
+    const { validateGeneratedRecipe, recordValidation } = require('../services/recipes/validate');
+    const metrics = require('../services/recipes/metrics');
 
     const recipe = await db.recipe.findFirst({
       where: { id: req.params.id, reviewStatus: { not: 'REJECTED' }, OR: [{ isSystem: true }, { creatorId: String(userId) }] },
@@ -274,6 +275,8 @@ router.post('/:id/customize', require('../middleware/requireFeature').requireFea
       if (v.severity === 'warn') warnings.push(v.reason);
       else warnings.push(`${v.ruleId}: ${v.reason}`);
     }
+    metrics.inc(`customize.validate.${validation.status}`);
+    recordValidation(db, { userId, input: { name: `${recipe.recipeName} (customized)` }, validation });
 
     // Safety: if a swap introduced a user allergen via recipe-level allergen
     // list, warn explicitly (declared allergens, not a guarantee).

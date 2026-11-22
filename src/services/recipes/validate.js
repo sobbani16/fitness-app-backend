@@ -310,4 +310,33 @@ async function validateGeneratedRecipe(recipe, constraints, ctx = {}) {
   }
 }
 
-module.exports = { validateGeneratedRecipe, VALIDATOR_VERSION, SAFETY_RULES, loadCatalog };
+/**
+ * Persist a validation outcome to SafetyAuditLog (checkType
+ * 'recipe_validation'). Privacy-conscious: stores status, ruleIds, and
+ * versions — never constraint details, profile data, or ingredient lists.
+ * Fire-and-forget by contract: audit failure must never break a request.
+ */
+async function recordValidation(prisma, { userId, input, validation }) {
+  try {
+    if (!userId || !validation) return;
+    await prisma.safetyAuditLog.create({
+      data: {
+        userId: String(userId),
+        checkType: 'recipe_validation',
+        input: {
+          candidate: typeof input === 'string' ? input : input?.name || null,
+          constraintVersion: validation.constraintVersion,
+          validatorVersion: validation.validatorVersion,
+        },
+        result: {
+          status: validation.status,
+          ruleIds: validation.violations.map((v) => v.ruleId),
+          violations: validation.violations.slice(0, 20).map((v) => ({ ruleId: v.ruleId, stage: v.stage, severity: v.severity })),
+        },
+        passed: validation.status === 'PASS',
+      },
+    });
+  } catch { /* audit write failure is non-fatal by design */ }
+}
+
+module.exports = { validateGeneratedRecipe, VALIDATOR_VERSION, SAFETY_RULES, loadCatalog, recordValidation };

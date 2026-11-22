@@ -10,6 +10,7 @@ jest.mock('../src/lib/prisma', () => { const db = {
   macroGoal: { findUnique: jest.fn(async () => null) },
   ingredientCatalog: { findMany: jest.fn() },
   ingredientAttribute: { findMany: jest.fn(async () => []) },
+  safetyAuditLog: { create: jest.fn(async () => ({})) },
 }; return { getPrisma: () => db }; });
 
 const { getPrisma } = require('../src/lib/prisma');

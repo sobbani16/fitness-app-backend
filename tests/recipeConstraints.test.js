@@ -12,6 +12,7 @@ jest.mock('../src/lib/prisma', () => { const db = {
   ingredientCatalog: { findMany: jest.fn() },
   recipe: { findMany: jest.fn(), findFirst: jest.fn() },
   ingredientAttribute: { findMany: jest.fn() },
+  safetyAuditLog: { create: jest.fn(async () => ({})) },
 }; return { getPrisma: () => db }; });
 
 const request = require('supertest');

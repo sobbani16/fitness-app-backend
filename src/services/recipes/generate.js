@@ -18,8 +18,9 @@ const { getPrisma } = require('../../lib/prisma');
 const { normalize } = require('../ingredientCsv');
 const { askJSON } = require('../aiProvider');
 const { loadConstraints } = require('./constraints');
-const { validateGeneratedRecipe, loadCatalog } = require('./validate');
+const { validateGeneratedRecipe, loadCatalog, recordValidation } = require('./validate');
 const { matchIngredients } = require('../recipeMatch');
+const metrics = require('./metrics');
 
 const GENERATOR_VERSION = 'recipe-generator-v1';
 const MAX_CANDIDATES = 3;
@@ -107,6 +108,9 @@ async function validateAll(candidates, constraints, ctx) {
   const rejected = [];
   for (const cand of (candidates || []).slice(0, MAX_CANDIDATES)) {
     const validation = await validateGeneratedRecipe(cand, constraints, ctx);
+    metrics.inc(`validate.status.${validation.status}`);
+    for (const v of validation.violations) metrics.inc(`validate.rule.${v.ruleId}`);
+    await recordValidation(ctx.prisma, { userId: ctx.userId, input: { name: cand?.name }, validation });
     if (usableStatus(validation)) {
       usable.push({ candidate: cand, validation });
     } else {
@@ -140,9 +144,10 @@ async function generateRecipes({
   limit = MAX_CANDIDATES,
 }) {
   const prisma = getPrisma();
+  metrics.inc('generate.attempt');
   const constraints = await loadConstraints(userId, { allergies, diet, exclusions, equipment, cuisine, maxPrepMinutes, servings });
   const catalog = await loadCatalog(prisma);
-  const ctx = { prisma, catalog };
+  const ctx = { prisma, catalog, userId };
 
   // Resolve available inputs against the catalog (same name/alias matching as
   // matching) — unresolved names go into the prompt as unavailable-context so
@@ -179,6 +184,7 @@ async function generateRecipes({
     out = await callProvider(userId, promptText);
   } catch (e) {
     meta.providerError = { status: e.status || 500 };
+    metrics.inc(`generate.provider_error.${e.status || 500}`);
     out = null;
   }
 
@@ -191,6 +197,7 @@ async function generateRecipes({
   // than once.
   if (!usable.length && rejected.length && meta.providerCalls <= MAX_RETRIES && !meta.providerError) {
     meta.retries++;
+    metrics.inc('generate.retry');
     meta.providerCalls++;
     const correction = `${promptText}\n\nPREVIOUS ATTEMPT FAILED DETERMINISTIC VALIDATION.\nFailed rules: ${rejected.flatMap((r) => r.ruleIds).slice(0, 10).join(', ')}.\nReasons: ${rejected.flatMap((r) => (r.violations || []).map((x) => x.reason)).slice(0, 6).join(' | ')}.\nCorrect the recipes to satisfy these rules — do not drop user constraints.`;
     try {
@@ -215,12 +222,14 @@ async function generateRecipes({
       });
       fallback = matched.results.filter((r) => r.recipe.verificationLevel === 'VERIFIED' && r.status !== 'partial')
         .map((r) => ({ recipe: r.recipe, status: r.status, missingRequired: r.missingRequired, source: 'verified_fallback' }));
+      if (fallback.length) metrics.inc('generate.fallback_hit');
     } catch { /* fallback failure must not mask the primary outcome */ }
   }
 
   const status = usable.length
     ? (usable.every((u) => u.validation.status === 'PASS') ? 'ok' : 'needs_review')
     : fallback.length ? 'ok' : 'no_eligible_recipe';
+  metrics.inc(`generate.outcome.${status}`);
 
   return {
     status,

@@ -82,6 +82,28 @@ router.get('/analytics', requirePermission('VIEW_PLATFORM_ANALYTICS'), async (re
 // GET /admin/feature-flags — registry + provider diagnostics (read-only).
 // Runtime overrides are managed in PostHog / env vars by design; this view
 // exists so reviewers can see flag state without console access.
+// GET /admin/recipe-intelligence/metrics — privacy-conscious counters only.
+router.get('/recipe-intelligence/metrics', requirePermission('VIEW_PLATFORM_ANALYTICS'), async (req, res) => {
+  try {
+    res.json(require('../services/recipes/metrics').snapshot());
+  } catch (err) { fail(res, err); }
+});
+
+// GET /admin/recipe-intelligence/validation-log — recent validation decisions
+// (status/ruleIds/versions; no health data or ingredient payloads).
+router.get('/recipe-intelligence/validation-log', requirePermission('VIEW_PLATFORM_ANALYTICS'), async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const rows = await prisma.safetyAuditLog.findMany({
+      where: { checkType: 'recipe_validation' },
+      orderBy: { createdAt: 'desc' },
+      take: Math.min(200, Math.max(1, Number(req.query.take) || 50)),
+      select: { id: true, userId: true, input: true, result: true, passed: true, createdAt: true },
+    });
+    res.json({ rows });
+  } catch (err) { fail(res, err); }
+});
+
 router.get('/feature-flags', requirePermission('MANAGE_FEATURE_FLAGS'), async (req, res) => {
   try {
     const { FEATURES } = require('../config/featureRegistry');
