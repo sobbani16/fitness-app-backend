@@ -116,6 +116,7 @@ router.use('/me/nutrition-plans', myNutritionPlans);
 router.use('/trainer/schedule', trainerSchedule);
 // notifications before myBookings: its router-level requireFeature would shadow them.
 router.use('/me/notifications', notifications);
+router.use('/me/allergies', require('./allergies'));
 router.use('/me', myBookings);
 // Paid-coaching gated router LAST under /me — only entitlements/purchases hit it.
 router.use('/me', myPurchases);
