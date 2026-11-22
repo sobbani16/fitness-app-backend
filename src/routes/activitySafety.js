@@ -10,7 +10,7 @@ const uid = req => req.userId || getUserId(req);
 const { requireFeature } = require('../middleware/requireFeature');
 const safety = require('../services/activitySafety');
 const { fetchEnvironment, markStale } = require('../services/environmentService');
-const { SYMPTOMS_URGENT } = require('../services/activitySafety/constants');
+const { SYMPTOMS_URGENT, ACTIVITY_CATEGORIES } = require('../services/activitySafety/constants');
 const { invalidateSafetyAdvice } = require('../services/activitySafety/recommendationSafety');
 
 const router = express.Router();
@@ -249,6 +249,21 @@ router.delete('/injuries/:id', requireFeature('activity_safety_engine'), async (
   } catch (err) { res.status(500).json({ error: 'injury_delete_failed', detail: err.message }); }
 });
 
+// GET /activity-safety/symptoms — list the caller's own symptom reports
+// (mobile symptom history). Owner-scoped; newest first; capped.
+router.get('/symptoms', requireFeature('activity_safety_engine'), async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const rows = await prisma.userSymptomReport.findMany({
+      where: { userId: uid(req) },
+      orderBy: { reportedAt: 'desc' },
+      take: Math.min(Number(req.query.limit) || 90, 200),
+      select: { id: true, symptoms: true, severity: true, context: true, persistence: true, status: true, source: true, reportedAt: true },
+    });
+    res.json({ reports: rows });
+  } catch (err) { res.status(500).json({ error: 'symptom_list_failed', detail: err.message }); }
+});
+
 router.delete('/symptoms/:id', requireFeature('activity_safety_engine'), async (req, res) => {
   try {
     const prisma = getPrisma();
@@ -257,6 +272,30 @@ router.delete('/symptoms/:id', requireFeature('activity_safety_engine'), async (
     await invalidateSafetyAdvice(prisma, uid(req), 'symptom_deleted').catch(() => null);
     res.json({ deleted: true });
   } catch (err) { res.status(500).json({ error: 'symptom_delete_failed', detail: err.message }); }
+});
+
+// PATCH /activity-safety/symptoms/:id — owner-scoped correction of an existing
+// report (severity, context, persistence, notes, or symptom codes). Immutable:
+// reportedAt + userId. Edits re-trigger safety-advice invalidation.
+router.patch('/symptoms/:id', requireFeature('activity_safety_engine'), async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const b = body(req);
+    const data = {};
+    if (b.symptoms !== undefined) {
+      const codes = (Array.isArray(b.symptoms) ? b.symptoms : []).map(s => String(s).toLowerCase().trim()).filter(Boolean);
+      if (!codes.length) return res.status(400).json({ error: 'symptoms must be a non-empty code list when provided' });
+      data.symptoms = codes;
+    }
+    if (b.severity !== undefined) data.severity = ['mild', 'moderate', 'severe'].includes(b.severity) ? b.severity : null;
+    if (b.context !== undefined) data.context = ['at_rest', 'during_activity', 'after_activity', 'unspecified'].includes(b.context) ? b.context : 'unspecified';
+    if (b.persistence !== undefined) data.persistence = ['resolving', 'persistent', 'worsening'].includes(b.persistence) ? b.persistence : null;
+    if (!Object.keys(data).length) return res.status(400).json({ error: 'no editable fields provided' });
+    const row = await prisma.userSymptomReport.updateMany({ where: { id: req.params.id, userId: uid(req) }, data });
+    if (!row.count) return res.status(404).json({ error: 'not_found' });
+    await invalidateSafetyAdvice(prisma, uid(req), 'symptom_updated').catch(() => null);
+    res.json({ updated: true });
+  } catch (err) { res.status(500).json({ error: 'symptom_update_failed', detail: err.message }); }
 });
 
 router.delete('/restrictions/:id', requireFeature('activity_safety_engine'), async (req, res) => {
@@ -289,18 +328,87 @@ router.delete('/feedback/:id', requireFeature('activity_safety_engine'), async (
 
 // PATCH /activity-safety/injuries/:id — update status (e.g., recovering/resolved)
 // or reassessment date. Explicitly never auto-resolved by elapsed time.
+// PATCH /activity-safety/injuries/:id — owner-scoped correction of a
+// self-reported injury. Unknown fields are rejected (400) rather than silently
+// ignored so clients can't believe a safety-relevant change took effect when
+// it didn't. Clinician-documented restriction fields are locked for self-edits:
+// overriding them requires a clinician-documented update flow, not a PATCH.
+const INJURY_TYPES = new Set(['sprain','fracture','strain','tendinopathy','dislocation','contusion','post_surgical','undiagnosed_pain','other']);
+const INJURY_STATUSES = new Set(['current','recovering','resolved']);
+const INJURY_LATERALITY = new Set(['left','right','bilateral','na']);
+const WB_RESTRICTIONS = new Set(['non_weight_bearing','partial','as_tolerated','full']);
+const INJURY_EDITABLE = new Set(['status','type','laterality','painLevel','weightBearingRestriction','rangeOfMotionRestriction','prohibitedCategories','rehabInstructions','notes','expectedReassessmentAt','clearanceRecordedAt','clearanceNote']);
+const CLINICIAN_LOCKED = new Set(['weightBearingRestriction','rangeOfMotionRestriction','prohibitedCategories','clearanceRecordedAt','clearanceNote']);
+
 router.patch('/injuries/:id', requireFeature('activity_safety_engine'), async (req, res) => {
   try {
     const prisma = getPrisma();
     const b = body(req);
+    const keys = Object.keys(b);
+    const unsupported = keys.filter(k => !INJURY_EDITABLE.has(k));
+    if (unsupported.length) return res.status(400).json({ error: 'unsupported_fields', unsupported, editable: [...INJURY_EDITABLE] });
+
+    const bad = (field, detail) => res.status(400).json({ error: 'invalid_field', field, detail });
     const data = {};
-    if (['current', 'recovering', 'resolved'].includes(b.status)) data.status = b.status;
-    if (b.weightBearingRestriction != null) data.weightBearingRestriction = String(b.weightBearingRestriction);
-    if (b.expectedReassessmentAt) data.expectedReassessmentAt = new Date(b.expectedReassessmentAt);
-    if (b.clearanceRecordedAt && b.clearanceNote) {
-      data.clearanceRecordedAt = new Date(b.clearanceRecordedAt);
+    if (b.status !== undefined) {
+      if (!INJURY_STATUSES.has(b.status)) return bad('status', 'must be one of current|recovering|resolved');
+      data.status = b.status;
+      data.resolvedAt = b.status === 'resolved' ? new Date() : null;
+    }
+    if (b.type !== undefined) {
+      if (!INJURY_TYPES.has(b.type)) return bad('type', 'unrecognized injury type');
+      data.type = b.type;
+    }
+    if (b.laterality !== undefined) {
+      if (!INJURY_LATERALITY.has(b.laterality)) return bad('laterality', 'must be one of left|right|bilateral|na');
+      data.laterality = b.laterality;
+    }
+    if (b.painLevel !== undefined) {
+      const p = num(b.painLevel);
+      if (b.painLevel !== null && (p === null || p < 0 || p > 10 || !Number.isInteger(p))) return bad('painLevel', 'must be an integer 0-10 or null');
+      data.painLevel = p;
+    }
+    if (b.weightBearingRestriction !== undefined) {
+      if (b.weightBearingRestriction !== null && !WB_RESTRICTIONS.has(b.weightBearingRestriction)) return bad('weightBearingRestriction', 'must be one of non_weight_bearing|partial|as_tolerated|full or null');
+      data.weightBearingRestriction = b.weightBearingRestriction;
+    }
+    if (b.rangeOfMotionRestriction !== undefined) {
+      if (b.rangeOfMotionRestriction !== null && typeof b.rangeOfMotionRestriction !== 'string') return bad('rangeOfMotionRestriction', 'must be a string or null');
+      data.rangeOfMotionRestriction = b.rangeOfMotionRestriction === null ? null : String(b.rangeOfMotionRestriction).slice(0, 200);
+    }
+    if (b.prohibitedCategories !== undefined) {
+      if (!Array.isArray(b.prohibitedCategories)) return bad('prohibitedCategories', 'must be an array of activity category keys');
+      const cats = b.prohibitedCategories.map(c => String(c));
+      const invalidCats = cats.filter(c => !Object.values(ACTIVITY_CATEGORIES).includes(c));
+      if (invalidCats.length) return bad('prohibitedCategories', `unknown categories: ${invalidCats.join(', ')}`);
+      data.prohibitedCategories = cats;
+    }
+    const notes = b.rehabInstructions !== undefined ? b.rehabInstructions : b.notes;
+    if (notes !== undefined) {
+      if (notes !== null && typeof notes !== 'string') return bad('rehabInstructions', 'must be a string or null');
+      data.rehabInstructions = notes === null ? null : String(notes).slice(0, 1000);
+    }
+    if (b.expectedReassessmentAt !== undefined) {
+      const d = b.expectedReassessmentAt === null ? null : new Date(b.expectedReassessmentAt);
+      if (b.expectedReassessmentAt !== null && Number.isNaN(d.getTime())) return bad('expectedReassessmentAt', 'must be an ISO date or null');
+      data.expectedReassessmentAt = d;
+    }
+    if (b.clearanceRecordedAt !== undefined || b.clearanceNote !== undefined) {
+      if (!b.clearanceRecordedAt || !b.clearanceNote) return bad('clearance', 'clearanceRecordedAt and clearanceNote must be provided together');
+      const d = new Date(b.clearanceRecordedAt);
+      if (Number.isNaN(d.getTime())) return bad('clearanceRecordedAt', 'must be an ISO date');
+      data.clearanceRecordedAt = d;
       data.clearanceNote = String(b.clearanceNote).slice(0, 500);
     }
+    if (!Object.keys(data).length) return res.status(400).json({ error: 'no_editable_fields', editable: [...INJURY_EDITABLE] });
+
+    const existing = await prisma.userInjury.findFirst({ where: { id: req.params.id, userId: uid(req) }, select: { source: true } });
+    if (!existing) return res.status(404).json({ error: 'not_found' });
+    if (existing.source === 'clinician_documented') {
+      const locked = keys.filter(k => CLINICIAN_LOCKED.has(k) && b[k] !== undefined);
+      if (locked.length) return res.status(409).json({ error: 'clinician_fields_locked', locked, detail: 'These restriction fields were recorded from clinician guidance and cannot be changed by self-report. Ask your clinician for an updated note.' });
+    }
+
     const row = await prisma.userInjury.updateMany({ where: { id: req.params.id, userId: uid(req) }, data });
     if (!row.count) return res.status(404).json({ error: 'not_found' });
     await invalidateSafetyAdvice(prisma, uid(req), 'injury_updated').catch(() => null);

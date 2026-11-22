@@ -10,6 +10,7 @@ const mockPrisma = {
   userActivityProfile: { findUnique: jest.fn(async () => null) },
   userInjury: {
     findMany: jest.fn(async () => []),
+    findFirst: jest.fn(async () => ({ source: 'self_reported' })),
     create: jest.fn(async ({ data }) => ({ id: 'inj-1', ...data })),
     updateMany: jest.fn(async () => ({ count: 1 })),
   },
@@ -18,6 +19,8 @@ const mockPrisma = {
   userSymptomReport: {
     findMany: jest.fn(async () => []),
     create: jest.fn(async ({ data }) => ({ id: 'sym-1', ...data })),
+    updateMany: jest.fn(async () => ({ count: 1 })),
+    deleteMany: jest.fn(async () => ({ count: 1 })),
   },
   userHealthCondition: { findMany: jest.fn(async () => []) },
   activitySafetyRule: { findMany: jest.fn(async () => []) }, // APPROVED set empty
@@ -34,10 +37,11 @@ jest.mock('../src/services/environmentService', () => ({
 const app = require('../src/app');
 const setFlag = (k, v) => { process.env[envOverrideName(k)] = v; flags.resetCache(); };
 
+const GATED_KEYS = ['activity_safety_engine', 'health_aware_recommendations', 'weather_intelligence_v2', 'activity_safety_shadow_mode'];
+
 beforeEach(() => {
   jest.clearAllMocks();
-  ['activity_safety_engine', 'health_aware_recommendations', 'weather_intelligence_v2', 'activity_safety_shadow_mode']
-    .forEach(k => setFlag(k, 'true'));
+  GATED_KEYS.forEach(k => setFlag(k, 'true'));
 });
 
 describe('flag gating', () => {
@@ -83,6 +87,65 @@ describe('POST /activity-safety/symptoms', () => {
   test('empty symptoms → 400', async () => {
     const res = await request(app).post('/activity-safety/symptoms').set('x-user-id', 'u1').send({ symptoms: [] });
     expect(res.status).toBe(400);
+  });
+});
+
+describe('GET /activity-safety/symptoms', () => {
+  test('lists only the caller\'s reports, newest first, capped', async () => {
+    mockPrisma.userSymptomReport.findMany.mockResolvedValueOnce([{ id: 's1', symptoms: ['dizziness'], reportedAt: '2026-11-20T10:00:00Z' }]);
+    const res = await request(app).get('/activity-safety/symptoms').set('x-user-id', 'u1');
+    expect(res.status).toBe(200);
+    expect(res.body.reports).toHaveLength(1);
+    expect(mockPrisma.userSymptomReport.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { userId: 'u1' },
+      orderBy: { reportedAt: 'desc' },
+      take: 90,
+    }));
+  });
+});
+
+describe('PATCH /activity-safety/symptoms/:id', () => {
+  test('owner-scoped update of editable fields', async () => {
+    const res = await request(app).patch('/activity-safety/symptoms/s1').set('x-user-id', 'u1')
+      .send({ severity: 'moderate', persistence: 'persistent' });
+    expect(res.status).toBe(200);
+    expect(res.body.updated).toBe(true);
+    expect(mockPrisma.userSymptomReport.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 's1', userId: 'u1' },
+      data: expect.objectContaining({ severity: 'moderate', persistence: 'persistent' }),
+    }));
+    // reportedAt/userId are immutable — never in the update payload
+    const data = mockPrisma.userSymptomReport.updateMany.mock.calls[0][0].data;
+    expect(data.reportedAt).toBeUndefined();
+    expect(data.userId).toBeUndefined();
+  });
+
+  test('symptom codes editable; empty list rejected; invalid enum dropped', async () => {
+    const res = await request(app).patch('/activity-safety/symptoms/s1').set('x-user-id', 'u1')
+      .send({ symptoms: ['dizziness', 'nausea'], severity: 'bogus' });
+    expect(res.status).toBe(200);
+    const data = mockPrisma.userSymptomReport.updateMany.mock.calls[0][0].data;
+    expect(data.symptoms).toEqual(['dizziness', 'nausea']);
+    expect(data.severity).toBeNull();
+
+    const bad = await request(app).patch('/activity-safety/symptoms/s1').set('x-user-id', 'u1').send({ symptoms: [] });
+    expect(bad.status).toBe(400);
+    const empty = await request(app).patch('/activity-safety/symptoms/s1').set('x-user-id', 'u1').send({});
+    expect(empty.status).toBe(400);
+  });
+
+  test('404 on nonexistent/cross-user record', async () => {
+    mockPrisma.userSymptomReport.updateMany.mockResolvedValueOnce({ count: 0 });
+    const res = await request(app).patch('/activity-safety/symptoms/sX').set('x-user-id', 'u2').send({ severity: 'mild' });
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('DELETE /activity-safety/symptoms/:id', () => {
+  test('owner-scoped delete', async () => {
+    const res = await request(app).delete('/activity-safety/symptoms/s1').set('x-user-id', 'u1');
+    expect(res.status).toBe(200);
+    expect(mockPrisma.userSymptomReport.deleteMany).toHaveBeenCalledWith({ where: { id: 's1', userId: 'u1' } });
   });
 });
 
@@ -181,4 +244,82 @@ describe('POST /activity-safety/feedback + GET profile + PATCH injury', () => {
       where: { id: 'inj-1', userId: 'u1' }, data: expect.objectContaining({ status: 'recovering' }),
     }));
   });
+});
+
+describe('PATCH /activity-safety/injuries/:id — validation and clinician lock', () => {
+  test('unknown fields → 400 unsupported_fields, nothing written', async () => {
+    const res = await request(app).patch('/activity-safety/injuries/inj-1').set('x-user-id', 'u1').send({ severity: 'severe', hacker: true });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('unsupported_fields');
+    expect(res.body.unsupported).toEqual(expect.arrayContaining(['severity', 'hacker']));
+    expect(mockPrisma.userInjury.updateMany).not.toHaveBeenCalled();
+  });
+  test('empty body → 400 no_editable_fields', async () => {
+    const res = await request(app).patch('/activity-safety/injuries/inj-1').set('x-user-id', 'u1').send({});
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('no_editable_fields');
+  });
+  test('invalid enum values → 400 invalid_field', async () => {
+    for (const [field, value] of [['status', 'kinda-better'], ['type', 'vibes'], ['laterality', 'middle'], ['weightBearingRestriction', 'sometimes']]) {
+      const res = await request(app).patch('/activity-safety/injuries/inj-1').set('x-user-id', 'u1').send({ [field]: value });
+      expect(res.status).toBe(400);
+      expect(res.body.field).toBe(field);
+    }
+    expect(mockPrisma.userInjury.updateMany).not.toHaveBeenCalled();
+  });
+  test('painLevel out of range / non-integer → 400', async () => {
+    for (const v of [11, -1, 4.5, 'ouch']) {
+      const res = await request(app).patch('/activity-safety/injuries/inj-1').set('x-user-id', 'u1').send({ painLevel: v });
+      expect(res.status).toBe(400);
+      expect(res.body.field).toBe('painLevel');
+    }
+    const ok = await request(app).patch('/activity-safety/injuries/inj-1').set('x-user-id', 'u1').send({ painLevel: 7 });
+    expect(ok.status).toBe(200);
+  });
+  test('prohibitedCategories validates against activity taxonomy', async () => {
+    const bad = await request(app).patch('/activity-safety/injuries/inj-1').set('x-user-id', 'u1').send({ prohibitedCategories: ['made_up_cat'] });
+    expect(bad.status).toBe(400);
+    const ok = await request(app).patch('/activity-safety/injuries/inj-1').set('x-user-id', 'u1').send({ prohibitedCategories: ['impact', 'weight_bearing_lower'] });
+    expect(ok.status).toBe(200);
+    expect(mockPrisma.userInjury.updateMany).toHaveBeenLastCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ prohibitedCategories: ['impact', 'weight_bearing_lower'] }),
+    }));
+  });
+  test('resolved status stamps resolvedAt; recovering clears it', async () => {
+    await request(app).patch('/activity-safety/injuries/inj-1').set('x-user-id', 'u1').send({ status: 'resolved' });
+    expect(mockPrisma.userInjury.updateMany).toHaveBeenLastCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ status: 'resolved', resolvedAt: expect.any(Date) }),
+    }));
+    await request(app).patch('/activity-safety/injuries/inj-1').set('x-user-id', 'u1').send({ status: 'current' });
+    expect(mockPrisma.userInjury.updateMany).toHaveBeenLastCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ status: 'current', resolvedAt: null }),
+    }));
+  });
+  test('clearance fields require both values together', async () => {
+    const res = await request(app).patch('/activity-safety/injuries/inj-1').set('x-user-id', 'u1').send({ clearanceRecordedAt: '2026-01-01' });
+    expect(res.status).toBe(400);
+    const ok = await request(app).patch('/activity-safety/injuries/inj-1').set('x-user-id', 'u1').send({ clearanceRecordedAt: '2026-01-01', clearanceNote: 'cleared by physio' });
+    expect(ok.status).toBe(200);
+  });
+  test('clinician-documented injury: restriction fields locked → 409, status still editable', async () => {
+    mockPrisma.userInjury.findFirst.mockResolvedValueOnce({ source: 'clinician_documented' });
+    const res = await request(app).patch('/activity-safety/injuries/inj-1').set('x-user-id', 'u1').send({ weightBearingRestriction: 'full' });
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('clinician_fields_locked');
+    expect(mockPrisma.userInjury.updateMany).not.toHaveBeenCalled();
+
+    mockPrisma.userInjury.findFirst.mockResolvedValueOnce({ source: 'clinician_documented' });
+    const ok = await request(app).patch('/activity-safety/injuries/inj-1').set('x-user-id', 'u1').send({ status: 'recovering', painLevel: 2 });
+    expect(ok.status).toBe(200);
+  });
+  test('missing row → 404', async () => {
+    mockPrisma.userInjury.findFirst.mockResolvedValueOnce(null);
+    const res = await request(app).patch('/activity-safety/injuries/inj-1').set('x-user-id', 'u1').send({ status: 'recovering' });
+    expect(res.status).toBe(404);
+  });
+});
+
+// Restore flag env state — in-band jest shares process.env across suites.
+afterAll(() => {
+  GATED_KEYS.forEach(k => setFlag(k, 'true'));
 });
