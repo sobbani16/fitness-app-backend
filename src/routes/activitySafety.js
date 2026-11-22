@@ -53,6 +53,7 @@ router.get('/recommendation', requireFeature('health_aware_recommendations'), as
       disposition: rec.disposition,
       policyVersion: rec.policyVersion,
       suggestion: rec.suggestion,
+      restFallback: rec.restFallback || null,
       requiredData: rec.requiredData || [],
       urgent: rec.urgent || null,
       activities: (rec.results || []).map(r => ({

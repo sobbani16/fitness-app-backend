@@ -346,9 +346,22 @@ describe('recommend() pipeline', () => {
     expect(swim.allowedAlternatives).not.toContain('swimming');
   });
   test('all-blocked context → no_safe_candidate, never a forced suggestion', () => {
-    const c = { ...H(), restrictions: [{ status: 'active', categories: ['weight_bearing_lower', 'lower_limb_load', 'upper_limb_load', 'trunk_load', 'balance_challenging'], severity: 'prohibited', source: 'clinician_documented' }] };
+    const c = { ...H(), restrictions: [{ status: 'active', categories: ['weight_bearing_lower', 'lower_limb_load', 'upper_limb_load', 'trunk_load', 'balance_challenging', 'water_immersion', 'impact'], severity: 'prohibited', source: 'clinician_documented' }] };
     const rec = svc.recommend(c, MILD);
-    expect(['no_safe_candidate', 'suggestion']).toContain(rec.disposition);
-    if (rec.suggestion) expect(['rest', 'seated_movement']).toContain(rec.suggestion.activityId);
+    expect(rec.disposition).toBe('no_safe_candidate');
+    expect(rec.suggestion).toBeNull();
+    // Rest is the non-exercise fallback — reported separately, never as "suggestion".
+    expect(rec.restFallback).toEqual({ activityId: 'rest', decision: 'ALLOW' });
+  });
+  test('seated_movement restrictable via trunk_load prohibition', () => {
+    const c = { ...H(), restrictions: [{ status: 'active', categories: ['trunk_load'], severity: 'prohibited', source: 'clinician_documented' }] };
+    expect(dec(c, 'seated_movement', MILD)).toBe('BLOCK_ACTIVITY');
+    expect(dec(c, 'rest', MILD)).toBe('ALLOW');
+  });
+  test('rest never occupies the suggestion slot — even when it is the only eligible candidate', () => {
+    const c = { ...H(), restrictions: [{ status: 'active', categories: ['upper_limb_load', 'trunk_load', 'weight_bearing_lower', 'lower_limb_load', 'impact', 'balance_challenging', 'water_immersion', 'outdoor_exposed', 'group_indoor', 'vigorous', 'valsalva'], severity: 'prohibited', source: 'clinician_documented' }] };
+    const rec = svc.recommend(c, MILD);
+    expect(rec.suggestion?.activityId).not.toBe('rest');
+    expect(rec.restFallback).toBeTruthy();
   });
 });

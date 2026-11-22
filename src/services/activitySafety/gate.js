@@ -150,7 +150,10 @@ async function safetyGate(prisma, userId, { now = new Date(), env = null, rules 
       .catch(() => []);
     const results = listActivities().map(a => evaluateActivity({ context: normalizeContext(ctx), activity: a, env, rules: ruleRows, now }));
     const urgent = results.find(r => r.decision === 'URGENT_ESCALATION');
-    const eligible = results.filter(r => ['ALLOW', 'MODIFY'].includes(r.decision));
+    // `rest` is the non-exercise fallback, not an eligible suggestion — a
+    // blanket restriction must not surface as "suggestion: rest".
+    const eligible = results.filter(r => ['ALLOW', 'MODIFY'].includes(r.decision) && r.candidateActivityId !== 'rest');
+    const restEval = results.find(r => r.candidateActivityId === 'rest');
     const restRequested = results.every(r => r.suppressed);
     const disposition = urgent ? 'urgent'
       : restRequested ? 'rest'
@@ -165,6 +168,7 @@ async function safetyGate(prisma, userId, { now = new Date(), env = null, rules 
       enabled: true,
       status: disposition,
       suppressActivityPushes: !PUSH_STATUSES.has(disposition),
+      restAvailable: !!restEval && ['ALLOW', 'MODIFY'].includes(restEval.decision),
       genericWorkoutAllowed: genericWorkout?.decision === 'ALLOW',
       activityPushOk: disposition === 'suggestion' && genericWorkout?.decision === 'ALLOW',
       urgentSymptoms: urgent ? (ctx.symptomReports || []).flatMap(s => (s.symptoms || []).filter(c => SYMPTOMS_URGENT.has(c))) : [],

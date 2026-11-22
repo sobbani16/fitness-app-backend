@@ -70,20 +70,26 @@ describe('safetyGate dispositions', () => {
     expect(g.suppressActivityPushes).toBe(true);
     expect(g.urgentSymptoms).toContain('chest_pain');
   });
-  test('blanket-category restriction → seated_movement survives, generic pushes still suppressed', async () => {
-    // seated_movement is intentionally unblockable (last-resort supported movement);
-    // a generic "do your workout" push must still be suppressed.
-    install(safetyModels({ restrictions: [{ ...CLINICIAN_RESTRICTION, categories: ['weight_bearing_lower', 'lower_limb_load', 'upper_limb_load', 'trunk_load', 'water_immersion'], bodyRegions: ['lower_limb', 'upper_limb', 'trunk'] }] }));
+  test('blanket-category restriction → no suggestion; rest remains fallback only', async () => {
+    install(safetyModels({ restrictions: [{ ...CLINICIAN_RESTRICTION, categories: ['weight_bearing_lower', 'lower_limb_load', 'upper_limb_load', 'trunk_load', 'water_immersion', 'impact', 'balance_challenging'], bodyRegions: ['lower_limb', 'upper_limb', 'trunk'] }] }));
     const g = await safetyGate(prisma, 'u1');
+    expect(g.status).toBe('no_safe_candidate');
     expect(g.genericWorkoutAllowed).toBe(false);
     expect(g.activityPushOk).toBe(false);
   });
   test('documented restriction leaves seated_movement only → suggestion exists but generic push suppressed', async () => {
-    install(safetyModels({ restrictions: [{ ...CLINICIAN_RESTRICTION, categories: ['weight_bearing_lower', 'lower_limb_load', 'trunk_load'] }] }));
+    install(safetyModels({ restrictions: [{ ...CLINICIAN_RESTRICTION, categories: ['weight_bearing_lower', 'lower_limb_load'] }] }));
     const g = await safetyGate(prisma, 'u1');
     expect(g.status).toBe('suggestion'); // seated/upper-body candidates survive
     expect(g.genericWorkoutAllowed).toBe(false); // the generic workout proxy is blocked
     expect(g.activityPushOk).toBe(false);
+  });
+  test('seated_movement is restrictable — trunk+upper-limb prohibition yields rest fallback, not "suggestion: rest"', async () => {
+    install(safetyModels({ restrictions: [{ ...CLINICIAN_RESTRICTION, categories: ['weight_bearing_lower', 'lower_limb_load', 'upper_limb_load', 'trunk_load', 'water_immersion', 'impact', 'balance_challenging'], bodyRegions: ['lower_limb', 'upper_limb', 'trunk'] }] }));
+    const g = await safetyGate(prisma, 'u1');
+    expect(g.status).toBe('no_safe_candidate');
+    expect(g.suppressActivityPushes).toBe(true);
+    expect(g.restAvailable).toBe(true); // rest stays a fallback, never a "suggestion"
   });
   test('clean context → suggestion, no suppression', async () => {
     install(safetyModels());

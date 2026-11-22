@@ -120,7 +120,10 @@ const ACTIVITIES = {
     demands: {
       weightBearing: 'none', impact: 'low', balance: 'low',
       regions: { lower_limb: 0.2, upper_limb: 0.5, trunk: 0.3 },
-      categories: [],
+      // Chair-based work still loads the arms and trunk — it is the last-resort
+      // candidate, not a universally-eligible one: documented upper_limb_load
+      // or trunk_load prohibitions can and do restrict it.
+      categories: [C.UPPER_LIMB_LOAD, C.TRUNK_LOAD],
     },
     description: 'Chair-based gentle movement.',
   },

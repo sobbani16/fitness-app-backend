@@ -50,12 +50,17 @@ function recommend(context, env, { rules = [], now = new Date(), candidates } = 
     return { disposition: 'suppressed_rest', suggestion: null, results, policyVersion: POLICY_VERSION };
   }
 
-  // Eligible = ALLOW or MODIFY. DEFER_OUTDOOR activities stay listed so the
-  // user sees *why* the outdoor option isn't suggested, but they aren't
-  // offered as alternatives.
+  // Eligible = ALLOW or MODIFY — except `rest`: it is a non-exercise fallback,
+  // not an activity the engine "recommends" as a clinical outcome. When only
+  // rest survives, the honest disposition is no_safe_candidate (rest still
+  // surfaced separately as the always-available fallback).
   const rank = r => DECISION_RANK[r.decision] ?? 0;
-  const eligible = results.filter(r => [D.ALLOW, D.MODIFY].includes(r.decision));
-  const blocked = results.filter(r => rank(r) > DECISION_RANK.MODIFY);
+  const eligible = results.filter(r => [D.ALLOW, D.MODIFY].includes(r.decision) && r.candidateActivityId !== 'rest');
+  const blocked = results.filter(r => rank(r) > DECISION_RANK.MODIFY && r.candidateActivityId !== 'rest');
+  const restEval = results.find(r => r.candidateActivityId === 'rest');
+  const restFallback = restEval && [D.ALLOW, D.MODIFY].includes(restEval.decision)
+    ? { activityId: 'rest', decision: restEval.decision }
+    : null;
 
   // Personalization boosts preference-matched eligible candidates.
   const prefs = new Set(ctx.activityPreferences || ctx.preferences?.activityPreferences || []);
@@ -81,6 +86,9 @@ function recommend(context, env, { rules = [], now = new Date(), candidates } = 
   return {
     disposition: suggestion ? 'suggestion' : (blocked.length ? 'no_safe_candidate' : 'no_suggestion'),
     suggestion,
+    // Rest never occupies the suggestion slot — it is reported separately as
+    // the non-exercise fallback so "nothing safe to suggest" stays honest.
+    restFallback,
     requiredData: [...new Set(results.flatMap(r => r.requiredData || []))],
     results,
     policyVersion: POLICY_VERSION,
