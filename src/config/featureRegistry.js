@@ -738,6 +738,7 @@ const FEATURES = {
   fiber_meal_sequencing_enabled: {
     clientKey: 'fiberMealSequencingEnabled',
     class: 'server', group: 'manual', default: false, failOpen: false,
+    environments: ['development', 'test'],
     dependsOn: ['fiber_intelligence_enabled'],
     endpoints: ['POST /fiber/sequence'],
     description: 'Evidence-informed fiber-first eating order for component-wise meals.',

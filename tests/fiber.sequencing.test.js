@@ -116,3 +116,55 @@ describe('fiber/sequencing.isMixedDish', () => {
     }
   });
 });
+
+describe('fiber/sequencing — Stage 2 audit fixes', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    prisma.ingredientCatalog.findMany.mockResolvedValue(CATALOG);
+    prisma.ingredient.findUnique.mockResolvedValue(null);
+  });
+
+  it('dry-basis catalog entries never produce an eaten-portion fiberG', async () => {
+    prisma.ingredientCatalog.findMany.mockResolvedValue([
+      { normalizedName: 'toor dal', aliases: ['dal'], ingredient: ING('Toor/arhar dal, dry', { c: 335, p: 22, cb: 58, f: 1.5, fb: 15 }) },
+      CATALOG[1],
+    ]);
+    const r = await sequenceMeal([{ name: 'toor dal', amountG: 150 }, { name: 'white rice', amountG: 200 }]);
+    const dal = r.order.find((o) => o.component === 'toor dal');
+    expect(dal.fiberG).toBeNull();            // NOT 22.5 g (dry × cooked portion)
+    expect(dal.fiberBasis).toBe('dry_weight');
+    expect(dal.knownFiber).toBe(false);
+    expect(r.order[0].component).toBe('toor dal'); // ordering unaffected — legume still first
+    expect(r.explanation.join(' ')).toMatch(/dry-weight/i);
+  });
+
+  it('a legume with unknown portion fiber still counts as fiber-bearing (no false "no fiber" + no bogus suggestion)', async () => {
+    prisma.ingredientCatalog.findMany.mockResolvedValue([
+      { normalizedName: 'toor dal', aliases: ['dal'], ingredient: ING('Toor/arhar dal, dry', { fb: 15 }) },
+      CATALOG[1],
+    ]);
+    const r = await sequenceMeal([{ name: 'toor dal', amountG: 150 }, { name: 'white rice', amountG: 200 }]);
+    expect(r.hasMeaningfulFiber).toBe(true);          // per-100 g density is real even when portion grams are unknown
+    expect(r.suggestedAddition).toBeNull();
+    expect(r.explanation.join(' ')).not.toMatch(/no meaningful fiber/i);
+  });
+
+  it('rajma/chole-style names classify as legume, not non-starchy vegetable', async () => {
+    prisma.ingredientCatalog.findMany.mockResolvedValue([
+      { normalizedName: 'rajma kidney beans cooked', aliases: ['rajma'], ingredient: ING('Rajma kidney beans, cooked', { c: 127, p: 8.7, cb: 22, f: 0.5, fb: 6.4 }) },
+      CATALOG[1],
+    ]);
+    const r = await sequenceMeal([{ name: 'rajma kidney beans, cooked', amountG: 150 }, { name: 'rice', amountG: 200 }]);
+    expect(r.order[0].role).toBe('legume');
+    expect(r.order[0].roleLabel).toMatch(/legume/i);
+  });
+
+  it('green beans still classify as non-starchy vegetable', async () => {
+    prisma.ingredientCatalog.findMany.mockResolvedValue([
+      { normalizedName: 'green beans cooked', aliases: ['green beans'], ingredient: ING('Green beans, cooked', { fb: 2.7 }) },
+      CATALOG[1],
+    ]);
+    const r = await sequenceMeal([{ name: 'green beans', amountG: 100 }, { name: 'rice', amountG: 200 }]);
+    expect(r.order[0].role).toBe('non_starchy_veg');
+  });
+});

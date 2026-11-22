@@ -36,6 +36,7 @@ beforeAll(async () => {
   for (const [name, fib, macros] of [
     ['Broccoli, raw', 2.6, {}], ['Chicken breast, cooked', 0, { p: 31, kcal: 165 }],
     ['Rice, white, cooked', 0.4, { c: 28 }], ['Quinoa, cooked', 2.8, { c: 21, p: 4.4 }],
+    ['Brown rice, cooked', 1.8, { c: 23 }], ['Rajma kidney beans, cooked', 6.4, { p: 8.7, c: 22 }],
     ['Spinach, raw', 2.2, {}], ['Apple, raw', 2.4, {}], ['Masoor dal red, dry', 10.7, { p: 24 }],
     ['Peanuts', 8.5, { f: 49, p: 26 }], ['Chia seeds', 34.4, { f: 31 }],
     ['Mystery flakes', null, {}],
@@ -127,6 +128,36 @@ describe('E2E sequencing scenarios', () => {
     expect(r.order[0].role).toBe('non_starchy_veg');
     expect(r.order[1].role).toBe('legume');
     expect(r.order[2].role).toBe('starch');
+  });
+
+  it('dry-basis dal never invents a cooked-portion fiberG (Stage-2 fix)', async () => {
+    const r = await sequenceMeal([{ name: 'masoor dal', amountG: 150 }, { name: 'rice', amountG: 200 }]);
+    const dal = r.order.find((o) => /dal/i.test(o.component));
+    // Catalog masoor is 10.7 g/100 g *dry* — multiplying it into a cooked 150 g
+    // portion would report ~16 g, roughly 2× reality. Honest: unknown.
+    expect(dal.fiberG).toBeNull();
+    expect(dal.fiberBasis).toBe('dry_weight');
+    expect(dal.knownFiber).toBe(false);
+    expect(r.order[0].component).toMatch(/dal/i); // ordering still fiber-aware
+    expect(r.hasMeaningfulFiber).toBe(true);      // density counts even when grams unknown
+    expect(r.suggestedAddition).toBeNull();
+    expect(r.explanation.join(' ')).toMatch(/dry-weight/i);
+  });
+
+  it('cooked legumes report real portion fiber and legume role (Stage-2 fix)', async () => {
+    const r = await sequenceMeal([{ name: 'rajma kidney beans, cooked', amountG: 150 }, { name: 'rice', amountG: 200 }]);
+    const rajma = r.order[0];
+    expect(rajma.role).toBe('legume');              // was mislabeled non_starchy_veg pre-fix
+    expect(rajma.fiberG).toBeCloseTo(9.6, 1);        // 150 g × 6.4/100 g — cooked basis, real
+    expect(rajma.fiberBasis ?? null).toBeNull();
+  });
+
+  it('high-fiber starches never take the first slot (quinoa, brown rice)', async () => {
+    for (const starch of ['Quinoa, cooked', 'Brown rice, cooked']) {
+      const r = await sequenceMeal([{ name: 'Chicken breast', amountG: 150 }, { name: starch, amountG: 150 }]);
+      expect(r.order[r.order.length - 1].role).toBe('starch');
+      expect(r.order[0].role).not.toBe('non_starchy_veg');
+    }
   });
 });
 

@@ -38,7 +38,7 @@ const STARCH_RE = /\b(rice|chawal|roti|chapati|naan|bread|bun|pav|paratha|puri|b
 const PROTEIN_RE = /\b(chicken|murg|fish|machli|salmon|tuna|prawn|shrimp|egg|anda|omelette|mutton|lamb|beef|pork|turkey|keema|kebab|tikka|tandoori|paneer|tofu|soya (chunk|granule)|soy granule|whey|greek yogurt|hung curd|sprouts?|moong|masoor|tur|toor|urad|chana dal|arhar|lobia|black[- ]?eyed|kidney bean|rajma|chole|chickpea|hummus|lentil|dal\b)/i;
 
 // Non-starchy vegetable names.
-const NON_STARCHY_VEG_RE = /\b(broccoli|spinach|palak|cabbage|patta gobhi|cauliflower|phool gobhi|gobi|okra|bhindi|green bean|french bean|beans(?!.*(rajma|kidney|black|pinto|navy))|capsicum|shimla|bell pepper|cucumber|kheera|tomato|tamatar|lettuce|salad|zucchini|courgette|brinjal|baingan|eggplant|aubergine|bitter gourd|karela|bottle gourd|lauki|doodhi|ridge gourd|turai|tori|snake gourd|ash gourd|petha|pumpkin(?!.*(pie|sweet))|kaddu|carrot(?!.*(halwa|juice))|gajar|radish|mooli|turnip|shalgam|beetroot(?!.*(juice|halwa))|chukandar|celery|mushroom|khumb|spring onion|green onion|scallion|leafy|methi|fenugreek leaf|sarson|saag|mustard green|chaulai|amaranth|colocasia leaf|arbi ke patte|drumstick|sahjan|moringa|tinda|parwal|pointed gourd|ivy gourd|tindora|kundru|broccoli|zoodles)\b/i;
+const NON_STARCHY_VEG_RE = /\b(broccoli|spinach|palak|cabbage|patta gobhi|cauliflower|phool gobhi|gobi|okra|bhindi|(green|french|string|snap)\s*beans?|capsicum|shimla|bell pepper|cucumber|kheera|tomato|tamatar|lettuce|salad|zucchini|courgette|brinjal|baingan|eggplant|aubergine|bitter gourd|karela|bottle gourd|lauki|doodhi|ridge gourd|turai|tori|snake gourd|ash gourd|petha|pumpkin(?!.*(pie|sweet))|kaddu|carrot(?!.*(halwa|juice))|gajar|radish|mooli|turnip|shalgam|beetroot(?!.*(juice|halwa))|chukandar|celery|mushroom|khumb|spring onion|green onion|scallion|leafy|methi|fenugreek leaf|sarson|saag|mustard green|chaulai|amaranth|colocasia leaf|arbi ke patte|drumstick|sahjan|moringa|tinda|parwal|pointed gourd|ivy gourd|tindora|kundru|broccoli|zoodles)\b/i;
 
 const FRUIT_RE = /\b(apple|pear|guava|orange|santra|banana|kela|papaya|papita|berries|strawberr|blueberr|raspberr|pomegranate|anar|kiwi|mango|grapes|angoor|pineapple|watermelon|melon|muskmelon|peach|plum|apricot|fig|anjeer|dates|khajoor)\b/i;
 const NUT_SEED_RE = /\b(almond|badam|walnut|akhrot|cashew|kaju|pistachio|pista|peanut|moongphali|chia|flax|alsi|sesame|til|sunflower|pumpkin seed|mixed nuts|trail mix|peanut butter)\b/i;
@@ -131,11 +131,17 @@ async function sequenceMeal(items, ctx = {}) {
     const amountG = Number.isFinite(it.amountG) && it.amountG > 0 ? it.amountG : null;
     const ing = await resolve(it);
     const fiberPer100 = ing?.fiberPer100g ?? null;
-    const fiberG = fiberPer100 != null && amountG != null ? Math.round(fiberPer100 * amountG) / 100 : null;
+    // Dry-basis guard: catalog dal/legume entries are dry-weight (e.g. toor dal
+    // 15 g/100 g *dry*). Applying that to a logged cooked portion would invent
+    // ~2-3x the real fiber. Keep the per-100 g value as provenance but do not
+    // multiply a dry basis into an eaten-portion fiberG — report it unknown.
+    const dryBasis = /\b(dry|uncooked|split)\b/i.test(String(ing?.name || ''));
+    const fiberG = !dryBasis && fiberPer100 != null && amountG != null ? Math.round(fiberPer100 * amountG) / 100 : null;
     comps.push({
       name, amountG, ingredientId: ing?.id || null,
       role: roleFor(it, ing),
       fiberPer100g: fiberPer100, fiberG,
+      fiberBasis: dryBasis ? 'dry_weight' : null,
       proteinPer100g: ing?.proteinPer100g ?? null,
       carbsPer100g: ing?.carbsPer100g ?? null,
       mixedDish: isMixedDish(name) || isMixedDish(ing?.name),
@@ -170,10 +176,14 @@ async function sequenceMeal(items, ctx = {}) {
     return 6;
   };
   const ordered = [...comps].sort((a, b) => rank(a) - rank(b));
-  const order = ordered.map((c, i) => ({ rank: i + 1, component: c.name, role: c.role, roleLabel: ROLE_LABEL[c.role], fiberG: c.fiberG, fiberPer100g: c.fiberPer100g, knownFiber: c.fiberPer100g != null }));
+  const order = ordered.map((c, i) => ({ rank: i + 1, component: c.name, role: c.role, roleLabel: ROLE_LABEL[c.role], fiberG: c.fiberG, fiberPer100g: c.fiberPer100g, knownFiber: c.fiberG != null, fiberBasis: c.fiberBasis }));
 
   const fiberSource = ordered.find((c) => c.role === 'non_starchy_veg' && ((c.fiberG != null && c.fiberG >= MIN_COMPONENT_FIBER_G) || (c.fiberPer100g != null && c.fiberPer100g >= MIN_FIBER_PER_100G)));
-  const hasMeaningfulFiber = Boolean(fiberSource) || ordered.some((c) => (c.fiberG ?? 0) >= MIN_COMPONENT_FIBER_G);
+  // "Meaningful" = the meal contains a fiber-bearing component. Portion grams
+  // may be honestly unknown (dry-basis, unresolved serving) — per-100 g
+  // density still tells us the food carries fiber.
+  const hasMeaningfulFiber = Boolean(fiberSource) ||
+    ordered.some((c) => (c.fiberG ?? 0) >= MIN_COMPONENT_FIBER_G || (c.fiberPer100g ?? 0) >= MIN_FIBER_PER_100G);
 
   const explanation = [];
   const anyMixed = comps.some((c) => c.mixedDish);
@@ -185,6 +195,8 @@ async function sequenceMeal(items, ctx = {}) {
     explanation.push('No meaningful fiber source was identified in this meal.');
   }
   if (anyMixed) explanation.push('Mixed dishes in this meal can’t realistically be split — the order below applies only to components you can eat separately.');
+  const dryNamed = comps.filter((c) => c.fiberBasis === 'dry_weight').map((c) => c.name);
+  if (dryNamed.length) explanation.push(`Fiber values for ${dryNamed.join(', ')} are catalog dry-weight numbers — cooked portions contain less per 100 g, so the gram amount is left unknown rather than estimated.`);
 
   const suggestedAddition = !hasMeaningfulFiber
     ? (suggestFoods({ preferSequencingFirst: true, allergenTerms: ctx.allergenTerms, avoidNames: ctx.avoidNames, limit: 1 })[0] || null)
