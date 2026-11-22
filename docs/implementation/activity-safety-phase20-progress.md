@@ -21,7 +21,7 @@
 
 ## Regression (post-deploy)
 
-See `/tmp/p20-run.txt` — full backend suite + mobile (unchanged this phase: 74/74, 426 tests, tsc/eslint clean).
+Backend: 5520/5520 green (one transient failure observed mid-run while user was concurrently editing `activitySafety.js` + tests — rerun fully green; mobile unchanged: 74/74, 426, tsc/eslint clean).
 
 ## Human gates remaining
 
