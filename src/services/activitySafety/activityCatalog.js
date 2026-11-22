@@ -124,6 +124,16 @@ const ACTIVITIES = {
     },
     description: 'Chair-based gentle movement.',
   },
+  group_fitness_class: {
+    id: 'group_fitness_class', label: 'Group fitness class (indoor)',
+    environment: 'indoor', exertion: 'moderate',
+    demands: {
+      weightBearing: 'full', impact: 'moderate', balance: 'high',
+      regions: { lower_limb: 0.9, upper_limb: 0.5, trunk: 0.5 },
+      categories: [C.GROUP_INDOOR, C.WEIGHT_BEARING_LOWER, C.LOWER_LIMB_LOAD, C.UPPER_LIMB_LOAD, C.IMPACT, C.BALANCE_CHALLENGING],
+    },
+    description: 'Instructor-led indoor group class (aerobics/dance/circuit style). Shared-space exposure; choreography can include impact and rapid direction changes. Indoor location is not a safety credential — it only removes weather exposure.',
+  },
   rest: {
     id: 'rest', label: 'Rest',
     environment: 'either', exertion: 'light',

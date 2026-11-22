@@ -44,6 +44,7 @@ const ACTIVITY_CATEGORIES = {
   VIGOROUS: 'vigorous',
   CONTACT_FALL_RISK: 'contact_fall_risk',
   VALSALVA: 'valsalva',
+  GROUP_INDOOR: 'group_indoor',                     // shared-space indoor exercise (classes)
 };
 
 // Body regions injuries map onto (matching demand profile `regions` keys).

@@ -10,6 +10,7 @@
 const { getPrisma } = require('../lib/prisma');
 const { httpError } = require('../lib/errors');
 const { getSleepRecoverySummary } = require('./sleepRecovery');
+const { safetyGate } = require('./activitySafety/gate');
 const q = async (p) => { try { return await p; } catch { return null; } };
 
 const REVIEW_KEY = 'weekly_review';
@@ -40,7 +41,7 @@ async function composeReview(userId, { tz = 'UTC', weekOf = null } = {}) {
   const complete = weekStart < toStr(mondayOf(today));
   const end = new Date(monday.getTime() + 7 * DAY_MS);
 
-  const [user, foodLogs, sessions, sleep, habits, wellness, relation, checkins, mindPrefs, stepRows] = await Promise.all([
+  const [user, foodLogs, sessions, sleep, habits, wellness, relation, checkins, mindPrefs, stepRows, gate] = await Promise.all([
     q(prisma.user.findUnique({ where: { id: userId }, select: { goalType: true } })),
     q(prisma.foodLog.groupBy({ by: ['date'], where: { userId, date: { in: dayList } } })),
     q(prisma.workoutSession.findMany({ where: { userId, startedAt: { gte: monday, lt: end } }, select: { finishedAt: true } })),
@@ -54,6 +55,7 @@ async function composeReview(userId, { tz = 'UTC', weekOf = null } = {}) {
     q(prisma.emotionalCheckIn.findMany({ where: { userId, loggedAt: { gte: monday, lt: end } }, select: { mood: true, energy: true, stress: true, loggedAt: true } })),
     q(prisma.userMindPreferences.findUnique({ where: { userId }, select: { moduleEnabled: true } })),
     q(prisma.healthMeasurement.findMany({ where: { userId, metric: 'steps', synthetic: false, startAt: { gte: monday, lt: end } }, select: { value: true, startAt: true } })),
+    q(safetyGate(prisma, userId)),
   ]);
   const rel = relation || null;
   const [checkInRow, activePlan, published] = await Promise.all([
@@ -124,13 +126,18 @@ async function composeReview(userId, { tz = 'UTC', weekOf = null } = {}) {
   if (sleepNights >= 3 && avgSleep != null && avgSleep < 7) opportunities.push({ text: 'A consistent wake time is one of the most reliable levers for better sleep.', evidence: 'sleep below 7h average' });
   if (rel && !checkInSent) opportunities.push({ text: 'Your coach can only adjust things they know about — a short weekly check-in goes a long way.', evidence: 'check-in not sent' });
   if (daysElapsed >= 4 && mealsLoggedDays === 0) opportunities.push({ text: 'Even one logged meal a day gives you (and your coach) something real to work with.', evidence: 'no meal logs' });
-  if (sessionsPlanned === 0) opportunities.push({ text: 'No workouts were on record this week — even a short planned session builds the pattern.', evidence: 'no workout sessions' });
+  // Engine gate: never push workouts when the shared verdict can't confirm a
+  // compatible activity (urgent symptom, restriction, requested rest, unknown).
+  const pushWorkouts = !(gate && gate.suppressActivityPushes);
+  if (sessionsPlanned === 0 && pushWorkouts) opportunities.push({ text: 'No workouts were on record this week — even a short planned session builds the pattern.', evidence: 'no workout sessions' });
   if (habitsDone === 0 && habitsSkipped === 0) opportunities.push({ text: 'Picking one tiny habit to track is an easy way to build momentum.', evidence: 'no habits tracked' });
   if (rel && !activePlan) opportunities.push({ text: 'You don\'t have a shared outcome plan yet — your coach can set one up with you.', evidence: 'no outcome plan' });
   const topOpportunities = opportunities.slice(0, 2);
   const nextWeekFocus = topOpportunities[0]?.text || (wentWell.length
     ? 'Keep the current rhythm going — consistency matters more than intensity.'
-    : 'Start small: one workout, one logged meal, one night of decent sleep.');
+    : pushWorkouts
+      ? 'Start small: one workout, one logged meal, one night of decent sleep.'
+      : 'Start small: one logged meal, one night of decent sleep — recovery counts too.');
 
   const mindEnabled = mindPrefs?.moduleEnabled !== false;
   const mind = mindEnabled && checkins.length ? {
@@ -150,6 +157,7 @@ async function composeReview(userId, { tz = 'UTC', weekOf = null } = {}) {
     goalType: user?.goalType || null,
     summary, wentWell, wasDifficult, mind, wearable,
     opportunities: topOpportunities, nextWeekFocus,
+    activitySafety: gate?.enabled ? { status: gate.status, activityPushesSuppressed: gate.suppressActivityPushes } : undefined,
     progress: evidence, dataCompleteness: completeness,
     trainer: rel ? {
       present: true, displayName: rel.trainer?.displayName || null,

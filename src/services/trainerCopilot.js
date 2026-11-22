@@ -7,6 +7,7 @@ const { getPrisma } = require('../lib/prisma');
 const { httpError } = require('../lib/errors');
 const { requireApprovedTrainer, getGrantedCategories } = require('./trainerAccess');
 const { loadDisplayNames } = require('./trainerService');
+const { safetyGate } = require('./activitySafety/gate');
 
 const DRAFT_LABEL = 'AI draft — requires trainer confirmation';
 const DAY = 86400000;
@@ -68,6 +69,26 @@ async function listClients(trainerUserId) {
 // Consent-scoped summary — only what the member granted + member-authored
 // check-ins (which are disclosures sent to the coach). Counts and recency
 // only; raw logs stay in the consent-gated progress endpoint.
+// Privacy-preserving safety presence flags — consent categories do not cover
+// injury/restriction detail, so trainers see existence flags only ("something
+// is recorded — ask the member"), never the medical content itself.
+async function safetyPresence(clientId) {
+  const g = await safetyGate(getPrisma(), clientId).catch(() => null);
+  if (!g || !g.enabled) return { available: false };
+  const ctx = g.context || {};
+  const restrictionsRecorded = (ctx.restrictions || []).length > 0
+    || (ctx.injuries || []).length > 0 || (ctx.surgeries || []).length > 0;
+  return {
+    available: true,
+    restrictionsRecorded,
+    urgentSymptomsActive: g.status === 'urgent',
+    detail: null, // never surfaced without a dedicated consent category
+    note: restrictionsRecorded || g.status === 'urgent'
+      ? 'This member has activity-safety records on file — ask the member to share details before changing training.'
+      : 'No activity-safety records on file.',
+  };
+}
+
 async function clientSummary(trainerUserId, clientId) {
   const { relation } = await requireRelation(trainerUserId, clientId);
   const prisma = getPrisma();
@@ -77,7 +98,7 @@ async function clientSummary(trainerUserId, clientId) {
   const since28 = new Date(Date.now() - 28 * DAY);
   const monday = mondayUTC();
 
-  const [checkIns, intake, plan, formChecks, workouts, sleep, steps, weights] = await Promise.all([
+  const [checkIns, intake, plan, formChecks, workouts, sleep, steps, weights, safety] = await Promise.all([
     safe(() => prisma.checkIn.findMany({ where: { relationId: relation.id }, orderBy: { weekOf: 'desc' }, take: 4 }), []),
     safe(() => prisma.baselineAssessment.findFirst({ where: { relationId: relation.id }, orderBy: { version: 'desc' } })),
     safe(() => prisma.outcomePlan.findFirst({ where: { relationId: relation.id, status: 'active' }, include: { goals: true } })),
@@ -86,6 +107,7 @@ async function clientSummary(trainerUserId, clientId) {
     has('sleep_summaries') ? safe(() => prisma.sleepLog.findMany({ where: { userId: clientId, sleepStart: { gte: since7 } }, select: { hoursSlept: true, sleepStart: true, sleepEnd: true } }), []) : null,
     has('step_counts') ? safe(() => prisma.dailySteps.findMany({ where: { userId: clientId, date: { gte: since7 } }, select: { steps: true, date: true } }), []) : null,
     has('weight_trends') ? safe(() => prisma.weightEntry.findMany({ where: { userId: clientId }, orderBy: { recordedAt: 'desc' }, take: 2 }), []) : null,
+    safetyPresence(clientId),
   ]);
 
   const names = await loadDisplayNames([clientId]);
@@ -125,6 +147,7 @@ async function clientSummary(trainerUserId, clientId) {
       latestWeightKg: weights?.[0]?.weightKg ?? null,
       weightTrend: weights?.length === 2 ? Math.sign(weights[0].weightKg - weights[1].weightKg) : null,
     },
+    activitySafety: safety,
     note: 'Read-only summary assembled from member-consented data. "notShared" categories are hidden, not absent — ask the member before assuming.',
   };
 }
@@ -137,6 +160,19 @@ async function clientSuggestions(trainerUserId, clientId) {
   const out = [];
   const add = (kind, title, detail, evidence, confidence = 'partial') =>
     out.push({ kind, title, detail, evidence, confidence, generatedBy: 'humai_copilot', label: DRAFT_LABEL, requiresTrainerConfirmation: true });
+
+  // Safety presence beats every other draft — a trainer must never be nudged
+  // toward more training while an unreviewed restriction or urgent report is
+  // on file. Presence flags only; medical detail requires member disclosure.
+  if (s.activitySafety?.urgentSymptomsActive) {
+    add('safety_notice', 'Member has an active urgent symptom report',
+      'Do not increase or assign activity. Ask the member about their report before any plan change.',
+      ['Activity-safety flag: urgent symptom report on file'], 'high');
+  } else if (s.activitySafety?.restrictionsRecorded) {
+    add('safety_notice', 'Member has recorded activity restrictions or injuries',
+      'Ask the member to share the details before changing the plan — restrictions are not visible to you under current consent settings.',
+      ['Activity-safety records on file (detail not shared)'], 'high');
+  }
 
   const latestCheckIn = s.checkIns.recent[0];
   if (s.checkIns.thisWeek === 'missing') {

@@ -1,7 +1,10 @@
 // Sleep & recovery intelligence v1 — reads only what exists (SleepLog from
 // wearable/app sync, CheckIn.energyLevel). No sleep-stage claims, no diagnosis,
-// missing data is reported as unknown.
+// missing data is reported as unknown. When the shared activity-safety gate
+// suppresses activity pushes, a "train lighter" nudge degrades to "rest" —
+// recovery data never overrides recorded restrictions.
 const { getPrisma } = require('../lib/prisma');
+const { safetyGate } = require('./activitySafety/gate');
 
 const LOOKBACK_DAYS = 7;
 const ENOUGH_NIGHTS = 3;
@@ -55,8 +58,11 @@ async function getSleepRecoverySummary(userId) {
   }
 
   const completeness = nights >= 5 ? 'good' : nights > 0 ? 'partial' : 'none';
-  const suggestion = signals.some(s => s.key === 'short_sleep' || s.key === 'low_energy')
+  const gate = await safetyGate(prisma, userId).catch(() => null);
+  const rawSuggestion = signals.some(s => s.key === 'short_sleep' || s.key === 'low_energy')
     ? 'lighter_intensity' : signals.length ? 'steady_schedule' : null;
+  const suggestion = gate?.suppressActivityPushes && rawSuggestion === 'lighter_intensity'
+    ? 'rest' : rawSuggestion;
 
   return {
     version: 'sleep-recovery-v1',
@@ -68,6 +74,7 @@ async function getSleepRecoverySummary(userId) {
     lastEnergyCheckIn: checkIn?.energyLevel ?? null,
     signals,
     suggestion,
+    activitySafety: gate?.enabled ? { status: gate.status } : undefined,
     completeness,
     note: 'Device sleep estimates are not clinical measurements. Missing data is unknown, not a failure.',
   };

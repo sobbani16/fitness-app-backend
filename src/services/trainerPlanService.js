@@ -10,6 +10,7 @@
 const { getPrisma } = require('../lib/prisma');
 const { httpError } = require('../lib/errors');
 const { requireApprovedTrainer, requireActiveRelation, hasConsent } = require('./trainerAccess');
+const { planSafetyConflicts } = require('./activitySafety/gate');
 
 const DIFFICULTIES = new Set(['beginner', 'intermediate', 'advanced']);
 const PLAN_STATUSES = new Set(['draft', 'published', 'archived']);
@@ -353,6 +354,9 @@ async function assign(trainerUserId, planId, clientUserId, tx) {
     where: { planId, clientId: clientUserId, status: { in: OPEN_ASSIGNMENT_STATUSES } },
   });
   if (existing) throw conflict('This plan is already assigned to the client.');
+  // Advisory safety check against the client's recorded restrictions —
+  // annotated on the assignment so the trainer sees conflicts, never silently.
+  const safety = await planSafetyConflicts(prisma, clientUserId, plan).catch(() => ({ available: false, conflicts: [] }));
   return inTx(tx, async (t) => {
     const assignment = await t.trainerWorkoutAssignment.create({
       data: { planId, clientId: clientUserId, status: 'assigned' },
@@ -367,7 +371,7 @@ async function assign(trainerUserId, planId, clientUserId, tx) {
         body: `Your coach assigned you the plan "${plan.title}".`,
       },
     });
-    return assignment;
+    return { ...assignment, safetyConflicts: safety.conflicts, safetyStatus: safety.available ? safety.status : 'unavailable' };
   });
 }
 
@@ -502,7 +506,10 @@ async function getForClient(assignmentId, clientUserId) {
     orderBy: [{ startedAt: 'desc' }, { id: 'asc' }],
     select: SESSION_SELECT,
   });
-  return { ...assignment, sessions };
+  // Conflicts are recomputed on every view — a restriction recorded after
+  // assignment must still surface, never cached away.
+  const safety = await planSafetyConflicts(prisma, clientUserId, assignment.plan).catch(() => ({ available: false, conflicts: [] }));
+  return { ...assignment, sessions, safetyConflicts: safety.conflicts, safetyStatus: safety.available ? safety.status : 'unavailable' };
 }
 
 // Planned-vs-completed per assignment. The session list itself is workout

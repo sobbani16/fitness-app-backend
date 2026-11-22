@@ -6,9 +6,20 @@ const { requireFeature } = require('../middleware/requireFeature');
 const { suggestNext, missedSessionNote } = require('../services/workoutProgression');
 const { classify } = require('../services/exerciseSuitability');
 const { EXERCISES } = require('../services/exerciseCatalog');
+const { safetyGate, exerciseCategories } = require('../services/activitySafety/gate');
 
 function getUserId(req) {
   return (req.headers['x-user-id'] || req.body?.userId || '').toString().trim();
+}
+
+// Server-side restriction profile — recorded injuries/restrictions always
+// merge into planning inputs; user-supplied limitations can only add.
+async function gateFor(req, res) {
+  const userId = getUserId(req);
+  const g = await safetyGate(getPrisma(), userId).catch(() => null);
+  if (!g || !g.enabled) return { limitations: [], blockedCategories: [], reviewRequired: false };
+  if (g.status === 'unknown') return res?.status(503).json({ error: 'Safety context unavailable — try again shortly.' }), null;
+  return { limitations: g.limitations, blockedCategories: g.blockedCategories, reviewRequired: g.reviewRequired, urgent: g.status === 'urgent' };
 }
 
 // POST /personal-plans/draft — AI-generate a draft plan (never auto-active).
@@ -17,7 +28,9 @@ router.post('/draft', requireFeature('ai_workout_recommendations'), async (req, 
     const userId = getUserId(req);
     if (!userId) return res.status(400).json({ error: 'x-user-id header or userId required' });
     const prefs = req.body?.preferences || {};
-    const draft = await planner.generateDraft(userId, prefs);
+    const safety = await gateFor(req, res);
+    if (safety === null) return;
+    const draft = await planner.generateDraft(userId, prefs, safety);
     const prisma = getPrisma();
     const prev = await prisma.userWorkoutPlan.count({ where: { userId } });
     const rec = await prisma.userWorkoutPlan.create({
@@ -49,7 +62,9 @@ router.put('/:id', async (req, res, next) => {
     if (!rec || rec.userId !== userId) return res.status(404).json({ error: 'Plan not found' });
     if (rec.status !== 'draft') return res.status(409).json({ error: 'Only draft plans can be edited' });
     const prefs = req.body?.preferences || rec.preferences || {};
-    const { plan, warnings } = planner.validateEditedPlan(req.body?.plan || rec.plan, prefs);
+    const safety = await gateFor(req, res);
+    if (safety === null) return;
+    const { plan, warnings } = planner.validateEditedPlan(req.body?.plan || rec.plan, prefs, safety);
     const updated = await prisma.userWorkoutPlan.update({
       where: { id: rec.id, status: 'draft' },
       data: { plan: { ...plan, meta: { warnings, edited: true } }, preferences: prefs },
@@ -63,6 +78,8 @@ router.post('/:id/confirm', async (req, res, next) => {
   try {
     const userId = getUserId(req);
     const prisma = getPrisma();
+    const safety = await gateFor(req, res);
+    if (safety === null) return;
     const result = await prisma.$transaction(async tx => {
       // Serialize activation for an account so concurrent confirmations cannot
       // leave two active plans. Re-read status after obtaining the lock.
@@ -71,7 +88,7 @@ router.post('/:id/confirm', async (req, res, next) => {
       if (!rec || rec.userId !== userId) return { status: 404, body: { error: 'Plan not found' } };
       if (rec.status === 'active') return { status: 200, body: { id: rec.id, status: 'active' } };
       if (rec.status !== 'draft') return { status: 409, body: { error: 'Only draft plans can be activated' } };
-      const validated = planner.validateEditedPlan(rec.plan, rec.preferences || {});
+      const validated = planner.validateEditedPlan(rec.plan, rec.preferences || {}, safety, { includeReviewNotice: false });
       if (validated.warnings.length) return { status: 409, body: { error: 'Review and save the adjusted draft before activating it' } };
       await tx.userWorkoutPlan.updateMany({ where: { userId, status: 'active' }, data: { status: 'archived' } });
       await tx.userWorkoutPlan.update({ where: { id: rec.id }, data: { status: 'active', confirmedAt: new Date() } });
@@ -87,13 +104,17 @@ router.get('/catalog', async (req, res, next) => {
   try {
     if (!getUserId(req)) return res.status(400).json({ error: 'x-user-id header or userId required' });
     const parse = v => String(v || '').split(',').map(s => s.trim()).filter(Boolean);
+    const safety = await gateFor(req, res);
+    if (safety === null) return;
     const profile = {
-      limitations: parse(req.query.limitations),
+      // Server-derived limitations always apply — the picker cannot browse
+      // around a recorded restriction by omitting it from the query.
+      limitations: [...new Set([...parse(req.query.limitations), ...safety.limitations])],
       experience: req.query.experience || undefined,
       equipment: req.query.equipment !== undefined ? parse(req.query.equipment) : undefined,
     };
     const exercises = Object.entries(EXERCISES).map(([id, e]) => ({ id, ...e, suitability: classify(id, profile) }));
-    res.json({ exercises });
+    res.json({ exercises, safetyApplied: safety.limitations.length > 0 || safety.blockedCategories.length > 0 });
   } catch (e) { next(e); }
 });
 
@@ -104,6 +125,8 @@ router.get('/suggestions', async (req, res, next) => {
     const userId = getUserId(req);
     if (!userId) return res.status(400).json({ error: 'x-user-id header or userId required' });
     const prisma = getPrisma();
+    const safety = await gateFor(req, res);
+    if (safety === null) return;
     const active = await prisma.userWorkoutPlan.findFirst({ where: { userId, status: 'active' }, orderBy: { version: 'desc' } });
     if (!active) return res.json({ suggestions: [], note: 'No active plan.' });
     const exerciseIds = [...new Set((active.plan?.days || []).flatMap(d => (d.exercises || []).map(e => e.exerciseId)))];
@@ -133,7 +156,17 @@ router.get('/suggestions', async (req, res, next) => {
         at: s.finishedAt,
       })).filter(h => h.sets.length);
       if (history.length) Object.assign(history[history.length - 1], { rir: exRir, discomfort: exDiscomfort });
-      return suggestNext(id, history, active.preferences || {});
+      const next = suggestNext(id, history, active.preferences || {});
+      // Engine gate: a progression suggestion never overrides a restriction
+      // recorded after the plan was written — conflicts degrade to 'review'.
+      const conflicts = safety.limitations.length && classify(id, { limitations: safety.limitations }).status !== 'suitable';
+      const categoryBlocked = (safety.blockedCategories || []).some((c) => exerciseCategories(EXERCISES[id] || {}).has(c));
+      if (conflicts || categoryBlocked || safety.urgent) {
+        return { ...next, direction: 'review', suggested: undefined, confidence: 'low',
+          reason: 'A recorded restriction or report conflicts with this exercise — progression suggestions paused pending review.',
+          safetyConflict: true };
+      }
+      return next;
     });
     const missed = Number(req.query.missed || 0);
     res.json({ planId: active.id, version: active.version, suggestions, missedNote: missedSessionNote(missed) });

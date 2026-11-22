@@ -8,6 +8,7 @@ const { getPrisma } = require('../lib/prisma');
 const { httpError } = require('../lib/errors');
 const docStorage = require('../lib/docStorage');
 const { requireApprovedTrainer, requireRelationParticipant } = require('./trainerAccess');
+const { safetyGate } = require('./activitySafety/gate');
 
 const MAX_VIDEO_BYTES = Number(process.env.FORM_CHECK_MAX_BYTES || 150 * 1024 * 1024);
 const URL_SECRET = process.env.FORM_CHECK_URL_SECRET || process.env.AUTH_LINK_SECRET || 'dev-formcheck-secret';
@@ -42,19 +43,26 @@ async function getOwnedRequest(id, userId) {
   return req;
 }
 
-// Trainer asks the member to film an exercise.
+// Trainer asks the member to film an exercise — an implicit activity request,
+// so the response carries a privacy-preserving safety presence flag the
+// trainer UI can warn on (detail requires member disclosure).
 async function createRequest(trainerUserId, { relationId, exerciseKey, exerciseName, note } = {}) {
   if (typeof relationId !== 'string' || !relationId) throw httpError(400, 'relationId required');
   const { relation } = await requireTrainerRelation(trainerUserId, relationId);
   const name = exerciseName?.trim().slice(0, 160) || null;
   const key = exerciseKey?.trim().slice(0, 120) || null;
   if (!name && !key) throw httpError(400, 'exerciseName or exerciseKey required.');
-  return getPrisma().formCheckRequest.create({
+  const request = await getPrisma().formCheckRequest.create({
     data: {
       relationId, trainerId: relation.trainerId, clientId: relation.clientId,
       exerciseKey: key, exerciseName: name, note: note?.trim().slice(0, 1000) || null,
     },
   });
+  const gate = await safetyGate(getPrisma(), relation.clientId).catch(() => null);
+  const clientSafetyNotice = gate?.enabled && (gate.status === 'urgent' || gate.status === 'no_safe_candidate' || (gate.limitations || []).length > 0 || (gate.blockedCategories || []).length > 0)
+    ? 'Member has activity-safety records on file — confirm this exercise is appropriate before they film it.'
+    : null;
+  return { ...request, clientSafetyNotice };
 }
 
 async function listMine(userId, status) {
