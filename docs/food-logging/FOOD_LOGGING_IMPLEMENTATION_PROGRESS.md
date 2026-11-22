@@ -36,3 +36,24 @@ Resume rule: read this file + TEST_MATRIX first; do not redo VERIFIED tasks.
   - mobile `c3c7a49` (mine): FL-002 label + mealSync servingId/servingCount + LoggedMeal fields
 - DB state: **61 IngredientServing rows** (verified). Owner's uncommitted work in tree: `environmentService.js` + test — DO NOT TOUCH.
 - RESUME POINT: Phase 2 entry-point map → Phase 3 DB audit → Phase 8 portion memory → Phase 9 voice/barcode/photo → Phase 11 security → Phase 14 coverage → Phase 15 deliverables. NOT DONE items unchanged. Device-side verification still BLOCKED (no running app).
+
+## 2026-11-22 s7 — DEVICE VERIFICATION COMPLETE (iPhone 17 Pro sim, Maestro 2.12.1)
+
+**Environment:** backend `feat/activity-safety-engine`, mobile `main`, local Postgres, `node src/index.js` :4000, Expo dev client `com.sobbani.fitnessappmobile`, Metro :8081. Synthetic account `fl-device-verify@syn.local` (emailVerifiedAt + profile set server-side; owner session signed out via UI — owner's data untouched).
+
+**New defects found & fixed during device verification:**
+1. **Weight-unit pseudo-serving outranked slice** — USDA import pulled `1 oz`(28.35g) / `4 oz`(113g) portions whose label is a weight unit; `servings[0]` became "1 oz" so the device defaulted to ounces. Fix: `derivedServings` sorts weight-unit labels last (`ingredientService.js`); import script drops pure weight-unit labels; 3 bad rows deleted. API now returns `1 slice` first.
+2. **Reopen lost the serving unit** — `mode:'repeat'` rebuilt preview from `quantityG` only → "2 slices" reopened as "64 g". Fixed in `FoodEntryScreen` (restores servingId/selectedServing/qty from snapshot `servingGrams`, else `quantityG/count`) + `mealSync` reconcile maps server `servingId/servingCount/selectedServing` onto local meals + snapshot now stores `servingCount` server-side.
+
+**Device-verified chain (Maestro `food-logging-verify.yaml`, all steps PASS):**
+search "whole wheat bread" → result `Whole wheat bread, ready (ready)` → **`Serving size: 1 slice` default** → sheet shows `1 slice, 32 grams` + `Grams` + `Ounces` → label `Per 100 g: 247 kcal · Protein 13 g · Carbs 41 g · Fat 4.2 g` (FL-002) → qty `2` → `= 64 g total` → kcal 158, P 8.3 / C 26.2 / F 2.7 / fiber 4.5 → `Saved on this device` → **Postgres FoodLog**: qty 64, kcal 158, P8.3/C26.2/F2.7/fiber4.5, `servingId: srv_bread_wholewheat_1`, `servingGrams: 32`, `selectedServing: "1 slice"` → saved-list row `Whole wheat bread, ready` → **reopen restores `1 slice (32 g)` + `2` servings**.
+
+Evidence: `~/.maestro/tests/2026-11-22_000628/food-logging-verify/takeScreenshot/{03..11}.png`; exit code 0.
+
+**Commits:** backend `e799525`, mobile `22994ad` (both contain ONLY food-logging hunks — owner's concurrent uncommitted work untouched).
+
+**Status updates:** FL-001 → VERIFIED (device). FL-002 → VERIFIED (device). Phase 10 round-trip → VERIFIED for unit/qty/nutrition (edit-in-place still untested). Device verification blocker CLEARED.
+
+**Tooling note:** Maestro iOS matches element text EXACTLY; RN tab items expose `Foo, tab, N of 5`; debugger banner overlays bottom button — point-tap ✕ (92%,93%).
+
+RESUME POINT unchanged minus cleared blocker: Phase 2 map → Phase 3 DB audit → Phase 8 portion memory → Phase 9 voice/barcode/photo → Phase 11 security → Phase 14 coverage → Phase 15 deliverables.
