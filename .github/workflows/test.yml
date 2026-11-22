@@ -38,6 +38,9 @@ jobs:
       # Parent flag for the trainer_* dependency chain — dev .env provides this
       # locally; CI has no .env, and dependsOn resolves before env overrides.
       FF_TRAINER_ADVANCED_FEATURES_ENABLED: 'true'
+      # health_score_v2 defaults off; per-account evaluation reads models the
+      # E2E mocks don't provide. Env override resolves it globally in CI.
+      FF_HEALTH_SCORE_V2: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
