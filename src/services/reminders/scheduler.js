@@ -39,6 +39,32 @@ function tz(prefs) {
   return prefs.timezoneLocked ? (prefs.homeTimezone || prefs.timezone) : (prefs.timezone || 'UTC');
 }
 
+// Fiber 'auto' timing: context-aware windows derived from the user's own
+// meal-reminder times (defaults when unset). Each window plans one instance
+// whose `kind` drives the send-time decision and body.
+//   morning    — planning prompt after usual breakfast (never a deficit claim)
+//   midday     — progress update only when the day has honest, useful data
+//   pre_dinner — food-first suggestion when a meaningful gap remains
+//   evening    — nonjudgmental summary; no "eat more now" push
+//   weekly     — Sunday evening pattern review (below-target trends only)
+const FIBER_WINDOWS_LATE_TOLERANCE_MS = 60 * 60000;
+function fiberAutoWindows(settings, lp) {
+  const mealTime = (cat, fallback) => {
+    const s = settings.find((x) => x.category === cat && x.enabled);
+    const t = Array.isArray(s?.times) ? s.times.map(parseHHMM).find((v) => v != null) : null;
+    return t ?? fallback;
+  };
+  const evening = Math.min(mealTime('meal:dinner', 19 * 60) + 90, 21 * 60); // never past 21:00
+  const windows = [
+    { kind: 'morning', minutes: mealTime('meal:breakfast', 8 * 60) + 30 },
+    { kind: 'midday', minutes: mealTime('meal:lunch', 13 * 60) - 30 },
+    { kind: 'pre_dinner', minutes: mealTime('meal:dinner', 19 * 60) - 75 },
+    { kind: 'evening', minutes: evening },
+  ];
+  if (lp.weekday === 0) windows.push({ kind: 'weekly', minutes: evening });
+  return windows;
+}
+
 // Computes candidate reminder slots for a user at `now` without writing
 // anything. Pure planning; persistence happens in planUser.
 function candidates(prefs, settings, ctx) {
@@ -81,6 +107,20 @@ function candidates(prefs, settings, ctx) {
         out.push({ category: cat, priority: PRIORITY.supplement, dedupeKey: `${ctx.userId}|supplement|${lp.dateKey}|${sched.id}`, scheduledFor: at, payload: { supplementScheduleId: sched.id, supplementId: sched.supplementId, userSupplementId: sched.userSupplementId }, why: whyOf(setting, `supplement schedule at ${sched.reminderTime}`, ctx.now) });
       }
       continue;
+    }
+    if (cat === 'fiber' && times.includes('auto')) {
+      for (const w of fiberAutoWindows(settings, lp)) {
+        const at = wallTimeToUtc(lp.dateKey, w.minutes, tz(prefs));
+        // Auto windows tolerate a late tick (up to 60 min past the slot) so a
+        // coarse cron still produces the instance; send-time rules decide.
+        if (at - ctx.now > 15 * 60000 || ctx.now - at > FIBER_WINDOWS_LATE_TOLERANCE_MS) continue;
+        out.push({
+          category: cat, priority: PRIORITY.fiber,
+          dedupeKey: `${ctx.userId}|fiber|${lp.dateKey}|auto:${w.kind}`,
+          scheduledFor: at, payload: { kind: w.kind },
+          why: whyOf(setting, `fiber ${w.kind} window at ${formatMinutes(w.minutes)} local`, ctx.now),
+        });
+      }
     }
     for (const t of times) {
       const minutes = parseHHMM(t);
@@ -277,12 +317,42 @@ async function runTick(prisma, { now = new Date(), userIds } = {}) {
         results.suppressed += 1;
         continue;
       }
+
+      // Context rules per window kind — the engine state at send time decides
+      // whether the check-in is still useful, not the schedule it was planned on.
+      const kind = instance.payload?.kind || 'custom';
+      let fiberSuppress = null;
+      if (facts.lp.minutes >= 21 * 60 + 30) {
+        // After 21:30 any fiber nudge reads as "go eat now" — late-night
+        // compensation is the opposite of the guidance we give.
+        fiberSuppress = 'late_evening';
+      } else if (fiber.target?.reviewRequired && (kind === 'midday' || kind === 'pre_dinner' || kind === 'custom')) {
+        // Clinician-guided (restricted) targets never get automated gap nudges.
+        fiberSuppress = 'restricted_target';
+      } else if (kind === 'midday' && fiber.status?.mealsLogged === 0) {
+        // Nothing logged by midday means a quiet morning, not a deficit —
+        // a "0 g logged" ping now would misread an incomplete day.
+        fiberSuppress = 'too_early_no_logs';
+      } else if ((kind === 'midday' || kind === 'pre_dinner') && fiber.status?.completeness === 'low') {
+        // Most logged items lack fiber data — the recorded gap is not honest
+        // evidence of a real one.
+        fiberSuppress = 'incomplete_data';
+      }
+      if (fiberSuppress) {
+        await prisma.reminderInstance.update({ where: { id: instance.id }, data: { status: 'suppressed', reason: fiberSuppress, actedAt: now } });
+        await emit(prisma, instance.userId, 'reminder.suppressed', { category: instance.category, reason: fiberSuppress });
+        results.suppressed += 1;
+        continue;
+      }
     }
 
     const safetySuppress = facts.safetyUrgent && ['workout', 'movement'].includes(instance.category);
     // A closed gap counts as "already done" — no nudge to hit an exact number.
+    // Only gap-driven kinds suppress on it; morning plans, evening summaries,
+    // and the weekly review are not about today's remaining grams.
+    const gapDriven = ['custom', 'midday', 'pre_dinner'].includes(instance.payload?.kind || 'custom');
     const completed = fiber != null
-      ? (fiber.status.remainingG != null && fiber.status.remainingG <= require('../fiber/dailyEngine').GAP_SUGGESTION_THRESHOLD_G)
+      ? gapDriven && fiber.status.remainingG != null && fiber.status.remainingG <= require('../fiber/dailyEngine').GAP_SUGGESTION_THRESHOLD_G
       : completedFor(instance.category, instance, facts);
     const verdict = safetySuppress ? { decision: 'suppress', reason: 'safety_urgent_symptom' } : evaluate({
       now, nowLocal: facts.lp, prefs, setting,
@@ -299,8 +369,14 @@ async function runTick(prisma, { now = new Date(), userIds } = {}) {
     if (verdict.decision === 'send') {
       await prisma.reminderInstance.update({ where: { id: instance.id }, data: { status: 'sent', actedAt: now } });
       const merged = instance.payload?.merged;
-      const title = merged ? `Reminder: ${merged.map(c => c.split(':').pop()).join(' and ')}` : (TITLES[instance.category] || 'Reminder');
-      const fiberBody = fiber ? require('../fiber/dailyEngine').fiberReminderBody(fiber) : null;
+      const title = merged ? `Reminder: ${merged.map(c => c.split(':').pop()).join(' and ')}` : (instance.category === 'fiber' && instance.payload?.kind === 'weekly' ? 'Weekly fiber review' : (TITLES[instance.category] || 'Reminder'));
+      const fiberBody = fiber ? require('../fiber/dailyEngine').fiberReminderBody(fiber, {
+        kind: instance.payload?.kind || 'custom',
+        restricted: Boolean(fiber.target?.reviewRequired),
+        weekly: instance.payload?.kind === 'weekly'
+          ? await require('../fiber/weeklyReview').weeklyReview(instance.userId, { zone: tz(prefs) }).catch(() => null)
+          : null,
+      }) : null;
       const body = fiberBody || instance.payload?.body || title;
       await notifyInbox(prisma, { userId: instance.userId, category: instance.category, title, body, why: instance.why });
       await emit(prisma, instance.userId, 'reminder.sent', { category: instance.category });

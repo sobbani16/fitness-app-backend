@@ -746,6 +746,7 @@ const FEATURES = {
   fiber_reminders_enabled: {
     clientKey: 'fiberRemindersEnabled',
     class: 'server', group: 'manual', default: false, failOpen: false,
+    environments: ['development', 'test'],
     dependsOn: ['fiber_daily_goal_enabled'],
     endpoints: [],
     description: 'Opt-in fiber progress reminders (food-first wording, dedupe-capped).',
