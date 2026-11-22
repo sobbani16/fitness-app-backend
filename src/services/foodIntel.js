@@ -304,6 +304,12 @@ async function checkSuitability(userId, { ingredientKeys = [], allergens = [], i
   return result;
 }
 
+// Nutrients stored on BarcodeProduct carry provenance keys (retrievedAt,
+// packageQuantityG) alongside real values. Consumers must only ever see the
+// nutrient map — provenance lives on the product/snapshot itself.
+const NUTRIENT_KEYS = ['calories', 'proteinG', 'carbsG', 'fatG', 'fiberG', 'sugarG', 'sodiumMg'];
+const pickNutrients = (n) => Object.fromEntries(NUTRIENT_KEYS.filter((k) => k in (n || {})).map((k) => [k, n[k]]));
+
 // Compose the scan result view-model the screen renders.
 async function scanResult(userId, { barcode, ingredientKeys = [], ingredientText, nutrients, allergens = [], productName }) {
   const out = { product: null, nutrition: null, ingredients: [], evidence: [], suitability: null, provenance: {} };
@@ -311,7 +317,7 @@ async function scanResult(userId, { barcode, ingredientKeys = [], ingredientText
     const r = await resolveBarcode(barcode);
     if (r.found) {
       out.product = r.product;
-      out.nutrition = { source: r.product.source, verified: r.verified, per: r.product.servingLabel || `${r.product.servingSizeG || 100}g`, values: r.product.nutrients };
+      out.nutrition = { source: r.product.source, verified: r.verified, per: r.product.servingLabel || `${r.product.servingSizeG || 100}g`, values: pickNutrients(r.product.nutrients) };
       ingredientText = ingredientText || r.product.ingredients;
       allergens = allergens.length ? allergens : (r.product.allergens || []);
       ingredientKeys = ingredientKeys.length ? ingredientKeys : EVIDENCE_SEED.map((s) => s.ingredientKey).filter((k) => (r.product.ingredients || '').toLowerCase().includes(k));
@@ -380,8 +386,10 @@ async function logScannedFood(userId, { productName, servingG, servingLabel, nut
     const e = new Error('productName and servingG (1-5000) required'); e.status = 400; throw e;
   }
   const g = Number(servingG);
-  // nutrient values are per serving — scale by grams relative to serving size
-  const n = nutrients || {};
+  // nutrient values are per serving — scale by grams relative to serving size.
+  // Restrict to the known nutrient map so client/provenance keys can't leak
+  // into perServing snapshots or be mistaken for nutrients.
+  const n = pickNutrients(nutrients);
   const saved = await prisma.foodLog.create({ data: {
     userId, foodName: String(productName).slice(0, 300), quantityG: g,
     calories: n.calories ?? 0, proteinG: n.proteinG ?? 0, carbsG: n.carbsG ?? 0,
