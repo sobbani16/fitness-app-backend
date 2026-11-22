@@ -1,0 +1,302 @@
+{
+  "retrievedAt": "2026-11-22T05:45:55.850Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [],
+    "foodPortions": [],
+    "fdcId": 580618,
+    "description": "GLUCOSE TABLETS",
+    "publicationDate": "4/1/2019",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 3921817,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 3921819,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1258,
+          "number": "606",
+          "name": "Fatty acids, total saturated",
+          "rank": 9700,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 3921821,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 3921816,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1079,
+          "number": "291",
+          "name": "Fiber, total dietary",
+          "rank": 1200,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 3921818,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1253,
+          "number": "601",
+          "name": "Cholesterol",
+          "rank": 15700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 3921820,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 5778259,
+        "amount": 375
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 5778258,
+        "amount": 100
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 5778260,
+        "amount": 100
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1257,
+          "number": "605",
+          "name": "Fatty acids, total trans",
+          "rank": 15400,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 5778261,
+        "amount": 0
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "modifiedDate": "8/12/2018",
+    "availableDate": "8/12/2018",
+    "brandOwner": "Meijer, Inc.",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Specialty Formula Supplements",
+    "gtinUpc": "708820968509",
+    "householdServingFullText": "1 Tablet",
+    "ingredients": "DEXTROSE (D-GLUCOSE), MALTODEXTRIN, CITRIC ACID, MAGNESIUM STEARATE, MICROCRYSTALLINE CELLULOSE, NATURAL & ARTIFICIAL ORANGE FLAVOR, ASCORBIC ACID, YELLOW #6.",
+    "marketCountry": "United States",
+    "servingSize": 4,
+    "servingSizeUnit": "g",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 580618,
+        "description": "GLUCOSE TABLETS",
+        "publicationDate": "4/1/2019",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "8/12/2018",
+        "availableDate": "8/12/2018",
+        "brandOwner": "Meijer, Inc.",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Specialty Formula Supplements",
+        "gtinUpc": "708820968509",
+        "householdServingFullText": "1 Tablet",
+        "ingredients": "DEXTROSE (D-GLUCOSE), MALTODEXTRIN, CITRIC ACID, MAGNESIUM STEARATE, MICROCRYSTALLINE CELLULOSE, NATURAL & ARTIFICIAL ORANGE FLAVOR, ASCORBIC ACID, YELLOW #6.",
+        "marketCountry": "United States",
+        "servingSize": 4,
+        "servingSizeUnit": "g"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 0
+      },
+      "saturatedFat": {
+        "value": 0
+      },
+      "transFat": {
+        "value": 0
+      },
+      "cholesterol": {
+        "value": 0
+      },
+      "sodium": {
+        "value": 0
+      },
+      "carbohydrates": {
+        "value": 4
+      },
+      "fiber": {
+        "value": 0
+      },
+      "sugars": {
+        "value": 4
+      },
+      "protein": {
+        "value": 0
+      },
+      "calories": {
+        "value": 15
+      }
+    }
+  }
+}

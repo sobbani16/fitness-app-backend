@@ -1,0 +1,367 @@
+{
+  "retrievedAt": "2026-11-22T05:45:55.851Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [
+      {
+        "id": 2337042,
+        "value": 9,
+        "name": "Added Package Weight",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      }
+    ],
+    "foodPortions": [],
+    "fdcId": 2126795,
+    "description": "GLUCOSE TABLETS, GRAPE",
+    "publicationDate": "10/28/2021",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1162,
+          "number": "401",
+          "name": "Vitamin C, total ascorbic acid",
+          "rank": 6300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25257609,
+        "amount": 133.3
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25257606,
+        "amount": 444
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25257608,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25257604,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25257603,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25257607,
+        "amount": 88.89
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25257605,
+        "amount": 88.89
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "modifiedDate": "5/5/2021",
+    "availableDate": "5/5/2021",
+    "brandOwner": "Perrigo Company",
+    "brandName": "GOOD SENSE",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Candy",
+    "gtinUpc": "370030128365",
+    "householdServingFullText": "1 Tablet",
+    "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED), ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+    "marketCountry": "United States",
+    "servingSize": 4.5,
+    "servingSizeUnit": "g",
+    "notaSignificantSourceOf": "NOT A SIGNIFICANT SOURCE OF CALORIES FROM FAT, SATURATED FAT, TRANS FAT, CHOLESTEROL, DIETARY FIBER, VITAMIN A, CALCIUM AND IRON.",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2126795,
+        "description": "GLUCOSE TABLETS, GRAPE",
+        "publicationDate": "10/28/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "5/5/2021",
+        "availableDate": "5/5/2021",
+        "brandOwner": "Perrigo Company",
+        "brandName": "GOOD SENSE",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Candy",
+        "gtinUpc": "370030128365",
+        "householdServingFullText": "1 Tablet",
+        "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED), ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+        "marketCountry": "United States",
+        "servingSize": 4.5,
+        "servingSizeUnit": "g",
+        "notaSignificantSourceOf": "NOT A SIGNIFICANT SOURCE OF CALORIES FROM FAT, SATURATED FAT, TRANS FAT, CHOLESTEROL, DIETARY FIBER, VITAMIN A, CALCIUM AND IRON."
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1842310,
+        "description": "GLUCOSE TABLETS, GRAPE",
+        "publicationDate": "6/25/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "5/5/2021",
+        "availableDate": "5/5/2021",
+        "brandOwner": "Perrigo Company",
+        "brandName": "GOOD SENSE",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Candy",
+        "gtinUpc": "370030128365",
+        "householdServingFullText": "1 Tablet",
+        "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED), ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+        "marketCountry": "United States",
+        "servingSize": 4.5,
+        "servingSizeUnit": "g",
+        "notaSignificantSourceOf": "NOT A SIGNIFICANT SOURCE OF CALORIES FROM FAT, SATURATED FAT, TRANS FAT, CHOLESTEROL, DIETARY FIBER, VITAMIN A, CALCIUM AND IRON."
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1667359,
+        "description": "GLUCOSE TABLETS, GRAPE",
+        "publicationDate": "3/19/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "4/7/2020",
+        "availableDate": "4/7/2020",
+        "brandOwner": "Perrigo Company",
+        "brandName": "GOOD SENSE",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Specialty Formula Supplements",
+        "gtinUpc": "370030128365",
+        "householdServingFullText": "1 Tablet",
+        "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED), ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+        "marketCountry": "United States",
+        "servingSize": 4.5,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1375143,
+        "description": "GLUCOSE TABLETS, GRAPE",
+        "publicationDate": "2/26/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "4/7/2020",
+        "availableDate": "4/7/2020",
+        "brandOwner": "Perrigo Company",
+        "brandName": "GOOD SENSE",
+        "subbrandName": "",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Specialty Formula Supplements",
+        "gtinUpc": "370030128365",
+        "householdServingFullText": "1 Tablet",
+        "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED), ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+        "marketCountry": "United States",
+        "servingSize": 4.5,
+        "servingSizeUnit": "g",
+        "packageWeight": "",
+        "notaSignificantSourceOf": ""
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1017647,
+        "description": "GLUCOSE TABLETS, GRAPE",
+        "publicationDate": "6/26/2020",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "4/7/2020",
+        "availableDate": "4/7/2020",
+        "brandOwner": "Perrigo Company",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Specialty Formula Supplements",
+        "gtinUpc": "370030128365",
+        "householdServingFullText": "1 Tablet",
+        "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED) , ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+        "marketCountry": "United States",
+        "servingSize": 4.5,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 880400,
+        "description": "GLUCOSE TABLETS, GRAPE",
+        "publicationDate": "5/28/2020",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "4/7/2020",
+        "availableDate": "4/7/2020",
+        "brandOwner": "Perrigo Company",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Specialty Formula Supplements",
+        "gtinUpc": "370030128365",
+        "householdServingFullText": "1 Tablet",
+        "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED) , ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+        "marketCountry": "United States",
+        "servingSize": 4.5,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "modifiedDate": "6/14/2018",
+        "availableDate": "6/14/2018",
+        "brandOwner": "GOODSENSE",
+        "dataSource": "LI",
+        "gpcCategoryGroup": "Specialty Formula Supplements",
+        "gtinUpc": "370030128365",
+        "householdServingFullText": "1 Tablet",
+        "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED)†, ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+        "marketCountry": "United States",
+        "servingSize": 4.5,
+        "servingSizeUnit": "g",
+        "fdcId": 582973,
+        "description": "GLUCOSE TABLETS",
+        "publicationDate": "4/1/2019",
+        "workingFoodId": 45373619,
+        "dataType": "Branded",
+        "foodClass": "Branded"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 0
+      },
+      "sodium": {
+        "value": 0
+      },
+      "carbohydrates": {
+        "value": 4
+      },
+      "sugars": {
+        "value": 4
+      },
+      "protein": {
+        "value": 0
+      },
+      "calories": {
+        "value": 20
+      }
+    }
+  }
+}

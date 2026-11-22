@@ -1,0 +1,4452 @@
+{
+  "batch": "usda-preview-1",
+  "summary": {
+    "profiles": 40,
+    "nutrientRows": 716,
+    "codesUsed": [
+      "CALCIUM",
+      "CARBOHYDRATE_TOTAL",
+      "CHOLESTEROL",
+      "ENERGY_KCAL",
+      "FAT_SATURATED",
+      "FAT_TOTAL",
+      "FAT_TRANS",
+      "FIBER",
+      "FOLATE_TOTAL",
+      "IODINE",
+      "IRON",
+      "MAGNESIUM",
+      "PHOSPHORUS",
+      "POTASSIUM",
+      "PROTEIN",
+      "SELENIUM",
+      "SODIUM",
+      "SUGAR_TOTAL",
+      "VITAMIN_A_RAE",
+      "VITAMIN_B12",
+      "VITAMIN_B6",
+      "VITAMIN_C",
+      "VITAMIN_D",
+      "VITAMIN_E_ALPHA_TOCOPHEROL",
+      "VITAMIN_K",
+      "ZINC"
+    ],
+    "unitSkips": [],
+    "missingCore": [
+      {
+        "name": "GLUCOSE",
+        "missing": [
+          "FIBER"
+        ]
+      },
+      {
+        "name": "GLUCOSE LIQUID SHOT",
+        "missing": [
+          "FIBER"
+        ]
+      },
+      {
+        "name": "GLUCOSE TABLETS",
+        "missing": [
+          "FIBER"
+        ]
+      },
+      {
+        "name": "GLUCOSE TABLETS",
+        "missing": [
+          "FIBER"
+        ]
+      },
+      {
+        "name": "GLUCOSE TABLETS",
+        "missing": [
+          "FIBER"
+        ]
+      },
+      {
+        "name": "GLUCOSE TABLETS, GRAPE",
+        "missing": [
+          "FIBER"
+        ]
+      },
+      {
+        "name": "GLUCOSE TABLETS, GRAPE",
+        "missing": [
+          "FIBER"
+        ]
+      },
+      {
+        "name": "GLUCOSE TABLETS, GRAPE",
+        "missing": [
+          "FIBER"
+        ]
+      },
+      {
+        "name": "GLUCOSE TABLETS, ORANGE",
+        "missing": [
+          "FIBER"
+        ]
+      }
+    ]
+  },
+  "rows": [
+    {
+      "name": "Pudding, rice",
+      "fdcId": "2705685",
+      "desc": "Pudding, rice",
+      "dataType": "Survey (FNDDS)",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2705685",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2705685",
+        "sourceCitation": "USDA FDC Survey (FNDDS) fdcId 2705685",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 3.23,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 2.15,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 18.4,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 108,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 11.6,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0.3,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 95,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 0.11,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 8,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 82,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 125,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 97,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 0.43,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 3.2,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 19,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 0.07,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 1.3,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.052,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0.15,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 0.2,
+          "unit": "mcg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 4,
+          "unit": "mcg"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 12,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 1.21,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "b0064f73-8470-4595-8aea-153ba4c34961"
+    },
+    {
+      "name": "GLUCOSE",
+      "fdcId": "1983545",
+      "desc": "GLUCOSE",
+      "dataType": "Branded",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "1983545",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:1983545",
+        "sourceCitation": "USDA FDC Branded fdcId 1983545",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 43.33,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 106.67,
+          "unit": "g"
+        },
+        {
+          "code": "PROTEIN",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 433,
+          "unit": "kcal"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 133,
+          "unit": "mg"
+        }
+      ],
+      "missingCore": [
+        "FIBER"
+      ],
+      "ingredientId": "ce4c4c1b-18a0-4ebc-8759-9d3f56b33bfb"
+    },
+    {
+      "name": "Fluid replacement, 5% glucose in water",
+      "fdcId": "2710776",
+      "desc": "Fluid replacement, 5% glucose in water",
+      "dataType": "Survey (FNDDS)",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2710776",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2710776",
+        "sourceCitation": "USDA FDC Survey (FNDDS) fdcId 2710776",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 0.12,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 0,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 0.12,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 3,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 1,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 4,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 9,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 0.01,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "029885c1-4a1a-4937-90a0-ebef69eda1c7"
+    },
+    {
+      "name": "Egg, white, dried, stabilized, glucose reduced",
+      "fdcId": "170895",
+      "desc": "Egg, white, dried, stabilized, glucose reduced",
+      "dataType": "SR Legacy",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "170895",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:170895",
+        "sourceCitation": "USDA FDC SR Legacy fdcId 170895",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 357,
+          "unit": "kcal"
+        },
+        {
+          "code": "PROTEIN",
+          "amount": 84.08,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0.32,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 4.51,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 101,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 0.18,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 82,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 104,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 884,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 1299,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 0.13,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 192,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.032,
+          "unit": "mg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0.2,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0.118,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TRANS",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "aa09fcc9-b74c-45dd-b6c4-cb2d6b95862c"
+    },
+    {
+      "name": "Egg, whole, dried, stabilized, glucose reduced",
+      "fdcId": "173425",
+      "desc": "Egg, whole, dried, stabilized, glucose reduced",
+      "dataType": "SR Legacy",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "173425",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:173425",
+        "sourceCitation": "USDA FDC SR Legacy fdcId 173425",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 615,
+          "unit": "kcal"
+        },
+        {
+          "code": "PROTEIN",
+          "amount": 48.17,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 43.95,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 2.38,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 222,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 8.28,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 49,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 715,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 515,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 548,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 5.71,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 121.1,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.42,
+          "unit": "mg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 193,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 10.51,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 616,
+          "unit": "mcg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 13.198,
+          "unit": "g"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 2017,
+          "unit": "mg"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "4f7f49ff-d4f2-40b6-ab6c-691bba1c06a5"
+    },
+    {
+      "name": "Egg, white, dried, flakes, stabilized, glucose reduced",
+      "fdcId": "173426",
+      "desc": "Egg, white, dried, flakes, stabilized, glucose reduced",
+      "dataType": "SR Legacy",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "173426",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:173426",
+        "sourceCitation": "USDA FDC SR Legacy fdcId 173426",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 351,
+          "unit": "kcal"
+        },
+        {
+          "code": "PROTEIN",
+          "amount": 76.92,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0.04,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 4.17,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 83,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 0.23,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 67,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 83,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 1042,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 1156,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 0.15,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 116.8,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.023,
+          "unit": "mg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 89,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0.49,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "0ccefcb4-6bbb-4e6a-870c-8fefe9fe4d1b"
+    },
+    {
+      "name": "Egg, white, dried, powder, stabilized, glucose reduced",
+      "fdcId": "173427",
+      "desc": "Egg, white, dried, powder, stabilized, glucose reduced",
+      "dataType": "SR Legacy",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "173427",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:173427",
+        "sourceCitation": "USDA FDC SR Legacy fdcId 173427",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 376,
+          "unit": "kcal"
+        },
+        {
+          "code": "PROTEIN",
+          "amount": 82.4,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0.04,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 4.47,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 89,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 0.24,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 72,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 89,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 1116,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 1238,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 0.16,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 125.1,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.024,
+          "unit": "mg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 96,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0.53,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "59e38f8a-bc78-41fa-a78b-7c55f16d9783"
+    },
+    {
+      "name": "GLUCOSE LIQUID SHOT",
+      "fdcId": "1952841",
+      "desc": "GLUCOSE LIQUID SHOT",
+      "dataType": "Branded",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "1952841",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:1952841",
+        "sourceCitation": "USDA FDC Branded fdcId 1952841",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 17,
+          "unit": "mg"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 102,
+          "unit": "kcal"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 25.42,
+          "unit": "g"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 25.42,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [
+        "FIBER"
+      ],
+      "ingredientId": "db54a3f8-b060-4eb5-8675-475bfd6491b1"
+    },
+    {
+      "name": "Dirty rice",
+      "fdcId": "2709078",
+      "desc": "Dirty rice",
+      "dataType": "Survey (FNDDS)",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2709078",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2709078",
+        "sourceCitation": "USDA FDC Survey (FNDDS) fdcId 2709078",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 5.12,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 2.25,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 17.2,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 112,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 0.87,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0.6,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 15,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 1.77,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 9,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 63,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 85,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 316,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 0.78,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 10.3,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 208,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 0.39,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 5.4,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.106,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 1.07,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 2.8,
+          "unit": "mcg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 32,
+          "unit": "mcg"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 53,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0.403,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "0cbc4343-4683-422c-9710-1dabb6a5a35e"
+    },
+    {
+      "name": "Rice dressing",
+      "fdcId": "2709089",
+      "desc": "Rice dressing",
+      "dataType": "Survey (FNDDS)",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2709089",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2709089",
+        "sourceCitation": "USDA FDC Survey (FNDDS) fdcId 2709089",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 1.98,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 3.29,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 17.6,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 110,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 0.71,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0.6,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 19,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 0.92,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 8,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 31,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 59,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 600,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 0.26,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 3.8,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 31,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 0.39,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0.1,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 0.5,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.044,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0.02,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 5.9,
+          "unit": "mcg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 5,
+          "unit": "mcg"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0.663,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "44dc66ba-ff9e-4e1d-8080-0339e08d9bdb"
+    },
+    {
+      "name": "Crackers, rice",
+      "fdcId": "2708163",
+      "desc": "Crackers, rice",
+      "dataType": "Survey (FNDDS)",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2708163",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2708163",
+        "sourceCitation": "USDA FDC Survey (FNDDS) fdcId 2708163",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 10,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 5,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 82.6,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 416,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 156,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 362,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 243,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 233,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 2.2,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 25.5,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 1.26,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.554,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 2.1,
+          "unit": "mcg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 22,
+          "unit": "mcg"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "97cbce9b-9936-40b0-a560-c16f56e3133c"
+    },
+    {
+      "name": "Rice pilaf",
+      "fdcId": "2709077",
+      "desc": "Rice pilaf",
+      "dataType": "Survey (FNDDS)",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2709077",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2709077",
+        "sourceCitation": "USDA FDC Survey (FNDDS) fdcId 2709077",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 3.29,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 3.03,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 24.1,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 137,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 0.48,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0.4,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 29,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 0.74,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 11,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 46,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 56,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 414,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 0.33,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 10.2,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 1,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 0.51,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 1,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.12,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0.01,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 2.8,
+          "unit": "mcg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 4,
+          "unit": "mcg"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0.444,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "e80515cb-3f8c-49bc-b309-360d031cea57"
+    },
+    {
+      "name": "Rice cake",
+      "fdcId": "2708162",
+      "desc": "Rice cake",
+      "dataType": "Survey (FNDDS)",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2708162",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2708162",
+        "sourceCitation": "USDA FDC Survey (FNDDS) fdcId 2708162",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 7.1,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 4.3,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 81.1,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 392,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 0.88,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 4.2,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 11,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 1.49,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 131,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 360,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 428,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 71,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 3,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 24.6,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 1.24,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.15,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 1.9,
+          "unit": "mcg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 21,
+          "unit": "mcg"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0.875,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "d6d8473a-23f0-4622-a07a-a6d58356f464"
+    },
+    {
+      "name": "Chips, rice",
+      "fdcId": "2708161",
+      "desc": "Chips, rice",
+      "dataType": "Survey (FNDDS)",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2708161",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2708161",
+        "sourceCitation": "USDA FDC Survey (FNDDS) fdcId 2708161",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 8.2,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 2.8,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 81.5,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 384,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 0.6,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 4.2,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 11,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 1.49,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 131,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 360,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 290,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 326,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 3,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 24.6,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 6.54,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.15,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 6.5,
+          "unit": "mcg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 21,
+          "unit": "mcg"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0.642,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "45b85bea-7206-46a8-9b37-d52902a9388b"
+    },
+    {
+      "name": "Adobo, with rice",
+      "fdcId": "2708958",
+      "desc": "Adobo, with rice",
+      "dataType": "Survey (FNDDS)",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2708958",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2708958",
+        "sourceCitation": "USDA FDC Survey (FNDDS) fdcId 2708958",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 17.7,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 7.94,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 8.86,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 181,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 0.03,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0.2,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 18,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 1.34,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 21,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 161,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 216,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 522,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 2.54,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 24.6,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 4,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 0.21,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0.4,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.25,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0.44,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 4,
+          "unit": "mcg"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 75,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 2.58,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "44fdb430-4374-4c24-a6ff-148a48a6d3b2"
+    },
+    {
+      "name": "Cream of rice",
+      "fdcId": "2708415",
+      "desc": "Cream of rice",
+      "dataType": "Survey (FNDDS)",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2708415",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2708415",
+        "sourceCitation": "USDA FDC Survey (FNDDS) fdcId 2708415",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 1.17,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0.09,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 15.3,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 69,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 0.06,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0.1,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 4,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 5.01,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 5,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 22,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 25,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 69,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 0.22,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 3.5,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 0.02,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.033,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 4,
+          "unit": "mcg"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0.025,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "95bcb136-dabe-48cb-bf4c-b14f0c61f828"
+    },
+    {
+      "name": "Gumbo with rice",
+      "fdcId": "2706726",
+      "desc": "Gumbo with rice",
+      "dataType": "Survey (FNDDS)",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2706726",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2706726",
+        "sourceCitation": "USDA FDC Survey (FNDDS) fdcId 2706726",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 8.16,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 3.43,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 6.55,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 89,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 1.7,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0.9,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 26,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 0.64,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 15,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 82,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 176,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 400,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 0.75,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 10.9,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 10,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 0.59,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0.1,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 4.5,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.161,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0.16,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 5.2,
+          "unit": "mcg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 12,
+          "unit": "mcg"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 30,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0.764,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "900bb6cd-e420-44a3-a9c6-ba64ff88d252"
+    },
+    {
+      "name": "Gumbo, no rice",
+      "fdcId": "2706879",
+      "desc": "Gumbo, no rice",
+      "dataType": "Survey (FNDDS)",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2706879",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2706879",
+        "sourceCitation": "USDA FDC Survey (FNDDS) fdcId 2706879",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 8.54,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 3.68,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 4.03,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 83,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 1.83,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0.9,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 28,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 0.56,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 15,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 84,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 186,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 433,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 0.76,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 10.9,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 11,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 0.63,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0.1,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 4.9,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.164,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0.18,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 5.6,
+          "unit": "mcg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 13,
+          "unit": "mcg"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 33,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0.818,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "1dacb35e-5306-46d5-93d3-1878416c82ff"
+    },
+    {
+      "name": "Rice crackers",
+      "fdcId": "173161",
+      "desc": "Rice crackers",
+      "dataType": "SR Legacy",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "173161",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:173161",
+        "sourceCitation": "USDA FDC SR Legacy fdcId 173161",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 416,
+          "unit": "kcal"
+        },
+        {
+          "code": "PROTEIN",
+          "amount": 10,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 5,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 82.64,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 156,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 362,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 243,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 233,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 2.2,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 25.5,
+          "unit": "mcg"
+        },
+        {
+          "code": "IODINE",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.554,
+          "unit": "mg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 22,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 1.26,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 2.1,
+          "unit": "mcg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TRANS",
+          "amount": 0.002,
+          "unit": "g"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "3d7d5b8d-65e6-42cd-a016-f778188f85fa"
+    },
+    {
+      "name": "Rice croquette",
+      "fdcId": "2709071",
+      "desc": "Rice croquette",
+      "dataType": "Survey (FNDDS)",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2709071",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2709071",
+        "sourceCitation": "USDA FDC Survey (FNDDS) fdcId 2709071",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 3.35,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 6.58,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 20.1,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 154,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 0.62,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0.9,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 31,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 1.11,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 14,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 56,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 130,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 416,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 0.51,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 8.2,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 28,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 0.58,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0.3,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 2.1,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.085,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0.09,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 30.7,
+          "unit": "mcg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 20,
+          "unit": "mcg"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 43,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 1.72,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "9932a4c4-f3bb-427e-a9d7-f1e289006962"
+    },
+    {
+      "name": "Rice milk",
+      "fdcId": "2705411",
+      "desc": "Rice milk",
+      "dataType": "Survey (FNDDS)",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2705411",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2705411",
+        "sourceCitation": "USDA FDC Survey (FNDDS) fdcId 2705411",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 0.28,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0.97,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 9.17,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 47,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 5.28,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0.3,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 118,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 0.2,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 11,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 56,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 27,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 39,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 0.13,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 2.2,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 63,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 0.47,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 1,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.039,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0.63,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 0.2,
+          "unit": "mcg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 2,
+          "unit": "mcg"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "d15eb3b3-6252-4ad5-ae43-5b49eeacd196"
+    },
+    {
+      "name": "Rice with raisins",
+      "fdcId": "2709090",
+      "desc": "Rice with raisins",
+      "dataType": "Survey (FNDDS)",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2709090",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2709090",
+        "sourceCitation": "USDA FDC Survey (FNDDS) fdcId 2709090",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 2.65,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 2.58,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 32.1,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 162,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 6.49,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0.8,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 15,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 1.21,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 14,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 47,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 104,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 447,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 0.46,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 6.5,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 23,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 0.3,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0.1,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 0.2,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.098,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 3,
+          "unit": "mcg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 3,
+          "unit": "mcg"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0.51,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "0e8c61ee-d502-4a2c-9edf-a054922d636a"
+    },
+    {
+      "name": "Wine, rice",
+      "fdcId": "2710691",
+      "desc": "Wine, rice",
+      "dataType": "Survey (FNDDS)",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2710691",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2710691",
+        "sourceCitation": "USDA FDC Survey (FNDDS) fdcId 2710691",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 0.5,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 5,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 134,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 5,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 0.1,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 6,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 6,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 25,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 2,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 0.02,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 1.4,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "6d830591-76b3-439d-b52a-1f3aed3612cf"
+    },
+    {
+      "name": "Snacks, rice cakes, brown rice, buckwheat",
+      "fdcId": "167967",
+      "desc": "Snacks, rice cakes, brown rice, buckwheat",
+      "dataType": "SR Legacy",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "167967",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:167967",
+        "sourceCitation": "USDA FDC SR Legacy fdcId 167967",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 380,
+          "unit": "kcal"
+        },
+        {
+          "code": "PROTEIN",
+          "amount": 9,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 3.5,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 80.1,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 3.8,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 11,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 1.14,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 151,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 380,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 299,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 116,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 2.5,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 16.4,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.13,
+          "unit": "mg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 21,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0.64,
+          "unit": "g"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "20da0313-db72-4e09-bfbc-f200a434f0cd"
+    },
+    {
+      "name": "Rice paper",
+      "fdcId": "2708166",
+      "desc": "Rice paper",
+      "dataType": "Survey (FNDDS)",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2708166",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2708166",
+        "sourceCitation": "USDA FDC Survey (FNDDS) fdcId 2708166",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 5.91,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 1.11,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 72.3,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 323,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 0.27,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0.5,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 7,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 0.27,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 20,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 80,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 64,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 314,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 1.02,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 4.5,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 0.09,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.045,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 14,
+          "unit": "mcg"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0.328,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "b12df2db-e538-448b-81c5-aaccd459333b"
+    },
+    {
+      "name": "Bread, rice",
+      "fdcId": "2707794",
+      "desc": "Bread, rice",
+      "dataType": "Survey (FNDDS)",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2707794",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2707794",
+        "sourceCitation": "USDA FDC Survey (FNDDS) fdcId 2707794",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 4.31,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 5.24,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 45.8,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 248,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 3.53,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 4.3,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 138,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 2.63,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 12,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 51,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 75,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 447,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 0.48,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 0.4,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 0.6,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.073,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 0.3,
+          "unit": "mcg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 36,
+          "unit": "mcg"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0.977,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "87e7723e-3e45-48b9-83b3-166c6a4da218"
+    },
+    {
+      "name": "Soup, rice",
+      "fdcId": "2709146",
+      "desc": "Soup, rice",
+      "dataType": "Survey (FNDDS)",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2709146",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2709146",
+        "sourceCitation": "USDA FDC Survey (FNDDS) fdcId 2709146",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 3.54,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 1.15,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 6.78,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 51,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 0.76,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0.5,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 9,
+          "unit": "mg"
+        },
+        {
+          "code": "IRON",
+          "amount": 0.35,
+          "unit": "mg"
+        },
+        {
+          "code": "MAGNESIUM",
+          "amount": 10,
+          "unit": "mg"
+        },
+        {
+          "code": "PHOSPHORUS",
+          "amount": 39,
+          "unit": "mg"
+        },
+        {
+          "code": "POTASSIUM",
+          "amount": 106,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 247,
+          "unit": "mg"
+        },
+        {
+          "code": "ZINC",
+          "amount": 0.29,
+          "unit": "mg"
+        },
+        {
+          "code": "SELENIUM",
+          "amount": 3.3,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_A_RAE",
+          "amount": 28,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+          "amount": 0.16,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_D",
+          "amount": 0,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 3.7,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B6",
+          "amount": 0.101,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_B12",
+          "amount": 0.03,
+          "unit": "mcg"
+        },
+        {
+          "code": "VITAMIN_K",
+          "amount": 7.7,
+          "unit": "mcg"
+        },
+        {
+          "code": "FOLATE_TOTAL",
+          "amount": 7,
+          "unit": "mcg"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 12,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0.27,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "b1526e1c-6b0b-41b6-a489-71093820023a"
+    },
+    {
+      "name": "GLUCOSE GEL",
+      "fdcId": "1918585",
+      "desc": "GLUCOSE GEL",
+      "dataType": "Branded",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "1918585",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:1918585",
+        "sourceCitation": "USDA FDC Branded fdcId 1918585",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "IRON",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 45.45,
+          "unit": "g"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 15,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_TRANS",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "PROTEIN",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 182,
+          "unit": "kcal"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 45.45,
+          "unit": "g"
+        },
+        {
+          "code": "CALCIUM",
+          "amount": 0,
+          "unit": "mg"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "a361257b-fa27-40c4-b0a4-67115be6107b"
+    },
+    {
+      "name": "GLUCOSE TABLETS",
+      "fdcId": "580840",
+      "desc": "GLUCOSE TABLETS",
+      "dataType": "Branded",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "580840",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:580840",
+        "sourceCitation": "USDA FDC Branded fdcId 580840",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 133.3,
+          "unit": "mg"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "PROTEIN",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 88.89,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 444,
+          "unit": "kcal"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 88.89,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [
+        "FIBER"
+      ],
+      "ingredientId": "3524ecbc-7e56-486e-8005-fe5636cd2035"
+    },
+    {
+      "name": "GLUCOSE TABLETS",
+      "fdcId": "580618",
+      "desc": "GLUCOSE TABLETS",
+      "dataType": "Branded",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "580618",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:580618",
+        "sourceCitation": "USDA FDC Branded fdcId 580618",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "PROTEIN",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 375,
+          "unit": "kcal"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 100,
+          "unit": "g"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 100,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TRANS",
+          "amount": 0,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "d9b24809-fad3-4dd8-bd69-552c1646238f"
+    },
+    {
+      "name": "GLUCOSE TABLETS",
+      "fdcId": "1842206",
+      "desc": "GLUCOSE TABLETS",
+      "dataType": "Branded",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "1842206",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:1842206",
+        "sourceCitation": "USDA FDC Branded fdcId 1842206",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "SODIUM",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 133.3,
+          "unit": "mg"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 88.89,
+          "unit": "g"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 88.89,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 444,
+          "unit": "kcal"
+        },
+        {
+          "code": "PROTEIN",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [
+        "FIBER"
+      ],
+      "ingredientId": "7eb0484f-71b9-45e3-abe2-3857fdc4f1fa"
+    },
+    {
+      "name": "GLUCOSE TABLETS",
+      "fdcId": "1842171",
+      "desc": "GLUCOSE TABLETS",
+      "dataType": "Branded",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "1842171",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:1842171",
+        "sourceCitation": "USDA FDC Branded fdcId 1842171",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 88.89,
+          "unit": "g"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 133.3,
+          "unit": "mg"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 444,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 88.89,
+          "unit": "g"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 0,
+          "unit": "mg"
+        }
+      ],
+      "missingCore": [
+        "FIBER"
+      ],
+      "ingredientId": "89792b56-482d-4190-aabd-44b7828afb9f"
+    },
+    {
+      "name": "GLUCOSE TABLETS",
+      "fdcId": "581074",
+      "desc": "GLUCOSE TABLETS",
+      "dataType": "Branded",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "581074",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:581074",
+        "sourceCitation": "USDA FDC Branded fdcId 581074",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "PROTEIN",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 375,
+          "unit": "kcal"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 100,
+          "unit": "g"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 100,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TRANS",
+          "amount": 0,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "8ea2ddde-bff2-45fd-a3ef-ae47b7c93d1d"
+    },
+    {
+      "name": "GLUCOSE LIQUID, POMEGRANATE",
+      "fdcId": "1948217",
+      "desc": "GLUCOSE LIQUID, POMEGRANATE",
+      "dataType": "Branded",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "1948217",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:1948217",
+        "sourceCitation": "USDA FDC Branded fdcId 1948217",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 25,
+          "unit": "g"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 17,
+          "unit": "mg"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 26.67,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "PROTEIN",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 117,
+          "unit": "kcal"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "e78dd952-365f-47af-bb83-4504e04a64a3"
+    },
+    {
+      "name": "GLUCOSE TABLETS, GRAPE",
+      "fdcId": "2126795",
+      "desc": "GLUCOSE TABLETS, GRAPE",
+      "dataType": "Branded",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2126795",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2126795",
+        "sourceCitation": "USDA FDC Branded fdcId 2126795",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "VITAMIN_C",
+          "amount": 133.3,
+          "unit": "mg"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 444,
+          "unit": "kcal"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "PROTEIN",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 88.89,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 88.89,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [
+        "FIBER"
+      ],
+      "ingredientId": "c9d30304-fc8d-45c7-b469-507cdf7024a1"
+    },
+    {
+      "name": "GLUCOSE TABLETS, GRAPE",
+      "fdcId": "2284435",
+      "desc": "GLUCOSE TABLETS, GRAPE",
+      "dataType": "Branded",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2284435",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2284435",
+        "sourceCitation": "USDA FDC Branded fdcId 2284435",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 88.89,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 133.3,
+          "unit": "mg"
+        },
+        {
+          "code": "PROTEIN",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 88.89,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 444,
+          "unit": "kcal"
+        }
+      ],
+      "missingCore": [
+        "FIBER"
+      ],
+      "ingredientId": "9b3cb804-a430-45af-866a-28b35d4a0b8d"
+    },
+    {
+      "name": "GLUCOSE TABLETS, GRAPE",
+      "fdcId": "1842504",
+      "desc": "GLUCOSE TABLETS, GRAPE",
+      "dataType": "Branded",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "1842504",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:1842504",
+        "sourceCitation": "USDA FDC Branded fdcId 1842504",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "PROTEIN",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 133.3,
+          "unit": "mg"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 88.89,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 88.89,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 444,
+          "unit": "kcal"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 0,
+          "unit": "mg"
+        }
+      ],
+      "missingCore": [
+        "FIBER"
+      ],
+      "ingredientId": "47b44179-df85-40d5-ad95-1025b92e41cf"
+    },
+    {
+      "name": "GLUCOSE TABLETS, ORANGE",
+      "fdcId": "2100015",
+      "desc": "GLUCOSE TABLETS, ORANGE",
+      "dataType": "Branded",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2100015",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2100015",
+        "sourceCitation": "USDA FDC Branded fdcId 2100015",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 88.89,
+          "unit": "g"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 444,
+          "unit": "kcal"
+        },
+        {
+          "code": "VITAMIN_C",
+          "amount": 133.3,
+          "unit": "mg"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 88.89,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "PROTEIN",
+          "amount": 0,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [
+        "FIBER"
+      ],
+      "ingredientId": "6a8d0573-9b01-45cc-878e-f18ac7660e51"
+    },
+    {
+      "name": "GLUCOSE TABLETS, ORANGE",
+      "fdcId": "2129849",
+      "desc": "GLUCOSE TABLETS, ORANGE",
+      "dataType": "Branded",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2129849",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2129849",
+        "sourceCitation": "USDA FDC Branded fdcId 2129849",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_TRANS",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 375,
+          "unit": "kcal"
+        },
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 100,
+          "unit": "g"
+        },
+        {
+          "code": "PROTEIN",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 100,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "8902afdd-f83d-4603-abfe-feb5b14c1398"
+    },
+    {
+      "name": "GLUCOSE TABLETS, ORANGE",
+      "fdcId": "2125953",
+      "desc": "GLUCOSE TABLETS, ORANGE",
+      "dataType": "Branded",
+      "profile": {
+        "preparationType": "OTHER",
+        "source": "USDA",
+        "sourceFoodId": "2125953",
+        "sourceDataset": "usda_fdc_usda-preview-1",
+        "sourceRecordKey": "usda-preview-1|food:2125953",
+        "sourceCitation": "USDA FDC Branded fdcId 2125953",
+        "verifiedAt": null
+      },
+      "nutrients": [
+        {
+          "code": "FAT_SATURATED",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "FIBER",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "FAT_TOTAL",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "ENERGY_KCAL",
+          "amount": 375,
+          "unit": "kcal"
+        },
+        {
+          "code": "SUGAR_TOTAL",
+          "amount": 100,
+          "unit": "g"
+        },
+        {
+          "code": "SODIUM",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "CARBOHYDRATE_TOTAL",
+          "amount": 100,
+          "unit": "g"
+        },
+        {
+          "code": "PROTEIN",
+          "amount": 0,
+          "unit": "g"
+        },
+        {
+          "code": "CHOLESTEROL",
+          "amount": 0,
+          "unit": "mg"
+        },
+        {
+          "code": "FAT_TRANS",
+          "amount": 0,
+          "unit": "g"
+        }
+      ],
+      "missingCore": [],
+      "ingredientId": "8ef51764-25bc-4119-acd3-e22d431621f3"
+    }
+  ]
+}
