@@ -196,7 +196,7 @@
 - **Affected catalog activities:** all (no activityCategories constraint)
 - **Can co-fire with:** none detected
 - **Uncertainty / missing-data:** unknown never counts as favorable. 
-- **Executable example** (generated test): activity=`seated_movement` ctx={"injuries":[{"status":"current","type":"sprain","bodyPart":"ankle","injuredAt":"2026-11-22T04:07:48.375Z"}]} env=null → verified: fires, merged decision `MODIFY`.
+- **Executable example** (generated test): activity=`seated_movement` ctx={"injuries":[{"status":"current","type":"sprain","bodyPart":"ankle","injuredAt":"2026-11-22T04:24:49.516Z"}]} env=null → verified: fires, merged decision `MODIFY`.
 
 ## AS-MSK-003 — Joint instability
 

@@ -14,13 +14,17 @@
 
 ## Task ledger
 - [x] 16.0 verify + baseline (this file)
-- [ ] 16.1 real-DB audit → docs/audits/activity-safety-database-quality.md
-- [ ] 16.2 rule-by-rule validation → docs/audits/activity-safety-rule-by-rule-validation.md + machine-readable
-- [ ] 16.3 exercise library audit → docs/audits/exercise-library-safety-quality.md
-- [ ] 16.4 ≥300 scenario fixtures + validation
-- [ ] 16.5 E2E journeys 1–15
-- [ ] 16.6 clinical review workflow
-- [ ] 16.7 environmental/geographic validation
-- [ ] 16.8 staging/release prep
+- [x] 16.1 real-DB audit → activity-safety-database-quality.md; D-1 vocab defect FIXED (493→8 uncategorized)
+- [x] 16.2 rule-by-rule validation → rule-by-rule-validation.md + activity-safety-rule-audit.json (29 physician-tier, all DRAFT)
+- [x] 16.3 exercise library audit → exercise-library-safety-quality.md (E-1..E-6 flagged for specialist review)
+- [x] 16.4 scenario matrix → 3,840 fixtures green; engine fixes F-1 (NWB non-motion WB) + F-2 (wildcard clearance)
+- [x] 16.5 E2E journey map → activity-safety-e2e-journeys.md (13 covered, 12/15 partial — no live Recommendation rows)
+- [x] 16.6 review workflow → activity-safety-review-workflow.md (tiers, records, separation of duties)
+- [x] 16.7 env validation — preflight live: Open-Meteo 200, NWS 200, Delhi imd-cap; CPCB key unset (honest unconfigured)
+- [x] 16.8 staging — preflight all hard checks PASS; no deployment claimed; runbook updated Phase-15
 - [ ] 16.9 regression+security sweep
 - [ ] 16.10 final report → docs/audits/activity-safety-phase16-final-report.md
+
+## Phase-16 commits
+16.1 audit+D-1 fix · 16.2 validation artifacts · 16.3 library audit · 16.4 matrix+F-1/F-2 · docs batch
+Untouched user WIP: nutrition Sprint-B files in working tree.

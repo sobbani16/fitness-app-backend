@@ -18,7 +18,7 @@
 - **Structural mirrors** ([object Object], [object Object], [object Object], [object Object]): `evalMedical` short-circuits to URGENT_ESCALATION on any active urgent symptom *before* rule iteration — urgent handling is always-on product safety and must not depend on rule review status. These rules document the urgent code list for review; they can never appear in `ruleIds`. Verified by executable example in the review package (structural path produces URGENT_ESCALATION; the mirror rule is absent from ruleIds).
 - **Unsupported input** ([object Object], [object Object]): the product has no validated signal for the trigger tokens (`distress_signals`, `compulsive_pattern_flags`). The rules stay inactive via the `inputStatus` column rather than inferring signals from unvalidated proxies — a false positive here would misclassify a mental-health state.
 - **Med-flag-only tokens**: some profileFlags (`heat_sensitivity, fluid_restriction, hypoglycemia_risk, hyperglycemia_ketones, hypertension_uncontrolled, pregnancy_high_risk, high_fatigue, poor_sleep`) are reachable only through the free-form `medicationActivityFlags` user-declaration channel. Rules using them fire only on explicit user entry — listed per-rule in the review package; the reviewer decides whether that channel is acceptable.
-- **Tested cases**: 71 generated executable examples (review package) + 26 dedicated positive/negative/coexistence/missing-data reachability tests (`tests/activitySafety.reachability.test.js`).
+- **Tested cases**: 71 generated executable examples (review package) + 31 dedicated positive/negative/coexistence/missing-data reachability tests (`tests/activitySafety.reachability.test.js`).
 
 ## Per-rule classification
 
