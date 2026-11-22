@@ -4,6 +4,18 @@ const { httpError } = require('../lib/errors');
 const { buildProgress, progressRange } = require('../services/progressService');
 const { dedupedKcal, localDayBounds } = require('../services/energySummary');
 const { calculateBMR, calculateTDEE, ACTIVITY_FACTORS } = require('../services/calorieEngine');
+const { requireFeature } = require('../middleware/requireFeature');
+const { getProgress } = require('../services/unifiedProgress');
+
+// Unified member progress + Leo moments (M19) — /me/progress/unified
+router.get('/unified', requireFeature('leo_progress_enabled'), async (req, res, next) => {
+  try {
+    const userId = req.userId || req.headers['x-user-id'];
+    const weeks = Math.min(16, Math.max(2, parseInt(req.query.weeks, 10) || 8));
+    res.json(await getProgress(userId, { tz: req.query.tz, weeks }));
+  } catch (e) { next(e); }
+});
+
 router.get('/', async (req, res, next) => {
   try {
     const range = progressRange(req.query);

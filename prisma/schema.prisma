@@ -36,6 +36,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  identities UserIdentity[]
+
   healthProfile    UserHealthProfile?
   healthConditions UserHealthCondition[]
   allergies        UserAllergy[]
@@ -43,10 +45,18 @@ model User {
   dailySteps       DailySteps[]
   waterLogs        WaterLog[]
   sleepLogs        SleepLog[]
+  gutSymptoms      GutSymptom[]
+  foodTolerances   FoodTolerance[]
+  habits           Habit[]
+  wellnessCheckIns WellnessCheckIn[]
   foodLogs         FoodLog[]
+  dailyScoreSnapshots DailyScoreSnapshot[]
+  goalHistories      GoalHistory[]
   workoutSessions  WorkoutSession[]
   energyRecords    HealthEnergyRecord[]
   workoutPlans     UserWorkoutPlan[]
+  groceryItems     GroceryItem[]
+  recipeEngagements RecipeEngagement[]
 }
 
 model UserHealthProfile {
@@ -185,6 +195,7 @@ model SleepLog {
 model FoodLog {
   ingredientId      String?
   nutritionSnapshot Json?
+  micronutrients    Json?
   id                String  @id @default(uuid())
 
   userId String
@@ -267,6 +278,32 @@ model Recipe {
 
   cuisine String?
 
+  region String?
+
+  aliases String[] @default([])
+
+  // SYSTEM (seeded) | RESEARCH_DRAFT (imported, unverified) | VERIFIED | REJECTED
+  reviewStatus String @default("SYSTEM")
+
+  // Stable external identity for idempotent recipe imports (e.g. HUMAI-RCP-0001).
+  sourceKey String? @unique
+
+  // Measured/illustrative cooked yield of the whole batch in grams.
+  finishedYieldG Float?
+
+  prepMinutes Int?
+
+  // Structured cooking steps: [{step,text,minutes?,safetyNote?,optionalIngredients?[]}]
+  instructions Json?
+
+  // Recipe-wide safety notes (poultry temp, egg doneness, leftovers).
+  safetyNotes Json?
+
+  // Declared major allergens present (egg, dairy, gluten, fish, shellfish,
+  // soy, peanut, tree nut, sesame). Used for user allergy exclusion only —
+  // absence does not prove a recipe is allergy-safe.
+  allergens String[] @default([])
+
   description String?
 
   servings Int @default(1)
@@ -289,6 +326,8 @@ model Recipe {
 
   weeklyMeals WeeklyMeal[]
 
+  engagements RecipeEngagement[]
+
   createdAt DateTime @default(now())
 }
 
@@ -305,6 +344,8 @@ model RecipeIngredient {
 
   amountG Float
 
+  optional   Boolean @default(false)
+
   calories Float?
 
   proteinG Float?
@@ -314,6 +355,44 @@ model RecipeIngredient {
   fatG Float?
 
   @@index([recipeId])
+}
+
+// User shopping-list rows seeded from recipe missing ingredients or manual adds.
+model GroceryItem {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  normalizedName String
+  amountG        Float?
+  unitLabel      String?
+  optional       Boolean  @default(false)
+  sourceRecipeId String?
+  status         String   @default("pending") // pending | purchased | skipped
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId, status])
+}
+
+// Per-user recipe engagement: favorites, ratings, notes, private custom variants.
+model RecipeEngagement {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipeId     String
+  recipe       Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  favorite     Boolean  @default(false)
+  rating       Int?     // 1..5 ease-of-preparation
+  notes        String?
+  // Private personalized variant (ingredient amount tweaks); never promoted
+  // to the shared catalog without review.
+  customData   Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, recipeId])
+  @@index([userId, favorite])
 }
 
 model Recommendation {
@@ -378,12 +457,34 @@ model Supplement {
   // Seeded defaults shown first in the catalog; user-added entries are false.
   isDefault Boolean @default(false)
 
+  // Canonical identity links (v2 catalog). Nullable until the import pipeline
+  // maps this row to a SupplementIngredient/Form/Product.
+  ingredientId String?
+  ingredient   SupplementIngredient? @relation(fields: [ingredientId], references: [id], onDelete: SetNull)
+  formId       String?
+  form         SupplementForm?       @relation(fields: [formId], references: [id], onDelete: SetNull)
+  productId    String?
+  product      SupplementProduct?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  // published | candidate | review_only | personal | archived
+  // review_only rows stay out of suggestions/default listings; personal rows
+  // belong to ownerId and are never published to the shared catalog.
+  catalogStatus String @default("published")
+  reviewStatus  String @default("UNREVIEWED_RESEARCH_DRAFT")
+
+  // Set on personal (user-created) supplements; null for shared catalog rows.
+  ownerId String?
+
   createdAt DateTime @default(now())
 
   userLinks       UserSupplement[]
   attributes      SupplementAttribute[]
   supplementRules SupplementRule[]
   schedules       SupplementSchedule[]
+  education       SupplementEducation?
+
+  @@index([catalogStatus])
+  @@index([ownerId])
 }
 
 // Per-user supplement selections. Users pick which supplements they take.
@@ -396,15 +497,36 @@ model UserSupplement {
   supplementId String
   supplement   Supplement @relation(fields: [supplementId], references: [id], onDelete: Cascade)
 
+  // Optional canonical links — resolved when the selection maps to the
+  // v2 catalog; null for legacy/personal selections.
+  ingredientId String?
+  ingredient   SupplementIngredient? @relation(fields: [ingredientId], references: [id], onDelete: SetNull)
+  formId       String?
+  form         SupplementForm?       @relation(fields: [formId], references: [id], onDelete: SetNull)
+  productId    String?
+  product      SupplementProduct?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  // User-entered label info for personal products (never shared).
+  personalLabel Json?
+
+  // The user's own dose choice — entered from their label/clinician, never
+  // auto-suggested by the system.
+  doseAmount Float?
+  doseUnit   String?
+  notes      String?
+
   // When the user last marked this supplement as taken.
   lastTakenAt DateTime?
 
   createdAt DateTime @default(now())
 
-  logs SupplementLog[]
+  logs        SupplementLog[]
+  schedules   SupplementSchedule[]
+  occurrences SupplementDoseOccurrence[]
 
   @@unique([userId, supplementId])
   @@index([userId])
+  @@index([ingredientId])
 }
 
 model SupplementLog {
@@ -422,11 +544,23 @@ model SupplementLog {
   fatG           Float  @default(0)
   fiberG         Float  @default(0)
 
+  // v2: link back to the scheduled occurrence this log fulfills (if any), plus
+  // the user-confirmed dose actually taken and the effective timezone.
+  occurrenceId   String?
+  occurrence     SupplementDoseOccurrence? @relation(fields: [occurrenceId], references: [id], onDelete: SetNull)
+  amount         Float?
+  unit           String?
+  timezone       String?
+  source         String                    @default("manual") // manual | reminder_action | quick_log
+  // Client-generated key — prevents duplicate taken events on retry/offline.
+  idempotencyKey String?                   @unique
+
   loggedAt DateTime @default(now())
   date     String
 
   @@index([userId, date])
   @@index([userSupplementId])
+  @@index([occurrenceId])
 }
 
 // Central ingredient catalog shared across all users. Populated on demand from
@@ -670,6 +804,9 @@ model SafetyAuditLog {
 }
 
 // Supplement scheduling (dose, time, frequency, reminders).
+// v2: multiple schedules per user supplement are supported — the former
+// @@unique([userId, supplementId]) constraint was removed. `supplementId` is
+// kept for legacy rows; new rows link through `userSupplementId`.
 model SupplementSchedule {
   id String @id @default(uuid())
 
@@ -678,20 +815,53 @@ model SupplementSchedule {
   supplementId String
   supplement   Supplement @relation(fields: [supplementId], references: [id], onDelete: Cascade)
 
-  dose      String // e.g. "5g", "1 capsule"
-  frequency String // "daily", "twice_daily", "weekly", "as_needed"
-  timeOfDay String? // "morning", "afternoon", "evening", "with_meal", "before_bed"
+  userSupplementId String?
+  userSupplement   UserSupplement? @relation(fields: [userSupplementId], references: [id], onDelete: Cascade)
 
-  // Specific time (HH:MM format) for reminders.
+  dose       String? // legacy free-text dose, e.g. "5g", "1 capsule"
+  // Structured dose (preferred for new rows).
+  doseAmount Float?
+  doseUnit   String? // mg | mcg | g | IU | mL | capsule | tablet | scoop | serving | CFU
+
+  frequency  String @default("daily") // daily | specific_days | weekly | as_needed | custom
+  // [0-6] weekdays for specific_days/weekly; null = every day.
+  daysOfWeek Json?
+
+  // ANY_TIME | WITH_MEAL | AFTER_MEAL | BEFORE_MEAL | EMPTY_STOMACH |
+  // WITH_BREAKFAST | WITH_LUNCH | WITH_DINNER | BEFORE_BED | AFTER_WORKOUT |
+  // FIXED_TIME | CUSTOM — a scheduling convenience, not medical direction.
+  timingRelation String  @default("FIXED_TIME")
+  mealAnchor     String? // breakfast | lunch | dinner | snack
+  workoutAnchor  Boolean @default(false)
+
+  // Legacy time-of-day label: "morning" | "afternoon" | "evening" | "with_meal" | "before_bed".
+  timeOfDay String?
+
+  // Fixed local time (HH:MM) for reminders.
   reminderTime String?
+  // Fallback HH:MM used when an anchored event (meal/workout) hasn't happened.
+  fallbackTime String?
 
-  active Boolean @default(true)
+  // FOLLOW_DEVICE | FIXED_TIMEZONE — mirrors ReminderPreference.timezoneMode.
+  timezonePolicy String @default("FOLLOW_DEVICE")
+
+  // YYYY-MM-DD bounds; null = open-ended.
+  startDate String?
+  endDate   String?
+
+  active        Boolean @default(true)
+  notifyEnabled Boolean @default(true) // per-schedule opt-in; nothing fires when false
+  soundEnabled  Boolean @default(true) // audible notification choice
+  snoozeMinutes Int     @default(30)
+  instructions  String? // user note, e.g. "with the big glass of water"
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([userId, supplementId])
+  occurrences SupplementDoseOccurrence[]
+
   @@index([userId])
+  @@index([userSupplementId])
 }
 
 // Daily coaching messages generated proactively.
@@ -807,10 +977,9 @@ model TrainerProfile {
   packages         TrainerCoachingPackage[]
   payouts          TrainerPayout[]
   nutritionPlans   TrainerNutritionPlan[]
-  coachingGroups  CoachingGroup[]
-  documents       TrainerDocument[]
+  coachingGroups   CoachingGroup[]
+  documents        TrainerDocument[]
 }
-
 
 model TrainerClient {
   id          String         @id @default(uuid())
@@ -832,8 +1001,11 @@ model TrainerClient {
   bookings     TrainerBooking[]
   checkIns     CheckIn[]
 
-  videoSessions   VideoSession[]
-  documentShares  TrainerDocumentShare[]
+  videoSessions  VideoSession[]
+  documentShares TrainerDocumentShare[]
+  assessments    BaselineAssessment[]
+  outcomePlans   OutcomePlan[]
+  formChecks     FormCheckRequest[]
 
   @@unique([trainerId, clientId])
   @@index([trainerId])
@@ -1256,6 +1428,10 @@ model UserPlanningPreferences {
   householdSize       Int      @default(1)
   availableEquipment  String[]
   dietaryRestrictions String[]
+  restDays            Int[]    @default([]) // planned rest weekdays (0=Sun..6=Sat) — V2 activity honoring
+  dailyTarget         Int? // current assigned daily target (null = starter 70)
+  targetMode          String   @default("starter") // starter | adaptive | manual | paused
+  targetReviewedWeek  String? // weekKey (YYYY-Www) last auto-reviewed — idempotency guard
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
@@ -1499,6 +1675,23 @@ model AuthSession {
   expiresAt DateTime
   createdAt DateTime @default(now())
 
+  @@index([userId])
+}
+
+// External identity-provider accounts linked to a Humai user (OIDC readiness).
+// Internal User.id stays the sole join key for all health/activity data —
+// provider (iss, sub) pairs are only ever resolved THROUGH this table.
+model UserIdentity {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider   String // friendly key, e.g. 'forgerock' | 'okta' | 'auth0'
+  issuer     String // normalized iss (https, no trailing slash)
+  subject    String // provider's stable sub — never the email
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  @@unique([issuer, subject]) // one external identity -> exactly one user
   @@index([userId])
 }
 
@@ -1782,8 +1975,13 @@ model ReminderPreference {
 
   // IANA timezone used for scheduling. When timezoneLocked is set, learned/manual
   // home-time schedules are followed instead of the current local zone.
-  timezone       String?
-  timezoneLocked Boolean @default(false)
+  timezone             String?
+  timezoneLocked       Boolean @default(false)
+  // V2 timezone policy: FOLLOW_DEVICE (default) uses the device's current IANA
+  // zone; FIXED_TIMEZONE pins `timezone` regardless of device location.
+  timezoneMode         String  @default("FOLLOW_DEVICE")
+  lastDetectedTimezone String? // last device-reported zone, for travel detection
+  scheduleVersion      Int     @default(1) // bumped on reconcile
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2377,47 +2575,47 @@ model CheckIn {
 // ---------------------------------------------------------------------------
 
 model CoachingGroup {
-  id         String   @id @default(uuid())
-  name       String
-  kind       String   @default("coaching") // coaching|cohort|challenge|nutrition
-  trainerId  String
-  trainer    TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
-  status     String   @default("active")   // active|archived
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String         @id @default(uuid())
+  name      String
+  kind      String         @default("coaching") // coaching|cohort|challenge|nutrition
+  trainerId String
+  trainer   TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  status    String         @default("active") // active|archived
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 
-  members    CoachingGroupMember[]
-  messages   GroupMessage[]
-  readCursors GroupReadCursor[]
+  members        CoachingGroupMember[]
+  messages       GroupMessage[]
+  readCursors    GroupReadCursor[]
   documentShares TrainerDocumentShare[]
 
   @@index([trainerId, status])
 }
 
 model CoachingGroupMember {
-  id        String    @id @default(uuid())
+  id        String        @id @default(uuid())
   groupId   String
   group     CoachingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   userId    String
-  role      String    @default("member")   // member|moderator|owner
-  status    String    @default("invited")  // invited|active|left|removed
+  role      String        @default("member") // member|moderator|owner
+  status    String        @default("invited") // invited|active|left|removed
   invitedBy String?
   joinedAt  DateTime?
   leftAt    DateTime?
-  createdAt DateTime  @default(now())
+  createdAt DateTime      @default(now())
 
   @@unique([groupId, userId])
   @@index([userId, status])
 }
 
 model GroupMessage {
-  id        String   @id @default(uuid())
+  id        String        @id @default(uuid())
   groupId   String
   group     CoachingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   senderId  String
   body      String
   deletedAt DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime      @default(now())
 
   @@index([groupId, id])
 }
@@ -2427,55 +2625,55 @@ model GroupReadCursor {
   group             CoachingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   userId            String
   lastReadMessageId String?
-  updatedAt         DateTime @updatedAt
+  updatedAt         DateTime      @updatedAt
 
   @@id([groupId, userId])
 }
 
 model MessageReport {
-  id          String   @id @default(uuid())
-  messageKind String                       // dm|group
+  id          String    @id @default(uuid())
+  messageKind String // dm|group
   messageId   String
   reporterId  String
   reason      String
-  status      String   @default("open")    // open|resolved|dismissed
+  status      String    @default("open") // open|resolved|dismissed
   resolvedBy  String?
   resolvedAt  DateTime?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
   @@index([status, createdAt])
 }
 
 model TrainerDocument {
-  id          String   @id @default(uuid())
+  id          String         @id @default(uuid())
   trainerId   String
   trainer     TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
   title       String
   description String?
-  category    String   @default("education") // nutrition|workout|meal_plan|exercise|progress|education
-  fileKey     String                       // storage-relative key (never exposed)
+  category    String         @default("education") // nutrition|workout|meal_plan|exercise|progress|education
+  fileKey     String // storage-relative key (never exposed)
   fileName    String
-  mimeType    String   @default("application/pdf")
+  mimeType    String         @default("application/pdf")
   sizeBytes   Int
-  version     Int      @default(1)
-  status      String   @default("active")    // active|revoked
-  uploadedAt  DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  version     Int            @default(1)
+  status      String         @default("active") // active|revoked
+  uploadedAt  DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
-  shares      TrainerDocumentShare[]
+  shares TrainerDocumentShare[]
 
   @@index([trainerId, status])
 }
 
 model TrainerDocumentShare {
-  id         String   @id @default(uuid())
+  id         String          @id @default(uuid())
   documentId String
   document   TrainerDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  relationId String?  // share with one coaching relationship
-  relation   TrainerClient? @relation(fields: [relationId], references: [id], onDelete: Cascade)
+  relationId String? // share with one coaching relationship
+  relation   TrainerClient?  @relation(fields: [relationId], references: [id], onDelete: Cascade)
   groupId    String?
-  group      CoachingGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
+  group      CoachingGroup?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdAt  DateTime        @default(now())
 
   @@index([documentId])
   @@index([relationId])
@@ -2483,51 +2681,51 @@ model TrainerDocumentShare {
 }
 
 model VideoSession {
-  id                  String   @id @default(uuid())
-  relationId          String
-  relation            TrainerClient @relation(fields: [relationId], references: [id], onDelete: Cascade)
-  roomName            String   @unique
-  purpose             String?
-  scheduledStart      DateTime
-  scheduledEnd        DateTime
-  status              String   @default("scheduled") // scheduled|live|ended|cancelled
-  recordingRequested  Boolean  @default(false)
-  recordingStartedAt  DateTime?
-  recordingEndedAt    DateTime?
-  endedAt             DateTime?
-  exerciseKey         String?  // optional exercise-demo ref from the exercise library
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                 String        @id @default(uuid())
+  relationId         String
+  relation           TrainerClient @relation(fields: [relationId], references: [id], onDelete: Cascade)
+  roomName           String        @unique
+  purpose            String?
+  scheduledStart     DateTime
+  scheduledEnd       DateTime
+  status             String        @default("scheduled") // scheduled|live|ended|cancelled
+  recordingRequested Boolean       @default(false)
+  recordingStartedAt DateTime?
+  recordingEndedAt   DateTime?
+  endedAt            DateTime?
+  exerciseKey        String? // optional exercise-demo ref from the exercise library
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
-  consents            RecordingConsent[]
-  summary             VideoSessionSummary?
+  consents RecordingConsent[]
+  summary  VideoSessionSummary?
 
   @@index([relationId, scheduledStart])
   @@index([status])
 }
 
 model RecordingConsent {
-  id             String   @id @default(uuid())
+  id             String       @id @default(uuid())
   videoSessionId String
   videoSession   VideoSession @relation(fields: [videoSessionId], references: [id], onDelete: Cascade)
   userId         String
   granted        Boolean
   policyVersion  String
   withdrawnAt    DateTime?
-  createdAt      DateTime @default(now())
+  createdAt      DateTime     @default(now())
 
   @@unique([videoSessionId, userId])
 }
 
 model VideoSessionSummary {
-  id             String   @id @default(uuid())
-  videoSessionId String   @unique
+  id             String       @id @default(uuid())
+  videoSessionId String       @unique
   videoSession   VideoSession @relation(fields: [videoSessionId], references: [id], onDelete: Cascade)
   memberSummary  String?
   actionItems    Json?
   privateNotes   String?
   publishedAt    DateTime?
-  updatedAt      DateTime @updatedAt
+  updatedAt      DateTime     @updatedAt
 }
 
 // ============================================================================
@@ -2535,84 +2733,84 @@ model VideoSessionSummary {
 // ============================================================================
 
 model ResearchSource {
-  id               String   @id @default(uuid())
-  key              String   @unique // doi:<doi> | pmid:<id> | url:<stable-url>
-  title            String
-  authors          Json?
-  journal          String?
-  year             Int?
-  doi              String?
-  pmid             String?
-  url              String?
-  studyType        String?  // guideline|meta_analysis|rct|cohort|review|position_stand
-  population       String?
-  intervention     String?
-  comparator       String?
-  outcomes         String?
-  resultsSummary   String?
-  limitations      String?
-  status           String   @default("active") // active|retracted|corrected|unavailable
-  verifiedAt       DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  evidenceLinks    ArticleEvidence[]
+  id             String            @id @default(uuid())
+  key            String            @unique // doi:<doi> | pmid:<id> | url:<stable-url>
+  title          String
+  authors        Json?
+  journal        String?
+  year           Int?
+  doi            String?
+  pmid           String?
+  url            String?
+  studyType      String? // guideline|meta_analysis|rct|cohort|review|position_stand
+  population     String?
+  intervention   String?
+  comparator     String?
+  outcomes       String?
+  resultsSummary String?
+  limitations    String?
+  status         String            @default("active") // active|retracted|corrected|unavailable
+  verifiedAt     DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  evidenceLinks  ArticleEvidence[]
 
   @@index([status])
 }
 
 model KnowledgeArticle {
-  id                String    @id @default(uuid())
-  slug              String    @unique
-  category          String
-  tags              Json      @default("[]")
-  status            String    @default("draft") // draft|researching|ready_for_review|changes_requested|approved|scheduled|published|correction_required|retracted|archived
-  authorId          String
-  reviewerId        String?
-  currentRevisionId String?
-  approvedRevisionId String?  // immutable pointer set on approval
+  id                  String    @id @default(uuid())
+  slug                String    @unique
+  category            String
+  tags                Json      @default("[]")
+  status              String    @default("draft") // draft|researching|ready_for_review|changes_requested|approved|scheduled|published|correction_required|retracted|archived
+  authorId            String
+  reviewerId          String?
+  currentRevisionId   String?
+  approvedRevisionId  String? // immutable pointer set on approval
   publishedRevisionId String?
-  publishedAt       DateTime?
-  lastReviewedAt    DateTime?
-  withdrawnAt       DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  publishedAt         DateTime?
+  lastReviewedAt      DateTime?
+  withdrawnAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
-  revisions  KnowledgeArticleRevision[]
-  reviews    ArticleReview[]
-  schedule   EditorialSchedule[]
-  savedBy    KnowledgeSavedItem[]
+  revisions   KnowledgeArticleRevision[]
+  reviews     ArticleReview[]
+  schedule    EditorialSchedule[]
+  savedBy     KnowledgeSavedItem[]
   corrections ContentCorrection[]
-  faqs       KnowledgeFAQ[]
+  faqs        KnowledgeFAQ[]
 
   @@index([status, publishedAt])
   @@index([category, status])
 }
 
 model KnowledgeArticleRevision {
-  id            String   @id @default(uuid())
-  articleId     String
-  article       KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  version       Int
-  title         String
-  claim         String   // the myth/common claim being examined
-  verdict       String   // MYTH|MOSTLY_MYTH|CONTEXT_DEPENDENT|MOSTLY_SUPPORTED|SUPPORTED|INSUFFICIENT_EVIDENCE
-  shortVerdict  String   // one-sentence explanation
-  explanation   String   // what the evidence suggests, plain language
-  takeaway      String?  // practical takeaway
-  appliesTo     String?  // who the finding applies to
-  exceptions    String?  // important exceptions
-  uncertainty   String?  // conflicting findings / gaps
-  certainty     String   @default("NOT_ASSESSED") // HIGH|MODERATE|LOW|VERY_LOW|NOT_ASSESSED
+  id                 String           @id @default(uuid())
+  articleId          String
+  article            KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  version            Int
+  title              String
+  claim              String // the myth/common claim being examined
+  verdict            String // MYTH|MOSTLY_MYTH|CONTEXT_DEPENDENT|MOSTLY_SUPPORTED|SUPPORTED|INSUFFICIENT_EVIDENCE
+  shortVerdict       String // one-sentence explanation
+  explanation        String // what the evidence suggests, plain language
+  takeaway           String? // practical takeaway
+  appliesTo          String? // who the finding applies to
+  exceptions         String? // important exceptions
+  uncertainty        String? // conflicting findings / gaps
+  certainty          String           @default("NOT_ASSESSED") // HIGH|MODERATE|LOW|VERY_LOW|NOT_ASSESSED
   certaintyRationale String? // reviewer rationale — required when certainty assessed
-  aiAssisted    Boolean  @default(false)
-  immutable     Boolean  @default(false) // frozen at approval — scheduled/published refs point here
-  createdById   String
-  createdAt     DateTime @default(now())
+  aiAssisted         Boolean          @default(false)
+  immutable          Boolean          @default(false) // frozen at approval — scheduled/published refs point here
+  createdById        String
+  createdAt          DateTime         @default(now())
 
-  evidence  ArticleEvidence[]
-  reviews   ArticleReview[]
-  schedule  EditorialSchedule[]
-  events    PublicationEvent[]
+  evidence    ArticleEvidence[]
+  reviews     ArticleReview[]
+  schedule    EditorialSchedule[]
+  events      PublicationEvent[]
   corrections ContentCorrection[]
 
   @@unique([articleId, version])
@@ -2620,105 +2818,105 @@ model KnowledgeArticleRevision {
 }
 
 model ArticleEvidence {
-  id          String   @id @default(uuid())
-  revisionId  String
-  revision    KnowledgeArticleRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
-  sourceId    String
-  source      ResearchSource @relation(fields: [sourceId], references: [id])
-  supports    String?  // which claim/section it backs
-  position    Int      @default(0)
+  id         String                   @id @default(uuid())
+  revisionId String
+  revision   KnowledgeArticleRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  sourceId   String
+  source     ResearchSource           @relation(fields: [sourceId], references: [id])
+  supports   String? // which claim/section it backs
+  position   Int                      @default(0)
 
   @@unique([revisionId, sourceId])
   @@index([sourceId])
 }
 
 model ArticleReview {
-  id         String   @id @default(uuid())
+  id         String                   @id @default(uuid())
   articleId  String
-  article    KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  article    KnowledgeArticle         @relation(fields: [articleId], references: [id], onDelete: Cascade)
   revisionId String
   revision   KnowledgeArticleRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
   reviewerId String
-  decision   String   // approved|changes_requested
-  feedback   Json?    // field-specific comments
-  scope      String?  // clinical|general — reviewers' declared scope for this review
-  createdAt  DateTime @default(now())
+  decision   String // approved|changes_requested
+  feedback   Json? // field-specific comments
+  scope      String? // clinical|general — reviewers' declared scope for this review
+  createdAt  DateTime                 @default(now())
 
   @@index([articleId, createdAt])
   @@index([reviewerId, createdAt])
 }
 
 model ReviewerProfile {
-  userId        String   @id
-  expertise     Json     @default("[]") // topic keys the reviewer covers
-  qualifications String?  // self-declared; NOT verified credentials
-  conflicts     String?  // disclosed conflicts of interest
-  clinical      Boolean  @default(false) // eligible for clinical-scope reviews
-  active        Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  userId         String   @id
+  expertise      Json     @default("[]") // topic keys the reviewer covers
+  qualifications String? // self-declared; NOT verified credentials
+  conflicts      String? // disclosed conflicts of interest
+  clinical       Boolean  @default(false) // eligible for clinical-scope reviews
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model EditorialSchedule {
-  id           String    @id @default(uuid())
-  publishKey   String    @unique // idempotency: e.g. weekly:2026-45
-  articleId    String
-  article      KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  revisionId   String
-  revision     KnowledgeArticleRevision @relation(fields: [revisionId], references: [id])
-  scheduledFor DateTime
-  status       String    @default("scheduled") // scheduled|published|cancelled|blocked|withdrawn
+  id            String                   @id @default(uuid())
+  publishKey    String                   @unique // idempotency: e.g. weekly:2026-45
+  articleId     String
+  article       KnowledgeArticle         @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  revisionId    String
+  revision      KnowledgeArticleRevision @relation(fields: [revisionId], references: [id])
+  scheduledFor  DateTime
+  status        String                   @default("scheduled") // scheduled|published|cancelled|blocked|withdrawn
   blockedReason String?
-  publishedAt  DateTime?
-  createdById  String
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  publishedAt   DateTime?
+  createdById   String
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
 
   @@index([status, scheduledFor])
 }
 
 model PublicationEvent {
-  id           String   @id @default(uuid())
-  scheduleId   String?  @unique // one event per schedule → idempotent
+  id           String                   @id @default(uuid())
+  scheduleId   String?                  @unique // one event per schedule → idempotent
   articleId    String
   revisionId   String
   revision     KnowledgeArticleRevision @relation(fields: [revisionId], references: [id])
-  kind         String   @default("weekly") // weekly|correction|republication
+  kind         String                   @default("weekly") // weekly|correction|republication
   scheduledFor DateTime
-  publishedAt  DateTime @default(now())
+  publishedAt  DateTime                 @default(now())
   notifiedAt   DateTime?
 
   @@index([articleId, publishedAt])
 }
 
 model KnowledgeFAQ {
-  id              String   @id @default(uuid())
-  canonicalQuestion String @unique
-  aliases         Json     @default("[]")
-  shortAnswer     String
-  detail          String?
-  topicTags       Json     @default("[]")
-  articleId       String?
-  article         KnowledgeArticle? @relation(fields: [articleId], references: [id])
-  sourceKeys      Json     @default("[]") // ResearchSource.key list — validated on write
-  certainty       String   @default("NOT_ASSESSED")
-  status          String   @default("draft") // draft|published|retired
-  language        String   @default("en")
-  version         Int      @default(1)
-  lastReviewedAt  DateTime?
-  reviewerId      String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                String            @id @default(uuid())
+  canonicalQuestion String            @unique
+  aliases           Json              @default("[]")
+  shortAnswer       String
+  detail            String?
+  topicTags         Json              @default("[]")
+  articleId         String?
+  article           KnowledgeArticle? @relation(fields: [articleId], references: [id])
+  sourceKeys        Json              @default("[]") // ResearchSource.key list — validated on write
+  certainty         String            @default("NOT_ASSESSED")
+  status            String            @default("draft") // draft|published|retired
+  language          String            @default("en")
+  version           Int               @default(1)
+  lastReviewedAt    DateTime?
+  reviewerId        String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   @@index([status])
 }
 
 model KnowledgeSavedItem {
-  id        String   @id @default(uuid())
+  id        String           @id @default(uuid())
   userId    String
   articleId String
   article   KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  createdAt DateTime         @default(now())
 
   @@unique([userId, articleId])
 }
@@ -2734,18 +2932,18 @@ model KnowledgeQuestionSuggestion {
 }
 
 model ContentCorrection {
-  id           String   @id @default(uuid())
-  articleId    String
-  article      KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  revisionId   String
-  revision     KnowledgeArticleRevision @relation(fields: [revisionId], references: [id])
-  kind         String   // retraction|guideline_change|new_evidence|error|source_unavailable
-  detail       String
-  status       String   @default("open") // open|corrected|withdrawn
-  createdById  String
+  id                 String                   @id @default(uuid())
+  articleId          String
+  article            KnowledgeArticle         @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  revisionId         String
+  revision           KnowledgeArticleRevision @relation(fields: [revisionId], references: [id])
+  kind               String // retraction|guideline_change|new_evidence|error|source_unavailable
+  detail             String
+  status             String                   @default("open") // open|corrected|withdrawn
+  createdById        String
   resolvedRevisionId String?
-  createdAt    DateTime @default(now())
-  resolvedAt   DateTime?
+  createdAt          DateTime                 @default(now())
+  resolvedAt         DateTime?
 
   @@index([status])
 }
@@ -2755,42 +2953,42 @@ model ContentCorrection {
 // ============================================================================
 
 model MembershipModule {
-  key         String   @id // FREE_CORE|NUTRITION|WORKOUTS|EXERCISE_LIBRARY|ADVANCED_VIDEO_GUIDANCE|LEO_AI|ADVANCED_ANALYTICS|TRAINER_COACHING|LIVE_SESSIONS|KNOWLEDGE_PREMIUM
+  key         String  @id // FREE_CORE|NUTRITION|WORKOUTS|EXERCISE_LIBRARY|ADVANCED_VIDEO_GUIDANCE|LEO_AI|ADVANCED_ANALYTICS|TRAINER_COACHING|LIVE_SESSIONS|KNOWLEDGE_PREMIUM
   name        String
   description String?
-  sortOrder   Int      @default(0)
+  sortOrder   Int     @default(0)
 }
 
 model MembershipPackage {
-  id          String   @id @default(uuid())
-  key         String   @unique // free|nutrition|workout|nutrition_workout|full|ai_addon|byot|trainer_coached
-  name        String
-  description String?
-  modules     Json     @default("[]") // MembershipModule.key list
-  trialDays   Int      @default(0)
-  active      Boolean  @default(false) // draft until activated
-  platforms   Json     @default("[]")  // ios|android|web availability
-  storeIds    Json     @default("{}")  // {appStore, playStore, web} provider product ids — set at sale time
-  displayCopy Json?
-  effectiveFrom DateTime?
+  id             String    @id @default(uuid())
+  key            String    @unique // free|nutrition|workout|nutrition_workout|full|ai_addon|byot|trainer_coached
+  name           String
+  description    String?
+  modules        Json      @default("[]") // MembershipModule.key list
+  trialDays      Int       @default(0)
+  active         Boolean   @default(false) // draft until activated
+  platforms      Json      @default("[]") // ios|android|web availability
+  storeIds       Json      @default("{}") // {appStore, playStore, web} provider product ids — set at sale time
+  displayCopy    Json?
+  effectiveFrom  DateTime?
   effectiveUntil DateTime?
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  sortOrder      Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model UserEntitlement {
-  id         String    @id @default(uuid())
-  userId     String
-  moduleKey  String
-  source     String    // purchase|trial|complimentary|admin_grant|trainer_relationship
-  status     String    @default("active") // active|grace|expired|revoked
-  startsAt   DateTime  @default(now())
-  endsAt     DateTime? // null = no expiry (e.g. free core)
-  packageKey String?
-  purchaseRef String?  // provider transaction id — dedupe key with provider
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id          String    @id @default(uuid())
+  userId      String
+  moduleKey   String
+  source      String // purchase|trial|complimentary|admin_grant|trainer_relationship
+  status      String    @default("active") // active|grace|expired|revoked
+  startsAt    DateTime  @default(now())
+  endsAt      DateTime? // null = no expiry (e.g. free core)
+  packageKey  String?
+  purchaseRef String? // provider transaction id — dedupe key with provider
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([userId, moduleKey, status])
   @@index([status, endsAt])
@@ -2801,7 +2999,7 @@ model EntitlementEvent {
   userId          String
   moduleKey       String
   packageKey      String?
-  event           String   // purchase|activation|renewal|upgrade|downgrade|cancellation|expiration|refund|grant|revoke|trial_start|trial_end
+  event           String // purchase|activation|renewal|upgrade|downgrade|cancellation|expiration|refund|grant|revoke|trial_start|trial_end
   payload         Json?
   providerEventId String?  @unique // idempotent provider webhook reconciliation
   occurredAt      DateTime
@@ -2813,7 +3011,868 @@ model EntitlementEvent {
 
 // Member's chosen coaching model (Trainer Partnership Mode).
 model CoachingPreference {
-  userId    String   @id
-  model     String   @default("self_guided") // self_guided|humai_assisted|trainer_led|hybrid
+  userId                   String   @id
+  model                    String   @default("self_guided") // self_guided|humai_assisted|trainer_led|hybrid
+  // hybrid only: whose plan surfaces first when both trainer + Humai plans exist.
+  planPrecedence           String   @default("trainer_first") // trainer_first|humai_first
+  // Whether Humai-generated insights may be shown to the trainer workspace.
+  shareInsightsWithTrainer Boolean  @default(false)
+  updatedAt                DateTime @updatedAt
+}
+
+model ActionFeedback {
+  id        String   @id @default(uuid())
+  userId    String
+  actionKey String
+  verdict   String
+  createdAt DateTime @default(now())
+
+  @@index([userId, actionKey, createdAt])
+}
+
+// Gut health — member symptom journal. Never infers causality; severity 1-5.
+model GutSymptom {
+  id       String   @id @default(uuid())
+  userId   String
+  symptom  String // bloating|gas|constipation|diarrhea|reflux|abdominal|stool_frequency
+  severity Int      @default(3)
+  bristol  Int? // optional Bristol Stool Form 1-7
+  note     String?
+  loggedAt DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, loggedAt])
+}
+
+// Individualized food tolerance — DISTINCT from the Allergy model.
+// kind: suspected|intolerance|dislike|exclusion (allergy lives in Allergy).
+model FoodTolerance {
+  id        String   @id @default(uuid())
+  userId    String
+  foodName  String
+  kind      String
+  note      String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, kind])
+}
+
+// User-selected habit coaching — no streak punishment, pause/snooze friendly.
+model Habit {
+  id           String            @id @default(uuid())
+  userId       String
+  title        String
+  kind         String            @default("custom") // fiber|workout|sleep_window|meal_prep|movement_break|reflection|supplement|custom
+  daysOfWeek   Int               @default(127) // bitmask Mon=1..Sun=64, 127=daily
+  status       String            @default("active") // active|paused|archived
+  snoozedUntil DateTime?
+  createdAt    DateTime          @default(now())
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completions  HabitCompletion[]
+
+  @@index([userId, status])
+}
+
+model HabitCompletion {
+  id      String @id @default(uuid())
+  habitId String
+  day     String // YYYY-MM-DD local day
+  outcome String @default("done") // done|skipped
+  habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, day])
+}
+
+// Wellness check-in — self-reported stress/mood/fatigue. Never diagnostic,
+// never auto-shared with trainers.
+model WellnessCheckIn {
+  id       String   @id @default(uuid())
+  userId   String
+  stress   Int // 1-5
+  mood     Int // 1-5
+  fatigue  Int // 1-5
+  note     String?
+  loggedAt DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, loggedAt])
+}
+
+// ============================================================================
+// COACHING LOOP — intake, shared outcome plans, form checks (M12/M13/M16)
+// ============================================================================
+
+// Coaching intake — progressive baseline assessment per relationship.
+// `data` holds only the sections filled so far (never required up front).
+// Rows are version snapshots: edits after submit create version+1, history
+// is never overwritten. Private health conditions are NOT auto-attached —
+// sharing stays governed by TrainerClientConsent.
+model BaselineAssessment {
+  id           String        @id @default(uuid())
+  relationId   String
+  relation     TrainerClient @relation(fields: [relationId], references: [id], onDelete: Cascade)
+  trainerId    String
+  clientId     String
+  version      Int           @default(1)
+  status       String        @default("in_progress") // in_progress|submitted|reviewed
+  data         Json          @default("{}")
+  supersedesId String?
+  updatedBy    String?
+  submittedAt  DateTime?
+  submittedBy  String?
+  reviewedAt   DateTime?
+  reviewedBy   String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([relationId, version])
+  @@index([clientId])
+  @@index([trainerId])
+}
+
+// Shared outcome plan — explicit trainer+member agreement. One active plan
+// per relationship; every revision supersedes the previous version and logs
+// an OutcomePlanAdjustment (member-visible change history).
+model OutcomePlan {
+  id           String        @id @default(uuid())
+  relationId   String
+  relation     TrainerClient @relation(fields: [relationId], references: [id], onDelete: Cascade)
+  trainerId    String
+  clientId     String
+  version      Int           @default(1)
+  status       String        @default("active") // active|superseded|completed|archived
+  note         String?
+  supersedesId String?
+  createdBy    String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  goals       OutcomeGoal[]
+  adjustments OutcomePlanAdjustment[]
+
+  @@unique([relationId, version])
+  @@index([clientId, status])
+  @@index([trainerId, status])
+}
+
+// Outcome goal — baseline/target may be free text or numbers; not every goal
+// needs a numeric score. progressSource says where progress evidence lives.
+model OutcomeGoal {
+  id                 String      @id @default(uuid())
+  planId             String
+  plan               OutcomePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  kind               String      @default("custom") // workout_consistency|strength|functional_movement|dietary_habit|weight_trend|sleep_regularity|confidence|custom
+  title              String
+  baseline           String?
+  target             String?
+  targetDate         DateTime?
+  reviewIntervalDays Int         @default(7)
+  progressSource     String      @default("self_report") // workout_records|weight_trends|check_ins|habit_completions|self_report|trainer_assessment
+  notes              String?
+  status             String      @default("open") // open|met|dropped
+  sortOrder          Int         @default(0)
+  createdAt          DateTime    @default(now())
+
+  @@index([planId])
+}
+
+model OutcomePlanAdjustment {
+  id         String      @id @default(uuid())
+  planId     String // the version this adjustment produced
+  plan       OutcomePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  adjustedBy String // userId of who made the change
+  summary    String
+  createdAt  DateTime    @default(now())
+
+  @@index([planId])
+}
+
+// Exercise form check — trainer requests, member uploads a video with
+// explicit consent, trainer leaves timestamped feedback. Video bytes live in
+// private docStorage; access goes through short-lived signature-checked URLs.
+model FormCheckRequest {
+  id           String        @id @default(uuid())
+  relationId   String
+  relation     TrainerClient @relation(fields: [relationId], references: [id], onDelete: Cascade)
+  trainerId    String
+  clientId     String
+  exerciseKey  String? // Exercise.id from the library, when linked
+  exerciseName String?
+  note         String? // trainer's technique notes / what to film
+  status       String        @default("requested") // requested|submitted|reviewed|declined
+  videoKey     String? // docStorage key — never exposed in responses
+  videoName    String?
+  videoMime    String?
+  videoBytes   Int?
+  consentAt    DateTime? // when the member consented to share the video
+  submittedAt  DateTime?
+  reviewedAt   DateTime?
+  memberAckAt  DateTime? // member confirmed they understood the feedback
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  feedback FormCheckFeedback[]
+
+  @@index([clientId, status])
+  @@index([trainerId, status])
+  @@index([relationId])
+}
+
+model FormCheckFeedback {
+  id           String           @id @default(uuid())
+  requestId    String
+  request      FormCheckRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  authorId     String // trainer userId
+  timestampSec Float? // position in the video; null = general note
+  note         String
+  createdAt    DateTime         @default(now())
+
+  @@index([requestId])
+}
+
+// Weekly personal health review — generated on demand for a member's own
+// week (Mon–Sun). Separate from the public Myth vs Fact publication and
+// from the plan-scoped WeeklyReview. `data` carries the composed review;
+// progress is only claimed when records support it.
+model WeeklyHealthReview {
+  id        String    @id @default(uuid())
+  userId    String
+  weekOf    DateTime // Monday (UTC) of the reviewed week
+  data      Json      @default("{}")
+  openedAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([userId, weekOf])
+  @@index([userId, createdAt])
+}
+
+// ============================================================================
+// MIND & HABITS — opt-in emotional wellness (non-diagnostic). Journals are
+// private: never shared with trainers or sent to AI providers without the
+// dedicated consents on UserMindPreferences.
+// ============================================================================
+model EmotionalCheckIn {
+  id          String   @id @default(uuid())
+  userId      String
+  mood        String // very_low|low|neutral|good|very_good
+  energy      Int // 1-5
+  stress      Int // 1-5 perceived
+  emotionTags Json     @default("[]") // e.g. ["calm","anxious","proud"]
+  contextTags Json     @default("[]") // work|family|exercise|sleep|relationships|other
+  journal     String? // private journal text — access-logged, consent-gated
+  timezone    String   @default("UTC")
+  loggedAt    DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, loggedAt])
+}
+
+model UserMindPreferences {
+  userId                String   @id
+  moduleEnabled         Boolean  @default(true)
+  remindersEnabled      Boolean  @default(false)
+  aiJournalConsent      Boolean  @default(false) // separate informed consent for AI processing of journals
+  checkinSharingConsent Boolean  @default(false) // separate consent for trainer sharing
+  reminderTimeLocal     String? // "HH:MM" local wall-clock time
+  reminderTimeZone      String? // IANA zone, e.g. Asia/Kolkata
+  reminderPaused        Boolean  @default(false)
+  quietHoursStart       String? // "HH:MM" — no reminders inside quiet hours
+  quietHoursEnd         String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model MindExerciseCompletion {
+  id          String   @id @default(uuid())
+  userId      String
+  exerciseKey String
+  trackKey    String // self_awareness|self_management|social_awareness|relationship_management
+  reflection  String?
+  completedAt DateTime @default(now())
+
+  @@index([userId, completedAt])
+}
+
+// ============================================================================
+// FOOD INTELLIGENCE — barcode resolution + reviewed ingredient evidence.
+// Only APPROVED/ACTIVE profiles surface as established conclusions.
+// ============================================================================
+model BarcodeProduct {
+  barcode      String   @id // GTIN/UPC/EAN digits
+  name         String
+  brand        String?
+  servingSizeG Float?
+  servingLabel String?
+  nutrients    Json     @default("{}") // per serving: calories, proteinG, ...
+  ingredients  String? // raw ingredient list text
+  allergens    Json     @default("[]")
+  source       String   @default("catalog") // catalog|off|user|import
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+}
+
+model BarcodeFavorite {
+  id        String   @id @default(uuid())
+  userId    String
+  barcode   String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, barcode])
+  @@index([userId])
+}
+
+model ProductCorrection {
+  id        String   @id @default(uuid())
+  userId    String
+  barcode   String
+  field     String // name|brand|servingSizeG|ingredients|nutrients
+  oldValue  String?
+  newValue  String
+  createdAt DateTime @default(now())
+
+  @@index([barcode])
+  @@index([userId])
+}
+
+// V2 "Today's Progress" — deterministic daily goal progress, versioned and
+// idempotent. Separate from the legacy HealthScore snapshots (V1 preserved).
+model UserStreakPreferences {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  pausedUntil DateTime? // user-controlled pause (illness/travel) — no guilt mechanics
+  pauseDays   String[]  @default([]) // explicit local days excluded from streak evaluation
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model DailyProgressDay {
+  id          String   @id @default(uuid())
+  userId      String
+  dayKey      String // YYYY-MM-DD in effective timezone
+  timezone    String // IANA zone used for the day boundary
+  version     Int      @default(2) // calculation version
+  earned      Int      @default(0) // points earned 0..100
+  applicable  Int      @default(100) // points applicable after redistribution
+  components  Json // per-component detail: status, earned, applicable, progress, source
+  dailyTarget Int? // target assigned to THIS day — historical colors never reuse today’s target
+  computedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, dayKey])
+  @@index([userId, dayKey])
+}
+
+model IngredientEvidenceProfile {
+  id            String    @id @default(uuid())
+  ingredientKey String // loose key into the ingredient catalog (e.g. 'cinnamon')
+  displayName   String
+  summary       String // basic nutritional characteristics, plain language
+  claims        Json      @default("[]") // [{claim, verdict, applicability, studyType, dose, limitations, source}]
+  cautions      Json      @default("[]") // [{text, appliesTo}]
+  status        String    @default("DRAFT") // DRAFT|IN_REVIEW|APPROVED|ACTIVE|NEEDS_REVIEW|RETIRED
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  version       Int       @default(1)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([ingredientKey, version])
+  @@index([ingredientKey, status])
+}
+
+// ============================================================================
+// WEARABLE-READY HEALTH PLATFORM — device-agnostic sources, devices,
+// measurements, sync cursors, derived summaries. Data source ≠ originating
+// device ≠ measurement ≠ derived summary.
+// ============================================================================
+model WearableDevice {
+  id               String    @id @default(uuid())
+  userId           String
+  provider         String // apple_health|health_connect|humai_band|internal_sim
+  manufacturer     String?
+  model            String?
+  deviceType       String    @default("wearable") // wearable|phone|sensor|simulated
+  displayName      String?
+  externalDeviceId String?
+  firmwareVersion  String?
+  connectionState  String    @default("connected") // connected|disconnected|revoked
+  lastSyncAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  measurements HealthMeasurement[]
+
+  @@index([userId, provider])
+}
+
+model HealthDataSource {
+  id               String    @id @default(uuid())
+  userId           String
+  provider         String // apple_health|health_connect|humai_band|internal_sim|manual
+  connectionState  String    @default("connected") // connected|paused|revoked|error
+  permissionScopes Json      @default("[]")
+  lastSyncAt       DateTime?
+  lastAttemptAt    DateTime?
+  lastError        String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  measurements HealthMeasurement[]
+  cursors      HealthSyncCursor[]
+
+  @@unique([userId, provider])
+}
+
+model HealthMeasurement {
+  id         String            @id @default(uuid())
+  userId     String
+  sourceId   String?
+  source     HealthDataSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  deviceId   String?
+  device     WearableDevice?   @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  provider   String
+  externalId String? // provider-native record id — idempotent upsert key
+  metric     String // heart_rate|resting_heart_rate|hrv_sdnn|hrv_rmssd|steps|sleep|active_energy|resting_energy|workout
+  value      Float?
+  unit       String // canonical unit; source unit kept in meta
+  startAt    DateTime
+  endAt      DateTime?
+  receivedAt DateTime          @default(now())
+  timezone   String?
+  quality    String? // measured|estimated|low_quality
+  synthetic  Boolean           @default(false) // internal simulator records — never treated as real
+  meta       Json              @default("{}") // hrv statistic, provider extras, corrections
+
+  @@index([userId, metric, startAt])
+  @@index([provider, externalId])
+}
+
+model HealthSyncCursor {
+  id             String           @id @default(uuid())
+  sourceId       String
+  source         HealthDataSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  metric         String
+  cursor         String? // provider-native anchor (anchor token/offset)
+  lastCheckpoint DateTime?
+  retryCount     Int              @default(0)
+  lastError      String?
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([sourceId, metric])
+}
+
+model HealthMetricSummary {
+  id             String   @id @default(uuid())
+  userId         String
+  metric         String
+  periodStart    DateTime
+  periodType     String   @default("day") // day|week|month
+  value          Float
+  unit           String
+  sourceCoverage Json     @default("{}") // providers + record counts contributing
+  calcVersion    String   @default("v1")
+  sufficiency    String   @default("ok") // ok|partial|insufficient
+  computedAt     DateTime @default(now())
+
+  @@unique([userId, metric, periodType, periodStart])
+}
+
+// ============================================================================
+// SUPPLEMENT INTELLIGENCE PLATFORM (v2)
+// Canonical ingredient/form/product identity, education content, evidence
+// sources, approval-gated safety rules, and scheduled dose occurrences.
+// Research content imports as UNREVIEWED_RESEARCH_DRAFT — nothing here is
+// clinically validated until the review workflow publishes it.
+// ============================================================================
+
+// Canonical substance — the stable identity every catalog row, formulation,
+// product, education record and safety rule refers to. No dose prescription.
+model SupplementIngredient {
+  id String @id @default(uuid())
+
+  slug String @unique // e.g. "vitamin-d", "magnesium", "creatine"
+  name String
+
+  category       String?
+  // Nutrient family used for cumulative-exposure checks, e.g. "vitamin-d",
+  // "omega3", "magnesium". Semicolon-separated families stay in activeFamilies.
+  parentFamily   String?
+  activeFamilies String? // normalized semicolon list, e.g. "omega3;vitamin-a"
+
+  // DIET_REQUIRED | NO_ELEMENT_SYNTHESIS | ENDOGENOUS | PARTIAL | ESSENTIAL_FAT
+  // | PROTEIN_FOOD | NONESSENTIAL_PLANT | NONESSENTIAL_OTHER | MICROBE | BLEND | HORMONE
+  productionCode String?
+
+  // NUTRIENT_ROLE_ESTABLISHED | CONTEXT_DEPENDENT | PERFORMANCE_CONTEXT |
+  // COMPOSITION | MICROBE_STRAIN | LIMITED_MIXED | INSUFFICIENT | HIGH_RISK
+  evidenceClass String?
+
+  // UNREVIEWED_RESEARCH_DRAFT | UNDER_REVIEW | APPROVED | PUBLISHED | WITHDRAWN
+  researchStatus String @default("UNREVIEWED_RESEARCH_DRAFT")
+
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  aliases            SupplementAlias[]
+  forms              SupplementForm[]
+  productIngredients SupplementProductIngredient[]
+  supplements        Supplement[]
+  education          SupplementEducation[]
+  interactionRules   SupplementInteractionRule[]
+  userSupplements    UserSupplement[]
+}
+
+// Standardized synonyms so search resolves "D3", "cholecalciferol",
+// "the sunshine vitamin" to one identity instead of creating duplicates.
+model SupplementAlias {
+  id String @id @default(uuid())
+
+  ingredientId String
+  ingredient   SupplementIngredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  alias      String
+  normalized String // lowercased, punctuation-stripped lookup form
+
+  createdAt DateTime @default(now())
+
+  @@unique([ingredientId, normalized])
+  @@index([normalized])
+}
+
+// A specific preparation of an ingredient — vitamin D3 vs D2, magnesium
+// glycinate vs citrate vs oxide, CoQ10 ubiquinol vs ubiquinone, creatine
+// monohydrate vs HCl. Forms are not assumed interchangeable.
+model SupplementForm {
+  id String @id @default(uuid())
+
+  ingredientId String
+  ingredient   SupplementIngredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  slug    String  @unique // e.g. "magnesium-glycinate"
+  name    String
+  formKey String? // short token: "d3", "glycinate", "ubiquinol", "monohydrate"
+
+  // Formulation-specific notes (elemental content fraction, strain, salt).
+  characteristics String?
+
+  researchStatus String @default("UNREVIEWED_RESEARCH_DRAFT")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  supplements     Supplement[]
+  userSupplements UserSupplement[]
+  education       SupplementEducation[]
+  products        SupplementProduct[]
+}
+
+// An actual commercial product. Verified label data only — never generic
+// macros inferred from the active ingredient.
+model SupplementProduct {
+  id String @id @default(uuid())
+
+  brand        String?
+  name         String
+  sku          String?
+  barcode      String?
+  manufacturer String?
+
+  formId String?
+  form   SupplementForm? @relation(fields: [formId], references: [id], onDelete: SetNull)
+
+  servingSize Float?
+  servingUnit String? // g | mg | capsule | tablet | scoop | mL | packet
+  servingText String? // label text, e.g. "1 scoop (31g)"
+
+  // Supplement Facts / Nutrition Facts as labeled (JSON), plus label warnings.
+  labelFacts Json?
+  warnings   String?
+
+  dataSource         String? // where the label data came from
+  verificationStatus String  @default("UNVERIFIED") // UNVERIFIED | LABEL_REVIEWED | VERIFIED | STALE
+  revision           Int     @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ingredients     SupplementProductIngredient[]
+  supplements     Supplement[]
+  userSupplements UserSupplement[]
+
+  @@index([brand, name])
+}
+
+// Composition mapping: which active ingredients a product contains and how
+// much per serving. amountKnown=false means "declared present, amount not
+// disclosed" — never treat an unlabeled amount as zero.
+model SupplementProductIngredient {
+  id String @id @default(uuid())
+
+  productId String
+  product   SupplementProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  ingredientId String
+  ingredient   SupplementIngredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  amount      Float?
+  unit        String?
+  amountKnown Boolean @default(true)
+  sortOrder   Int     @default(0)
+
+  @@unique([productId, ingredientId])
+  @@index([ingredientId])
+}
+
+// Per-item education content. Lives at ingredient level (optionally narrowed
+// to a form or legacy catalog row). Separated from product labels and user
+// schedules so one reviewed text serves every product of the same substance.
+model SupplementEducation {
+  id String @id @default(uuid())
+
+  ingredientId String?
+  ingredient   SupplementIngredient? @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  formId       String?
+  form         SupplementForm?       @relation(fields: [formId], references: [id], onDelete: SetNull)
+  supplementId String?               @unique // one education record per catalog row
+  supplement   Supplement?           @relation(fields: [supplementId], references: [id], onDelete: Cascade)
+
+  overview                String?
+  whatItIs                String?
+  physiologicalRole       String?
+  isEssentialNutrient     Boolean?
+  bodyProduces            String? // production code
+  productionExplanation   String?
+  productionInsufficiency String?
+  dietarySufficiency      String?
+  foodSources             String?
+  groupsWithNeeds         String?
+  benefitEvidence         String?
+  evidenceLimitations     String?
+  timingCode              String?
+  timingSuggestion        String?
+  timingRationale         String?
+  timingStrength          String?
+  relativeAnchor          String?
+  labelExceptions         String?
+  adverseEffects          String?
+  interactionCautions     String?
+  pregnancyCaution        String?
+  ageCaution              String?
+  regulatoryNotes         String?
+  evidenceClass           String?
+  evidenceMeaning         String?
+
+  // DRAFT -> UNDER_REVIEW -> APPROVED -> PUBLISHED -> SUPERSEDED | WITHDRAWN
+  reviewStatus       String    @default("DRAFT")
+  reviewedBy         String?
+  reviewedAt         DateTime?
+  contentVersion     Int       @default(1)
+  lastEvidenceUpdate DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sources SupplementEducationSource[]
+
+  @@index([ingredientId])
+  @@index([reviewStatus])
+}
+
+// Claim-scoped references. A CATEGORY_INDEX source is a discovery pointer, not
+// per-item verification — `supportsClaims` lists exactly what it backs.
+model SupplementEducationSource {
+  id String @id @default(uuid())
+
+  educationId String
+  education   SupplementEducation @relation(fields: [educationId], references: [id], onDelete: Cascade)
+
+  sourceKey String? // dataset source id, e.g. "ODS-D"
+  title     String?
+  url       String
+
+  // INGREDIENT_SPECIFIC | CATEGORY_REVIEW | CATEGORY_INDEX | GENERAL_POLICY
+  scope        String?
+  itemSpecific Boolean @default(false)
+
+  publishedOn DateTime?
+  accessedOn  DateTime?
+  checkedOn   DateTime?
+
+  // Which claim keys this source substantiates (JSON array). Empty when the
+  // citation is category-level only — it must not be presented as verifying
+  // item-specific benefit/safety claims.
+  supportsClaims Json?
+  reviewerStatus String?
+
+  createdAt DateTime @default(now())
+
+  @@index([educationId])
+  @@index([sourceKey])
+}
+
+// Versioned, approval-gated safety rules — the 47 dataset drafts import with
+// approved=false and stay inert until a reviewer publishes them. An absent
+// rule is never evidence of safety.
+model SupplementInteractionRule {
+  id String @id @default(uuid())
+
+  // Family key used by the dataset, e.g. "vitamin-d", "omega3".
+  ingredientSlug String
+  ingredientId   String?
+  ingredient     SupplementIngredient? @relation(fields: [ingredientId], references: [id], onDelete: SetNull)
+
+  // MEDICATION | CONDITION | DOSE_TOTAL | LIFE_STAGE | OTHER_SUPPLEMENT |
+  // PRODUCT_COMPOSITION | LIFESTYLE | FOOD | LAB_TEST | ALLERGY |
+  // ADMINISTRATION | AGE_GROUP | PRODUCT_QUALITY
+  triggerType  String
+  triggerValue String
+
+  consumerWarning String
+  severity        String // INFO | LOW | MODERATE | HIGH | CRITICAL
+
+  // REFER_CLINICIAN | TOTAL_EXPOSURE_CHECK | NO_AUTO_RECOMMEND |
+  // REQUIRE_PRODUCT_LABEL | LABEL_SEPARATION | SEPARATION_CHECK |
+  // SEPARATION_REVIEW | MEAL_CONTEXT_WARNING | LAB_DISCLOSURE_WARNING |
+  // REQUIRE_ADMIN_INSTRUCTIONS
+  ruleAction              String
+  minSeparationHours      Float?
+  populationApplicability String?
+
+  sourceUrl        String?
+  sourceId         String?
+  evidenceStrength String?
+
+  approved                Boolean @default(false)
+  requiresReviewerSignoff Boolean @default(true)
+  qualification           String?
+
+  // DRAFT | UNDER_REVIEW | APPROVED | PUBLISHED | WITHDRAWN
+  reviewStatus  String    @default("DRAFT")
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  version       Int       @default(1)
+  effectiveDate DateTime?
+
+  // Stable idempotency key: slug|triggerType|triggerValue|row-index.
+  dedupeKey String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ingredientSlug])
+  @@index([approved, reviewStatus])
+}
+
+// Review-workflow audit trail: one row per status transition on education,
+// interaction rules, ingredients or products.
+model SupplementEvidenceReview {
+  id String @id @default(uuid())
+
+  entityType String // education | interaction_rule | ingredient | product
+  entityId   String
+
+  fromStatus   String?
+  toStatus     String
+  reviewerId   String?
+  reviewerRole String?
+  notes        String?
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+}
+
+// One concrete scheduled dose — generated from a SupplementSchedule. The
+// dedupeKey (userId|scheduleId|localDate|slot) makes generation idempotent
+// across ticks, syncs and timezone reconciliations.
+model SupplementDoseOccurrence {
+  id String @id @default(uuid())
+
+  userId String
+
+  scheduleId String?
+  schedule   SupplementSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+
+  userSupplementId String
+  userSupplement   UserSupplement @relation(fields: [userSupplementId], references: [id], onDelete: Cascade)
+
+  localDate    String // YYYY-MM-DD in the effective timezone
+  localTime    String? // HH:MM planned wall-clock
+  timezone     String? // IANA zone the slot was computed under
+  scheduledFor DateTime? // UTC instant when known (fixed/fallback times)
+
+  // PENDING | TAKEN | SKIPPED | MISSED | SNOOZED | CANCELLED
+  status String @default("PENDING")
+
+  doseAmount Float?
+  doseUnit   String?
+
+  takenLogId  String?
+  snoozeUntil DateTime?
+  actedAt     DateTime?
+
+  dedupeKey      String  @unique
+  idempotencyKey String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  logs SupplementLog[]
+
+  @@index([userId, localDate])
+  @@index([status, scheduledFor])
+}
+
+model ScorePolicyVersion {
+  id        String   @id @default(uuid())
+  version   String   @unique
+  caps      Json
+  active    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model DailyScoreSnapshot {
+  id         String   @id @default(uuid())
+  userId     String
+  date       DateTime @db.Date
+  version    String
+  composite  Float?
+  state      String
+  components Json
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date, version])
+  @@index([userId, date])
+}
+
+model GoalHistory {
+  id              String    @id @default(uuid())
+  userId          String
+  goal            String
+  targetsSnapshot Json?
+  startedAt       DateTime  @default(now())
+  endedAt         DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, endedAt])
+}
+
+model ScenarioDefinition {
+  id           String   @id
+  category     String
+  priority     String
+  expected     String
+  data         Json?
+  reviewStatus String   @default("pending_review")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

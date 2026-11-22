@@ -14,6 +14,10 @@
       {
         "schedule": "17 3 * * *",
         "command": "node scripts/retention-sweep.js"
+      },
+      {
+        "schedule": "0 13 * * 1",
+        "command": "node scripts/weekly-target-review.js"
       }
     ]
   }

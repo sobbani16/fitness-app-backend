@@ -26,8 +26,16 @@ const TITLES = {
   movement: 'Time to move a little?',
 };
 
+// Effective reminder timezone (B2/B3). V2: FIXED_TIMEZONE pins `timezone`;
+// FOLLOW_DEVICE schedules by the last detected device zone, falling back to
+// the stored preference. Legacy rows without timezoneMode keep timezoneLocked
+// semantics so their behavior is unchanged.
 function tz(prefs) {
-  return prefs.timezoneLocked ? (prefs.homeTimezone || prefs.timezone) : prefs.timezone;
+  if (prefs.timezoneMode === 'FIXED_TIMEZONE') return prefs.timezone || 'UTC';
+  if (prefs.timezoneMode === 'FOLLOW_DEVICE' || prefs.lastDetectedTimezone) {
+    return prefs.lastDetectedTimezone || prefs.timezone || 'UTC';
+  }
+  return prefs.timezoneLocked ? (prefs.homeTimezone || prefs.timezone) : (prefs.timezone || 'UTC');
 }
 
 // Computes candidate reminder slots for a user at `now` without writing
@@ -136,7 +144,7 @@ async function planUser(prisma, userId, now) {
   const since = new Date(now.getTime() - TRIGGER_LOOKBACK_MS);
   const [lastWater, supplementSchedules, links, recentMeals, recentWorkouts] = await Promise.all([
     prisma.waterLog.findFirst({ where: { userId }, orderBy: { loggedAt: 'desc' }, select: { loggedAt: true } }),
-    prisma.supplementSchedule.findMany({ where: { userId, active: true, reminderTime: { not: null } } }),
+    prisma.supplementSchedule.findMany({ where: { userId, active: true, notifyEnabled: true, reminderTime: { not: null } } }),
     prisma.userSupplement.findMany({ where: { userId }, select: { id: true, supplementId: true } }),
     prisma.foodLog.findMany({ where: { userId, loggedAt: { gte: since } }, select: { id: true, mealType: true, loggedAt: true } }),
     prisma.workoutSession.findMany({ where: { userId, finishedAt: { gte: since } }, select: { id: true, finishedAt: true } }),
@@ -202,6 +210,13 @@ function completedFor(category, instance, facts) {
 async function runTick(prisma, { now = new Date(), userIds } = {}) {
   await prisma.reminderInstance.updateMany({ where: { status: 'snoozed', snoozeUntil: { lte: now } }, data: { status: 'pending', snoozeUntil: null } });
   await prisma.reminderInstance.updateMany({ where: { status: 'pending', scheduledFor: { lt: new Date(now.getTime() - INSTANCE_EXPIRY_HOURS * 3600000) } }, data: { status: 'expired' } });
+  // Supplement dose occurrences: revive elapsed snoozes and mark elapsed
+  // pendings MISSED (never treated as proof of non-adherence).
+  try {
+    const occWhere = userIds ? { userId: { in: userIds } } : {};
+    await prisma.supplementDoseOccurrence.updateMany({ where: { ...occWhere, status: 'SNOOZED', snoozeUntil: { lte: now } }, data: { status: 'PENDING', snoozeUntil: null } });
+    await prisma.supplementDoseOccurrence.updateMany({ where: { ...occWhere, status: 'PENDING', scheduledFor: { not: null, lt: new Date(now.getTime() - 12 * 3600000) } }, data: { status: 'MISSED' } });
+  } catch { /* table may predate the v2 migration in test envs */ }
 
   const where = { status: 'pending', scheduledFor: { lte: now }, ...(userIds ? { userId: { in: userIds } } : {}) };
   const due = await prisma.reminderInstance.findMany({ where, take: 500, orderBy: { scheduledFor: 'asc' } });
@@ -250,4 +265,48 @@ async function runTick(prisma, { now = new Date(), userIds } = {}) {
   return results;
 }
 
-module.exports = { candidates, planUser, buildContext, runTick, TITLES };
+// Reconciliation (B3/B7): compares pending instances against the schedule the
+// CURRENT effective timezone implies. Wall-clock keys (meal/workout/supplement)
+// encode `userId|category|dateKey|HHMM|lead` — recomputing their instant under
+// the new zone fixes travel (Charlotte 12:30 → Dallas 12:30 shifts the UTC
+// instant by the offset delta). Instant-based keys (water gaps, triggers) are
+// zone-independent and left alone. Disabled/removed settings expire their rows.
+// Idempotent: safe to call on every foreground, timezone event, or sync.
+async function reconcile(prisma, userId, now = new Date()) {
+  const prefs = await prisma.reminderPreference.findUnique({ where: { userId } });
+  if (!prefs || !prefs.masterEnabled) return { rescheduled: 0, expired: 0, effectiveTimezone: prefs ? tz(prefs) : null };
+  const zone = tz(prefs);
+  const [pending, settings] = await Promise.all([
+    prisma.reminderInstance.findMany({ where: { userId, status: 'pending', scheduledFor: { gt: new Date(now.getTime() - INSTANCE_EXPIRY_HOURS * 3600000) } }, select: { id: true, category: true, dedupeKey: true, scheduledFor: true, payload: true } }),
+    prisma.reminderCategorySetting.findMany({ where: { userId }, select: { category: true, enabled: true, source: true, times: true } }),
+  ]);
+  const byCategory = Object.fromEntries(settings.map((s) => [s.category, s]));
+  const updates = [];
+  const expireIds = [];
+  for (const inst of pending) {
+    // Bundles: resolve through first member category; zone recompute still applies.
+    const cat = inst.category.startsWith('bundle:') ? inst.category : inst.category;
+    const parts = (inst.dedupeKey || '').split('|');
+    // Instant-based keys keep their UTC instant across travel.
+    if (parts[2] === 'gap' || parts[2] === 'trigger' || parts.length < 4) continue;
+    const baseCat = cat.startsWith('bundle:') ? (inst.payload?.merged || [])[0] : cat;
+    const setting = byCategory[baseCat] || (inst.payload?.merged || []).map((c) => byCategory[c]).find(Boolean);
+    const stillEnabled = setting && setting.enabled && !(setting.source === 'adaptive' && !prefs.adaptiveEnabled)
+      && (!setting.times || !parts[3] || setting.times.includes(parts[3]));
+    if (!stillEnabled) { expireIds.push(inst.id); continue; }
+    const dateKey = parts[2], minutes = parseHHMM(parts[3]);
+    const lead = parseInt(parts[4] || '0', 10) || 0;
+    if (minutes == null) { expireIds.push(inst.id); continue; } // bundles/supplement keys: expire, planUser recreates under the new zone
+    const want = new Date(wallTimeToUtc(dateKey, minutes, zone).getTime() - lead * 60000);
+    if (Math.abs(want - inst.scheduledFor) > 60000) updates.push({ id: inst.id, scheduledFor: want });
+  }
+  for (const u of updates) {
+    await prisma.reminderInstance.update({ where: { id: u.id }, data: { scheduledFor: u.scheduledFor } });
+  }
+  if (expireIds.length) {
+    await prisma.reminderInstance.updateMany({ where: { id: { in: expireIds } }, data: { status: 'expired', reason: 'schedule_changed' } });
+  }
+  return { rescheduled: updates.length, expired: expireIds.length, effectiveTimezone: zone, scheduleVersion: prefs.scheduleVersion };
+}
+
+module.exports = { candidates, planUser, buildContext, runTick, reconcile, tz, TITLES };

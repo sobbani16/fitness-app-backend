@@ -2,19 +2,22 @@ const express = require('express');
 const { getPrisma } = require('../lib/prisma');
 const prefs = require('../services/reminders/preferences');
 const { generateSuggestions } = require('../services/reminders/learn');
-const { planUser, runTick, TITLES } = require('../services/reminders/scheduler');
+const { planUser, runTick, reconcile, TITLES } = require('../services/reminders/scheduler');
 const { emit, notifyInbox } = require('../services/reminders/inbox');
 const { SNOOZE_OPTIONS, TERMINAL_STATUSES } = require('../services/reminders/constants');
 
 const router = express.Router();
 
-function getUserId(req) {
-  return (req.headers['x-user-id'] || req.query.userId || '').toString().trim();
-}
-
+// Identity resolution (B8): the global `authenticate` middleware already
+// rewrites x-user-id to the verified session id and deletes query.userId for
+// authenticated requests, so the header is trustworthy downstream. The
+// req.userId-first order means a caller-supplied value can never override a
+// real session identity. The header path remains only for the isolated
+// AUTH_TEST_BYPASS unit-test contract, never a running server.
+const { getUserId } = require('../middleware/rbac');
 function requireUser(req, res) {
-  const userId = getUserId(req);
-  if (!userId) res.status(400).json({ error: 'x-user-id header or userId required' });
+  const userId = req.userId || getUserId(req);
+  if (!userId) res.status(401).json({ error: 'Authentication required' });
   return userId;
 }
 
@@ -34,6 +37,32 @@ router.put('/preferences', async (req, res) => {
     if (!userId) return;
     res.json({ preferences: await prefs.updatePreferences(getPrisma(), userId, req.body || {}) });
   } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+// PUT /reminders/preferences/timezone — timezone mode + travel detection.
+router.put('/preferences/timezone', async (req, res) => {
+  try {
+    const userId = requireUser(req, res);
+    if (!userId) return;
+    const updated = await prefs.updateTimezone(getPrisma(), userId, req.body || {});
+    // Travel or mode change: pending wall-clock instances were computed under
+    // the old zone — reconcile before reporting success.
+    if (updated.travelDetected || (req.body && req.body.mode)) {
+      updated.reconcile = await reconcile(getPrisma(), userId);
+    }
+    res.json({ preferences: updated });
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+// POST /reminders/reconcile — idempotent; safe on foreground, tz change, sync.
+router.post('/reconcile', async (req, res) => {
+  try {
+    const userId = requireUser(req, res);
+    if (!userId) return;
+    const result = await reconcile(getPrisma(), userId);
+    const planned = await planUser(getPrisma(), userId, new Date());
+    res.json({ ...result, planned: planned.length });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // POST /reminders/preferences/pause { minutes? } — pause all; null/0 resumes.

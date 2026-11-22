@@ -101,6 +101,40 @@ function validateCategory(category, patch) {
   return clean;
 }
 
+const { isValidZone } = require('../localDay');
+
+// V2 timezone policy (B2/B3): FOLLOW_DEVICE schedules by the device's current
+// IANA zone; FIXED_TIMEZONE pins `timezone`. detectedTimezone is recorded for
+// travel detection — never silently converts modes.
+async function updateTimezone(prisma, userId, { mode, timezone, detectedTimezone }) {
+  const data = {};
+  let travelDetected = false;
+  if (mode !== undefined) {
+    if (!['FOLLOW_DEVICE', 'FIXED_TIMEZONE'].includes(mode)) throw new Error('mode must be FOLLOW_DEVICE or FIXED_TIMEZONE');
+    if (mode === 'FIXED_TIMEZONE') {
+      const tz = timezone || (await getPreferences(prisma, userId)).timezone;
+      if (!isValidZone(tz)) throw new Error('FIXED_TIMEZONE requires a valid IANA timezone');
+      data.timezone = tz; data.timezoneLocked = true;
+    } else { data.timezoneLocked = false; }
+    data.timezoneMode = mode;
+  }
+  if (timezone !== undefined && data.timezone === undefined) {
+    if (timezone !== null && !isValidZone(timezone)) throw new Error('timezone must be a valid IANA name');
+    data.timezone = timezone;
+  }
+  if (detectedTimezone !== undefined) {
+    if (detectedTimezone !== null && !isValidZone(detectedTimezone)) throw new Error('detectedTimezone must be a valid IANA name');
+    const changed = detectedTimezone && detectedTimezone !== (await prisma.reminderPreference.findUnique({ where: { userId }, select: { lastDetectedTimezone: true } }))?.lastDetectedTimezone;
+    data.lastDetectedTimezone = detectedTimezone;
+    if (changed) travelDetected = true; // travel: pending reminders must be reconciled
+  }
+  const update = { ...data };
+  const create = { userId, ...data };
+  if (travelDetected) { update.scheduleVersion = { increment: 1 }; create.scheduleVersion = 1; }
+  const prefs = await prisma.reminderPreference.upsert({ where: { userId }, create, update });
+  return { ...prefs, effectiveTimezone: prefs.timezoneMode === 'FIXED_TIMEZONE' ? prefs.timezone : (prefs.lastDetectedTimezone || prefs.timezone || 'UTC'), travelDetected };
+}
+
 async function getPreferences(prisma, userId) {
   const row = await prisma.reminderPreference.findUnique({ where: { userId } });
   return row || defaults(userId);
@@ -195,6 +229,7 @@ async function declineSuggestion(prisma, userId, suggestionId, { mute = false } 
 }
 
 module.exports = {
+  updateTimezone,
   defaults, getPreferences, updatePreferences, listCategories, updateCategory,
   pauseAll, revokeAdaptive, muteSuggestions, resetLearned,
   acceptSuggestion, declineSuggestion, validatePrefs, validateCategory,
