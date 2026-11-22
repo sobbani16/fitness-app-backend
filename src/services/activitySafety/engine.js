@@ -139,10 +139,12 @@ function evalFunctional(ctx, activity, now) {
         `Documented restriction on ${inj.bodyPart} prohibits this activity category (${inj.prohibitedCategories.join(', ')}).`, 'AS-CORE-002');
       continue;
     }
-    if (!demanded) continue; // unaffected region
-
+    // Weight-bearing is a load on the limb even when the limb doesn't move —
+    // a standing press is incompatible with a lower-limb NWB restriction
+    // regardless of regions.lower_limb.
     const wb = inj.weightBearingRestriction;
-    const wbDemanded = activity.demands.weightBearing !== 'none' && region === 'lower_limb';
+    const wbDemanded = region === 'lower_limb' && activity.demands.weightBearing !== 'none';
+    if (!demanded && !wbDemanded) continue; // unaffected region
     if (wb === 'non_weight_bearing' && wbDemanded) {
       add(dim, 'functional', D.BLOCK_ACTIVITY,
         `Active ${inj.bodyPart} injury has a non-weight-bearing restriction — weight-bearing activity on it is blocked.`, 'AS-MSK-001');
@@ -177,7 +179,10 @@ function evalFunctional(ctx, activity, now) {
         `Post-${sx.procedureCategory} restrictions prohibit this activity category.`, 'AS-MSK-008');
       continue;
     }
-    const clearance = sx.activityClearance && sx.activityClearance[activity.id];
+    // activityClearance keys: activity ids, or 'general'/'*' for blanket clearance.
+    const ac = sx.activityClearance || {};
+    const gc = ac[activity.id] ?? ac.general ?? ac['*'];
+    const clearance = gc === true ? 'cleared' : gc;
     if (clearance === 'restricted') {
       add(dim, 'functional', D.BLOCK_ACTIVITY,
         `This activity is listed as restricted in the post-${sx.procedureCategory} guidance.`, 'AS-MSK-008');

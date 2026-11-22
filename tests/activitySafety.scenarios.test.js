@@ -41,7 +41,7 @@ describe('medical × injury combinations', () => {
     const c = { ...H(), injuries: [NWB('ankle'), { bodyPart: 'wrist', type: 'fracture', status: 'current' }] };
     const rec = svc.recommend(c, MILD);
     expect(rec.disposition).toBe('suggestion');
-    expect(rec.suggestion.activityId).toBe('gentle_mobility'); // not upper-body load
+    expect(rec.suggestion.activityId).toBe('floor_core_work'); // supine — avoids both NWB ankle and wrist load
     expect(dec(c, 'upper_body_ergometer', MILD)).toBe('MODIFY');
     expect(dec(c, 'seated_movement', MILD)).toBe('MODIFY');
   });
