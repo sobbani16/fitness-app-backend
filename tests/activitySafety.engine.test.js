@@ -298,6 +298,20 @@ describe('invariants', () => {
     expect(dec(c, 'outdoor_walk', perfect)).toBe('BLOCK_ACTIVITY');
     expect(dec(c, 'outdoor_walk', { ...perfect, weatherCode: 95 })).toBe('BLOCK_ACTIVITY');
   });
+  test('tie-break: environmental DEFER_OUTDOOR outranks a medical MODIFY', () => {
+    // Same rank (3): env deferral is the more concrete outcome for that
+    // candidate — a draft rule's MODIFY must not silently downgrade it.
+    const c = { ...H(), conditionKeys: ['asthma'] };
+    const env = { ...MILD, aqi: { value: 180 } }; // aqi_unhealthy → DEFER
+    const rules = [{ ruleCode: 'X', name: 'x', appliesTo: { envHazards: ['aqi_unhealthy'] }, effect: 'MODIFY', reason: 'r' }];
+    expect(dec(c, 'outdoor_walk', env, rules)).toBe('DEFER_OUTDOOR');
+  });
+  test('tie-break: functional BLOCK outranks medical NEEDS_CLINICAL_REVIEW', () => {
+    const c = { ...H(),
+      symptomReports: [{ status: 'active', symptoms: ['dizziness'] }], // review-level → NCR
+      restrictions: [{ status: 'active', categories: ['weight_bearing_lower'], severity: 'prohibited', source: 'clinician_documented' }] };
+    expect(dec(c, 'outdoor_walk', MILD)).toBe('BLOCK_ACTIVITY');
+  });
   test('urgent symptoms dominate every other dimension', () => {
     const c = { ...H(), symptomReports: [{ status: 'active', symptoms: ['chest_pain'] }],
       injuries: [{ bodyPart: 'ankle', type: 'fracture', status: 'current', weightBearingRestriction: 'non_weight_bearing' }] };

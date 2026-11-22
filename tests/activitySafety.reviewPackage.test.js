@@ -300,7 +300,7 @@ describe('review package — executable examples (all rules DRAFT)', () => {
   test('AS-ENV-008 Wind chill bands', () => {
     const res = run('AS-ENV-008', {"flags":[]}, 'outdoor_walk', {"tempC":-20,"apparentTempC":-20});
     expect(res.ruleIds).toContain('AS-ENV-008');
-    expect(res.decision).toBe('MODIFY');
+    expect(res.decision).toBe('DEFER_OUTDOOR');
   });
   test('AS-ENV-009 UV ≥8', () => {
     const res = run('AS-ENV-009', {"flags":[]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"uvIndex":9});
@@ -335,7 +335,7 @@ describe('review package — executable examples (all rules DRAFT)', () => {
   test('AS-PER-004 Forecast better-time offer', () => {
     const res = run('AS-PER-004', {"flags":[]}, 'outdoor_walk', {"tempC":41,"apparentTempC":41});
     expect(res.ruleIds).toContain('AS-PER-004');
-    expect(res.decision).toBe('MODIFY');
+    expect(res.decision).toBe('DEFER_OUTDOOR');
   });
   test('AS-PER-005 No calorie-compensation framing', () => {
     const res = run('AS-PER-005', {"flags":[]}, 'seated_movement', null);

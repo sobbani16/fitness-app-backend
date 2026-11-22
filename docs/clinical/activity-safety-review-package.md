@@ -1091,7 +1091,7 @@
   - AS-NEURO-006 — shared: envHazards:cold_caution
   - AS-PER-004 — shared: envHazards:cold_danger
 - **Uncertainty / missing-data:** unknown never counts as favorable. 
-- **Executable example** (generated test): activity=`outdoor_walk` ctx={} env={"tempC":-20,"apparentTempC":-20} → verified: fires, merged decision `MODIFY`.
+- **Executable example** (generated test): activity=`outdoor_walk` ctx={} env={"tempC":-20,"apparentTempC":-20} → verified: fires, merged decision `DEFER_OUTDOOR`.
 
 ## AS-ENV-009 — UV ≥8
 
@@ -1221,7 +1221,7 @@
   - AS-ENV-008 — shared: envHazards:cold_danger
   - AS-ENV-012 — shared: envHazards:heavy_precip
 - **Uncertainty / missing-data:** unknown never counts as favorable. 
-- **Executable example** (generated test): activity=`outdoor_walk` ctx={} env={"tempC":41,"apparentTempC":41} → verified: fires, merged decision `MODIFY`.
+- **Executable example** (generated test): activity=`outdoor_walk` ctx={} env={"tempC":41,"apparentTempC":41} → verified: fires, merged decision `DEFER_OUTDOOR`.
 
 ## AS-PER-005 — No calorie-compensation framing
 

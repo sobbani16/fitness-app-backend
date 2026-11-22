@@ -16,12 +16,16 @@ const DECISIONS = {
   ALLOW: 'ALLOW',
 };
 
+// Rank tiers distinguish restrictiveness WITHIN each tier too, so strictly-
+// greater merges never silently downgrade a determined restriction:
+// DEFER_OUTDOOR ("don't offer this candidate outdoors") outranks a generic
+// MODIFY; a documented BLOCK outranks a review-needed uncertainty.
 const DECISION_RANK = {
   URGENT_ESCALATION: 6,
-  BLOCK_ACTIVITY: 5,
+  BLOCK_ACTIVITY: 5.5,
   NEEDS_CLINICAL_REVIEW: 5,
   INSUFFICIENT_DATA: 4,
-  DEFER_OUTDOOR: 3,
+  DEFER_OUTDOOR: 3.5,
   MODIFY: 3,
   ALLOW: 0,
 };
