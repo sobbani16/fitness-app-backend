@@ -63,7 +63,15 @@ function validateCategory(category, patch) {
   if ('times' in patch) {
     const times = Array.isArray(patch.times) ? patch.times : [];
     if (times.length > 6) throw new Error('At most 6 times per category');
-    for (const t of times) if (parseHHMM(t) == null) throw new Error('times must be HH:MM strings');
+    // 'auto' is a fiber-only sentinel: the engine derives context-aware
+    // windows (morning/midday/pre-dinner/evening/weekly) instead of a clock.
+    for (const t of times) {
+      if (t === 'auto') {
+        if (category !== 'fiber') throw new Error("'auto' timing is only valid for the fiber category");
+        continue;
+      }
+      if (parseHHMM(t) == null) throw new Error('times must be HH:MM strings');
+    }
     clean.times = [...new Set(times)].sort();
   }
   if ('daysOfWeek' in patch) {

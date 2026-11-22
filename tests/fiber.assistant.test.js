@@ -110,4 +110,51 @@ describe('groundFiberAnswer', () => {
     const r = await groundFiberAnswer('u1', 'How do I improve my squat form?');
     expect(r.handled).toBe(false);
   });
+
+  // --- Stage 4: weekly, mixed-dish, article-stripping, fiber threads ---------
+  it('answers weekly questions from the 7-day review, not the daily total', async () => {
+    mockStore.foodLogs = [
+      { id: 'l1', foodName: 'Oats', mealType: 'breakfast', fiberG: 4, nutritionSnapshot: null, loggedAt: new Date() },
+      { id: 'l2', foodName: 'Rice + chicken', mealType: 'dinner', fiberG: 2, nutritionSnapshot: null, loggedAt: new Date() },
+    ];
+    const r = await groundFiberAnswer('u1', 'How was my fiber intake this week?');
+    expect(r.handled).toBe(true);
+    expect(r.topic).toBe('weekly_fiber');
+    expect(r.source).toBe('fiber-weekly-review');
+  });
+  it('explains named mixed dishes without forcing a sequence', async () => {
+    for (const q of ["Why isn't biryani separated into an eating order?", 'why no eating order for khichdi?', 'can pizza be sequenced?']) {
+      const r = await groundFiberAnswer('u1', q);
+      expect(r.handled).toBe(true);
+      expect(r.topic).toBe('meal_sequence');
+      expect(r.answer).toMatch(/mixed dish/i);
+      expect(r.answer).toMatch(/separately edible/i);
+    }
+  });
+  it('strips articles and possessives so "quinoa a good" and "my dal" resolve', async () => {
+    mockStore.ingredients.push({ name: 'Quinoa, cooked', fiberPer100g: 2.8 });
+    const r = await groundFiberAnswer('u1', 'Is quinoa a good fiber source?');
+    expect(r.answer).toMatch(/Quinoa, cooked has about 2\.8 g/);
+    const d = await groundFiberAnswer('u1', 'Does my chana dal have fiber?');
+    expect(d.answer).toMatch(/Chana dal/);
+  });
+  it('follow-ups without a fiber keyword only route inside a fiber thread', async () => {
+    const noCtx = await groundFiberAnswer('u1', 'What can I add to chicken and rice?');
+    expect(noCtx.handled).toBe(false);
+    const inThread = await groundFiberAnswer('u1', 'What can I add to chicken and rice?', { inFiberThread: true });
+    expect(inThread.handled).toBe(true);
+    expect(inThread.topic).toBe('fiber_suggestions');
+    expect(inThread.answer).not.toMatch(/psyllium|isabgol|supplement/i);
+  });
+  it('supplement follow-ups in a thread still get education, never a dose', async () => {
+    const r = await groundFiberAnswer('u1', 'What about isabgol?', { inFiberThread: true });
+    expect(r.topic).toBe('fiber_supplement');
+    expect(r.answer).not.toMatch(/take \d+\s*(g|gram|teaspoon|tsp|scoop|capsule)/i);
+  });
+  it('never fabricates for a missing user — declines so the generic assistant handles it', async () => {
+    mockStore.user = null;
+    const r = await groundFiberAnswer('u-gone', 'How much fiber have I eaten today?');
+    expect(r.handled).toBe(false);
+    mockStore.user = { id: 'u1', dateOfBirth: new Date('1990-01-01'), gender: 'female', timeZone: 'UTC' };
+  });
 });

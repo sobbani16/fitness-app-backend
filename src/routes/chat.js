@@ -8,6 +8,12 @@ const { getPrisma } = require('../lib/prisma');
 
 const router = express.Router();
 
+// Per-user fiber-conversation marker (last grounded fiber answer time).
+// In-memory is sufficient: it only widens follow-up routing within a few
+// minutes on this instance, never across users, and nothing is persisted.
+const FIBER_THREAD_TTL_MS = 10 * 60 * 1000;
+const fiberThreads = new Map();
+
 const DAILY_LIMIT = Number(process.env.CHAT_DAILY_LIMIT || 5);
 // Deterministic activity-suggestion detector for post-generation validation.
 // Deliberately broad — a false positive replaces a reply with a safe
@@ -54,13 +60,19 @@ router.post('/', requireFeature('ai_coach'), async (req, res) => {
 
     // Fiber questions are answered deterministically by the engine — the LLM
     // never sees them, so numbers can't be fabricated. Requires the
-    // fiber_ai_enabled flag on top of ai_coach.
+    // fiber_ai_enabled flag on top of ai_coach. A grounded fiber answer opens
+    // a short-lived per-user "fiber thread" so follow-ups without a fiber
+    // keyword ("what can I add to dinner?") stay on the deterministic path.
     const fiberOn = await flags.isEnabled('fiber_ai_enabled', userId).catch(() => false);
     if (fiberOn) {
-      const grounded = await require('../services/fiber/assistant').groundFiberAnswer(userId, message).catch(() => ({ handled: false }));
+      const thread = fiberThreads.get(userId);
+      const inFiberThread = !!(thread && Date.now() - thread < FIBER_THREAD_TTL_MS);
+      const grounded = await require('../services/fiber/assistant').groundFiberAnswer(userId, message, { inFiberThread }).catch(() => ({ handled: false }));
       if (grounded.handled) {
+        fiberThreads.set(userId, Date.now());
         return res.json({ topic: grounded.topic, answer: grounded.answer, source: grounded.source, quota: { limit: gate.limit, used: gate.used, remaining: gate.remaining } });
       }
+      fiberThreads.delete(userId);
     }
 
     const reply = await generateReply(message, userId);

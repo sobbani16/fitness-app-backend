@@ -746,6 +746,7 @@ const FEATURES = {
   fiber_reminders_enabled: {
     clientKey: 'fiberRemindersEnabled',
     class: 'server', group: 'manual', default: false, failOpen: false,
+    environments: ['development', 'test'],
     dependsOn: ['fiber_daily_goal_enabled'],
     endpoints: [],
     description: 'Opt-in fiber progress reminders (food-first wording, dedupe-capped).',
@@ -760,6 +761,7 @@ const FEATURES = {
   fiber_ai_enabled: {
     clientKey: 'fiberAiEnabled',
     class: 'ai', group: 'ai', default: false, failOpen: false,
+    environments: ['development', 'test'],
     dependsOn: ['fiber_intelligence_enabled', 'ai_coach'],
     endpoints: [],
     description: 'AI coach grounding on deterministic fiber facts. In AI kill group.',
@@ -767,6 +769,7 @@ const FEATURES = {
   fiber_voice_enabled: {
     clientKey: 'fiberVoiceEnabled',
     class: 'ai', group: 'ai', default: false, failOpen: false,
+    environments: ['development', 'test'],
     dependsOn: ['fiber_intelligence_enabled', 'voice_food_logging'],
     endpoints: [],
     description: 'Hey Leo fiber read-outs/intents. In AI kill group.',
