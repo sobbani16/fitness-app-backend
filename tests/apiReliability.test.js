@@ -91,3 +91,21 @@ describe('client contract compatibility', () => {
     expect(res.body.correlationId).toBe(res.headers['x-correlation-id']);
   });
 });
+
+describe('coded error bodies from direct route responses', () => {
+  const express = require('express');
+  const request = require('supertest');
+  const { requestContext } = require('../src/middleware/requestContext');
+  const app = express().use(requestContext())
+    .get('/bad', (_req, res) => res.status(400).json({ error: 'steps required' }))
+    .get('/own', (_req, res) => res.status(409).json({ error: 'x', code: 'MEAL_ID_CONFLICT' }))
+    .get('/ok', (_req, res) => res.json({ ok: true }));
+  it('adds a default code and correlation id', async () => {
+    const res = await request(app).get('/bad');
+    expect(res.body).toEqual({ error: 'steps required', code: 'INVALID_REQUEST', correlationId: res.headers['x-correlation-id'] });
+  });
+  it('keeps an explicit code and leaves success bodies untouched', async () => {
+    expect((await request(app).get('/own')).body.code).toBe('MEAL_ID_CONFLICT');
+    expect((await request(app).get('/ok')).body).toEqual({ ok: true });
+  });
+});
