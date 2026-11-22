@@ -1,18 +1,18 @@
 # SCENARIO_VALIDATION_MATRIX — 120-scenario registry vs executable coverage
 
-**Generated:** 2026-11-22T01:47:55.926Z · **Spec:** data/scenarioRegistry.json (vscenarios-v1, reviewStatus=pending_review)
+**Generated:** 2026-11-22T17:54:33.433Z · **Spec:** data/scenarioRegistry.json (vscenarios-v1, reviewStatus=pending_review)
 **Method:** `node scripts/scenario-matrix.js` — regenerates this file; never hand-edit statuses.
 
 ## Spec completeness finding
 
-**Original spec located** (2026-11-21, SCENARIO_SOURCE_AUDIT.md): Appendix A, product-owner material — now preserved at `docs/nutrition-intelligence/APPENDIX_A.md` + `data/scenarioAppendixA.json`. Every scenario has ID + description + expected behavior + priority (120/120, priorities verified 1:1 against registry). Still NOT provided by the spec (§13 requires authoring): structured inputs (logs, profiles, targets), explicit per-goal applicability, measurable expected values, pass tolerances, fixtures, reviewer sign-off. **52 of 120 scenarios therefore cannot be executed** without a reviewer translating each `expected` line into a fixture — they stay `pending_specification`, not `pass`.
+**Original spec located** (2026-11-21, SCENARIO_SOURCE_AUDIT.md): Appendix A, product-owner material — now preserved at `docs/nutrition-intelligence/APPENDIX_A.md` + `data/scenarioAppendixA.json`. Every scenario has ID + description + expected behavior + priority (120/120, priorities verified 1:1 against registry). Still NOT provided by the spec (§13 requires authoring): structured inputs (logs, profiles, targets), explicit per-goal applicability, measurable expected values, pass tolerances, fixtures, reviewer sign-off. **48 of 120 scenarios therefore cannot be executed** without a reviewer translating each `expected` line into a fixture — they stay `pending_specification`, not `pass`.
 
 ## Coverage summary
 
 - P0: 50 pass · 0 fail · 0 blocked / 50
-- P1: 18 pass · 0 fail · 50 blocked / 68
+- P1: 22 pass · 0 fail · 46 blocked / 68
 - P2: 0 pass · 0 fail · 2 blocked / 2
-- **Total: 68 pass · 0 fail · 52 blocked_not_implemented / 120**
+- **Total: 72 pass · 0 fail · 48 blocked_not_implemented / 120**
 
 | ID | Cat | Pri | Applicable goal/context (per spec) | Inputs | Expected (spec text) | Actual behavior | Result | Evidence | Reviewer req | Status |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -38,11 +38,11 @@
 | B10 | B | P0 | goal/context unspecified in registry | not specified | Do not award maximum nutrition credit with poor quality | fixture executed vs real engine | PASS | tests/scenarioFixtures.test.js | clinical reviewer converts spec→fixture (D9) | executed_pass |
 | C01 | C | P0 | goal/context unspecified in registry | not specified | Immediate warning; identify contribution in daily review | fixture executed vs real engine | PASS | tests/scenarioFixtures.test.js | clinical reviewer converts spec→fixture (D9) | executed_pass |
 | C02 | C | P0 | goal/context unspecified in registry | not specified | Distinguish natural from added sugar; evaluate whole food | fixture executed vs real engine | PASS | tests/scenarioFixtures.test.js | clinical reviewer converts spec→fixture (D9) | executed_pass |
-| C03 | C | P1 | goal/context unspecified in registry | not specified | Estimated portion/recipe data; warn added sugar when supported | — | — | — | clinical reviewer converts spec→fixture (D9) | blocked_not_implemented |
-| C04 | C | P1 | goal/context unspecified in registry | not specified | Cooking method, oil absorption, total fat, energy density | — | — | — | clinical reviewer converts spec→fixture (D9) | blocked_not_implemented |
+| C03 | C | P1 | goal/context unspecified in registry | not specified | Estimated portion/recipe data; warn added sugar when supported | fixture executed vs real engine | PASS | tests/scenarioFixtures.test.js | clinical reviewer converts spec→fixture (D9) | executed_pass |
+| C04 | C | P1 | goal/context unspecified in registry | not specified | Cooking method, oil absorption, total fat, energy density | fixture executed vs real engine | PASS | tests/scenarioFixtures.test.js | clinical reviewer converts spec→fixture (D9) | executed_pass |
 | C05 | C | P0 | goal/context unspecified in registry | not specified | Warn uncertainty; never invent trans fat | fixture executed vs real engine | PASS | tests/scenarioFixtures.test.js | clinical reviewer converts spec→fixture (D9) | executed_pass |
 | C06 | C | P1 | goal/context unspecified in registry | not specified | Account saturated fat from known quantities | fixture executed vs real engine | PASS | tests/scenarioFixtures.test.js | clinical reviewer converts spec→fixture (D9) | executed_pass |
-| C07 | C | P1 | goal/context unspecified in registry | not specified | Recognize fat quality; still count calories | — | — | — | clinical reviewer converts spec→fixture (D9) | blocked_not_implemented |
+| C07 | C | P1 | goal/context unspecified in registry | not specified | Recognize fat quality; still count calories | fixture executed vs real engine | PASS | tests/scenarioFixtures.test.js | clinical reviewer converts spec→fixture (D9) | executed_pass |
 | C08 | C | P0 | goal/context unspecified in registry | not specified | Flag partially hydrogenated oil regardless of rounded label | PHO flag zeroes foodQuality regardless of label trans-fat | PASS | tests/scoringV2.test.js:57 | clinical reviewer converts spec→fixture (D9) | executed_pass |
 | C09 | C | P1 | goal/context unspecified in registry | not specified | Identify contributing foods; reviewed sodium moderation | fixture executed vs real engine | PASS | tests/scenarioFixtures.test.js | clinical reviewer converts spec→fixture (D9) | executed_pass |
 | C10 | C | P1 | goal/context unspecified in registry | not specified | Proportional feedback; one treat is not weekly failure | fixture executed vs real engine | PASS | tests/scenarioFixtures.test.js | clinical reviewer converts spec→fixture (D9) | executed_pass |
@@ -131,7 +131,7 @@
 | L03 | L | P1 | goal/context unspecified in registry | not specified | Reassess estimates, logging, activity before changing goals | — | — | — | clinical reviewer converts spec→fixture (D9) | blocked_not_implemented |
 | L04 | L | P1 | goal/context unspecified in registry | not specified | Recognize progress; no muscle-growth promise from strength alone | — | — | — | clinical reviewer converts spec→fixture (D9) | blocked_not_implemented |
 | L05 | L | P1 | goal/context unspecified in registry | not specified | Review surplus size and training response | — | — | — | clinical reviewer converts spec→fixture (D9) | blocked_not_implemented |
-| L06 | L | P1 | goal/context unspecified in registry | not specified | Uncertain restaurant portions supported; no discouragement | — | — | — | clinical reviewer converts spec→fixture (D9) | blocked_not_implemented |
+| L06 | L | P1 | goal/context unspecified in registry | not specified | Uncertain restaurant portions supported; no discouragement | fixture executed vs real engine | PASS | tests/scenarioFixtures.test.js | clinical reviewer converts spec→fixture (D9) | executed_pass |
 | L07 | L | P1 | goal/context unspecified in registry | not specified | Affordable culturally appropriate options | — | — | — | clinical reviewer converts spec→fixture (D9) | blocked_not_implemented |
 | L08 | L | P1 | goal/context unspecified in registry | not specified | Realistic adjustments; no shame or streak penalties | — | — | — | clinical reviewer converts spec→fixture (D9) | blocked_not_implemented |
 | L09 | L | P1 | goal/context unspecified in registry | not specified | Offer transition to maintenance/other goal with confirmation | — | — | — | clinical reviewer converts spec→fixture (D9) | blocked_not_implemented |

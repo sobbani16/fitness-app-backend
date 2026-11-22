@@ -1,0 +1,3 @@
+# MICRONUTRIENT_COVERAGE_REPORT — audit, no fabrication
+
+Schema coverage: IngredientNutrient rows support arbitrary nutrient codes (USDA-mapped); FoodLog stores calories/protein/carbs/fat/fiber only; `FoodLog.micronutrients` Json field exists. Gaps (unchanged this sprint): addedSugar/satFat/transFat/sodium/K/Ca/Fe/Mg/vitD/B12/folate/C/Zn coverage is dataset-dependent per profile — always 'unverified' when absent; unknown≠zero enforced in impact output. Import path exists (`ingredientImportV5`, USDA service + 61 verified servings). Breadth expansion = reviewer-guided data work, not eng invention.
