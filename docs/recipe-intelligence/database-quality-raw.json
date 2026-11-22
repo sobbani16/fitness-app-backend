@@ -1,0 +1,708 @@
+{
+  "generatedAt": "2026-11-22T02:11:08.770Z",
+  "sections": {
+    "catalog": {
+      "total": 228,
+      "usable": 228,
+      "issues": {
+        "noIngredientLink": [],
+        "categoryCaseVariants": [
+          {
+            "normalized": "grains",
+            "variants": [
+              "Grains",
+              "grains"
+            ]
+          },
+          {
+            "normalized": "vegetable",
+            "variants": [
+              "Vegetable",
+              "vegetable"
+            ]
+          },
+          {
+            "normalized": "dairy",
+            "variants": [
+              "Dairy",
+              "dairy"
+            ]
+          },
+          {
+            "normalized": "fruit",
+            "variants": [
+              "Fruit",
+              "fruit"
+            ]
+          },
+          {
+            "normalized": "condiment",
+            "variants": [
+              "Condiment",
+              "condiment"
+            ]
+          },
+          {
+            "normalized": "sweetener",
+            "variants": [
+              "Sweetener",
+              "sweetener"
+            ]
+          },
+          {
+            "normalized": "seafood",
+            "variants": [
+              "Seafood",
+              "seafood"
+            ]
+          }
+        ],
+        "missingCategory": [],
+        "duplicateAliases": [],
+        "undeclaredAllergenHints": [
+          {
+            "name": "Whole-wheat atta flour, dry",
+            "hintedMissing": [
+              "wheat"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Chapati/roti, cooked without oil",
+            "hintedMissing": [
+              "wheat"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Maida refined wheat flour",
+            "hintedMissing": [
+              "wheat"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Semolina, dry",
+            "hintedMissing": [
+              "wheat"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Vermicelli, wheat, dry",
+            "hintedMissing": [
+              "wheat"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Finger millet ragi flour, dry",
+            "hintedMissing": [
+              "wheat"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Sorghum jowar flour, dry",
+            "hintedMissing": [
+              "wheat"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Pearl millet bajra flour, dry",
+            "hintedMissing": [
+              "wheat"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Soy chunks, dry, unbranded",
+            "hintedMissing": [
+              "soy"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Tofu, firm plain",
+            "hintedMissing": [
+              "soy"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Paneer, full-fat plain",
+            "hintedMissing": [
+              "milk"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Paneer, reduced-fat plain",
+            "hintedMissing": [
+              "milk"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Milk, whole",
+            "hintedMissing": [
+              "milk"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Milk, low-fat",
+            "hintedMissing": [
+              "milk"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Plain yogurt curd",
+            "hintedMissing": [
+              "milk"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Greek yogurt plain, nonfat",
+            "hintedMissing": [
+              "milk"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Ghee clarified butter",
+            "hintedMissing": [
+              "milk"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Butter unsalted",
+            "hintedMissing": [
+              "milk"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Sesame oil",
+            "hintedMissing": [
+              "sesame"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Cashew nuts, raw",
+            "hintedMissing": [
+              "nuts"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Peanuts, raw",
+            "hintedMissing": [
+              "peanut"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Sesame seeds",
+            "hintedMissing": [
+              "sesame"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Egg, whole, raw",
+            "hintedMissing": [
+              "egg"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Egg, whole, boiled",
+            "hintedMissing": [
+              "egg"
+            ],
+            "declared": []
+          },
+          {
+            "name": "White fish, raw generic",
+            "hintedMissing": [
+              "fish"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Salmon Atlantic, raw",
+            "hintedMissing": [
+              "fish"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Shrimp prawns, raw",
+            "hintedMissing": [
+              "shellfish"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Whey protein powder generic",
+            "hintedMissing": [
+              "milk"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Whole wheat bread, ready",
+            "hintedMissing": [
+              "wheat"
+            ],
+            "declared": []
+          },
+          {
+            "name": "White bread, ready",
+            "hintedMissing": [
+              "wheat"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Peanut butter plain",
+            "hintedMissing": [
+              "milk",
+              "peanut"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Pasta cooked plain",
+            "hintedMissing": [
+              "wheat"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Bulgur wheat (dry)",
+            "hintedMissing": [
+              "wheat"
+            ],
+            "declared": [
+              "gluten"
+            ]
+          },
+          {
+            "name": "Cheddar cheese",
+            "hintedMissing": [
+              "milk"
+            ],
+            "declared": [
+              "dairy"
+            ]
+          },
+          {
+            "name": "Cheese ravioli (fresh)",
+            "hintedMissing": [
+              "milk"
+            ],
+            "declared": [
+              "gluten",
+              "egg",
+              "dairy"
+            ]
+          },
+          {
+            "name": "Coconut milk, canned",
+            "hintedMissing": [
+              "milk"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Cream cheese",
+            "hintedMissing": [
+              "milk"
+            ],
+            "declared": [
+              "dairy"
+            ]
+          },
+          {
+            "name": "Feta cheese",
+            "hintedMissing": [
+              "milk"
+            ],
+            "declared": [
+              "dairy"
+            ]
+          },
+          {
+            "name": "Flour tortilla",
+            "hintedMissing": [
+              "wheat"
+            ],
+            "declared": [
+              "gluten"
+            ]
+          },
+          {
+            "name": "Heavy cream",
+            "hintedMissing": [
+              "milk"
+            ],
+            "declared": [
+              "dairy"
+            ]
+          }
+        ]
+      },
+      "counts": {
+        "noIngredientLink": 0,
+        "missingCategory": 0,
+        "duplicateAliases": 0,
+        "undeclaredAllergenHints": 44
+      }
+    },
+    "ingredients": {
+      "total": 420,
+      "counts": {
+        "missingCalories": 0,
+        "implausibleMacros": 5,
+        "macroSumOver100g": 1
+      },
+      "issues": {
+        "missingCalories": [],
+        "implausibleMacros": [
+          {
+            "name": "Whey protein powder generic",
+            "kcal": 400,
+            "protein": 80,
+            "fat": 5
+          },
+          {
+            "name": "Egg, white, dried, stabilized, glucose reduced",
+            "kcal": 357,
+            "protein": 84.1,
+            "fat": 0.32
+          },
+          {
+            "name": "Egg, white, dried, flakes, stabilized, glucose reduced",
+            "kcal": 351,
+            "protein": 76.9,
+            "fat": 0.04
+          },
+          {
+            "name": "Egg, white, dried, powder, stabilized, glucose reduced",
+            "kcal": 376,
+            "protein": 82.4,
+            "fat": 0.04
+          },
+          {
+            "name": "Whey protein powder",
+            "kcal": 400,
+            "protein": 80,
+            "fat": 5
+          }
+        ],
+        "macroSumOver100g": [
+          "GLUCOSE"
+        ]
+      }
+    },
+    "recipes": {
+      "total": 258,
+      "counts": {
+        "missingInstructions": 150,
+        "invalidServings": 0,
+        "meatWithoutTempGuidance": 62,
+        "linesUndeclaredAllergen": 138,
+        "unlinkedIngredientLines": 55,
+        "byReviewStatus": {
+          "SYSTEM": 28,
+          "RESEARCH_DRAFT": 230
+        }
+      },
+      "issues": {
+        "missingInstructions": [
+          "Baked salmon with asparagus",
+          "Banana",
+          "Chicken stir-fry with rice",
+          "Chicken thigh with brown rice",
+          "Cottage cheese and fruit",
+          "Egg frittata with veggies",
+          "Eggs and whole wheat toast",
+          "Greek yogurt",
+          "Grilled chicken salad",
+          "Grilled fish tacos",
+          "Hard boiled eggs (2)",
+          "Hummus with veggies",
+          "Lean beef with vegetables",
+          "Lentil soup with bread",
+          "Oatmeal with berries",
+          "Overnight oats",
+          "Salmon with quinoa",
+          "Shrimp stir-fry",
+          "Tuna bowl",
+          "Turkey meatballs with pasta",
+          "Turkey wrap",
+          "Apple with peanut butter",
+          "Idli",
+          "Dosa plain",
+          "Masala dosa",
+          "Pesarattu",
+          "Pesarattu upma",
+          "Medu vada",
+          "Rava upma",
+          "Ven pongal"
+        ],
+        "invalidServings": [],
+        "meatWithoutTempGuidance": [
+          "Chicken stir-fry with rice",
+          "Chicken thigh with brown rice",
+          "Grilled chicken salad",
+          "Lean beef with vegetables",
+          "Turkey meatballs with pasta",
+          "Turkey wrap",
+          "Andhra chicken curry",
+          "Gongura chicken curry",
+          "Kodi vepudu",
+          "Chicken 65",
+          "Chicken fried rice",
+          "Hyderabadi chicken biryani",
+          "Chicken pulao",
+          "Butter chicken",
+          "Chicken tikka masala",
+          "Chicken korma",
+          "Chicken chettinad",
+          "Chicken soup",
+          "Chicken tikka",
+          "Chicken breast with sweet potato",
+          "Spaghetti Carbonara",
+          "Spaghetti Bolognese",
+          "Chicken Parmesan",
+          "Chicken Tacos",
+          "Beef Tacos",
+          "Chicken Burrito",
+          "Burrito Bowl",
+          "Chicken Fajitas",
+          "Chilaquiles",
+          "Mexican Rice"
+        ],
+        "linesUndeclaredAllergen": [
+          "Baked salmon with asparagus",
+          "Cottage cheese and fruit",
+          "Egg frittata with veggies",
+          "Eggs and whole wheat toast",
+          "Greek yogurt",
+          "Grilled fish tacos",
+          "Hard boiled eggs (2)",
+          "Lentil soup with bread",
+          "Oatmeal with berries",
+          "Overnight oats",
+          "Salmon with quinoa",
+          "Shrimp stir-fry",
+          "Tuna bowl",
+          "Turkey meatballs with pasta",
+          "Apple with peanut butter",
+          "Avocado Egg Toast",
+          "Egg and Avocado Sandwich",
+          "Pesarattu upma",
+          "Rava upma",
+          "Ven pongal",
+          "Avocado toast with egg",
+          "Greek yogurt with granola",
+          "Protein smoothie",
+          "Rava dosa",
+          "Poha",
+          "Aloo paratha",
+          "Plain paratha",
+          "Chapati",
+          "Jowar roti",
+          "Ragi roti"
+        ],
+        "unlinkedIngredientLines": [
+          {
+            "recipe": "Baked salmon with asparagus",
+            "line": "asparagus"
+          },
+          {
+            "recipe": "Baked salmon with asparagus",
+            "line": "salmon"
+          },
+          {
+            "recipe": "Chicken stir-fry with rice",
+            "line": "chicken breast"
+          },
+          {
+            "recipe": "Chicken stir-fry with rice",
+            "line": "rice"
+          },
+          {
+            "recipe": "Chicken stir-fry with rice",
+            "line": "vegetables"
+          },
+          {
+            "recipe": "Chicken thigh with brown rice",
+            "line": "brown rice"
+          },
+          {
+            "recipe": "Chicken thigh with brown rice",
+            "line": "chicken thigh"
+          },
+          {
+            "recipe": "Cottage cheese and fruit",
+            "line": "cottage cheese"
+          },
+          {
+            "recipe": "Cottage cheese and fruit",
+            "line": "mixed fruit"
+          },
+          {
+            "recipe": "Egg frittata with veggies",
+            "line": "eggs"
+          },
+          {
+            "recipe": "Egg frittata with veggies",
+            "line": "vegetables"
+          },
+          {
+            "recipe": "Eggs and whole wheat toast",
+            "line": "eggs"
+          },
+          {
+            "recipe": "Eggs and whole wheat toast",
+            "line": "whole wheat bread"
+          },
+          {
+            "recipe": "Greek yogurt",
+            "line": "greek yogurt"
+          },
+          {
+            "recipe": "Grilled chicken salad",
+            "line": "chicken breast"
+          },
+          {
+            "recipe": "Grilled chicken salad",
+            "line": "mixed greens"
+          },
+          {
+            "recipe": "Grilled fish tacos",
+            "line": "tortillas"
+          },
+          {
+            "recipe": "Grilled fish tacos",
+            "line": "vegetables"
+          },
+          {
+            "recipe": "Grilled fish tacos",
+            "line": "white fish"
+          },
+          {
+            "recipe": "Hard boiled eggs (2)",
+            "line": "eggs"
+          },
+          {
+            "recipe": "Hummus with veggies",
+            "line": "hummus"
+          },
+          {
+            "recipe": "Hummus with veggies",
+            "line": "vegetables"
+          },
+          {
+            "recipe": "Lean beef with vegetables",
+            "line": "lean beef"
+          },
+          {
+            "recipe": "Lean beef with vegetables",
+            "line": "mixed vegetables"
+          },
+          {
+            "recipe": "Lentil soup with bread",
+            "line": "lentils"
+          },
+          {
+            "recipe": "Oatmeal with berries",
+            "line": "milk"
+          },
+          {
+            "recipe": "Oatmeal with berries",
+            "line": "mixed berries"
+          },
+          {
+            "recipe": "Oatmeal with berries",
+            "line": "oats"
+          },
+          {
+            "recipe": "Overnight oats",
+            "line": "milk"
+          },
+          {
+            "recipe": "Overnight oats",
+            "line": "oats"
+          },
+          {
+            "recipe": "Salmon with quinoa",
+            "line": "quinoa"
+          },
+          {
+            "recipe": "Salmon with quinoa",
+            "line": "salmon"
+          },
+          {
+            "recipe": "Shrimp stir-fry",
+            "line": "rice"
+          },
+          {
+            "recipe": "Shrimp stir-fry",
+            "line": "shrimp"
+          },
+          {
+            "recipe": "Shrimp stir-fry",
+            "line": "vegetables"
+          },
+          {
+            "recipe": "Tuna bowl",
+            "line": "rice"
+          },
+          {
+            "recipe": "Tuna bowl",
+            "line": "tuna"
+          },
+          {
+            "recipe": "Tuna bowl",
+            "line": "vegetables"
+          },
+          {
+            "recipe": "Turkey meatballs with pasta",
+            "line": "pasta"
+          },
+          {
+            "recipe": "Turkey meatballs with pasta",
+            "line": "turkey meatballs"
+          }
+        ]
+      }
+    },
+    "referenceData": {
+      "allergyCount": 2,
+      "allergyCaseDuplicates": [],
+      "conditionRules": {
+        "total": 34,
+        "byStatus": {
+          "DRAFT": 34
+        },
+        "blockRules": 17
+      },
+      "nutrientRules": {
+        "total": 14,
+        "byStatus": {
+          "DRAFT": 14
+        }
+      }
+    }
+  }
+}
