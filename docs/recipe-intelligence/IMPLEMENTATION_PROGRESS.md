@@ -21,7 +21,7 @@
 | Schema changes | none yet |
 | Code changes | `recipes/constraints.js`, `recipes/validate.js` (+`recordValidation`), `recipes/generate.js`, `recipes/metrics.js` (new); `recipeMatch.js`, `routes/recipes.js`, `routes/admin.js` (2 analytics endpoints), `foodIntel.js` (shared LABEL_ANIMAL_TERMS), `featureRegistry.js` (`ai_recipe_generation_enabled`) |
 | Tests added | recipeConstraints 23 + recipeValidate 14 + recipeGenerate 9 = 46 new; all green; adjacent suites unaffected |
-| Deliverable docs | 6/13: audit, progress, constraint-taxonomy, recipe-validation-spec, scenario-registry.json, database-quality-report (+ raw JSON + read-only script) |
+| Deliverable docs | **13/13 complete**: audit, progress, constraint-taxonomy, recipe-validation-spec, scenario-registry.json, database-quality-report (+raw JSON +script), architecture, medical-rule-evidence, ingredient-data-audit, test-results, security-review, performance-report, release-readiness |
 | DB audit (Phase 15) | baseline counts captured in audit §7; full report pending |
 | Safety/clinical review | nothing new enabled; all clinical rules remain DRAFT/inert |
 
@@ -44,7 +44,8 @@
 5. ~~`generate.js` via `askJSON` + flag + route~~ **DONE** — `POST /recipes/generate` behind `ai_recipe_generation_enabled`; one bounded correction attempt (failed ruleIds fed back); VERIFIED-recipe fallback via matchIngredients; `no_eligible_recipe` outcome.
 6. ~~scenario registry + observability~~ **DONE** — `scenario-registry.json` (59 scenarios, implemented↔pending); `recipes/metrics.js` counters wired into generate/validate/customize; `recordValidation` persists `SafetyAuditLog` (checkType `recipe_validation`, ruleIds only); admin endpoints `/admin/recipe-intelligence/metrics` + `/validation-log` behind `VIEW_PLATFORM_ANALYTICS`.
 7. ~~save-generated persistence + limits + equipment stages + E2E~~ **DONE** (commit 6c537a1); ~~Phase 15 DB-quality report~~ **DONE** (real findings: 150 missing instructions, 62 meat-no-temp, 138 undeclared allergen lines, 55 unlinked lines, 44 catalog allergen-hint gaps, 1 genuine macro defect, all 48 clinical rules DRAFT).
-8. NEXT: remaining deliverable docs (architecture, medical-rule-evidence, ingredient-data-audit, test-results, security-review, performance-report, release-readiness); Phase 11 mobile surface; ranking layer (Phase 9); caching/version hardening (CACHE-001/STALE-002).
+8. ~~remaining deliverable docs~~ **DONE — all 13 written**; verdict in `release-readiness.md`: NOT production-ready — blocking gates 7 (no approved clinical rules), 10 (data-quality fixes), 13 (mobile surface).
+9. NEXT: Phase 11 mobile surface; Phase 9 ranking layer; caching/versioning (CACHE-001/STALE-002); ISO-001 isolation test; full `npm test` regression; PERF-001 measurements.
 
 ## Blockers / open decisions (need owner)
 
@@ -59,3 +60,4 @@
 - 2026-11-21 s2b: `recipes/validate.js` staged validator (fail-closed identity for allergic users; compound/decompose review; deterministic nutrition; poultry/raw-egg/raw-flour/rice safety rules); `/customize` revalidates transformed recipes; `recipes/generate.js` + `POST /recipes/generate` behind new `ai_recipe_generation_enabled` flag; `foodIntel` uses shared `LABEL_ANIMAL_TERMS`; +22 tests (45 total recipe-intelligence).
 - 2026-11-21 s2c: `recipes/metrics.js` (generate/validate/customize counters incl. provider errors, retries, fallback hits); `recordValidation` → `SafetyAuditLog` on every generate-candidate + customize transformation; admin analytics endpoints; `recipe-validation-spec.md` + `scenario-registry.json` deliverables; +1 test (46).
 - 2026-11-21 s2d: `POST /recipes/save-generated` (server-side revalidation, RESEARCH_DRAFT, ai: sourceKey, name disambiguation F-9); limits stage (APPROVED nutrient rules vs computed values — exceed=block, missing=review); equipment stage (clarify when known set); E2E test; `scripts/recipe-data-quality.js` read-only audit + `database-quality-report.md` + raw JSON; +5 tests (79 green).
+- 2026-11-21 s2e: remaining 7 deliverable docs written (architecture, medical-rule-evidence, ingredient-data-audit, test-results [79/79 verified live], security-review, performance-report, release-readiness [gate checklist — verdict: not production-ready, gates 7/10/13 blocking]).
