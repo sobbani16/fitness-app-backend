@@ -33,6 +33,20 @@ const resolveIngredient = (prisma, name) =>
     select: { id: true, name: true },
   });
 
+// Resolve a spoken quantity+unit ("2 slices") against the ingredient's catalog
+// servings — shared by interpret (readiness) and execute (conversion). Returns
+// { grams, servingId, label, count } or null when no serving matches.
+const resolveHouseholdServing = async (prisma, ingId, quantity, unit) => {
+  const qty = Number(quantity);
+  if (!Number.isFinite(qty) || qty <= 0 || qty > 1000) return null;
+  const full = await ingredientNutrition.getIngredient(ingId, prisma);
+  const unitNorm = String(unit || '').toLowerCase().replace(/s$/, '').trim();
+  const srv = (full.servings || []).find(s => String(s.label).toLowerCase().replace(/^\d+(\.\d+)?\s*/, '').replace(/s$/, '').trim() === unitNorm)
+    || (['serving', 'portion', ''].includes(unitNorm) ? (full.servings || [])[0] : null);
+  if (!srv) return null;
+  return { grams: srv.grams * qty, servingId: srv.id, label: srv.label, count: qty };
+};
+
 // Reverses one command's writes. createdEntities entries may carry `prev`
 // state for in-place updates so undo restores rather than deletes.
 const applyUndo = async (prisma, cmd) => {
@@ -186,8 +200,16 @@ router.post('/interpret', voiceEnabled, wrap(async (req, res) => {
         const ing = await resolveIngredient(prisma, item.name);
         item.ingredientId = ing?.id || null;
         item.matchedName = ing?.name || null;
-        if (!ing || item.grams == null) { item.status = 'needs_review'; a.status = 'needs_review'; }
+        if (!ing) { item.status = 'needs_review'; a.status = 'needs_review'; continue; }
+        if (item.grams == null) {
+          // Household units ("2 slices") resolve at interpret time so the
+          // proposal shows the same grams the manual flow would compute.
+          const srv = await resolveHouseholdServing(prisma, ing.id, item.quantity, item.unit);
+          if (srv) { item.grams = Math.round(srv.grams * 100) / 100; item.resolvedServing = srv; item.status = 'ready'; }
+          else { item.status = 'needs_review'; a.status = 'needs_review'; }
+        }
       }
+      if (a.entities.items.length && a.entities.items.every(i => i.status !== 'needs_review')) { a.status = 'ready'; a.missing = (a.missing || []).filter(m => m !== 'grams'); }
     }
     if (a.intent === 'MARK_SUPPLEMENT_TAKEN') {
       const links = await prisma.userSupplement.findMany({
@@ -263,23 +285,31 @@ router.post('/commands/execute', wrap(async (req, res) => {
           // "2 slices" logs the same way as the manual flow (server-side
           // serving→gram conversion); grams-only items keep the weight path.
           let n = null; let gramsUsed = Number.isFinite(grams) && grams > 0 ? grams : null; let servingMeta = null;
-          if (!gramsUsed) {
-            const qty = Number(item.quantity);
-            if (Number.isFinite(qty) && qty > 0) {
-              const full = await ingredientNutrition.getIngredient(ing.id, prisma);
-              const unitNorm = String(item.unit || '').toLowerCase().replace(/s$/, '').trim();
-              const srv = (full.servings || []).find(s => String(s.label).toLowerCase().replace(/^\d+(\.\d+)?\s*/, '').replace(/s$/, '').trim() === unitNorm)
-                || (['serving', 'portion', ''].includes(unitNorm) ? (full.servings || [])[0] : null);
-              if (srv) {
-                try { n = await ingredientNutrition.calculate(ing.id, { servingId: srv.id, count: qty }); }
-                catch { n = null; }
-                if (n) {
-                  gramsUsed = n.grams;
-                  servingMeta = { servingId: srv.id, selectedServing: srv.label, servingGrams: srv.grams, servingCount: qty };
-                }
+          // Interpret echoes resolvedServing when a household unit matched a
+          // catalog serving; prefer it so the persisted snapshot keeps the
+          // serving identity for reopen. calculate() re-validates that the
+          // servingId belongs to this ingredient — a stale/forged id throws.
+          const echoed = item.resolvedServing;
+          if (echoed && typeof echoed.servingId === 'string' && Number.isFinite(Number(echoed.count)) && Number(echoed.count) > 0) {
+            try { n = await ingredientNutrition.calculate(ing.id, { servingId: String(echoed.servingId).slice(0, 80), count: Number(echoed.count) }); }
+            catch { n = null; }
+            if (n && n.serving) {
+              gramsUsed = n.grams;
+              servingMeta = { servingId: n.serving.id, selectedServing: n.serving.label, servingGrams: n.serving.grams, servingCount: n.serving.count };
+            }
+          }
+          if (!n && !gramsUsed) {
+            const srv = await resolveHouseholdServing(prisma, ing.id, item.quantity, item.unit);
+            if (srv) {
+              try { n = await ingredientNutrition.calculate(ing.id, { servingId: srv.servingId, count: srv.count }); }
+              catch { n = null; }
+              if (n) {
+                gramsUsed = n.grams;
+                servingMeta = { servingId: srv.servingId, selectedServing: srv.label, servingGrams: srv.grams, servingCount: srv.count };
               }
             }
-          } else n = await ingredientNutrition.calculate(ing.id, { grams: gramsUsed });
+          }
+          if (!n && gramsUsed) n = await ingredientNutrition.calculate(ing.id, { grams: gramsUsed });
           if (!n || !Number.isFinite(gramsUsed) || gramsUsed <= 0 || gramsUsed > 10000) {
             results.push({ intent: a.intent, status: 'skipped', reason: `${item.name}: needs a gram amount or a recognized serving` }); continue;
           }
