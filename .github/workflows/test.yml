@@ -35,6 +35,9 @@ jobs:
       NODE_ENV: test
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/fitness_test
       TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/fitness_test
+      # Parent flag for the trainer_* dependency chain — dev .env provides this
+      # locally; CI has no .env, and dependsOn resolves before env overrides.
+      FF_TRAINER_ADVANCED_FEATURES_ENABLED: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -50,6 +53,8 @@ jobs:
         run: npm run db:seed-rbac
       - name: Seed ingredient catalog (tests expect real macros)
         run: node prisma/seed-foods.js
+      - name: Seed safety conditions + rules (activity-safety E2E)
+        run: npm run db:seed-safety
       - name: Jest (in-band, JSON artifact)
         run: npx jest --runInBand --json --outputFile=jest-results.json
       - name: Jest (golden-path E2E vs disposable DB)
