@@ -11,6 +11,7 @@ const { requireFeature } = require('../middleware/requireFeature');
 const safety = require('../services/activitySafety');
 const { fetchEnvironment, markStale } = require('../services/environmentService');
 const { SYMPTOMS_URGENT } = require('../services/activitySafety/constants');
+const { invalidateSafetyAdvice } = require('../services/activitySafety/recommendationSafety');
 
 const router = express.Router();
 
@@ -122,6 +123,7 @@ router.post('/symptoms', requireFeature('activity_safety_engine'), async (req, r
         status: 'active',
       },
     });
+    const inv = await invalidateSafetyAdvice(prisma, uid(req), 'symptom_reported').catch(() => null);
     res.status(201).json({
       reportId: report.id,
       disposition: urgent.length ? 'urgent_escalation' : 'recorded',
@@ -130,6 +132,7 @@ router.post('/symptoms', requireFeature('activity_safety_engine'), async (req, r
         : 'Symptom recorded. Activity suggestions will account for it. If symptoms are severe, worsening, or worry you, seek medical advice.',
       suppressesActivitySuggestions: true, // active symptoms always pause suggestions
       urgentSymptoms: urgent,
+      invalidated: inv || undefined,
       noDiagnosis: true,
     });
   } catch (err) { res.status(500).json({ error: 'symptom_report_failed', detail: err.message }); }
@@ -159,10 +162,12 @@ router.post('/injuries', requireFeature('activity_safety_engine'), async (req, r
         expectedReassessmentAt: b.expectedReassessmentAt ? new Date(b.expectedReassessmentAt) : null,
       },
     });
+    const inv = await invalidateSafetyAdvice(prisma, uid(req), 'injury_reported').catch(() => null);
     res.status(201).json({
       injuryId: row.id,
       message: 'Recorded. Activity suggestions now account for it — this is a self-reported record, not a medical assessment. Follow any clinician guidance you have received.',
       followUps: followUpQuestions(row),
+      invalidated: inv || undefined,
       noDiagnosis: true,
     });
   } catch (err) { res.status(500).json({ error: 'injury_report_failed', detail: err.message }); }
@@ -239,6 +244,7 @@ router.delete('/injuries/:id', requireFeature('activity_safety_engine'), async (
     const prisma = getPrisma();
     const row = await prisma.userInjury.deleteMany({ where: { id: req.params.id, userId: uid(req) } });
     if (!row.count) return res.status(404).json({ error: 'not_found' });
+    await invalidateSafetyAdvice(prisma, uid(req), 'injury_deleted').catch(() => null);
     res.json({ deleted: true });
   } catch (err) { res.status(500).json({ error: 'injury_delete_failed', detail: err.message }); }
 });
@@ -248,6 +254,7 @@ router.delete('/symptoms/:id', requireFeature('activity_safety_engine'), async (
     const prisma = getPrisma();
     const row = await prisma.userSymptomReport.deleteMany({ where: { id: req.params.id, userId: uid(req) } });
     if (!row.count) return res.status(404).json({ error: 'not_found' });
+    await invalidateSafetyAdvice(prisma, uid(req), 'symptom_deleted').catch(() => null);
     res.json({ deleted: true });
   } catch (err) { res.status(500).json({ error: 'symptom_delete_failed', detail: err.message }); }
 });
@@ -262,9 +269,11 @@ router.delete('/restrictions/:id', requireFeature('activity_safety_engine'), asy
         where: { id: existing.id },
         data: { status: 'superseded', resolvedAt: new Date(), resolvedBy: 'user_deleted' },
       });
+      await invalidateSafetyAdvice(prisma, uid(req), 'restriction_deleted').catch(() => null);
       return res.json({ deleted: true, mode: 'superseded' }); // audit trail kept
     }
     await prisma.userActivityRestriction.deleteMany({ where: { id: existing.id, userId: uid(req) } });
+    await invalidateSafetyAdvice(prisma, uid(req), 'restriction_deleted').catch(() => null);
     res.json({ deleted: true });
   } catch (err) { res.status(500).json({ error: 'restriction_delete_failed', detail: err.message }); }
 });
@@ -294,6 +303,7 @@ router.patch('/injuries/:id', requireFeature('activity_safety_engine'), async (r
     }
     const row = await prisma.userInjury.updateMany({ where: { id: req.params.id, userId: uid(req) }, data });
     if (!row.count) return res.status(404).json({ error: 'not_found' });
+    await invalidateSafetyAdvice(prisma, uid(req), 'injury_updated').catch(() => null);
     res.json({ updated: true });
   } catch (err) { res.status(500).json({ error: 'injury_update_failed', detail: err.message }); }
 });

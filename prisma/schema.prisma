@@ -416,6 +416,9 @@ model Recommendation {
 
   completed Boolean @default(false)
 
+  staleAt    DateTime?
+  staleReason String?
+
   createdAt DateTime @default(now())
 }
 
