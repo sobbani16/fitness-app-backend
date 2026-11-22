@@ -104,6 +104,100 @@ router.get('/recipe-intelligence/validation-log', requirePermission('VIEW_PLATFO
   } catch (err) { fail(res, err); }
 });
 
+// ---- Clinical rule review workflow ---------------------------------------
+// Mechanical transition endpoint for ConditionRule / HealthConditionNutrientRule
+// reviewStatus (DRAFT → REVIEWED → APPROVED). ACADEMY_CLINICAL_REVIEW gates it;
+// approval is additionally blocked when the rule lacks evidence or required
+// fields. The endpoint cannot and does not confer clinical legitimacy — the
+// attestation + reviewer identity are recorded for accountability.
+
+function ruleGaps(rule, kind) {
+  const gaps = [];
+  if (!rule.evidenceSourceId && !rule.evidence) gaps.push('no_evidence_source');
+  if (kind === 'nutrient' && ['LIMIT', 'AVOID_IF_INDICATED'].includes(rule.action) && rule.thresholdValue == null) {
+    gaps.push('limit_without_threshold');
+  }
+  return gaps;
+}
+
+// GET /admin/clinical-rules — review queue with per-rule blocking gaps.
+router.get('/clinical-rules', requirePermission('VIEW_PLATFORM_ANALYTICS'), async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const [cond, nut] = await Promise.all([
+      prisma.conditionRule.findMany({
+        include: {
+          condition: { select: { name: true } },
+          evidence: { select: { organization: true, guidelineTitle: true, publicationYear: true, lastReviewedAt: true, evidenceNotes: true } },
+        },
+      }),
+      prisma.healthConditionNutrientRule.findMany({
+        include: {
+          healthCondition: { select: { name: true } },
+          nutrient: { select: { name: true, unit: true } },
+          evidence: { select: { organization: true, guidelineTitle: true, publicationYear: true, lastReviewedAt: true, evidenceNotes: true } },
+        },
+      }),
+    ]);
+    res.json({
+      conditionRules: cond.map((r) => ({
+        id: r.id, type: 'condition', condition: r.condition?.name, attribute: r.attribute,
+        target: r.target, action: r.action, reason: r.reason,
+        reviewStatus: r.reviewStatus, reviewedBy: r.reviewedBy, reviewedAt: r.reviewedAt,
+        requiresPersonalization: r.requiresPersonalization,
+        evidence: r.evidence || null, gaps: ruleGaps(r, 'condition'),
+      })),
+      nutrientRules: nut.map((r) => ({
+        id: r.id, type: 'nutrient', code: r.code, condition: r.healthCondition?.name,
+        nutrient: r.nutrient?.name, action: r.action, severity: r.severity,
+        thresholdValue: r.thresholdValue, thresholdUnit: r.thresholdUnit, thresholdBasis: r.thresholdBasis,
+        rationale: r.rationale, reviewStatus: r.reviewStatus, reviewedBy: r.reviewedBy,
+        reviewedAt: r.reviewedAt, requiresPersonalization: r.requiresPersonalization,
+        evidence: r.evidence || null, gaps: ruleGaps(r, 'nutrient'),
+      })),
+    });
+  } catch (err) { fail(res, err); }
+});
+
+// POST /admin/clinical-rules/transition — {type, id, to, attestation}
+// APPROVED requires a >=20-char attestation and zero blocking gaps.
+router.post('/clinical-rules/transition', requirePermission('ACADEMY_CLINICAL_REVIEW'), async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const { type, id, to, attestation } = req.body || {};
+    if (!['condition', 'nutrient'].includes(type)) return res.status(400).json({ error: 'type: condition|nutrient required.' });
+    if (!['DRAFT', 'REVIEWED', 'APPROVED'].includes(to)) return res.status(400).json({ error: 'to: DRAFT|REVIEWED|APPROVED required.' });
+    if (!id) return res.status(400).json({ error: 'id required.' });
+    const attest = String(attestation || '').trim();
+
+    const model = type === 'condition' ? prisma.conditionRule : prisma.healthConditionNutrientRule;
+    const rule = await model.findUnique({ where: { id }, include: type === 'condition' ? { evidence: true } : { evidence: true } });
+    if (!rule) return res.status(404).json({ error: 'Rule not found.' });
+
+    if (to === 'APPROVED') {
+      if (attest.length < 20) {
+        return res.status(422).json({ error: 'Approval requires a >=20-char attestation documenting the reviewer\'s clinical basis.' });
+      }
+      const gaps = ruleGaps(rule, type);
+      if (gaps.length) return res.status(422).json({ error: 'Rule has blocking gaps — resolve before approval.', gaps });
+    }
+
+    const updated = await model.update({
+      where: { id },
+      data: { reviewStatus: to, reviewedBy: req.userId, reviewedAt: new Date(), version: { increment: 1 } },
+    });
+    await prisma.safetyAuditLog.create({
+      data: {
+        userId: req.userId, checkType: 'clinical_rule_review',
+        input: { type, id, to, attestation: attest.slice(0, 500) },
+        result: { status: 'ok', from: rule.reviewStatus, to },
+        passed: true,
+      },
+    }).catch(() => {});
+    res.json({ id: updated.id, reviewStatus: updated.reviewStatus, reviewedBy: updated.reviewedBy, reviewedAt: updated.reviewedAt, version: updated.version });
+  } catch (err) { fail(res, err); }
+});
+
 router.get('/feature-flags', requirePermission('MANAGE_FEATURE_FLAGS'), async (req, res) => {
   try {
     const { FEATURES } = require('../config/featureRegistry');
