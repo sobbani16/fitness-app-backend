@@ -39,11 +39,11 @@
 
 | # | Gap | Risk | Needed before |
 |---|---|---|---|
-| P-1 | No deletion/retention endpoint for safety data (injury/symptom/restriction rows persist indefinitely) | privacy hygiene | production — retention policy decision |
-| P-2 | No consent category for trainer clinical visibility — currently hard-blocked (correct), but product may want opt-in | feature gap | any richer trainer notice |
-| P-3 | `consentScopes` on UserActivityProfile exists but nothing reads it for activity-safety surfaces | dead field | when trainer detail is reconsidered |
-| P-4 | Region-specific emergency copy ("local emergency services") — generic by design | UX | international launch |
-| P-5 | Symptom-report `notes`/injury `rehabInstructions` are user free-text — stored, not yet surfaced anywhere (no leak surface today, but retention + access review needed if ever displayed) | latent | any UI that renders them |
+| P-1 | No deletion/retention endpoint for safety data | privacy hygiene | **FIXED (Phase 15)** — `DELETE /activity-safety/{injuries,symptoms,restrictions,feedback}/:id`, user-scoped; clinician-documented restrictions soft-delete to `superseded` (audit trail preserved). Residual: no bulk purge or scheduled retention job — policy decision |
+| P-2 | No consent category for trainer clinical visibility | feature gap | **FIXED (Phase 15)** — `safety_restrictions` consent category added; `safetyDetailLevel()` grants `detail:'full'` only on an explicit grant (relation consent row or `consentScopes.safetyRestrictions`), else `summary`. `safetyDetail` field disclosed in assign responses |
+| P-3 | `consentScopes` on UserActivityProfile unread | dead field | **FIXED (Phase 15)** — `consentScopes.safetyRestrictions.scope==='granted'` now wired as a grant source for trainer detail (alongside TrainerClientConsent) |
+| P-4 | Region-specific emergency copy generic | UX | **FIXED (Phase 15)** — `emergencyCopy(region)` map (us/ca 911, gb 999/112, eu/in 112, au 000, nz 111) on declared region only — never geo-inferred; unvalidated input falls back to generic. Residual: no User.country field exists — region is client-declared per request |
+| P-5 | Free-text `notes`/`rehabInstructions` latent exposure | latent | **VERIFIED+GUARDED (Phase 15)** — regression tests assert neither field appears in any response payload (`/profile`, injury create); stored-only. Residual: any future UI surfacing them needs its own access review |
 
 ## Verified via tests
 `activitySafety.producers.test.js` (conflict summary without categories), `activitySafety.shadowDiff.test.js` (privacy output), `activitySafety.routes.test.js` (flag gating + per-user scoping), `activitySafety.e2e.test.js` (stateful per-user isolation).

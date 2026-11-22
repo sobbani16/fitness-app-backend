@@ -344,9 +344,20 @@ async function revise(trainerUserId, planId, tx) {
   });
 }
 
+// Trainer-facing clinical detail requires an explicit grant: a
+// 'safety_restrictions' consent row on the relation, or the client's own
+// consentScopes.safetyRestrictions grant on their activity profile. Either is
+// server-derived, user-controlled, revocable — default is 'summary' (conflict
+// flags only, no categories).
+async function safetyDetailLevel(prisma, relationId, clientUserId) {
+  if (relationId && await hasConsent(relationId, 'safety_restrictions').catch(() => false)) return 'full';
+  const profile = await prisma.userActivityProfile.findUnique({ where: { userId: clientUserId }, select: { consentScopes: true } }).catch(() => null);
+  return profile?.consentScopes?.safetyRestrictions?.scope === 'granted' ? 'full' : 'summary';
+}
+
 async function assign(trainerUserId, planId, clientUserId, tx) {
   const prisma = getPrisma();
-  const { trainerId } = await requireActiveRelation({ trainerUserId, clientUserId });
+  const { relation, trainerId } = await requireActiveRelation({ trainerUserId, clientUserId });
   const plan = await prisma.workoutPlan.findUnique({ where: { id: planId } });
   if (!plan || plan.trainerId !== trainerId) throw notFound('Plan not found.');
   if (plan.status !== 'published') throw conflict('Only published plans can be assigned.');
@@ -356,9 +367,10 @@ async function assign(trainerUserId, planId, clientUserId, tx) {
   if (existing) throw conflict('This plan is already assigned to the client.');
   // Advisory safety check against the client's recorded restrictions —
   // annotated on the assignment so the trainer sees conflicts, never silently.
-  // 'summary' detail: conflict flags without restriction categories — no
-  // consent scope exists that would permit sharing clinical detail.
-  const safety = await planSafetyConflicts(prisma, clientUserId, plan, { detail: 'summary' }).catch(() => ({ available: false, conflicts: [] }));
+  // Clinical detail (categories/limitations) only with an explicit grant.
+  const detail = await safetyDetailLevel(prisma, relation?.id, clientUserId);
+  const safety = await planSafetyConflicts(prisma, clientUserId, plan, { detail }).catch(() => ({ available: false, conflicts: [] }));
+  safety.detail = detail;
   return inTx(tx, async (t) => {
     const assignment = await t.trainerWorkoutAssignment.create({
       data: { planId, clientId: clientUserId, status: 'assigned' },
@@ -373,7 +385,7 @@ async function assign(trainerUserId, planId, clientUserId, tx) {
         body: `Your coach assigned you the plan "${plan.title}".`,
       },
     });
-    return { ...assignment, safetyConflicts: safety.conflicts, safetyStatus: safety.available ? safety.status : 'unavailable' };
+    return { ...assignment, safetyConflicts: safety.conflicts, safetyStatus: safety.available ? safety.status : 'unavailable', safetyDetail: safety.detail || 'summary' };
   });
 }
 

@@ -89,7 +89,18 @@ router.post('/evaluate', requireFeature('activity_safety_engine'), async (req, r
   } catch (err) { res.status(500).json({ error: 'evaluation_failed', detail: err.message }); }
 });
 
-// POST /activity-safety/symptoms {symptoms:[codes], severity?, context?, notes?}
+// Region-specific emergency numbers — client-declared region only (the app
+// knows its locale); geography is never inferred from coordinates.
+const EMERGENCY_COPY = {
+  us: 'call or text 911', ca: 'call or text 911', gb: 'call 999 or 112',
+  eu: 'call 112', in: 'call 112', au: 'call 000', nz: 'call 111',
+};
+function emergencyCopy(region) {
+  const key = /^[a-z]{2}$/i.test(String(region || '')) ? String(region).toLowerCase() : null;
+  return EMERGENCY_COPY[key] || 'contact local emergency services';
+}
+
+// POST /activity-safety/symptoms {symptoms:[codes], severity?, context?, notes?, region?}
 // Capture a self-reported symptom. Urgent codes return escalation guidance —
 // deterministic templates, no diagnosis.
 router.post('/symptoms', requireFeature('activity_safety_engine'), async (req, res) => {
@@ -115,7 +126,7 @@ router.post('/symptoms', requireFeature('activity_safety_engine'), async (req, r
       reportId: report.id,
       disposition: urgent.length ? 'urgent_escalation' : 'recorded',
       message: urgent.length
-        ? 'Do not begin a workout. Your reported symptoms may require urgent medical attention — contact local emergency services or seek urgent care now.'
+        ? `Do not begin a workout. Your reported symptoms may require urgent medical attention — ${emergencyCopy(b.region)} or seek urgent care now.`
         : 'Symptom recorded. Activity suggestions will account for it. If symptoms are severe, worsening, or worry you, seek medical advice.',
       suppressesActivitySuggestions: true, // active symptoms always pause suggestions
       urgentSymptoms: urgent,
@@ -218,6 +229,53 @@ router.get('/profile', requireFeature('activity_safety_engine'), async (req, res
       pregnancyStatus: ctx.pregnancyStatus,
     });
   } catch (err) { res.status(500).json({ error: 'profile_load_failed', detail: err.message }); }
+});
+
+// DELETE endpoints — retention hygiene (P-1). User-scoped only; self-reported
+// rows hard-delete. Clinician-documented restrictions soft-delete to
+// 'superseded' so the restriction audit trail survives user removal.
+router.delete('/injuries/:id', requireFeature('activity_safety_engine'), async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const row = await prisma.userInjury.deleteMany({ where: { id: req.params.id, userId: uid(req) } });
+    if (!row.count) return res.status(404).json({ error: 'not_found' });
+    res.json({ deleted: true });
+  } catch (err) { res.status(500).json({ error: 'injury_delete_failed', detail: err.message }); }
+});
+
+router.delete('/symptoms/:id', requireFeature('activity_safety_engine'), async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const row = await prisma.userSymptomReport.deleteMany({ where: { id: req.params.id, userId: uid(req) } });
+    if (!row.count) return res.status(404).json({ error: 'not_found' });
+    res.json({ deleted: true });
+  } catch (err) { res.status(500).json({ error: 'symptom_delete_failed', detail: err.message }); }
+});
+
+router.delete('/restrictions/:id', requireFeature('activity_safety_engine'), async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const existing = await prisma.userActivityRestriction.findFirst({ where: { id: req.params.id, userId: uid(req) } });
+    if (!existing) return res.status(404).json({ error: 'not_found' });
+    if (existing.source === 'clinician_documented') {
+      await prisma.userActivityRestriction.update({
+        where: { id: existing.id },
+        data: { status: 'superseded', resolvedAt: new Date(), resolvedBy: 'user_deleted' },
+      });
+      return res.json({ deleted: true, mode: 'superseded' }); // audit trail kept
+    }
+    await prisma.userActivityRestriction.deleteMany({ where: { id: existing.id, userId: uid(req) } });
+    res.json({ deleted: true });
+  } catch (err) { res.status(500).json({ error: 'restriction_delete_failed', detail: err.message }); }
+});
+
+router.delete('/feedback/:id', requireFeature('activity_safety_engine'), async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const row = await prisma.activitySafetyFeedback.deleteMany({ where: { id: req.params.id, userId: uid(req) } });
+    if (!row.count) return res.status(404).json({ error: 'not_found' });
+    res.json({ deleted: true });
+  } catch (err) { res.status(500).json({ error: 'feedback_delete_failed', detail: err.message }); }
 });
 
 // PATCH /activity-safety/injuries/:id — update status (e.g., recovering/resolved)
