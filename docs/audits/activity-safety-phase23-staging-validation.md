@@ -1,8 +1,9 @@
 # Phase 23 — Staging Validation
 
 Staging service: `activity-safety-staging` (Railway, dedicated env + isolated Postgres).
-Deployed commit verified via deployment metadata: **`4650908`**
-(deployment `1367cf5e-140d-45cd-9165-43e7fd20a24a`, `commitHash` confirmed).
+Deployed commit verified via deployment metadata: **`9259ea4`** (branch head
+after merging 6 concurrent CI commits; runtime identical to `4650908`,
+which carried the PATCH fixes — deployment `5b6ba751`, `commitHash` confirmed).
 Prior deploy attempt `0df238b7` CRASHED: committed `fiber/sequencing.js` required
 untracked `src/services/ingredientImpact.js` — file committed as `4650908`, redeploy
 succeeded. A committed-requires audit confirmed no other missing modules.
@@ -12,7 +13,7 @@ succeeded. A committed-requires audit confirmed no other missing modules.
 | Check | Result |
 |---|---|
 | Health | PASS — `{"status":"ok"}` |
-| Deployed SHA | PASS — `4650908` via Railway `commitHash` |
+| Deployed SHA | PASS — `9259ea4` via Railway `commitHash` (PATCH tests ran on `4650908`, identical runtime) |
 | Migration status | PASS — deploy log: "68 migrations and 11 required roles verified" |
 | DB isolation | PASS — 0 non-synthetic users in staging Postgres |
 | Auth | PASS — unauthenticated `/activity-safety/profile` → 401 |

@@ -7,7 +7,7 @@ No merges, no production changes, no clinical activation.
 
 | # | Task | Status | Evidence |
 |---|---|---|---|
-| 1 | Staging sync | **PASS** | Deployed `4650908` (verified commitHash). First attempt crashed on untracked `ingredientImpact.js` — committed, redeployed. Health/auth/isolation/rules-DRAFT/flags all verified. Live PATCH matrix: 7/7 cases PASS incl. 409 clinician-lock + `injury_updated` invalidation — `docs/audits/activity-safety-phase23-staging-validation.md` |
+| 1 | Staging sync | **PASS** | Deployed `9259ea4` (branch head; PATCH matrix ran on `4650908`, same runtime). First attempt crashed on untracked `ingredientImpact.js` — committed, redeployed. Health/auth/isolation/rules-DRAFT/flags all verified. Live PATCH matrix: 7/7 cases PASS incl. 409 clinician-lock + `injury_updated` invalidation — `docs/audits/activity-safety-phase23-staging-validation.md` |
 | 2 | Dead-token sign-out | **PASS** | `signOut()` in `accountLifecycle.ts` — best-effort server revocation, unconditional local clear, concurrent-login guard. Wired into SummaryScreen + AuthGate verify-email path. 11/11 unit tests. Mobile commit `6f2868e` |
 | 3 | Android flows 7–15 | **BLOCKED** | No physical device; sole AVD's NAT degraded across 4 cold boots (PIA ruled out this phase). Flow 7 additionally BLOCKED by missing injury-edit UI (product gap). Live server-side evidence: invalidation + PATCH matrix. `docs/audits/activity-safety-phase23-device-closure.md` |
 | 4 | Release compat + new APK | **PASS** | Old APK contract-compatible (mobile sends only editable PATCH fields). New staging build `fcc9a14b` finished — bundle verified to embed staging URL only; installed + launched on-device (login blocked by dead NAT) |
