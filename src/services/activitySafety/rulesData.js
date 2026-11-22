@@ -18,15 +18,15 @@ const UH = 'hypothesis';
 const RULES = [
   // ---- core ----------------------------------------------------------------
   { code: 'AS-CORE-001', name: 'Urgent symptom escalation', category: 'core',
-    appliesTo: { symptomCodes: ['chest_pain', 'chest_pressure', 'syncope', 'severe_dyspnea', 'neuro_deficit', 'pregnancy_bleeding', 'pregnancy_contractions', 'pregnancy_fluid_leak', 'pregnancy_calf_pain', 'vision_changes', 'severe_headache'] },
+    appliesTo: { symptomCodes: ['chest_pain', 'chest_pressure', 'syncope', 'dyspnea_unusual', 'numbness_neuro', 'pregnancy_bleeding', 'pregnancy_contractions', 'pregnancy_fluid_leak', 'pregnancy_calf_pain', 'vision_changes', 'severe_headache_sudden'] },
     effect: 'URGENT_ESCALATION', severity: 'high', evidenceRef: 'ACSM_SCREEN_2015;PARQ_PLUS;ACOG_804', evidenceClass: EC,
     reason: 'Reported symptom may require urgent medical attention — activity suggestions suppressed.' },
   { code: 'AS-CORE-002', name: 'Documented prohibition respected', category: 'core',
-    appliesTo: { restrictionCategories: ['__any__'] }, // informational marker — structural code performs the match
+    appliesTo: { restrictionCategories: ['__match_activity__'] }, // fires only when the activity demands a restricted category — not "any restriction exists"
     effect: 'BLOCK_ACTIVITY', severity: 'high', evidenceRef: 'PRODUCT-POLICY', evidenceClass: PD,
     reason: 'A documented activity prohibition cannot be overridden by goals, fitness scores, or weather.' },
   { code: 'AS-CORE-003', name: 'Unknown screening with risk flags', category: 'core',
-    appliesTo: { profileFlags: ['screening_incomplete', 'risk_flags_present'] },
+    appliesTo: { profileFlags: ['screening_incomplete+risk_flags_present'] },
     effect: 'INSUFFICIENT_DATA', severity: 'caution', evidenceRef: 'ACSM_SCREEN_2015;PARQ_PLUS', evidenceClass: CP,
     requiredData: ['health_screening'],
     reason: 'Screening status unknown with risk indicators — light activity only pending profile completion.' },
@@ -227,9 +227,11 @@ const RULES = [
     reason: 'Lighter option offered without obligation.' },
   { code: 'AS-REC-003', name: 'Repeated skips + distress', category: 'recovery',
     appliesTo: { profileFlags: ['distress_signals'] }, effect: 'MODIFY', severity: 'info', evidenceRef: 'PRODUCT-POLICY', evidenceClass: PD,
+    inputStatus: 'unsupported_input', // no validated distress-detection input exists; kept inactive rather than inferred
     reason: 'Soften suggestions; supportive copy only — never diagnose.' },
   { code: 'AS-REC-004', name: 'Compulsive-exercise pattern', category: 'recovery',
     appliesTo: { profileFlags: ['compulsive_pattern_flags'] }, effect: 'MODIFY', severity: 'caution', evidenceRef: 'PRODUCT-POLICY', evidenceClass: UH,
+    inputStatus: 'unsupported_input', // no validated compulsive-pattern detection input exists; kept inactive rather than inferred
     reason: 'Unverified pattern flags — soften suggestions; queued for clinical review.' },
 
   // ---- older adults ---------------------------------------------------------------------

@@ -47,6 +47,7 @@ async function matchDetectedFood(food, userId) {
       ],
     },
     select,
+    orderBy: { recipeName: 'asc' },
     take: 20,
   });
   const tokenConds = tokens.filter((t) => t.length >= 4)
@@ -55,6 +56,7 @@ async function matchDetectedFood(food, userId) {
     const extra = await prisma.recipe.findMany({
       where: { ...base, id: { notIn: rows.map((r) => r.id) }, OR: tokenConds },
       select,
+      orderBy: { recipeName: 'asc' },
       take: 20 - rows.length,
     });
     rows.push(...extra);

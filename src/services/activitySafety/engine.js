@@ -14,7 +14,7 @@
 // `rules` set fires (live callers pass APPROVED-only; tests may pass all).
 
 const { POLICY_VERSION, DECISIONS: D, DECISION_RANK, ACTIVITY_CATEGORIES: C,
-  BODY_REGIONS, SYMPTOMS_URGENT, SYMPTOMS_REVIEW, CONDITION_KEYS } = require('./constants');
+  BODY_REGIONS, SYMPTOMS_URGENT, SYMPTOMS_REVIEW, SYMPTOM_ALIASES, CONDITION_KEYS } = require('./constants');
 const { evaluateEnvironment } = require('./environment');
 
 function add(dim, bucket, decision, reason, ruleId) {
@@ -34,7 +34,8 @@ function evalMedical(ctx, activity, rules, now) {
   const activeSymptoms = (ctx.symptomReports || []).filter(s => s.status === 'active');
   const urgentCodes = [], reviewCodes = [];
   for (const s of activeSymptoms) {
-    for (const code of s.symptoms || []) {
+    for (const raw of s.symptoms || []) {
+      const code = SYMPTOM_ALIASES[raw] || raw; // canonical registry — legacy codes escalate identically
       if (SYMPTOMS_URGENT.has(code)) urgentCodes.push(code);
       else if (SYMPTOMS_REVIEW.has(code)) reviewCodes.push(code);
     }
@@ -49,8 +50,10 @@ function evalMedical(ctx, activity, rules, now) {
       `Reported symptom "${code}" should be reviewed before exertion is suggested.`);
   }
 
-  // Rule registry — caller supplies reviewStatus-filtered rows.
+  // Rule registry — caller supplies reviewStatus-filtered rows. Rules whose
+  // required input cannot be collected safely/accurately stay inactive.
   for (const rule of rules || []) {
+    if (rule.inputStatus === 'unsupported_input') continue;
     if (matchesRule(rule, ctx, activity)) {
       dim.ruleIds.push(rule.ruleCode);
       if (rule.effect && rule.effect !== D.ALLOW) {
@@ -64,6 +67,8 @@ function evalMedical(ctx, activity, rules, now) {
 }
 
 // AND across specified groups; OR within a group.
+// Wildcards: '__always__' trivially satisfies its group; '__any__' requires
+// at least one value present in the context set.
 function matchesRule(rule, ctx, activity) {
   const a = rule.appliesTo || {};
   const x = rule.exclusion || {};
@@ -73,8 +78,19 @@ function matchesRule(rule, ctx, activity) {
   const excluded = (g) => {
     const v = x[g]; return Array.isArray(v) && v.length ? v : null;
   };
+  // Token semantics: OR within a group; 'a+b' = conjunction inside one token;
+  // '__match_activity__' (restrictionCategories only) = the activity demands a
+  // category the user is restricted on — never a blanket "any restriction".
+  const satisfied = (tokens, set, g) => {
+    if (!tokens) return true;
+    if (tokens.includes('__always__')) return true;
+    if (tokens.includes('__any__')) return set.size > 0;
+    if (g === 'restrictionCategories' && tokens.includes('__match_activity__'))
+      return (activity.demands.categories || []).some(c => set.has(c));
+    return tokens.some(t => t.split('+').every(k => set.has(k)));
+  };
   const has = {
-    symptomCodes: new Set((ctx.symptomReports || []).filter(s => s.status === 'active').flatMap(s => s.symptoms || [])),
+    symptomCodes: new Set((ctx.symptomReports || []).filter(s => s.status === 'active').flatMap(s => (s.symptoms || []).map(c => SYMPTOM_ALIASES[c] || c))),
     injuryTypes: new Set((ctx.injuries || []).filter(i => i.status !== 'resolved').map(i => i.type)),
     bodyParts: new Set((ctx.injuries || []).filter(i => i.status !== 'resolved').map(i => i.bodyPart)),
     restrictionCategories: new Set((ctx.restrictions || []).flatMap(r => r.categories || [])),
@@ -84,8 +100,11 @@ function matchesRule(rule, ctx, activity) {
     envHazards: ctx.envHazards || new Set(),
   };
   for (const g of Object.keys(has)) {
-    const need = group(g); if (need && !need.some(k => has[g].has(k))) return false;
-    const veto = excluded(g); if (veto && veto.some(k => has[g].has(k))) return false;
+    if (!satisfied(group(g), has[g], g)) return false;
+    const veto = excluded(g);
+    if (veto && !veto.includes('__always__') && !veto.includes('__any__') && veto.some(k => has[g].has(k))) return false;
+    if (veto && veto.includes('__any__') && has[g].size > 0) return false;
+    if (veto && veto.includes('__always__')) return false;
   }
   return true;
 }
@@ -268,9 +287,14 @@ function mergeDimensions(dims) {
 function evaluateActivity({ context = {}, activity, env = null, rules = [], now = new Date() }) {
   if (!activity || !activity.demands) throw new Error('activity with demands is required');
   const ctx = normalizeContext(context);
-  const flags = buildFlags(ctx);
+  const flags = buildFlags(ctx, now);
   const environmental = evaluateEnvironment(env, activity, flags);
   ctx.envHazards = new Set(environmental.hazards || []);
+  // Post-env derivations for rule matching — env state is only known here.
+  if (environmental.status === 'unknown') flags.add('env_unknown');
+  if (environmental.status === 'stale') flags.add('env_stale');
+  if ((ctx.activityPreferences || []).includes(activity.id)) flags.add('preference_match');
+  ctx.flags = flags;
 
   const dimensions = {
     medical: evalMedical(ctx, activity, rules, now),
@@ -303,14 +327,48 @@ function evaluateActivity({ context = {}, activity, env = null, rules = [], now 
   };
 }
 
-// Build the flag set the environmental/rules matching uses.
-function buildFlags(ctx) {
-  const flags = new Set(ctx.conditions || []);
+const HOUR_MS = 3600 * 1000;
+
+// Build the flag set environmental/rules matching uses. Every flag must come
+// from a validated ctx field — never inferred from free text — and must be
+// listed in DERIVABLE_PROFILE_FLAGS so the review package can audit coverage.
+function buildFlags(ctx, now) {
+  // Caller-supplied flags (producer state, test fixtures) merge with derived
+  // flags — derivations add to, never discard, provided context.
+  const flags = new Set(ctx.flags instanceof Set ? ctx.flags : (ctx.flags || []));
+  for (const c of ctx.conditions || []) flags.add(c);
   if (ctx.pregnancyStatus === 'pregnant') flags.add('pregnancy');
+  if (ctx.pregnancyStatus === 'postpartum') flags.add('postpartum');
   if (ctx.ageYears != null && ctx.ageYears >= 65) flags.add('age_65_plus');
   if (ctx.mobility && ctx.mobility.wheelchairUser) flags.add('wheelchair');
   for (const f of ctx.medicationFlags || []) flags.add(f);
   if (flags.size) flags.add('med_flags');
+
+  // Injury/restriction lifecycle — documented, server-side data only.
+  const t = now ? new Date(now).getTime() : Date.now();
+  const activeInjuries = (ctx.injuries || []).filter(i => i.status !== 'resolved');
+  if (activeInjuries.some(i => i.weightBearingRestriction === 'non_weight_bearing')) flags.add('wb_non_weight_bearing');
+  if (activeInjuries.some(i => i.injuredAt && t - new Date(i.injuredAt).getTime() <= 72 * HOUR_MS)) flags.add('acute_injury_72h');
+  if (activeInjuries.some(i => i.painLevel != null && i.painLevel >= 7)) flags.add('severe_undiagnosed_pain');
+  if (activeInjuries.some(i => i.status === 'recovering')) flags.add('rehab_plan_active');
+  if ((ctx.surgeries || []).some(s => s.status !== 'cleared'
+    && !s.activityClearance && !(s.clinicianRestrictions || []).length)) flags.add('post_surgical_undocumented');
+
+  const symptoms = new Set((ctx.symptomReports || []).filter(s => s.status === 'active')
+    .flatMap(s => (s.symptoms || []).map(c => SYMPTOM_ALIASES[c] || c)));
+  if (symptoms.has('hypoglycemia')) flags.add('recent_hypoglycemia');
+  if (symptoms.has('joint_instability') || activeInjuries.some(i => String(i.type).includes('instability'))) flags.add('joint_instability');
+
+  // Screening completeness — honest missing-data signals, never a safe status.
+  if (ctx.profilePresent === false) flags.add('screening_incomplete');
+  if ((ctx.ageYears != null && ctx.ageYears >= 60) || (ctx.conditions || new Set()).size > 0 || ctx.pregnancyStatus === 'pregnant') flags.add('risk_flags_present');
+  if (ctx.mobility && ctx.mobility.balanceLimitation) { flags.add('fall_risk'); if (ctx.ageYears != null && ctx.ageYears >= 65) flags.add('frailty'); }
+
+  // User-declared state — the gate maps these into ctx.preferences.
+  const pref = ctx.preferences || {};
+  if (pref.restRequested) flags.add('rest_requested');
+  if (pref.restDay) flags.add('rest_day');
+  if (pref.workoutPlanned) flags.add('workout_planned');
   return flags;
 }
 

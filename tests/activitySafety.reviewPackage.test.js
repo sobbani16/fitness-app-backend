@@ -6,339 +6,359 @@ const { RULES } = require('../src/services/activitySafety/rulesData');
 const { evaluateActivity } = require('../src/services/activitySafety/engine');
 const H = () => ({ conditions: [], injuries: [], surgeries: [], restrictions: [], symptomReports: [], mobility: {}, preferences: {} });
 const row = (code) => { const r = RULES.find(x => x.code === code); return { ...r, ruleCode: r.code, reviewStatus: 'DRAFT' }; };
-const run = (code, ctx, activityId, env) => evaluateActivity({ context: { ...H(), ...ctx, flags: new Set(ctx.flags || []) }, activity: ACTIVITIES[activityId], env, rules: [row(code)] });
+const run = (code, ctx, activityId, env) => evaluateActivity({ context: { ...H(), ...ctx }, activity: ACTIVITIES[activityId], env, rules: [row(code)] });
 describe('review package — executable examples (all rules DRAFT)', () => {
   test('AS-CORE-001 Urgent symptom escalation', () => {
-    const res = run('AS-CORE-001', {"symptomReports":[{"status":"active","symptoms":["chest_pain"]}],"flags":[]}, 'seated_movement', null);
+    const res = run('AS-CORE-001', {"symptomReports":[{"status":"active","symptoms":["chest_pain"]}]}, 'seated_movement', null);
     expect(res.decision).toBe('URGENT_ESCALATION'); // structural urgent path
     expect(res.ruleIds).not.toContain('AS-CORE-001'); // mirror — short-circuit precedes rules
   });
   test('AS-CORE-002 Documented prohibition respected', () => {
-    const res = run('AS-CORE-002', {"flags":[]}, 'seated_movement', null);
-    expect(res.ruleIds).not.toContain('AS-CORE-002'); // inert as encoded — restrictionCategories
+    const res = run('AS-CORE-002', {"restrictions":[{"status":"active","categories":["upper_limb_load"],"bodyRegions":[],"severity":"prohibited","source":"clinician_documented"}]}, 'seated_movement', null);
+    expect(res.ruleIds).toContain('AS-CORE-002');
+    expect(res.decision).toBe('BLOCK_ACTIVITY');
   });
   test('AS-CORE-003 Unknown screening with risk flags', () => {
-    const res = run('AS-CORE-003', {"flags":[]}, 'seated_movement', null);
-    expect(res.ruleIds).not.toContain('AS-CORE-003'); // inert as encoded — profileFlags
+    const res = run('AS-CORE-003', {"profilePresent":false,"ageYears":62}, 'seated_movement', null);
+    expect(res.ruleIds).toContain('AS-CORE-003');
+    expect(res.decision).toBe('INSUFFICIENT_DATA');
   });
   test('AS-CORE-004 No diagnostic framing', () => {
-    const res = run('AS-CORE-004', {"flags":[]}, 'seated_movement', null);
-    expect(res.ruleIds).not.toContain('AS-CORE-004'); // inert as encoded — profileFlags
-  });
-  test('AS-MSK-001 Non-weight-bearing order', () => {
-    const res = run('AS-MSK-001', {"flags":[]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
-    expect(res.ruleIds).not.toContain('AS-MSK-001'); // inert as encoded — profileFlags
-  });
-  test('AS-MSK-002 Acute injury ≤72h', () => {
-    const res = run('AS-MSK-002', {"flags":[]}, 'seated_movement', null);
-    expect(res.ruleIds).not.toContain('AS-MSK-002'); // inert as encoded — profileFlags
-  });
-  test('AS-MSK-003 Joint instability', () => {
-    const res = run('AS-MSK-003', {"flags":["joint_instability"]}, 'gentle_mobility', null);
-    expect(res.ruleIds).toContain('AS-MSK-003');
+    const res = run('AS-CORE-004', {}, 'seated_movement', null);
+    expect(res.ruleIds).toContain('AS-CORE-004');
     expect(res.decision).toBe('MODIFY');
   });
+  test('AS-MSK-001 Non-weight-bearing order', () => {
+    const res = run('AS-MSK-001', {"injuries":[{"status":"current","type":"fracture","bodyPart":"ankle","weightBearingRestriction":"non_weight_bearing"}]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
+    expect(res.ruleIds).toContain('AS-MSK-001');
+    expect(res.decision).toBe('BLOCK_ACTIVITY');
+  });
+  test('AS-MSK-002 Acute injury ≤72h', () => {
+    const res = run('AS-MSK-002', {"injuries":[{"status":"current","type":"sprain","bodyPart":"ankle","injuredAt":"2026-11-22T04:07:48.375Z"}]}, 'seated_movement', null);
+    expect(res.ruleIds).toContain('AS-MSK-002');
+    expect(res.decision).toBe('MODIFY');
+  });
+  test('AS-MSK-003 Joint instability', () => {
+    const res = run('AS-MSK-003', {"symptomReports":[{"status":"active","symptoms":["joint_instability"]}]}, 'gentle_mobility', null);
+    expect(res.ruleIds).toContain('AS-MSK-003');
+    expect(res.decision).toBe('NEEDS_CLINICAL_REVIEW');
+  });
   test('AS-MSK-004 Active rehab plan is input, not override', () => {
-    const res = run('AS-MSK-004', {"flags":[]}, 'seated_movement', null);
-    expect(res.ruleIds).not.toContain('AS-MSK-004'); // inert as encoded — profileFlags
+    const res = run('AS-MSK-004', {"injuries":[{"status":"recovering","type":"sprain","bodyPart":"knee"}]}, 'seated_movement', null);
+    expect(res.ruleIds).toContain('AS-MSK-004');
+    expect(res.decision).toBe('MODIFY');
   });
   test('AS-MSK-005 Severe undiagnosed pain / post-fall', () => {
-    const res = run('AS-MSK-005', {"flags":[]}, 'seated_movement', null);
-    expect(res.ruleIds).not.toContain('AS-MSK-005'); // inert as encoded — profileFlags
+    const res = run('AS-MSK-005', {"injuries":[{"status":"current","type":"undiagnosed_pain","bodyPart":"knee","painLevel":8}]}, 'seated_movement', null);
+    expect(res.ruleIds).toContain('AS-MSK-005');
+    expect(res.decision).toBe('NEEDS_CLINICAL_REVIEW');
   });
   test('AS-MSK-006 DOMS only', () => {
-    const res = run('AS-MSK-006', {"flags":[]}, 'seated_movement', null);
-    expect(res.ruleIds).not.toContain('AS-MSK-006'); // inert as encoded — symptomCodes
+    const res = run('AS-MSK-006', {"symptomReports":[{"status":"active","symptoms":["muscle_soreness_doms"]}]}, 'seated_movement', null);
+    expect(res.ruleIds).toContain('AS-MSK-006');
+    expect(res.decision).toBe('MODIFY');
   });
   test('AS-MSK-007 Chronic joint pain / OA', () => {
-    const res = run('AS-MSK-007', {"conditionKeys":["osteoarthritis"],"flags":[]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
+    const res = run('AS-MSK-007', {"conditionKeys":["osteoarthritis"]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
     expect(res.ruleIds).toContain('AS-MSK-007');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-MSK-008 Post-surgical, undocumented restrictions', () => {
-    const res = run('AS-MSK-008', {"flags":[]}, 'seated_movement', null);
-    expect(res.ruleIds).not.toContain('AS-MSK-008'); // inert as encoded — profileFlags
+    const res = run('AS-MSK-008', {"surgeries":[{"status":"recovering","procedureCategory":"orthopedic","activityClearance":null,"clinicianRestrictions":[]}]}, 'seated_movement', null);
+    expect(res.ruleIds).toContain('AS-MSK-008');
+    expect(res.decision).toBe('NEEDS_CLINICAL_REVIEW');
   });
   test('AS-CV-001 Unexplained chest pain / recent cardiac event', () => {
-    const res = run('AS-CV-001', {"symptomReports":[{"status":"active","symptoms":["chest_pain"]}],"flags":[]}, 'seated_movement', null);
+    const res = run('AS-CV-001', {"symptomReports":[{"status":"active","symptoms":["chest_pain"]}]}, 'seated_movement', null);
     expect(res.decision).toBe('URGENT_ESCALATION'); // structural urgent path
     expect(res.ruleIds).not.toContain('AS-CV-001'); // mirror — short-circuit precedes rules
   });
   test('AS-CV-002 Stable CAD / completed rehab', () => {
-    const res = run('AS-CV-002', {"conditionKeys":["cad"],"flags":[]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
+    const res = run('AS-CV-002', {"conditionKeys":["cad"]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
     expect(res.ruleIds).toContain('AS-CV-002');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-CV-003 Uncontrolled hypertension', () => {
-    const res = run('AS-CV-003', {"flags":["hypertension_uncontrolled"]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
+    const res = run('AS-CV-003', {"medicationFlags":["hypertension_uncontrolled"]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
     expect(res.ruleIds).toContain('AS-CV-003');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-CV-004 Syncope/dizziness current vs history', () => {
-    const res = run('AS-CV-004', {"symptomReports":[{"status":"active","symptoms":["dizziness"]}],"flags":[]}, 'seated_movement', null);
+    const res = run('AS-CV-004', {"symptomReports":[{"status":"active","symptoms":["dizziness"]}]}, 'seated_movement', null);
     expect(res.ruleIds).toContain('AS-CV-004');
     expect(res.decision).toBe('NEEDS_CLINICAL_REVIEW');
   });
   test('AS-CV-005 Stable heart failure', () => {
-    const res = run('AS-CV-005', {"conditionKeys":["heart_failure"],"flags":[]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
+    const res = run('AS-CV-005', {"conditionKeys":["heart_failure"]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
     expect(res.ruleIds).toContain('AS-CV-005');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-RESP-001 Asthma/EIB + USG AQI', () => {
-    const res = run('AS-RESP-001', {"conditionKeys":["asthma","asthma"],"flags":[]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"aqi":{"value":120}});
+    const res = run('AS-RESP-001', {"conditionKeys":["asthma","asthma"]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"aqi":{"value":120}});
     expect(res.ruleIds).toContain('AS-RESP-001');
     expect(res.decision).toBe('DEFER_OUTDOOR');
   });
   test('AS-RESP-002 Asthma + wildfire smoke', () => {
-    const res = run('AS-RESP-002', {"conditionKeys":["asthma"],"flags":[]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"aqi":{"value":180}});
+    const res = run('AS-RESP-002', {"conditionKeys":["asthma"]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"aqi":{"value":180}});
     expect(res.ruleIds).toContain('AS-RESP-002');
     expect(res.decision).toBe('DEFER_OUTDOOR');
   });
   test('AS-RESP-003 Asthma + cold dry air', () => {
-    const res = run('AS-RESP-003', {"conditionKeys":["asthma"],"flags":[]}, 'outdoor_walk', {"tempC":-10,"apparentTempC":-10,"windSpeedKmh":25});
+    const res = run('AS-RESP-003', {"conditionKeys":["asthma"]}, 'outdoor_walk', {"tempC":-10,"apparentTempC":-10,"windSpeedKmh":25});
     expect(res.ruleIds).toContain('AS-RESP-003');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-RESP-004 Active respiratory infection', () => {
-    const res = run('AS-RESP-004', {"symptomReports":[{"status":"active","symptoms":["fever"]}],"flags":[]}, 'seated_movement', null);
+    const res = run('AS-RESP-004', {"symptomReports":[{"status":"active","symptoms":["fever"]}]}, 'seated_movement', null);
     expect(res.ruleIds).toContain('AS-RESP-004');
     expect(res.decision).toBe('NEEDS_CLINICAL_REVIEW');
   });
   test('AS-RESP-005 Unexplained breathlessness', () => {
-    const res = run('AS-RESP-005', {"symptomReports":[{"status":"active","symptoms":["dyspnea_unusual"]}],"flags":[]}, 'seated_movement', null);
+    const res = run('AS-RESP-005', {"symptomReports":[{"status":"active","symptoms":["dyspnea_unusual"]}]}, 'seated_movement', null);
     expect(res.decision).toBe('URGENT_ESCALATION'); // structural urgent path
     expect(res.ruleIds).not.toContain('AS-RESP-005'); // mirror — short-circuit precedes rules
   });
   test('AS-RESP-006 AQI bands (general)', () => {
-    const res = run('AS-RESP-006', {"flags":[]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"aqi":{"value":180}});
+    const res = run('AS-RESP-006', {}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"aqi":{"value":180}});
     expect(res.ruleIds).toContain('AS-RESP-006');
     expect(res.decision).toBe('DEFER_OUTDOOR');
   });
   test('AS-DM-001 Insulin-treated diabetes + recent hypoglycemia', () => {
-    const res = run('AS-DM-001', {"flags":["hypoglycemia_risk"]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
+    const res = run('AS-DM-001', {"medicationFlags":["hypoglycemia_risk"]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
     expect(res.ruleIds).toContain('AS-DM-001');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-DM-002 Hyperglycemia + ketones', () => {
-    const res = run('AS-DM-002', {"flags":["hyperglycemia_ketones"]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
+    const res = run('AS-DM-002', {"medicationFlags":["hyperglycemia_ketones"]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
     expect(res.ruleIds).toContain('AS-DM-002');
     expect(res.decision).toBe('DEFER_OUTDOOR');
   });
   test('AS-DM-003 Peripheral neuropathy / foot ulcer history', () => {
-    const res = run('AS-DM-003', {"conditionKeys":["neuropathy"],"flags":[]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
+    const res = run('AS-DM-003', {"conditionKeys":["neuropathy"]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
     expect(res.ruleIds).toContain('AS-DM-003');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-DM-004 Proliferative retinopathy', () => {
-    const res = run('AS-DM-004', {"conditionKeys":["retinopathy"],"flags":[]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
+    const res = run('AS-DM-004', {"conditionKeys":["retinopathy"]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
     expect(res.ruleIds).toContain('AS-DM-004');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-DM-005 Stable diabetes — no categorical prohibition', () => {
-    const res = run('AS-DM-005', {"conditionKeys":["diabetes_t1"],"flags":[]}, 'seated_movement', null);
+    const res = run('AS-DM-005', {"conditionKeys":["diabetes_t1"]}, 'seated_movement', null);
     expect(res.ruleIds).toContain('AS-DM-005');
     expect(res.decision).toBe('ALLOW');
   });
   test('AS-ENDO-001 Heat-sensitive medication/endocrine flag', () => {
-    const res = run('AS-ENDO-001', {"flags":["heat_sensitivity"]}, 'outdoor_walk', {"tempC":33,"apparentTempC":33});
+    const res = run('AS-ENDO-001', {"medicationFlags":["heat_sensitivity"]}, 'outdoor_walk', {"tempC":33,"apparentTempC":33});
     expect(res.ruleIds).toContain('AS-ENDO-001');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-PREG-001 Uncomplicated pregnancy — activity encouraged', () => {
-    const res = run('AS-PREG-001', {"flags":["pregnancy"]}, 'seated_movement', null);
-    expect(res.ruleIds).not.toContain('AS-PREG-001'); // inert as encoded — activityCategories (no catalog coverage)
+    const res = run('AS-PREG-001', {"pregnancyStatus":"pregnant"}, 'contact_sport', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
+    expect(res.ruleIds).toContain('AS-PREG-001');
+    expect(res.decision).toBe('MODIFY');
   });
   test('AS-PREG-002 Pregnancy warning symptoms', () => {
-    const res = run('AS-PREG-002', {"symptomReports":[{"status":"active","symptoms":["pregnancy_bleeding"]}],"flags":[]}, 'seated_movement', null);
+    const res = run('AS-PREG-002', {"symptomReports":[{"status":"active","symptoms":["pregnancy_bleeding"]}]}, 'seated_movement', null);
     expect(res.decision).toBe('URGENT_ESCALATION'); // structural urgent path
     expect(res.ruleIds).not.toContain('AS-PREG-002'); // mirror — short-circuit precedes rules
   });
   test('AS-PREG-003 High-risk pregnancy documented restriction', () => {
-    const res = run('AS-PREG-003', {"flags":["pregnancy_high_risk"]}, 'seated_movement', null);
-    expect(res.ruleIds).not.toContain('AS-PREG-003'); // inert as encoded — restrictionCategories
+    const res = run('AS-PREG-003', {"medicationFlags":["pregnancy_high_risk"],"restrictions":[{"status":"active","categories":["upper_limb_load"],"bodyRegions":[],"severity":"prohibited","source":"clinician_documented"}]}, 'seated_movement', null);
+    expect(res.ruleIds).toContain('AS-PREG-003');
+    expect(res.decision).toBe('BLOCK_ACTIVITY');
   });
   test('AS-PREG-004 Pregnancy + heat', () => {
-    const res = run('AS-PREG-004', {"flags":["pregnancy"]}, 'outdoor_walk', {"tempC":33,"apparentTempC":33});
+    const res = run('AS-PREG-004', {"pregnancyStatus":"pregnant"}, 'outdoor_walk', {"tempC":33,"apparentTempC":33});
     expect(res.ruleIds).toContain('AS-PREG-004');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-PREG-005 Postpartum return', () => {
-    const res = run('AS-PREG-005', {"flags":["postpartum"]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
+    const res = run('AS-PREG-005', {"pregnancyStatus":"postpartum"}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
     expect(res.ruleIds).toContain('AS-PREG-005');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-PREG-006 Pregnancy never inferred', () => {
-    const res = run('AS-PREG-006', {"flags":[]}, 'seated_movement', null);
-    expect(res.ruleIds).not.toContain('AS-PREG-006'); // inert as encoded — profileFlags
+    const res = run('AS-PREG-006', {}, 'seated_movement', null);
+    expect(res.ruleIds).toContain('AS-PREG-006');
+    expect(res.decision).toBe('ALLOW');
   });
   test('AS-NEURO-001 MS + heat', () => {
-    const res = run('AS-NEURO-001', {"conditionKeys":["ms"],"flags":[]}, 'outdoor_walk', {"tempC":33,"apparentTempC":33});
+    const res = run('AS-NEURO-001', {"conditionKeys":["ms"]}, 'outdoor_walk', {"tempC":33,"apparentTempC":33});
     expect(res.ruleIds).toContain('AS-NEURO-001');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-NEURO-002 Seizure precautions', () => {
-    const res = run('AS-NEURO-002', {"conditionKeys":["seizure"],"flags":[]}, 'swimming', null);
+    const res = run('AS-NEURO-002', {"conditionKeys":["seizure"]}, 'swimming', null);
     expect(res.ruleIds).toContain('AS-NEURO-002');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-NEURO-003 Parkinson\'s / balance impairment', () => {
-    const res = run('AS-NEURO-003', {"conditionKeys":["parkinsons"],"flags":[]}, 'gentle_mobility', null);
+    const res = run('AS-NEURO-003', {"conditionKeys":["parkinsons"]}, 'gentle_mobility', null);
     expect(res.ruleIds).toContain('AS-NEURO-003');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-NEURO-004 Wheelchair user — evaluate, never default-inactive', () => {
-    const res = run('AS-NEURO-004', {"flags":["wheelchair"]}, 'seated_movement', null);
+    const res = run('AS-NEURO-004', {"mobility":{"wheelchairUser":true}}, 'seated_movement', null);
     expect(res.ruleIds).toContain('AS-NEURO-004');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-NEURO-005 Stroke recovery undocumented', () => {
-    const res = run('AS-NEURO-005', {"conditionKeys":["stroke_recovery"],"flags":[]}, 'seated_movement', null);
+    const res = run('AS-NEURO-005', {"conditionKeys":["stroke_recovery"]}, 'seated_movement', null);
     expect(res.ruleIds).toContain('AS-NEURO-005');
     expect(res.decision).toBe('NEEDS_CLINICAL_REVIEW');
   });
   test('AS-NEURO-006 Fall-risk flag', () => {
-    const res = run('AS-NEURO-006', {"flags":["fall_risk"]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"precipitationMm":8});
+    const res = run('AS-NEURO-006', {"mobility":{"balanceLimitation":true}}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"precipitationMm":8});
     expect(res.ruleIds).toContain('AS-NEURO-006');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-SYS-001 Dialysis / fluid restriction', () => {
-    const res = run('AS-SYS-001', {"conditionKeys":["dialysis"],"flags":["fluid_restriction"]}, 'seated_movement', null);
+    const res = run('AS-SYS-001', {"conditionKeys":["dialysis"],"medicationFlags":["fluid_restriction"]}, 'seated_movement', null);
     expect(res.ruleIds).toContain('AS-SYS-001');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-SYS-002 Significant anemia', () => {
-    const res = run('AS-SYS-002', {"conditionKeys":["anemia"],"flags":[]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
+    const res = run('AS-SYS-002', {"conditionKeys":["anemia"]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
     expect(res.ruleIds).toContain('AS-SYS-002');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-SYS-003 Fever / systemic illness current', () => {
-    const res = run('AS-SYS-003', {"symptomReports":[{"status":"active","symptoms":["fever"]}],"flags":[]}, 'seated_movement', null);
+    const res = run('AS-SYS-003', {"symptomReports":[{"status":"active","symptoms":["fever"]}]}, 'seated_movement', null);
     expect(res.ruleIds).toContain('AS-SYS-003');
     expect(res.decision).toBe('NEEDS_CLINICAL_REVIEW');
   });
   test('AS-SYS-004 Immunosuppression exposure context', () => {
-    const res = run('AS-SYS-004', {"conditionKeys":["immunosuppressed"],"flags":[]}, 'group_fitness_class', null);
+    const res = run('AS-SYS-004', {"conditionKeys":["immunosuppressed"]}, 'group_fitness_class', null);
     expect(res.ruleIds).toContain('AS-SYS-004');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-SYS-005 Cancer treatment fatigue', () => {
-    const res = run('AS-SYS-005', {"conditionKeys":["cancer_treatment"],"flags":[]}, 'seated_movement', null);
+    const res = run('AS-SYS-005', {"conditionKeys":["cancer_treatment"]}, 'seated_movement', null);
     expect(res.ruleIds).toContain('AS-SYS-005');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-REC-001 Rest preference respected', () => {
-    const res = run('AS-REC-001', {"flags":[]}, 'seated_movement', null);
-    expect(res.ruleIds).not.toContain('AS-REC-001'); // inert as encoded — profileFlags
+    const res = run('AS-REC-001', {"preferences":{"restRequested":true}}, 'seated_movement', null);
+    expect(res.ruleIds).toContain('AS-REC-001');
+    expect(res.decision).toBe('MODIFY');
   });
   test('AS-REC-002 Poor sleep / high fatigue', () => {
-    const res = run('AS-REC-002', {"flags":[]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
-    expect(res.ruleIds).not.toContain('AS-REC-002'); // inert as encoded — profileFlags
+    const res = run('AS-REC-002', {"medicationFlags":["high_fatigue"]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
+    expect(res.ruleIds).toContain('AS-REC-002');
+    expect(res.decision).toBe('MODIFY');
   });
   test('AS-REC-003 Repeated skips + distress', () => {
-    const res = run('AS-REC-003', {"flags":[]}, 'seated_movement', null);
-    expect(res.ruleIds).not.toContain('AS-REC-003'); // inert as encoded — profileFlags
+    const res = run('AS-REC-003', {}, 'seated_movement', null);
+    expect(res.ruleIds).not.toContain('AS-REC-003'); // unsupported_input — inactive by design
   });
   test('AS-REC-004 Compulsive-exercise pattern', () => {
-    const res = run('AS-REC-004', {"flags":[]}, 'seated_movement', null);
-    expect(res.ruleIds).not.toContain('AS-REC-004'); // inert as encoded — profileFlags
+    const res = run('AS-REC-004', {}, 'seated_movement', null);
+    expect(res.ruleIds).not.toContain('AS-REC-004'); // unsupported_input — inactive by design
   });
   test('AS-AGE-001 Age alone never disqualifies', () => {
-    const res = run('AS-AGE-001', {"flags":["age_65_plus"]}, 'seated_movement', null);
+    const res = run('AS-AGE-001', {"ageYears":70}, 'seated_movement', null);
     expect(res.ruleIds).toContain('AS-AGE-001');
     expect(res.decision).toBe('ALLOW');
   });
   test('AS-AGE-002 Frailty/balance flags', () => {
-    const res = run('AS-AGE-002', {"flags":["frailty"]}, 'gentle_mobility', null);
+    const res = run('AS-AGE-002', {"ageYears":70,"mobility":{"balanceLimitation":true}}, 'gentle_mobility', null);
     expect(res.ruleIds).toContain('AS-AGE-002');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-AGE-003 Age-flagged reduced heat tolerance', () => {
-    const res = run('AS-AGE-003', {"flags":["age_65_plus"]}, 'outdoor_walk', {"tempC":33,"apparentTempC":33});
+    const res = run('AS-AGE-003', {"ageYears":70}, 'outdoor_walk', {"tempC":33,"apparentTempC":33});
     expect(res.ruleIds).toContain('AS-AGE-003');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-AGE-004 Osteoporosis documented', () => {
-    const res = run('AS-AGE-004', {"conditionKeys":["osteoporosis"],"flags":[]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
+    const res = run('AS-AGE-004', {"conditionKeys":["osteoporosis"]}, 'outdoor_run', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
     expect(res.ruleIds).toContain('AS-AGE-004');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-ENV-001 Thunderstorm', () => {
-    const res = run('AS-ENV-001', {"flags":[]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"weatherCode":95,"precipitationMm":1});
+    const res = run('AS-ENV-001', {}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"weatherCode":95,"precipitationMm":1});
     expect(res.ruleIds).toContain('AS-ENV-001');
     expect(res.decision).toBe('DEFER_OUTDOOR');
   });
   test('AS-ENV-002 Severe alert active', () => {
-    const res = run('AS-ENV-002', {"flags":[]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"alerts":[{"event":"Tornado Warning","severity":"Extreme"}]});
+    const res = run('AS-ENV-002', {}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"alerts":[{"event":"Tornado Warning","severity":"Extreme"}]});
     expect(res.ruleIds).toContain('AS-ENV-002');
     expect(res.decision).toBe('DEFER_OUTDOOR');
   });
   test('AS-ENV-003 Heat index danger', () => {
-    const res = run('AS-ENV-003', {"flags":[]}, 'outdoor_walk', {"tempC":41,"apparentTempC":41});
+    const res = run('AS-ENV-003', {}, 'outdoor_walk', {"tempC":41,"apparentTempC":41});
     expect(res.ruleIds).toContain('AS-ENV-003');
     expect(res.decision).toBe('DEFER_OUTDOOR');
   });
   test('AS-ENV-004 Extreme-caution heat + flags', () => {
-    const res = run('AS-ENV-004', {"flags":[]}, 'outdoor_walk', {"tempC":33,"apparentTempC":33});
+    const res = run('AS-ENV-004', {}, 'outdoor_walk', {"tempC":33,"apparentTempC":33});
     expect(res.ruleIds).toContain('AS-ENV-004');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-ENV-005 AQI ≥201', () => {
-    const res = run('AS-ENV-005', {"flags":[]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"aqi":{"value":250}});
+    const res = run('AS-ENV-005', {}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"aqi":{"value":250}});
     expect(res.ruleIds).toContain('AS-ENV-005');
     expect(res.decision).toBe('DEFER_OUTDOOR');
   });
   test('AS-ENV-006 AQI 151–200', () => {
-    const res = run('AS-ENV-006', {"flags":[]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"aqi":{"value":180}});
+    const res = run('AS-ENV-006', {}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"aqi":{"value":180}});
     expect(res.ruleIds).toContain('AS-ENV-006');
     expect(res.decision).toBe('DEFER_OUTDOOR');
   });
   test('AS-ENV-007 AQI USG + sensitive', () => {
-    const res = run('AS-ENV-007', {"conditionKeys":["asthma"],"flags":[]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"aqi":{"value":120}});
+    const res = run('AS-ENV-007', {"conditionKeys":["asthma"]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"aqi":{"value":120}});
     expect(res.ruleIds).toContain('AS-ENV-007');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-ENV-008 Wind chill bands', () => {
-    const res = run('AS-ENV-008', {"flags":[]}, 'outdoor_walk', {"tempC":-20,"apparentTempC":-20});
+    const res = run('AS-ENV-008', {}, 'outdoor_walk', {"tempC":-20,"apparentTempC":-20});
     expect(res.ruleIds).toContain('AS-ENV-008');
     expect(res.decision).toBe('DEFER_OUTDOOR');
   });
   test('AS-ENV-009 UV ≥8', () => {
-    const res = run('AS-ENV-009', {"flags":[]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"uvIndex":9});
+    const res = run('AS-ENV-009', {}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"uvIndex":9});
     expect(res.ruleIds).toContain('AS-ENV-009');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-ENV-010 Missing environmental data', () => {
-    const res = run('AS-ENV-010', {"flags":[]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
-    expect(res.ruleIds).not.toContain('AS-ENV-010'); // inert as encoded — profileFlags
+    const res = run('AS-ENV-010', {}, 'outdoor_walk', null);
+    expect(res.ruleIds).toContain('AS-ENV-010');
+    expect(res.decision).toBe('INSUFFICIENT_DATA');
   });
   test('AS-ENV-011 Stale observation', () => {
-    const res = run('AS-ENV-011', {"flags":[]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
-    expect(res.ruleIds).not.toContain('AS-ENV-011'); // inert as encoded — profileFlags
+    const res = run('AS-ENV-011', {}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"stale":true});
+    expect(res.ruleIds).toContain('AS-ENV-011');
+    expect(res.decision).toBe('INSUFFICIENT_DATA');
   });
   test('AS-ENV-012 Ordinary rain', () => {
-    const res = run('AS-ENV-012', {"flags":[]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"precipitationMm":8});
+    const res = run('AS-ENV-012', {}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"precipitationMm":8});
     expect(res.ruleIds).toContain('AS-ENV-012');
     expect(res.decision).toBe('MODIFY');
   });
   test('AS-PER-001 Preference rank-boost', () => {
-    const res = run('AS-PER-001', {"flags":[]}, 'seated_movement', null);
-    expect(res.ruleIds).not.toContain('AS-PER-001'); // inert as encoded — profileFlags
+    const res = run('AS-PER-001', {"activityPreferences":["seated_movement"]}, 'seated_movement', null);
+    expect(res.ruleIds).toContain('AS-PER-001');
+    expect(res.decision).toBe('ALLOW');
   });
   test('AS-PER-002 Planned workout + adverse conditions', () => {
-    const res = run('AS-PER-002', {"flags":[]}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"aqi":{"value":30},"uvIndex":2});
-    expect(res.ruleIds).not.toContain('AS-PER-002'); // inert as encoded — profileFlags; envHazards
+    const res = run('AS-PER-002', {"preferences":{"workoutPlanned":true}}, 'outdoor_walk', {"tempC":20,"apparentTempC":20,"precipitationMm":8});
+    expect(res.ruleIds).toContain('AS-PER-002');
+    expect(res.decision).toBe('MODIFY');
   });
   test('AS-PER-003 Rest day suppresses suggestions', () => {
-    const res = run('AS-PER-003', {"flags":[]}, 'seated_movement', null);
-    expect(res.ruleIds).not.toContain('AS-PER-003'); // inert as encoded — profileFlags
+    const res = run('AS-PER-003', {"preferences":{"restDay":true}}, 'seated_movement', null);
+    expect(res.ruleIds).toContain('AS-PER-003');
+    expect(res.decision).toBe('MODIFY');
   });
   test('AS-PER-004 Forecast better-time offer', () => {
-    const res = run('AS-PER-004', {"flags":[]}, 'outdoor_walk', {"tempC":41,"apparentTempC":41});
+    const res = run('AS-PER-004', {}, 'outdoor_walk', {"tempC":41,"apparentTempC":41});
     expect(res.ruleIds).toContain('AS-PER-004');
     expect(res.decision).toBe('DEFER_OUTDOOR');
   });
   test('AS-PER-005 No calorie-compensation framing', () => {
-    const res = run('AS-PER-005', {"flags":[]}, 'seated_movement', null);
-    expect(res.ruleIds).not.toContain('AS-PER-005'); // inert as encoded — profileFlags
+    const res = run('AS-PER-005', {}, 'seated_movement', null);
+    expect(res.ruleIds).toContain('AS-PER-005');
+    expect(res.decision).toBe('ALLOW');
   });
 });

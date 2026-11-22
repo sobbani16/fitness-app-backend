@@ -15,7 +15,7 @@ async function validateIngredients(userId, ingredients) {
   // Load user's active conditions.
   const userConditions = await prisma.userHealthCondition.findMany({
     where: { userId, active: true },
-    include: { condition: { include: { conditionRules: true } } },
+    include: { condition: { include: { conditionRules: { where: { reviewStatus: 'APPROVED' } } } } },
   });
 
   if (!userConditions.length) {

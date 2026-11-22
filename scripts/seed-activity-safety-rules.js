@@ -26,6 +26,7 @@ async function main() {
       evidenceRef: r.evidenceRef,
       evidenceClass: r.evidenceClass,
       missingDataBehavior: 'conservative',
+      inputStatus: r.inputStatus || 'supported',
       reviewStatus: 'DRAFT', // hard-pinned — never seed as approved
       version: 1,
       reviewDueAt: null, reviewedBy: null, reviewedAt: null,

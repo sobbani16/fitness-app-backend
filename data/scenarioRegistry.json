@@ -1,128 +1,985 @@
 {
   "version": "scenarios-v1",
   "reviewStatus": "pending_review",
-  "goals": ["weight_loss", "fat_loss", "muscle_gain", "weight_gain", "bulking", "maintenance"],
-  "dataQualityStates": ["missing", "partially_known", "reliable", "conflicting"],
+  "goals": [
+    "weight_loss",
+    "fat_loss",
+    "muscle_gain",
+    "weight_gain",
+    "bulking",
+    "maintenance"
+  ],
+  "dataQualityStates": [
+    "missing",
+    "partially_known",
+    "reliable",
+    "conflicting"
+  ],
   "scenarios": [
-    {"id":"A01","category":"goal_energy","priority":"P0","expected":"Show intake difference, effect on deficit, weekly trend"},
-    {"id":"A02","category":"goal_energy","priority":"P0","expected":"No perfect energy score for very low intake; assess restriction concerns"},
-    {"id":"A03","category":"goal_energy","priority":"P1","expected":"Count all calories; protein adequacy assessed separately"},
-    {"id":"A04","category":"goal_energy","priority":"P1","expected":"Explain inadequate energy may hinder training and growth"},
-    {"id":"A05","category":"goal_energy","priority":"P1","expected":"Explain appropriate surplus within agreed goal"},
-    {"id":"A06","category":"goal_energy","priority":"P1","expected":"No reward for unlimited intake; show fat-gain risk"},
-    {"id":"A07","category":"goal_energy","priority":"P1","expected":"Review trend; reassess estimated needs"},
-    {"id":"A08","category":"goal_energy","priority":"P1","expected":"Review training, protein, energy and recovery without assuming cause"},
-    {"id":"A09","category":"goal_energy","priority":"P1","expected":"Evaluate multi-week trends, logging confidence, activity, fluctuations"},
-    {"id":"A10","category":"goal_energy","priority":"P0","expected":"Confirm goal switch; preserve old goal, targets, score history"},
-    {"id":"B01","category":"macros","priority":"P0","expected":"Show recorded protein shortfall and suitable food options"},
-    {"id":"B02","category":"macros","priority":"P1","expected":"Cap protein credit; count extra calories; no automatic harm label"},
-    {"id":"B03","category":"macros","priority":"P0","expected":"Apply authorized individual restriction; professional oversight"},
-    {"id":"B04","category":"macros","priority":"P0","expected":"Quality/context evaluation; no automatic carbs-are-bad warning"},
-    {"id":"B05","category":"macros","priority":"P1","expected":"Assess fueling suitability and symptoms for endurance demands"},
-    {"id":"B06","category":"macros","priority":"P1","expected":"Assess fat adequacy over days; no reward for avoidance"},
-    {"id":"B07","category":"macros","priority":"P1","expected":"Assess energy and fat composition separately"},
-    {"id":"B08","category":"macros","priority":"P2","expected":"Evaluate suitability, adequacy, medical constraints"},
-    {"id":"B09","category":"macros","priority":"P1","expected":"Count verified protein; assess dietary variety separately"},
-    {"id":"B10","category":"macros","priority":"P0","expected":"Do not award maximum nutrition credit with poor quality"},
-    {"id":"C01","category":"food_quality","priority":"P0","expected":"Immediate warning; identify contribution in daily review"},
-    {"id":"C02","category":"food_quality","priority":"P0","expected":"Distinguish natural from added sugar; evaluate whole food"},
-    {"id":"C03","category":"food_quality","priority":"P1","expected":"Estimated portion/recipe data; warn added sugar when supported"},
-    {"id":"C04","category":"food_quality","priority":"P1","expected":"Cooking method, oil absorption, total fat, energy density"},
-    {"id":"C05","category":"food_quality","priority":"P0","expected":"Warn uncertainty; never invent trans fat"},
-    {"id":"C06","category":"food_quality","priority":"P1","expected":"Account saturated fat from known quantities"},
-    {"id":"C07","category":"food_quality","priority":"P1","expected":"Recognize fat quality; still count calories"},
-    {"id":"C08","category":"food_quality","priority":"P0","expected":"Flag partially hydrogenated oil regardless of rounded label"},
-    {"id":"C09","category":"food_quality","priority":"P1","expected":"Identify contributing foods; reviewed sodium moderation"},
-    {"id":"C10","category":"food_quality","priority":"P1","expected":"Proportional feedback; one treat is not weekly failure"},
-    {"id":"D01","category":"micronutrients","priority":"P1","expected":"Show fiber trend and practical food sources"},
-    {"id":"D02","category":"micronutrients","priority":"P1","expected":"Possible temporal association; gradual-adjustment guidance"},
-    {"id":"D03","category":"micronutrients","priority":"P1","expected":"Identify B12 coverage concern; no deficiency diagnosis"},
-    {"id":"D04","category":"micronutrients","priority":"P1","expected":"Review dietary iron sources and risk context"},
-    {"id":"D05","category":"micronutrients","priority":"P1","expected":"Suggest calcium sources; consider life stage"},
-    {"id":"D06","category":"micronutrients","priority":"P1","expected":"Explain diet alone cannot establish vitamin D status"},
-    {"id":"D07","category":"micronutrients","priority":"P0","expected":"No blanket potassium warnings; only reviewed restrictions"},
-    {"id":"D08","category":"micronutrients","priority":"P2","expected":"Suggest omega-3 food options when relevant"},
-    {"id":"D09","category":"micronutrients","priority":"P1","expected":"Assess diversity and coverage over time"},
-    {"id":"D10","category":"micronutrients","priority":"P0","expected":"Unknown nutrients marked unknown; never zero or deficiency"},
-    {"id":"E01","category":"meal_timing","priority":"P1","expected":"Support fasting schedule if appropriate; evaluate adequacy"},
-    {"id":"E02","category":"meal_timing","priority":"P0","expected":"No deduction for skipping breakfast when needs met"},
-    {"id":"E03","category":"meal_timing","priority":"P1","expected":"Evaluate total intake, preferences, symptoms"},
-    {"id":"E04","category":"meal_timing","priority":"P1","expected":"Identify pattern; reviewed reflux guidance"},
-    {"id":"E05","category":"meal_timing","priority":"P1","expected":"Review deficit, protein, fiber, meals, sleep"},
-    {"id":"E06","category":"meal_timing","priority":"P1","expected":"Suggest distribution strategies; screen persistent symptoms"},
-    {"id":"E07","category":"meal_timing","priority":"P0","expected":"Non-punitive; supportive escalation and resources"},
-    {"id":"E08","category":"meal_timing","priority":"P0","expected":"Review sustainability and disordered-eating risk; no compensatory advice"},
-    {"id":"E09","category":"meal_timing","priority":"P1","expected":"Use actual schedule and local time for night shifts"},
-    {"id":"E10","category":"meal_timing","priority":"P1","expected":"Adapt to religious fasting/cultural preferences"},
-    {"id":"F01","category":"training","priority":"P1","expected":"Movement credit; explain resistance-training value"},
-    {"id":"F02","category":"training","priority":"P1","expected":"Review energy adequacy and protein for muscle gain"},
-    {"id":"F03","category":"training","priority":"P1","expected":"Assess workload; recommend recovery review"},
-    {"id":"F04","category":"training","priority":"P0","expected":"Planned rest preserved; no extra-workout demand"},
-    {"id":"F05","category":"training","priority":"P0","expected":"Explain energy balance; no mandatory compensation"},
-    {"id":"F06","category":"training","priority":"P1","expected":"Assess fueling, hydration, session demands"},
-    {"id":"F07","category":"training","priority":"P1","expected":"Review nutrition, sleep, recovery, illness; escalate when warranted"},
-    {"id":"F08","category":"training","priority":"P0","expected":"Accessible individualized activity plan"},
-    {"id":"F09","category":"training","priority":"P0","expected":"Deduplicate workouts; avoid inflated energy estimates"},
-    {"id":"F10","category":"training","priority":"P0","expected":"Urgent escalation for severe pain/weakness/dark urine"},
-    {"id":"G01","category":"sleep_stress","priority":"P1","expected":"Ask timing, caffeine, symptoms, schedule"},
-    {"id":"G02","category":"sleep_stress","priority":"P1","expected":"Reviewed sleep guidance; recommend evaluation when persistent"},
-    {"id":"G03","category":"sleep_stress","priority":"P1","expected":"No good-sleep assumption from duration alone"},
-    {"id":"G04","category":"sleep_stress","priority":"P1","expected":"Possible caffeine association; review dose/timing"},
-    {"id":"G05","category":"sleep_stress","priority":"P0","expected":"Single HRV is not illness or workout prohibition"},
-    {"id":"G06","category":"sleep_stress","priority":"P1","expected":"Professional evaluation for persistent insomnia"},
-    {"id":"G07","category":"sleep_stress","priority":"P1","expected":"Supportive guidance for stress/emotional eating, no shaming"},
-    {"id":"G08","category":"sleep_stress","priority":"P0","expected":"Stop routine coaching; assess prompt medical attention"},
-    {"id":"G09","category":"sleep_stress","priority":"P1","expected":"Assess low energy availability; recommend evaluation"},
-    {"id":"G10","category":"sleep_stress","priority":"P1","expected":"Professional evaluation for possible sleep apnea symptoms"},
-    {"id":"H01","category":"digestive","priority":"P1","expected":"Ask location, timing, severity; no protein-cause assumption"},
-    {"id":"H02","category":"digestive","priority":"P1","expected":"Review fiber, fluids, medications, symptom history"},
-    {"id":"H03","category":"digestive","priority":"P1","expected":"Explore fiber quantity, preparation, tolerance"},
-    {"id":"H04","category":"digestive","priority":"P1","expected":"Possible tolerance pattern; no lactose diagnosis"},
-    {"id":"H05","category":"digestive","priority":"P1","expected":"Reviewed legume preparation and gradual adjustment"},
-    {"id":"H06","category":"digestive","priority":"P1","expected":"Review ingredients, serving, other contributors"},
-    {"id":"H07","category":"digestive","priority":"P1","expected":"Reflux-related education for large late meals"},
-    {"id":"H08","category":"digestive","priority":"P0","expected":"Encourage medical evaluation for persistent symptoms"},
-    {"id":"H09","category":"digestive","priority":"P0","expected":"Medical escalation for blood/black stool"},
-    {"id":"H10","category":"digestive","priority":"P0","expected":"Urgent pathway for severe pain with vomiting/systemic symptoms"},
-    {"id":"I01","category":"medical","priority":"P0","expected":"No generic low-carb advice with insulin; medication safety review"},
-    {"id":"I02","category":"medical","priority":"P0","expected":"Approved hypoglycemia pathway; not a routine calorie issue"},
-    {"id":"I03","category":"medical","priority":"P1","expected":"Dietary-quality insights for triglycerides + added sugar; follow-up"},
-    {"id":"I04","category":"medical","priority":"P1","expected":"Personalized reviewed fat-quality guidance for LDL"},
-    {"id":"I05","category":"medical","priority":"P0","expected":"No universal protein targets with CKD; individualized guidance"},
-    {"id":"I06","category":"medical","priority":"P1","expected":"Reviewed sodium guidance for hypertension"},
-    {"id":"I07","category":"medical","priority":"P0","expected":"Safety warning regardless of score for diagnosed allergen"},
-    {"id":"I08","category":"medical","priority":"P0","expected":"Gluten-avoidance safeguards incl. cross-contact uncertainty"},
-    {"id":"I09","category":"medical","priority":"P1","expected":"No causal diet-treats-PCOS/thyroid claims"},
-    {"id":"I10","category":"medical","priority":"P0","expected":"Conflicting restrictions → professional review, no mechanical merge"},
-    {"id":"J01","category":"supplements_special","priority":"P0","expected":"Explain uncertain benefit; no automatic supplement recommendation"},
-    {"id":"J02","category":"supplements_special","priority":"P1","expected":"Check duplication; refer for interaction review"},
-    {"id":"J03","category":"supplements_special","priority":"P1","expected":"Approved creatine education in health context"},
-    {"id":"J04","category":"supplements_special","priority":"P0","expected":"Medication relevance recognized; prescriber owns treatment"},
-    {"id":"J05","category":"supplements_special","priority":"P0","expected":"No unsupported interaction advice; escalate to clinician/pharmacist"},
-    {"id":"J06","category":"supplements_special","priority":"P0","expected":"No ordinary weight-loss algorithm in pregnancy"},
-    {"id":"J07","category":"supplements_special","priority":"P0","expected":"Life-stage pathway for breastfeeding deficit requests"},
-    {"id":"J08","category":"supplements_special","priority":"P0","expected":"Under-18 blocked from adult engine"},
-    {"id":"J09","category":"supplements_special","priority":"P0","expected":"Prioritize nutritional-risk evaluation in older adults"},
-    {"id":"J10","category":"supplements_special","priority":"P0","expected":"No triggering numbers; supportive professional referral"},
-    {"id":"K01","category":"logging_uncertainty","priority":"P0","expected":"Partial progress only; no full-day low-calorie verdict"},
-    {"id":"K02","category":"logging_uncertainty","priority":"P0","expected":"No nutrition points inferred from steps; show coverage"},
-    {"id":"K03","category":"logging_uncertainty","priority":"P0","expected":"Explicitly uncertain estimate; ask portion/recipe details"},
-    {"id":"K04","category":"logging_uncertainty","priority":"P0","expected":"Food-state conversion; raw/cooked not interchangeable"},
-    {"id":"K05","category":"logging_uncertainty","priority":"P0","expected":"Consistent recalculation across all supported nutrients"},
-    {"id":"K06","category":"logging_uncertainty","priority":"P1","expected":"Preserve label facts + ingredient warnings despite rounded 0"},
-    {"id":"K07","category":"logging_uncertainty","priority":"P0","expected":"Added sugar unknown, not zero"},
-    {"id":"K08","category":"logging_uncertainty","priority":"P0","expected":"Detect duplicates across sources; confirm"},
-    {"id":"K09","category":"logging_uncertainty","priority":"P0","expected":"Validate wearable energy; no automatic eating allowance"},
-    {"id":"K10","category":"logging_uncertainty","priority":"P1","expected":"Local eating-day attribution; preserve original timestamps"},
-    {"id":"L01","category":"outcomes","priority":"P1","expected":"Explain water fluctuation; no fat-gain declaration"},
-    {"id":"L02","category":"outcomes","priority":"P0","expected":"Evaluate rapid-loss rate and symptoms; no speed reward"},
-    {"id":"L03","category":"outcomes","priority":"P1","expected":"Reassess estimates, logging, activity before changing goals"},
-    {"id":"L04","category":"outcomes","priority":"P1","expected":"Recognize progress; no muscle-growth promise from strength alone"},
-    {"id":"L05","category":"outcomes","priority":"P1","expected":"Review surplus size and training response"},
-    {"id":"L06","category":"outcomes","priority":"P1","expected":"Uncertain restaurant portions supported; no discouragement"},
-    {"id":"L07","category":"outcomes","priority":"P1","expected":"Affordable culturally appropriate options"},
-    {"id":"L08","category":"outcomes","priority":"P1","expected":"Realistic adjustments; no shame or streak penalties"},
-    {"id":"L09","category":"outcomes","priority":"P1","expected":"Offer transition to maintenance/other goal with confirmation"},
-    {"id":"L10","category":"outcomes","priority":"P0","expected":"Outcome review when score is high but goal not progressing"}
-  ]
+    {
+      "id": "A01",
+      "category": "goal_energy",
+      "priority": "P0",
+      "expected": "Show intake difference, effect on deficit, weekly trend",
+      "scenario": "Weight-loss user consistently exceeds planned calories",
+      "expectedVerbatim": "Show intake difference, possible effect on intended deficit, and weekly trend"
+    },
+    {
+      "id": "A02",
+      "category": "goal_energy",
+      "priority": "P0",
+      "expected": "No perfect energy score for very low intake; assess restriction concerns",
+      "scenario": "Weight-loss user eats far too little",
+      "expectedVerbatim": "Do not award a perfect energy score; assess suitability and potential restriction concerns"
+    },
+    {
+      "id": "A03",
+      "category": "goal_energy",
+      "priority": "P1",
+      "expected": "Count all calories; protein adequacy assessed separately",
+      "scenario": "User exceeds calories primarily through protein",
+      "expectedVerbatim": "Count all calories; recognize protein adequacy separately"
+    },
+    {
+      "id": "A04",
+      "category": "goal_energy",
+      "priority": "P1",
+      "expected": "Explain inadequate energy may hinder training and growth",
+      "scenario": "Muscle-gain user eats below energy needs",
+      "expectedVerbatim": "Explain inadequate energy may hinder training and growth"
+    },
+    {
+      "id": "A05",
+      "category": "goal_energy",
+      "priority": "P1",
+      "expected": "Explain appropriate surplus within agreed goal",
+      "scenario": "Weight-gain user is afraid of eating above maintenance",
+      "expectedVerbatim": "Explain why an appropriate surplus may be part of the agreed goal"
+    },
+    {
+      "id": "A06",
+      "category": "goal_energy",
+      "priority": "P1",
+      "expected": "No reward for unlimited intake; show fat-gain risk",
+      "scenario": "Bulking user consumes an excessive surplus",
+      "expectedVerbatim": "Avoid rewarding unlimited intake; show potential unnecessary fat-gain risk"
+    },
+    {
+      "id": "A07",
+      "category": "goal_energy",
+      "priority": "P1",
+      "expected": "Review trend; reassess estimated needs",
+      "scenario": "Maintenance user gradually gains or loses weight",
+      "expectedVerbatim": "Review trend and reassess estimated needs"
+    },
+    {
+      "id": "A08",
+      "category": "goal_energy",
+      "priority": "P1",
+      "expected": "Review training, protein, energy and recovery without assuming cause",
+      "scenario": "Fat-loss user loses scale weight but strength also declines",
+      "expectedVerbatim": "Review training, protein, energy intake and recovery without assuming the cause"
+    },
+    {
+      "id": "A09",
+      "category": "goal_energy",
+      "priority": "P1",
+      "expected": "Evaluate multi-week trends, logging confidence, activity, fluctuations",
+      "scenario": "Weight stays unchanged despite recorded plan adherence",
+      "expectedVerbatim": "Evaluate multiple-week trends, logging confidence, activity assumptions and ordinary fluctuations"
+    },
+    {
+      "id": "A10",
+      "category": "goal_energy",
+      "priority": "P0",
+      "expected": "Confirm goal switch; preserve old goal, targets, score history",
+      "scenario": "User changes from weight loss to muscle gain",
+      "expectedVerbatim": "Require confirmation; preserve old goal, targets and score history; activate one new primary goal"
+    },
+    {
+      "id": "B01",
+      "category": "macros",
+      "priority": "P0",
+      "expected": "Show recorded protein shortfall and suitable food options",
+      "scenario": "Protein significantly below target",
+      "expectedVerbatim": "Show recorded shortfall and appropriate food options"
+    },
+    {
+      "id": "B02",
+      "category": "macros",
+      "priority": "P1",
+      "expected": "Cap protein credit; count extra calories; no automatic harm label",
+      "scenario": "Protein moderately above target",
+      "expectedVerbatim": "Cap protein credit; count extra calories; don't automatically classify excess as harmful"
+    },
+    {
+      "id": "B03",
+      "category": "macros",
+      "priority": "P0",
+      "expected": "Apply authorized individual restriction; professional oversight",
+      "scenario": "Very high protein combined with a kidney-related restriction",
+      "expectedVerbatim": "Apply an authorized individual restriction; require appropriate professional oversight"
+    },
+    {
+      "id": "B04",
+      "category": "macros",
+      "priority": "P0",
+      "expected": "Quality/context evaluation; no automatic carbs-are-bad warning",
+      "scenario": "Carbohydrates above a target but calories appropriate",
+      "expectedVerbatim": "Evaluate dietary quality and context; no automatic \"carbs are bad\" warning"
+    },
+    {
+      "id": "B05",
+      "category": "macros",
+      "priority": "P1",
+      "expected": "Assess fueling suitability and symptoms for endurance demands",
+      "scenario": "Very low carbohydrate intake during demanding endurance training",
+      "expectedVerbatim": "Assess fueling suitability and possible symptoms"
+    },
+    {
+      "id": "B06",
+      "category": "macros",
+      "priority": "P1",
+      "expected": "Assess fat adequacy over days; no reward for avoidance",
+      "scenario": "Fat intake extremely low over multiple days",
+      "expectedVerbatim": "Assess adequacy rather than rewarding fat avoidance"
+    },
+    {
+      "id": "B07",
+      "category": "macros",
+      "priority": "P1",
+      "expected": "Assess energy and fat composition separately",
+      "scenario": "Fat intake high but mainly unsaturated",
+      "expectedVerbatim": "Assess total energy and fat composition separately"
+    },
+    {
+      "id": "B08",
+      "category": "macros",
+      "priority": "P2",
+      "expected": "Evaluate suitability, adequacy, medical constraints",
+      "scenario": "High-fat, low-carb diet deliberately selected",
+      "expectedVerbatim": "Evaluate individual suitability, nutritional adequacy and any medical constraints"
+    },
+    {
+      "id": "B09",
+      "category": "macros",
+      "priority": "P1",
+      "expected": "Count verified protein; assess dietary variety separately",
+      "scenario": "User reaches protein goal entirely through supplements",
+      "expectedVerbatim": "Award verified protein contribution, but separately assess dietary variety and food quality"
+    },
+    {
+      "id": "B10",
+      "category": "macros",
+      "priority": "P0",
+      "expected": "Do not award maximum nutrition credit with poor quality",
+      "scenario": "User meets all macro targets but has poor diet quality",
+      "expectedVerbatim": "Do not award maximum overall nutrition credit"
+    },
+    {
+      "id": "C01",
+      "category": "food_quality",
+      "priority": "P0",
+      "expected": "Immediate warning; identify contribution in daily review",
+      "scenario": "Sweetened soda pushes added sugar above a reference limit",
+      "expectedVerbatim": "Immediate warning; identify its contribution in daily review"
+    },
+    {
+      "id": "C02",
+      "category": "food_quality",
+      "priority": "P0",
+      "expected": "Distinguish natural from added sugar; evaluate whole food",
+      "scenario": "Fruit contains substantial natural sugar",
+      "expectedVerbatim": "Distinguish naturally occurring sugar from added sugar; evaluate the whole food"
+    },
+    {
+      "id": "C03",
+      "category": "food_quality",
+      "priority": "P1",
+      "expected": "Estimated portion/recipe data; warn added sugar when supported",
+      "scenario": "User eats gulab jamun, jalebi or another sweet",
+      "expectedVerbatim": "Use estimated portion and recipe data; warn about added sugar when supported"
+    },
+    {
+      "id": "C04",
+      "category": "food_quality",
+      "priority": "P1",
+      "expected": "Cooking method, oil absorption, total fat, energy density",
+      "scenario": "User logs deep-fried samosa, pakora or chicken",
+      "expectedVerbatim": "Consider cooking method, oil absorption, total fat and energy density"
+    },
+    {
+      "id": "C05",
+      "category": "food_quality",
+      "priority": "P0",
+      "expected": "Warn uncertainty; never invent trans fat",
+      "scenario": "Fried food has no known oil type",
+      "expectedVerbatim": "Warn about uncertainty; do not invent trans-fat content"
+    },
+    {
+      "id": "C06",
+      "category": "food_quality",
+      "priority": "P1",
+      "expected": "Account saturated fat from known quantities",
+      "scenario": "Recipe uses ghee or butter frequently",
+      "expectedVerbatim": "Account for saturated fat using known quantities"
+    },
+    {
+      "id": "C07",
+      "category": "food_quality",
+      "priority": "P1",
+      "expected": "Recognize fat quality; still count calories",
+      "scenario": "User eats nuts, seeds or avocado",
+      "expectedVerbatim": "Recognize fat quality while still counting calories"
+    },
+    {
+      "id": "C08",
+      "category": "food_quality",
+      "priority": "P0",
+      "expected": "Flag partially hydrogenated oil regardless of rounded label",
+      "scenario": "Packaged food contains partially hydrogenated oil",
+      "expectedVerbatim": "Flag the ingredient and relevant trans-fat concern, regardless of rounded label values"
+    },
+    {
+      "id": "C09",
+      "category": "food_quality",
+      "priority": "P1",
+      "expected": "Identify contributing foods; reviewed sodium moderation",
+      "scenario": "Daily sodium is high from packaged foods",
+      "expectedVerbatim": "Identify contributing foods; apply a reviewed moderation rule"
+    },
+    {
+      "id": "C10",
+      "category": "food_quality",
+      "priority": "P1",
+      "expected": "Proportional feedback; one treat is not weekly failure",
+      "scenario": "One treat occurs within an otherwise nutritious week",
+      "expectedVerbatim": "Give proportional feedback without treating a single food as failure"
+    },
+    {
+      "id": "D01",
+      "category": "micronutrients",
+      "priority": "P1",
+      "expected": "Show fiber trend and practical food sources",
+      "scenario": "Fiber persistently below appropriate intake",
+      "expectedVerbatim": "Show trend and practical food sources"
+    },
+    {
+      "id": "D02",
+      "category": "micronutrients",
+      "priority": "P1",
+      "expected": "Possible temporal association; gradual-adjustment guidance",
+      "scenario": "Fiber suddenly increases and bloating begins",
+      "expectedVerbatim": "Recognize a possible temporal association; suggest gradual adjustments from approved guidance"
+    },
+    {
+      "id": "D03",
+      "category": "micronutrients",
+      "priority": "P1",
+      "expected": "Identify B12 coverage concern; no deficiency diagnosis",
+      "scenario": "Low vitamin B12 intake pattern in a vegan user",
+      "expectedVerbatim": "Identify dietary coverage concerns; avoid diagnosing deficiency"
+    },
+    {
+      "id": "D04",
+      "category": "micronutrients",
+      "priority": "P1",
+      "expected": "Review dietary iron sources and risk context",
+      "scenario": "Insufficient dietary iron sources",
+      "expectedVerbatim": "Review dietary pattern and relevant risk context"
+    },
+    {
+      "id": "D05",
+      "category": "micronutrients",
+      "priority": "P1",
+      "expected": "Suggest calcium sources; consider life stage",
+      "scenario": "Calcium intake appears low",
+      "expectedVerbatim": "Suggest suitable food sources; consider life stage"
+    },
+    {
+      "id": "D06",
+      "category": "micronutrients",
+      "priority": "P1",
+      "expected": "Explain diet alone cannot establish vitamin D status",
+      "scenario": "Vitamin D intake appears low",
+      "expectedVerbatim": "Explain that diet alone cannot establish vitamin D status"
+    },
+    {
+      "id": "D07",
+      "category": "micronutrients",
+      "priority": "P0",
+      "expected": "No blanket potassium warnings; only reviewed restrictions",
+      "scenario": "Potassium intake appears high",
+      "expectedVerbatim": "Usually avoid blanket warnings; apply reviewed restrictions only where relevant"
+    },
+    {
+      "id": "D08",
+      "category": "micronutrients",
+      "priority": "P2",
+      "expected": "Suggest omega-3 food options when relevant",
+      "scenario": "Omega-3-rich foods rarely appear",
+      "expectedVerbatim": "Suggest appropriate food options when relevant"
+    },
+    {
+      "id": "D09",
+      "category": "micronutrients",
+      "priority": "P1",
+      "expected": "Assess diversity and coverage over time",
+      "scenario": "User eats the same limited foods every day",
+      "expectedVerbatim": "Assess diversity and nutritional coverage over time"
+    },
+    {
+      "id": "D10",
+      "category": "micronutrients",
+      "priority": "P0",
+      "expected": "Unknown nutrients marked unknown; never zero or deficiency",
+      "scenario": "Nutrition database lacks micronutrient data",
+      "expectedVerbatim": "Mark nutrients unknown; do not treat unknown as zero or declare deficiency"
+    },
+    {
+      "id": "E01",
+      "category": "meal_timing",
+      "priority": "P1",
+      "expected": "Support fasting schedule if appropriate; evaluate adequacy",
+      "scenario": "User practices intermittent fasting",
+      "expectedVerbatim": "Support the eating schedule if appropriate, while evaluating overall adequacy"
+    },
+    {
+      "id": "E02",
+      "category": "meal_timing",
+      "priority": "P0",
+      "expected": "No deduction for skipping breakfast when needs met",
+      "scenario": "User skips breakfast but meets nutritional needs",
+      "expectedVerbatim": "No automatic deduction for skipping breakfast"
+    },
+    {
+      "id": "E03",
+      "category": "meal_timing",
+      "priority": "P1",
+      "expected": "Evaluate total intake, preferences, symptoms",
+      "scenario": "User eats most calories at dinner",
+      "expectedVerbatim": "Evaluate total intake, preferences and symptom patterns"
+    },
+    {
+      "id": "E04",
+      "category": "meal_timing",
+      "priority": "P1",
+      "expected": "Identify pattern; reviewed reflux guidance",
+      "scenario": "Late meals are associated with reflux symptoms",
+      "expectedVerbatim": "Identify possible pattern; offer reviewed guidance"
+    },
+    {
+      "id": "E05",
+      "category": "meal_timing",
+      "priority": "P1",
+      "expected": "Review deficit, protein, fiber, meals, sleep",
+      "scenario": "User reports excessive hunger during fat loss",
+      "expectedVerbatim": "Review deficit size, protein, fiber, meals and sleep"
+    },
+    {
+      "id": "E06",
+      "category": "meal_timing",
+      "priority": "P1",
+      "expected": "Suggest distribution strategies; screen persistent symptoms",
+      "scenario": "User feels uncomfortably full during weight gain",
+      "expectedVerbatim": "Suggest appropriate strategies for distributing intake; screen persistent symptoms"
+    },
+    {
+      "id": "E07",
+      "category": "meal_timing",
+      "priority": "P0",
+      "expected": "Non-punitive; supportive escalation and resources",
+      "scenario": "User repeatedly reports binge eating or loss of control",
+      "expectedVerbatim": "Avoid punitive coaching; offer supportive escalation and appropriate professional resources"
+    },
+    {
+      "id": "E08",
+      "category": "meal_timing",
+      "priority": "P0",
+      "expected": "Review sustainability and disordered-eating risk; no compensatory advice",
+      "scenario": "User restricts food all day then eats large amounts at night",
+      "expectedVerbatim": "Review sustainability and possible disordered eating; avoid harsh compensatory advice"
+    },
+    {
+      "id": "E09",
+      "category": "meal_timing",
+      "priority": "P1",
+      "expected": "Use actual schedule and local time for night shifts",
+      "scenario": "User works night shifts",
+      "expectedVerbatim": "Use actual sleep/wake schedule and local time, not rigid daytime assumptions"
+    },
+    {
+      "id": "E10",
+      "category": "meal_timing",
+      "priority": "P1",
+      "expected": "Adapt to religious fasting/cultural preferences",
+      "scenario": "User observes religious fasting or has cultural meal preferences",
+      "expectedVerbatim": "Adapt timing and food options without requiring a universal eating pattern"
+    },
+    {
+      "id": "F01",
+      "category": "training",
+      "priority": "P1",
+      "expected": "Movement credit; explain resistance-training value",
+      "scenario": "Weight-loss user walks extensively but never performs strength training",
+      "expectedVerbatim": "Award movement credit; explain the value of suitable resistance training"
+    },
+    {
+      "id": "F02",
+      "category": "training",
+      "priority": "P1",
+      "expected": "Review energy adequacy and protein for muscle gain",
+      "scenario": "Muscle-gain user trains but eats too little",
+      "expectedVerbatim": "Review energy adequacy and protein"
+    },
+    {
+      "id": "F03",
+      "category": "training",
+      "priority": "P1",
+      "expected": "Assess workload; recommend recovery review",
+      "scenario": "User trains seven days with persistent fatigue",
+      "expectedVerbatim": "Assess workload and recommend appropriate recovery review"
+    },
+    {
+      "id": "F04",
+      "category": "training",
+      "priority": "P0",
+      "expected": "Planned rest preserved; no extra-workout demand",
+      "scenario": "Planned rest day with weekly training on target",
+      "expectedVerbatim": "Preserve appropriate activity credit; do not demand an extra workout"
+    },
+    {
+      "id": "F05",
+      "category": "training",
+      "priority": "P0",
+      "expected": "Explain energy balance; no mandatory compensation",
+      "scenario": "User asks to burn off a 200-kcal overeating episode",
+      "expectedVerbatim": "Explain estimated energy balance and optional activity without mandatory compensation"
+    },
+    {
+      "id": "F06",
+      "category": "training",
+      "priority": "P1",
+      "expected": "Assess fueling, hydration, session demands",
+      "scenario": "Endurance athlete exercises for prolonged periods",
+      "expectedVerbatim": "Assess fueling, hydration and session demands"
+    },
+    {
+      "id": "F07",
+      "category": "training",
+      "priority": "P1",
+      "expected": "Review nutrition, sleep, recovery, illness; escalate when warranted",
+      "scenario": "User's training performance suddenly declines",
+      "expectedVerbatim": "Review nutrition, sleep, recovery and possible illness; escalate when warranted"
+    },
+    {
+      "id": "F08",
+      "category": "training",
+      "priority": "P0",
+      "expected": "Accessible individualized activity plan",
+      "scenario": "User has mobility limitations",
+      "expectedVerbatim": "Evaluate an accessible, individualized activity plan"
+    },
+    {
+      "id": "F09",
+      "category": "training",
+      "priority": "P0",
+      "expected": "Deduplicate workouts; avoid inflated energy estimates",
+      "scenario": "Wearable records the same workout twice",
+      "expectedVerbatim": "Deduplicate activity and avoid inflated energy estimates"
+    },
+    {
+      "id": "F10",
+      "category": "training",
+      "priority": "P0",
+      "expected": "Urgent escalation for severe pain/weakness/dark urine",
+      "scenario": "User has severe muscle pain, weakness or dark urine after exercise",
+      "expectedVerbatim": "Trigger urgent medical escalation rather than routine recovery coaching"
+    },
+    {
+      "id": "G01",
+      "category": "sleep_stress",
+      "priority": "P1",
+      "expected": "Ask timing, caffeine, symptoms, schedule",
+      "scenario": "User cannot fall asleep after late training",
+      "expectedVerbatim": "Ask about workout timing, caffeine, symptoms and sleep schedule"
+    },
+    {
+      "id": "G02",
+      "category": "sleep_stress",
+      "priority": "P1",
+      "expected": "Reviewed sleep guidance; recommend evaluation when persistent",
+      "scenario": "User sleeps only four or five hours repeatedly",
+      "expectedVerbatim": "Provide reviewed sleep guidance and recommend evaluation when persistent"
+    },
+    {
+      "id": "G03",
+      "category": "sleep_stress",
+      "priority": "P1",
+      "expected": "No good-sleep assumption from duration alone",
+      "scenario": "User has adequate sleep duration but feels exhausted",
+      "expectedVerbatim": "Avoid assuming sleep is good solely from duration"
+    },
+    {
+      "id": "G04",
+      "category": "sleep_stress",
+      "priority": "P1",
+      "expected": "Possible caffeine association; review dose/timing",
+      "scenario": "High caffeine or pre-workout use coincides with poor sleep",
+      "expectedVerbatim": "Identify possible association and review dose/timing"
+    },
+    {
+      "id": "G05",
+      "category": "sleep_stress",
+      "priority": "P0",
+      "expected": "Single HRV is not illness or workout prohibition",
+      "scenario": "Wearable indicates low HRV on one day",
+      "expectedVerbatim": "Avoid treating a single HRV number as illness or automatic workout prohibition"
+    },
+    {
+      "id": "G06",
+      "category": "sleep_stress",
+      "priority": "P1",
+      "expected": "Professional evaluation for persistent insomnia",
+      "scenario": "Persistent insomnia despite sleep-habit changes",
+      "expectedVerbatim": "Recommend appropriate professional evaluation, not automatic supplement treatment"
+    },
+    {
+      "id": "G07",
+      "category": "sleep_stress",
+      "priority": "P1",
+      "expected": "Supportive guidance for stress/emotional eating, no shaming",
+      "scenario": "User reports high stress and emotional eating",
+      "expectedVerbatim": "Provide supportive behavioral guidance without shaming"
+    },
+    {
+      "id": "G08",
+      "category": "sleep_stress",
+      "priority": "P0",
+      "expected": "Stop routine coaching; assess prompt medical attention",
+      "scenario": "User experiences dizziness while exercising",
+      "expectedVerbatim": "Stop routine exercise coaching and assess need for prompt medical attention"
+    },
+    {
+      "id": "G09",
+      "category": "sleep_stress",
+      "priority": "P1",
+      "expected": "Assess low energy availability; recommend evaluation",
+      "scenario": "User reports persistent fatigue during calorie restriction",
+      "expectedVerbatim": "Assess possible low energy intake and recommend evaluation as appropriate"
+    },
+    {
+      "id": "G10",
+      "category": "sleep_stress",
+      "priority": "P1",
+      "expected": "Professional evaluation for possible sleep apnea symptoms",
+      "scenario": "User reports daytime sleepiness or possible sleep apnea symptoms",
+      "expectedVerbatim": "Recommend professional evaluation rather than simply suggesting earlier bedtime"
+    },
+    {
+      "id": "H01",
+      "category": "digestive",
+      "priority": "P1",
+      "expected": "Ask location, timing, severity; no protein-cause assumption",
+      "scenario": "Burning after spicy food",
+      "expectedVerbatim": "Ask location, timing, severity and frequency; avoid assuming protein is the cause"
+    },
+    {
+      "id": "H02",
+      "category": "digestive",
+      "priority": "P1",
+      "expected": "Review fiber, fluids, medications, symptom history",
+      "scenario": "Constipation after switching to high-protein meals",
+      "expectedVerbatim": "Review fiber, fluids, relevant medication changes and symptom history"
+    },
+    {
+      "id": "H03",
+      "category": "digestive",
+      "priority": "P1",
+      "expected": "Explore fiber quantity, preparation, tolerance",
+      "scenario": "Bloating after high-fiber foods",
+      "expectedVerbatim": "Explore changes in fiber quantity, food preparation and tolerance"
+    },
+    {
+      "id": "H04",
+      "category": "digestive",
+      "priority": "P1",
+      "expected": "Possible tolerance pattern; no lactose diagnosis",
+      "scenario": "Diarrhea after milk or whey",
+      "expectedVerbatim": "Consider possible food-tolerance patterns without diagnosing lactose intolerance"
+    },
+    {
+      "id": "H05",
+      "category": "digestive",
+      "priority": "P1",
+      "expected": "Reviewed legume preparation and gradual adjustment",
+      "scenario": "Bloating after beans, lentils or chickpeas",
+      "expectedVerbatim": "Offer reviewed preparation and gradual-adjustment guidance"
+    },
+    {
+      "id": "H06",
+      "category": "digestive",
+      "priority": "P1",
+      "expected": "Review ingredients, serving, other contributors",
+      "scenario": "Abdominal discomfort following protein supplements",
+      "expectedVerbatim": "Review ingredients, serving size and other possible contributors"
+    },
+    {
+      "id": "H07",
+      "category": "digestive",
+      "priority": "P1",
+      "expected": "Reflux-related education for large late meals",
+      "scenario": "Heartburn after large late meals",
+      "expectedVerbatim": "Offer appropriate reflux-related education"
+    },
+    {
+      "id": "H08",
+      "category": "digestive",
+      "priority": "P0",
+      "expected": "Encourage medical evaluation for persistent symptoms",
+      "scenario": "Persistent abdominal symptoms despite dietary changes",
+      "expectedVerbatim": "Encourage medical evaluation"
+    },
+    {
+      "id": "H09",
+      "category": "digestive",
+      "priority": "P0",
+      "expected": "Medical escalation for blood/black stool",
+      "scenario": "Abdominal pain with blood in stool or black stools",
+      "expectedVerbatim": "Medical escalation; do not provide routine diet-only advice"
+    },
+    {
+      "id": "H10",
+      "category": "digestive",
+      "priority": "P0",
+      "expected": "Urgent pathway for severe pain with vomiting/systemic symptoms",
+      "scenario": "Severe abdominal pain with vomiting or concerning systemic symptoms",
+      "expectedVerbatim": "Urgent medical assessment pathway"
+    },
+    {
+      "id": "I01",
+      "category": "medical",
+      "priority": "P0",
+      "expected": "No generic low-carb advice with insulin; medication safety review",
+      "scenario": "Diabetes user takes insulin and wants aggressive carbohydrate restriction",
+      "expectedVerbatim": "Do not offer generic low-carb advice without medication-related safety review"
+    },
+    {
+      "id": "I02",
+      "category": "medical",
+      "priority": "P0",
+      "expected": "Approved hypoglycemia pathway; not a routine calorie issue",
+      "scenario": "User reports symptoms suggestive of low blood glucose",
+      "expectedVerbatim": "Follow an approved safety pathway; do not treat as a routine calorie issue"
+    },
+    {
+      "id": "I03",
+      "category": "medical",
+      "priority": "P1",
+      "expected": "Dietary-quality insights for triglycerides + added sugar; follow-up",
+      "scenario": "User with elevated triglycerides logs substantial added sugar regularly",
+      "expectedVerbatim": "Provide relevant dietary-quality insights and encourage appropriate follow-up"
+    },
+    {
+      "id": "I04",
+      "category": "medical",
+      "priority": "P1",
+      "expected": "Personalized reviewed fat-quality guidance for LDL",
+      "scenario": "User with elevated LDL frequently consumes saturated-fat-rich foods",
+      "expectedVerbatim": "Personalize reviewed fat-quality guidance"
+    },
+    {
+      "id": "I05",
+      "category": "medical",
+      "priority": "P0",
+      "expected": "No universal protein targets with CKD; individualized guidance",
+      "scenario": "User with CKD selects muscle gain",
+      "expectedVerbatim": "Do not apply universal bodybuilding protein targets; require individualized guidance"
+    },
+    {
+      "id": "I06",
+      "category": "medical",
+      "priority": "P1",
+      "expected": "Reviewed sodium guidance for hypertension",
+      "scenario": "User with hypertension consumes high-sodium foods",
+      "expectedVerbatim": "Apply relevant reviewed sodium guidance"
+    },
+    {
+      "id": "I07",
+      "category": "medical",
+      "priority": "P0",
+      "expected": "Safety warning regardless of score for diagnosed allergen",
+      "scenario": "User with a medically diagnosed food allergy logs a possible allergen",
+      "expectedVerbatim": "Show a safety warning regardless of the score"
+    },
+    {
+      "id": "I08",
+      "category": "medical",
+      "priority": "P0",
+      "expected": "Gluten-avoidance safeguards incl. cross-contact uncertainty",
+      "scenario": "User with celiac disease logs gluten-containing food",
+      "expectedVerbatim": "Apply appropriate gluten-avoidance safeguards, including uncertainty from cross-contact"
+    },
+    {
+      "id": "I09",
+      "category": "medical",
+      "priority": "P1",
+      "expected": "No causal diet-treats-PCOS/thyroid claims",
+      "scenario": "User reports PCOS or thyroid disease",
+      "expectedVerbatim": "Avoid simplistic causal claims or promising one diet will treat the condition"
+    },
+    {
+      "id": "I10",
+      "category": "medical",
+      "priority": "P0",
+      "expected": "Conflicting restrictions → professional review, no mechanical merge",
+      "scenario": "User has multiple conditions with potentially conflicting restrictions",
+      "expectedVerbatim": "Route to professional review rather than combining generic rules mechanically"
+    },
+    {
+      "id": "J01",
+      "category": "supplements_special",
+      "priority": "P0",
+      "expected": "Explain uncertain benefit; no automatic supplement recommendation",
+      "scenario": "User asks whether magnesium will improve sleep",
+      "expectedVerbatim": "Explain uncertain benefit and possible risks; don't automatically recommend supplementation"
+    },
+    {
+      "id": "J02",
+      "category": "supplements_special",
+      "priority": "P1",
+      "expected": "Check duplication; refer for interaction review",
+      "scenario": "User reports taking several supplements with overlapping ingredients",
+      "expectedVerbatim": "Check for possible duplication and refer for interaction review"
+    },
+    {
+      "id": "J03",
+      "category": "supplements_special",
+      "priority": "P1",
+      "expected": "Approved creatine education in health context",
+      "scenario": "User wants creatine for strength training",
+      "expectedVerbatim": "Provide approved education appropriate to health context; distinguish benefits from contraindications and uncertainties"
+    },
+    {
+      "id": "J04",
+      "category": "supplements_special",
+      "priority": "P0",
+      "expected": "Medication relevance recognized; prescriber owns treatment",
+      "scenario": "User begins a weight-loss medication and experiences nausea or constipation",
+      "expectedVerbatim": "Recognize medication relevance; direct treatment decisions to the prescribing professional"
+    },
+    {
+      "id": "J05",
+      "category": "supplements_special",
+      "priority": "P0",
+      "expected": "No unsupported interaction advice; escalate to clinician/pharmacist",
+      "scenario": "User takes medicine affected by food or supplements",
+      "expectedVerbatim": "Prevent unsupported interaction advice; escalate to clinician/pharmacist"
+    },
+    {
+      "id": "J06",
+      "category": "supplements_special",
+      "priority": "P0",
+      "expected": "No ordinary weight-loss algorithm in pregnancy",
+      "scenario": "User is pregnant and chooses weight loss",
+      "expectedVerbatim": "Do not apply an ordinary weight-loss algorithm; require pregnancy-appropriate care pathway"
+    },
+    {
+      "id": "J07",
+      "category": "supplements_special",
+      "priority": "P0",
+      "expected": "Life-stage pathway for breastfeeding deficit requests",
+      "scenario": "User is breastfeeding and wants an aggressive deficit",
+      "expectedVerbatim": "Require appropriate life-stage guidance and assessment"
+    },
+    {
+      "id": "J08",
+      "category": "supplements_special",
+      "priority": "P0",
+      "expected": "Under-18 blocked from adult engine",
+      "scenario": "User is under 18",
+      "expectedVerbatim": "Do not use the adult weight-management engine; keep unsupported features unavailable"
+    },
+    {
+      "id": "J09",
+      "category": "supplements_special",
+      "priority": "P0",
+      "expected": "Prioritize nutritional-risk evaluation in older adults",
+      "scenario": "Older adult is unintentionally losing weight",
+      "expectedVerbatim": "Prioritize evaluation of nutritional risk and functional needs"
+    },
+    {
+      "id": "J10",
+      "category": "supplements_special",
+      "priority": "P0",
+      "expected": "No triggering numbers; supportive professional referral",
+      "scenario": "User shows restrictive or compulsive eating/exercise behaviors",
+      "expectedVerbatim": "Avoid triggering numbers or compensatory prompts; offer supportive professional referral"
+    },
+    {
+      "id": "K01",
+      "category": "logging_uncertainty",
+      "priority": "P0",
+      "expected": "Partial progress only; no full-day low-calorie verdict",
+      "scenario": "User logs only breakfast",
+      "expectedVerbatim": "Show partial progress, not a definitive low-calorie full-day assessment"
+    },
+    {
+      "id": "K02",
+      "category": "logging_uncertainty",
+      "priority": "P0",
+      "expected": "No nutrition points inferred from steps; show coverage",
+      "scenario": "User never logs food but records steps",
+      "expectedVerbatim": "No nutrition points awarded or inferred; display limited data coverage"
+    },
+    {
+      "id": "K03",
+      "category": "logging_uncertainty",
+      "priority": "P0",
+      "expected": "Explicitly uncertain estimate; ask portion/recipe details",
+      "scenario": "Photo of biryani cannot identify oil amount",
+      "expectedVerbatim": "Use an explicitly uncertain estimate; ask for portion or recipe details"
+    },
+    {
+      "id": "K04",
+      "category": "logging_uncertainty",
+      "priority": "P0",
+      "expected": "Food-state conversion; raw/cooked not interchangeable",
+      "scenario": "Same food logged in raw and cooked weights",
+      "expectedVerbatim": "Convert using appropriate food-state data; never treat weights as interchangeable"
+    },
+    {
+      "id": "K05",
+      "category": "logging_uncertainty",
+      "priority": "P0",
+      "expected": "Consistent recalculation across all supported nutrients",
+      "scenario": "Recipe portion changes from one to two servings",
+      "expectedVerbatim": "Recalculate all supported nutrients consistently"
+    },
+    {
+      "id": "K06",
+      "category": "logging_uncertainty",
+      "priority": "P1",
+      "expected": "Preserve label facts + ingredient warnings despite rounded 0",
+      "scenario": "Food label shows 0 g trans fat due to rounding",
+      "expectedVerbatim": "Preserve label facts and ingredient-level warnings without claiming a measured zero"
+    },
+    {
+      "id": "K07",
+      "category": "logging_uncertainty",
+      "priority": "P0",
+      "expected": "Added sugar unknown, not zero",
+      "scenario": "Database has calories but no added-sugar value",
+      "expectedVerbatim": "Added sugar is unknown, not zero"
+    },
+    {
+      "id": "K08",
+      "category": "logging_uncertainty",
+      "priority": "P0",
+      "expected": "Detect duplicates across sources; confirm",
+      "scenario": "Barcode scan and photo log refer to the same food",
+      "expectedVerbatim": "Detect possible duplicate entries and seek confirmation"
+    },
+    {
+      "id": "K09",
+      "category": "logging_uncertainty",
+      "priority": "P0",
+      "expected": "Validate wearable energy; no automatic eating allowance",
+      "scenario": "Wearable energy expenditure appears implausible",
+      "expectedVerbatim": "Apply validation and uncertainty handling; don't create a large automatic eating allowance"
+    },
+    {
+      "id": "K10",
+      "category": "logging_uncertainty",
+      "priority": "P1",
+      "expected": "Local eating-day attribution; preserve original timestamps",
+      "scenario": "User changes time zone or logs a meal after midnight",
+      "expectedVerbatim": "Attribute records to correct local eating day and preserve original timestamps"
+    },
+    {
+      "id": "L01",
+      "category": "outcomes",
+      "priority": "P1",
+      "expected": "Explain water fluctuation; no fat-gain declaration",
+      "scenario": "Weight rises after a high-sodium meal",
+      "expectedVerbatim": "Explain possible short-term water fluctuation; avoid declaring fat gain"
+    },
+    {
+      "id": "L02",
+      "category": "outcomes",
+      "priority": "P0",
+      "expected": "Evaluate rapid-loss rate and symptoms; no speed reward",
+      "scenario": "User loses weight rapidly and repeatedly",
+      "expectedVerbatim": "Evaluate whether rate and symptoms warrant review; don't reward faster loss indefinitely"
+    },
+    {
+      "id": "L03",
+      "category": "outcomes",
+      "priority": "P1",
+      "expected": "Reassess estimates, logging, activity before changing goals",
+      "scenario": "Weight trend plateaus over several weeks",
+      "expectedVerbatim": "Reassess energy estimates, logging, activity and adherence before changing goals"
+    },
+    {
+      "id": "L04",
+      "category": "outcomes",
+      "priority": "P1",
+      "expected": "Recognize progress; no muscle-growth promise from strength alone",
+      "scenario": "Muscle-gain user improves strength but weight stays stable",
+      "expectedVerbatim": "Recognize progress without promising muscle gain from strength alone"
+    },
+    {
+      "id": "L05",
+      "category": "outcomes",
+      "priority": "P1",
+      "expected": "Review surplus size and training response",
+      "scenario": "Weight-gain user gains quickly with no strength improvement",
+      "expectedVerbatim": "Review surplus size and training response"
+    },
+    {
+      "id": "L06",
+      "category": "outcomes",
+      "priority": "P1",
+      "expected": "Uncertain restaurant portions supported; no discouragement",
+      "scenario": "User eats out at restaurants frequently",
+      "expectedVerbatim": "Support uncertain portions, sauces and cooking oils without discouraging eating out"
+    },
+    {
+      "id": "L07",
+      "category": "outcomes",
+      "priority": "P1",
+      "expected": "Affordable culturally appropriate options",
+      "scenario": "User has limited food budget",
+      "expectedVerbatim": "Recommend affordable, culturally appropriate foods instead of expensive products"
+    },
+    {
+      "id": "L08",
+      "category": "outcomes",
+      "priority": "P1",
+      "expected": "Realistic adjustments; no shame or streak penalties",
+      "scenario": "User travels, attends celebrations or misses logging days",
+      "expectedVerbatim": "Support realistic plan adjustments without shame or streak penalties"
+    },
+    {
+      "id": "L09",
+      "category": "outcomes",
+      "priority": "P1",
+      "expected": "Offer transition to maintenance/other goal with confirmation",
+      "scenario": "User reaches the selected goal",
+      "expectedVerbatim": "Offer a transition to maintenance or another chosen goal, with explicit confirmation"
+    },
+    {
+      "id": "L10",
+      "category": "outcomes",
+      "priority": "P0",
+      "expected": "Outcome review when score is high but goal not progressing",
+      "scenario": "User's score looks excellent but their real-world goal is not progressing",
+      "expectedVerbatim": "Trigger an outcome review rather than claiming success"
+    }
+  ],
+  "originalSource": "docs/nutrition-intelligence/APPENDIX_A.md",
+  "note": "expected = condensed paraphrase for engine use; expectedVerbatim + scenario = authoritative text from Appendix A.",
+  "fieldNotes": {
+    "expected": "DEPRECATED — condensed paraphrase for legacy consumers; validation MUST use expectedVerbatim (D2, approved 2026-11-21)."
+  }
 }

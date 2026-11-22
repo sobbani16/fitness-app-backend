@@ -6,7 +6,7 @@ router.get('/profiles/:ingredientId',async(req,res,next)=>{try{res.json({profile
 router.post('/intelligence',async(req,res,next)=>{try{
  const b=req.body||{};
  if(typeof b.ingredientId!=='string'||b.ingredientId.length>120||(b.profileId!=null&&(typeof b.profileId!=='string'||!/^[0-9a-f-]{36}$/i.test(b.profileId))))throw httpError(400,'Invalid ingredient/profile');
- res.json(await intelligence.safe(()=>intelligence.ingredient({ingredientId:b.ingredientId,profileId:b.profileId,grams:b.grams},req.userId||req.headers['x-user-id']),b.ingredientId));
+ res.json(await intelligence.safe(()=>intelligence.ingredient({ingredientId:b.ingredientId,profileId:b.profileId,grams:b.grams,consumedState:['raw','cooked'].includes(b.consumedState)?b.consumedState:undefined,yieldFactor:Number.isFinite(b.yieldFactor)?b.yieldFactor:undefined},req.userId||req.headers['x-user-id']),b.ingredientId));
 }catch(e){next(e);}});
 router.post('/',async(req,res,next)=>{
  try {
@@ -37,9 +37,15 @@ router.post('/',async(req,res,next)=>{
    data.nutritionSnapshot.nutritionProfileId=b.nutritionProfileId;
   }
   try {
+   // K08: possible-duplicate detection across logging channels. Detection is
+   // advisory only — the log is still written (legitimate repeated meals are
+   // never removed); the client sees duplicateWarning and can confirm/merge.
+   const prior=await prisma.foodLog.findFirst({where:{userId,loggedAt:{gte:new Date(loggedAt.getTime()-30*60000),lte:new Date(loggedAt.getTime()+30*60000)}},select:{id:true,foodName:true,loggedAt:true,nutritionSnapshot:true}}).catch(()=>null);
+   const dup=prior?require('../services/scenarioCapabilities').detectDuplicateLog({a:{fdcId:prior.nutritionSnapshot?.fdcId||prior.nutritionSnapshot?.sourceRecordKey,foodName:prior.foodName,loggedAt:prior.loggedAt},b:{fdcId:b.fdcId||b.sourceRecordKey,foodName:data.foodName,loggedAt}}):{possibleDuplicate:false};
+   if(dup.possibleDuplicate)data.nutritionSnapshot.possibleDuplicateOf={foodLogId:prior.id,basis:dup.basis,needsConfirmation:dup.needsConfirmation};
    const saved=await prisma.foodLog.create({data:{id:b.id,userId,...data,loggedAt}});
    const foodIntelligence=await intelligence.safe(()=>intelligence.ingredient({ingredientId:data.ingredientId,profileId:data.nutritionSnapshot.nutritionProfileId,grams:data.quantityG},userId,prisma),data.ingredientId);
-   res.status(201).json({...saved,foodIntelligence});
+   res.status(201).json({...saved,foodIntelligence,duplicateWarning:dup.possibleDuplicate?{possibleDuplicate:true,basis:dup.basis,existingId:prior.id,needsConfirmation:true,note:'A similar entry was logged within 30 minutes — kept both; confirm if this is a duplicate.'}:null});
   }
   catch(e){if(e.code!=='P2002')throw e;const log=await prisma.foodLog.findUnique({where:{id:b.id}});if(log?.userId!==userId)throw httpError(409,'Meal id conflict');res.json(log);}
  }catch(e){next(e);}

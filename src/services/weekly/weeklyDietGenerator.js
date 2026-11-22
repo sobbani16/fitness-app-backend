@@ -51,7 +51,7 @@ async function generateWeeklyPlan(userId, weekStartDate, requested = {}) {
   // attribute rules (block/warn) and APPROVED nutrient rules are enforced on
   // every proposed meal, for both AI drafts and the catalog fallback.
   const userConditions = await prisma.userHealthCondition.findMany({where:{userId,active:true},include:{condition:{include:{
-    conditionRules:{where:{target:'ingredient'}},
+    conditionRules:{where:{target:'ingredient',reviewStatus:'APPROVED'}},
     nutrientRules:{where:{reviewStatus:'APPROVED'},include:{nutrient:true}}}}}});
   const conditionRules = userConditions.flatMap(uc=>uc.condition.conditionRules.map(r=>({attribute:r.attribute,action:r.action,reason:r.reason,conditionName:uc.condition.name})));
   const nutrientRules = userConditions.flatMap(uc=>uc.condition.nutrientRules.map(r=>({action:r.action,severity:r.severity,thresholdValue:Number(r.thresholdValue),thresholdUnit:r.thresholdUnit,thresholdBasis:r.thresholdBasis,conditionName:uc.condition.name,nutrient:r.nutrient})));

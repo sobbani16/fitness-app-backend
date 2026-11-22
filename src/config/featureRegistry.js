@@ -724,6 +724,38 @@ const FEATURES = {
     endpoints: [],
     description: 'Global AI kill switch. When on, every group:ai flag resolves false regardless of targeting.',
   },
+  // --- Clinical/medical gates (D1 authorization) — default OFF, fail-closed.
+  // Never bypassable by client input, admin scope without authorization, or AI.
+  allergen_warnings: {
+    clientKey: 'allergenWarnings',
+    class: 'server', group: 'medical', default: false, failOpen: false,
+    endpoints: ['/activity-safety', '/meals/*', '/food-intel/*'],
+    description: 'Surface allergen-exposure safety_warning outcomes. Requires allergist-approved wording before cohort enablement.',
+  },
+  calorie_floor_policy: {
+    clientKey: 'calorieFloorPolicy',
+    class: 'server', group: 'medical', default: false, failOpen: false,
+    endpoints: ['/daily-progress/score-v2'],
+    description: 'Wire evaluateCalorieSafety output into score-v2 calorieFloor. Inactive until G4 thresholds are clinically approved.',
+  },
+  condition_rules: {
+    clientKey: 'conditionRules',
+    class: 'server', group: 'medical', default: false, failOpen: false,
+    endpoints: ['/meal-suggest', '/health-score', '/weekly-diet'],
+    description: 'Allow condition-specific nutrition guidance surfacing. Rules themselves additionally require reviewStatus=APPROVED — flag alone activates nothing unreviewed.',
+  },
+  supplement_safety: {
+    clientKey: 'supplementSafety',
+    class: 'server', group: 'medical', default: false, failOpen: false,
+    endpoints: ['/supplements/*'],
+    description: 'Surface supplement condition/interaction cautions. Requires pharmacist review of the 47 DRAFT safety rules first.',
+  },
+  medication_interaction: {
+    clientKey: 'medicationInteraction',
+    class: 'server', group: 'medical', default: false, failOpen: false,
+    endpoints: ['/food-intel/*', '/supplements/*'],
+    description: 'Medication-food interaction content. No content module exists yet; flag gates the integration point only.',
+  },
 };
 
 const KEYS = Object.keys(FEATURES);

@@ -253,8 +253,11 @@ async function getUserEnergySummary(prisma, userId, { date, timeZone, now = new 
     targetSource = macroGoal.source;
   } else if (prof.tdee != null) {
     const { normalizeGoal, GOAL_ADJUSTMENT } = require('./calorieEngine');
-    targetKcal = prof.tdee + (GOAL_ADJUSTMENT[normalizeGoal(user.goalType)] ?? 0);
-    targetSource = 'estimate:tdee_goal';
+    const canonGoal = normalizeGoal(user.goalType);
+    // Unknown goal: fall back to unadjusted TDEE and SAY SO — never silently
+    // reinterpret an unrecognized goal as maintenance (D1 / HF-0018).
+    targetKcal = prof.tdee + (canonGoal ? GOAL_ADJUSTMENT[canonGoal] : 0);
+    targetSource = canonGoal ? 'estimate:tdee_goal' : 'estimate:tdee_unrecognized_goal';
   } else if (macroGoal?.caloriesTarget > 0) {
     targetKcal = macroGoal.caloriesTarget;
     targetSource = 'default';
@@ -263,6 +266,7 @@ async function getUserEnergySummary(prisma, userId, { date, timeZone, now = new 
   // ---- gaps ----
   const dataGaps = [];
   if (!activeProvider) dataGaps.push('no_active_energy_data');
+  if (targetSource === 'estimate:tdee_unrecognized_goal') dataGaps.push('unrecognized_goal');
   if (!restingProvider) dataGaps.push('no_resting_energy_data');
   if (prof.missing.length) dataGaps.push(`profile_incomplete:${prof.missing.join('+')}`);
   if (syncStale) dataGaps.push('stale_wearable_sync');

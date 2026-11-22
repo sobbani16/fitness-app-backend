@@ -110,12 +110,17 @@ async function getProgress(userId, { tz = 'UTC', weeks = 8 } = {}) {
     total: activePlan.goals.length,
   } : null;
 
+  // Sprint A: coverage-aware 7/14/30d trend block (trends.js) — same records,
+  // per-day granularity. Observational only; rapid-loss bound stays null until
+  // a reviewed bound exists, so assessWeightLossRate never fabricates one.
+  const trends = await require('./trends').getTrends(userId, { tz, days: Math.min(30, weeks * 7) }).catch(() => null);
+
   return {
     version: 'progress-v1', timezone: tz, windowWeeks: weeks,
     weekly, weight, loggingStreakDays: loggingStreak || null,
     checkInsSent: (checkIns || []).length || null,
     checkInsReviewed: (checkIns || []).filter((c) => c.reviewedAt).length || null,
-    goals, moments, leo,
+    goals, moments, leo, trends,
     note: 'Progress is only shown when records exist — gaps are unknowns, not failures.',
   };
 }

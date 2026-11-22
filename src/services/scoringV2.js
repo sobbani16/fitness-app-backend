@@ -2,7 +2,7 @@
 // Caps are immutable per scoreVersion; weights NEVER redistribute.
 // States: no_data | partial_data | reliable | conflicting | not_applicable | safety_suspended.
 // Pure functions only — callers pass data; nothing here touches the DB.
-const SCORE_VERSION = 'dps-v2';
+const SCORE_VERSION = 'dps-v2.1'; // v2.1: energy earns points; carbs/fat scored as ranges (HF-0020)
 const CAPS = { nutrition: 40, foodQuality: 20, activity: 20, sleep: 15, hydration: 5 };
 const clamp01 = x => Math.max(0, Math.min(1, x));
 const round = x => Math.round(x * 10) / 10;
@@ -45,19 +45,31 @@ function pattern(done, expected, cap) {
     reason: `${done} of ${expected} expected` };
 }
 
-// Nutrition 40: protein 12, carbs 8, fat 10, fiber 10 — with an energy gate.
+// Nutrition 40 (v2.1, HF-0020 fix): energy 10, protein 12, carbs 6, fat 6,
+// fiber 6. Energy now EARNS points — a surplus day can no longer score 40.
+// Carbs/fat are RANGE nutrients: credit inside a goal band (target ±20%, the
+// same tolerance the route already uses for the calorie band; targets may
+// override via carbsMin/carbsMax/fatMin/fatMax — no invented thresholds).
+// Protein keeps adequacy: capped credit, never penalized (spec B02/B04).
+// Below the safety floor: energy is flagged safety_suspended AND the macro
+// parts are gated to 25% — dangerous underconsumption is never rewarded.
 function nutrition({ proteinG, carbsG, fatG, fiberG, calories, targets, goal }) {
   const t = targets || {};
   const floor = t.calorieFloor ?? null;
-  const energy = targetRange(calories, t.caloriesMin, t.caloriesMax, CAPS.nutrition, { floor });
+  const energy = targetRange(calories, t.caloriesMin, t.caloriesMax, 10, { floor });
   const energyGate = energy.state === 'safety_suspended' ? 0.25 : 1;
+  const band = (key) => (t[`${key}Min`] != null && t[`${key}Max`] != null)
+    ? [t[`${key}Min`], t[`${key}Max`]]
+    : t[`${key}G`] != null ? [round(t[`${key}G`] * 0.8), round(t[`${key}G`] * 1.2)] : [null, null];
+  const [carbMin, carbMax] = band('carbs');
+  const [fatMin, fatMax] = band('fat');
   const parts = {
     protein: adequacy(proteinG, t.proteinG, 12),
-    carbs: adequacy(carbsG, t.carbsG, 8),
-    fat: adequacy(fatG, t.fatG, 10),
-    fiber: adequacy(fiberG, t.fiberG, 10),
+    carbs: targetRange(carbsG, carbMin, carbMax, 6),
+    fat: targetRange(fatG, fatMin, fatMax, 6),
+    fiber: adequacy(fiberG, t.fiberG, 6),
   };
-  const earned = round(Object.values(parts).reduce((s, p) => s + p.points, 0) * energyGate);
+  const earned = round(energy.points + Object.values(parts).reduce((s, p) => s + p.points, 0) * energyGate);
   return { earned, cap: CAPS.nutrition, energy, parts, gateApplied: energyGate < 1, goal: goal || 'maintenance' };
 }
 
@@ -83,7 +95,10 @@ function foodQuality({ addedSugarG, saturatedFatG, sodiumMg, hasPartiallyHydroge
 
 // Activity 20: movement 8, cardio 4, resistance 8 — weekly-adherence basis,
 // so a planned rest day is not penalized and walking ≠ strength.
-function activity({ weeklySteps, weeklyMovementMin, cardioSessions, resistanceSessions, expected = {}, goal }) {
+function activity({ weeklySteps, weeklyMovementMin, cardioSessions, resistanceSessions, expected = {}, goal, mobilityLimited = false }) {
+  if (mobilityLimited) return { earned: null, cap: CAPS.activity, state: 'not_applicable',
+    reason: 'Individualized accessible activity plan applies — standard movement/resistance targets not scored',
+    parts: { movement: { points: 0, state: 'not_applicable', reason: 'Individualized plan' }, cardio: { points: 0, state: 'not_applicable', reason: 'Individualized plan' }, resistance: { points: 0, state: 'not_applicable', reason: 'Individualized plan' } } };
   const movementTarget = expected.movementMin ?? 150;
   const parts = {
     movement: pattern(weeklyMovementMin ?? (weeklySteps != null ? Math.min(weeklySteps / 70, 420) : null), movementTarget, 8),

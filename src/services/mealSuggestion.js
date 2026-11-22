@@ -121,7 +121,7 @@ async function getMealSuggestions(prisma, userId, { occasion, limit = 5, now = n
     }),
     prisma.userHealthCondition.findMany({
       where: { userId, active: true },
-      include: { condition: { include: { conditionRules: true } } },
+      include: { condition: { include: { conditionRules: { where: { reviewStatus: 'APPROVED' } } } } },
     }).catch(() => []),
     prisma.ingredient.findMany({ include: { attributes: true } }).catch(() => []),
   ]);
@@ -141,8 +141,9 @@ async function getMealSuggestions(prisma, userId, { occasion, limit = 5, now = n
     for (const w of RESTRICTION_KEYWORDS[key] || [r]) blockedKeywords.add(w);
   }
 
-  // Clinician-specified restrictions: active health conditions with 'block'
-  // rules on ingredient attributes are hard stops, same as allergies.
+  // Clinician-specified restrictions: APPROVED 'block' rules on ingredient
+  // attributes are hard stops, same as allergies. DRAFT/unreviewed rules are
+  // inert — only reviewed clinical rules may act.
   const blockedAttrs = new Set();
   const conditionNames = [];
   for (const uc of userConditions) {

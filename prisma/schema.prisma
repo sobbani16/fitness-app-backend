@@ -4086,6 +4086,11 @@ model ActivitySafetyRule {
   evidenceRef      String? // register source ID, e.g. 'ACOG_804'
   evidenceClass    String // 'established_contraindication'|'condition_precaution'|'supported_adaptation'|'product_default'|'hypothesis'
 
+  // 'supported' = required inputs can be collected accurately; 'unsupported_input'
+  // = the product has no validated signal for a required token — the rule stays
+  // inactive rather than inferring from unavailable data.
+  inputStatus String @default("supported")
+
   reviewStatus ClinicalRuleReview @default(DRAFT)
   version      Int                @default(1)
   reviewedBy   String?

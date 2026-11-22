@@ -67,11 +67,19 @@ router.get('/', async (req, res, next) => {
           .filter(x => x.coveredMs > 60000)
           .sort((a, b) => b.coveredMs - a.coveredMs)[0];
         const resting = active ? dedupedKcal(byProvider[active.p].filter(r => r.restingKcal != null), 'restingKcal', start.getTime(), end.getTime()) : { kcal: 0 };
-        const measured = (active?.kcal || 0) + (resting.kcal || 0);
+        // K09: wearable expenditure is an uncertain measurement. Bound =
+        // 2.5 × estimated BMR (engineering plausibility bound, not clinical —
+        // covers strenuous athletic days). Implausible readings are capped and
+        // labeled; no bound → honest 'unbounded' label, never silent trust.
+        const bound = bmrEst != null ? Math.round(bmrEst * 2.5) : null;
+        const check = require('../services/scenarioCapabilities').validateWearableEnergy({ activeKcal: active?.kcal ?? null, plausibleMaxKcal: bound });
+        const activeKcal = check.plausible === false ? check.allowanceKcal : (active?.kcal || 0);
+        const source = check.flagged ? 'wearable_capped_implausible' : resting.kcal > 0 ? 'wearable' : 'wearable+estimated_resting';
+        const measured = activeKcal + (resting.kcal || 0);
         // When measured active exists but resting doesn't, add estimated resting
         // (BMR) so the series is comparable — labeled mixed.
         const restFill = active && resting.kcal <= 0 && bmrEst != null ? bmrEst : 0;
-        expenditureByDate[dateStr] = { kcal: measured + restFill, source: resting.kcal > 0 ? 'wearable' : 'wearable+estimated_resting' };
+        expenditureByDate[dateStr] = { kcal: measured + restFill, source };
       } else if (tdeeEst != null) {
         expenditureByDate[dateStr] = { kcal: tdeeEst, source: 'estimate' };
       }

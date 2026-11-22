@@ -13,17 +13,33 @@ router.put('/', async (req, res, next) => {
     for (const [key, min, max] of [['age',18,120],['heightCm',50,260],['weightKg',20,400]]) {
       if (!Number.isFinite(p[key]) || p[key] < min || p[key] > max) throw httpError(400, `Invalid ${key}.`);
     }
-    if (!['weight_loss','muscle_gain','body_recomposition','weight_gain','maintain'].includes(p.goal) || !['male','female','other'].includes(p.sex) || !['metric','imperial'].includes(p.units) || !['sedentary','light','moderate','active','very_active'].includes(p.activityLevel)) throw httpError(400, 'Invalid profile options.');
+    const { normalizeGoal } = require('../services/calorieEngine');
+    const canonicalGoal = normalizeGoal(p.goal);
+    if (!canonicalGoal || !['male','female','other'].includes(p.sex) || !['metric','imperial'].includes(p.units) || !['sedentary','light','moderate','active','very_active'].includes(p.activityLevel)) throw httpError(400, 'Invalid profile options.');
+    p.goal = canonicalGoal; // store canonical; legacy aliases normalize at the boundary
     const profile = Object.fromEntries(['name','sex','age','heightCm','weightKg','goalWeightKg','activityLevel','goal','units','createdAt'].filter(k => p[k] !== undefined).map(k => [k,p[k]]));
     const prisma = getPrisma();
+    let goalChange = null;
     await prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${req.userId} FOR UPDATE`;
       const prev = await tx.user.findUnique({ where: { id: req.userId } });
       await tx.user.update({ where: { id: req.userId }, data: { profileData: profile, firstName: String(p.name || '').slice(0,100), gender: p.sex, heightCm: p.heightCm, currentWeightKg: p.weightKg, goalType: p.goal, activityLevel: p.activityLevel } });
       if (prev.currentWeightKg !== p.weightKg) await tx.weightEntry.create({ data: { userId: req.userId, weightKg: p.weightKg } });
       await recalcDefaultGoal(tx, req.userId, p);
+      // A10: a goal switch is never silent — close the prior GoalHistory row
+      // and open a new one carrying the recalculated targets snapshot. History
+      // and prior score snapshots are preserved, never reinterpreted.
+      if (prev.goalType !== p.goal) {
+        const plan = require('../services/scenarioCapabilities').planGoalSwitch({ currentGoal: prev.goalType, currentTargets: await tx.macroGoal.findUnique({ where: { userId: req.userId } }), newGoal: p.goal, confirmed: true });
+        if (plan.ok) {
+          goalChange = { previousGoal: plan.previousGoal, activeGoal: plan.activeGoal, historyPreserved: plan.preservesHistory };
+          const now = new Date();
+          await tx.goalHistory.updateMany({ where: { userId: req.userId, endedAt: null }, data: { endedAt: now } });
+          await tx.goalHistory.create({ data: { userId: req.userId, goal: plan.activeGoal, targetsSnapshot: plan.preservedTargets ? { caloriesTarget: plan.preservedTargets.caloriesTarget, proteinTarget: plan.preservedTargets.proteinTarget, carbsTarget: plan.preservedTargets.carbsTarget, fatTarget: plan.preservedTargets.fatTarget, fiberTarget: plan.preservedTargets.fiberTarget, previousGoal: plan.previousGoal } : { previousGoal: plan.previousGoal }, startedAt: now } });
+        }
+      }
     });
-    res.json({ profile });
+    res.json({ profile, goalChange });
   } catch(e) { next(e); }
 });
 async function recalcDefaultGoal(tx, userId, p) {

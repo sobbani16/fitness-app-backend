@@ -48,9 +48,18 @@ router.get('/search', async (req, res) => {
 
 // GET /recipes/:id/nutrition
 // Returns macros + per-100g values so the client can re-scale by portion.
+// Optional ?servings=N rescales the per-serving map via the shared capability
+// fn (K05) — grams vs household servings stay distinct; nulls stay null.
 router.get('/:id/nutrition', async (req, res) => {
   try {
     const nutrition = await getRecipeNutrition(req.params.id, req.userId);
+    const servings = Number(req.query.servings);
+    if (Number.isFinite(servings) && servings > 0 && servings <= 20) {
+      const scaled = require('../services/scenarioCapabilities').rescaleServing({
+        nutrients: { calories: nutrition.calories }, servings,
+      });
+      if (scaled) { nutrition.servingsRequested = servings; nutrition.perServing = scaled; }
+    }
     res.json(nutrition);
   } catch (err) {
     res.status(err.status || 400).json({ error: err.message });

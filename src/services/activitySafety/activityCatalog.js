@@ -137,6 +137,42 @@ const ACTIVITIES = {
     },
     description: 'Instructor-led indoor group class (aerobics/dance/circuit style). Shared-space exposure; choreography can include impact and rapid direction changes. Indoor location is not a safety credential — it only removes weather exposure.',
   },
+  contact_sport: {
+    id: 'contact_sport', label: 'Contact / ball sport',
+    environment: 'outdoor', exertion: 'vigorous',
+    demands: {
+      weightBearing: 'full', impact: 'high', balance: 'high',
+      regions: { lower_limb: 1, upper_limb: 0.6, trunk: 0.6 },
+      // Collision/fall exposure is a real, well-defined demand (soccer,
+      // basketball, martial arts) — distinct from generic impact.
+      categories: [C.CONTACT_FALL_RISK, C.WEIGHT_BEARING_LOWER, C.LOWER_LIMB_LOAD, C.IMPACT, C.BALANCE_CHALLENGING, C.OUTDOOR_EXPOSED, C.VIGOROUS],
+    },
+    description: 'Field/court sports and martial arts with collision and fall exposure.',
+  },
+  floor_core_work: {
+    id: 'floor_core_work', label: 'Floor / supine core work',
+    environment: 'indoor', exertion: 'moderate',
+    demands: {
+      weightBearing: 'none', impact: 'low', balance: 'low',
+      regions: { lower_limb: 0.2, upper_limb: 0.2, trunk: 1 },
+      // Mat-based core work is predominantly prolonged supine positioning —
+      // a real demand category (e.g., pregnancy guidance), not generic "core".
+      categories: [C.SUPINE_PROLONGED, C.TRUNK_LOAD],
+    },
+    description: 'Mat-based core exercises, mostly supine for extended periods.',
+  },
+  overhead_lifting: {
+    id: 'overhead_lifting', label: 'Overhead lifting',
+    environment: 'indoor', exertion: 'moderate',
+    demands: {
+      weightBearing: 'full', impact: 'low', balance: 'moderate',
+      regions: { lower_limb: 0.3, upper_limb: 1, trunk: 0.7 },
+      // Load overhead: distinct demand (press/pull patterns) — trunk
+      // stabilization under overhead load.
+      categories: [C.OVERHEAD, C.UPPER_LIMB_LOAD, C.TRUNK_LOAD, C.WEIGHT_BEARING_LOWER],
+    },
+    description: 'Lifting patterns placing load overhead (presses, pulls).',
+  },
   rest: {
     id: 'rest', label: 'Rest',
     environment: 'either', exertion: 'light',

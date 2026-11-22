@@ -9,8 +9,8 @@ async function main() {
   for (const s of registry.scenarios) {
     await prisma.scenarioDefinition.upsert({
       where: { id: s.id },
-      create: { id: s.id, category: s.category, priority: s.priority, expected: s.expected, data: { expected: s.expected } },
-      update: { category: s.category, priority: s.priority, expected: s.expected },
+      create: { id: s.id, category: s.category, priority: s.priority, expected: s.expected, data: { expected: s.expected, scenario: s.scenario, expectedVerbatim: s.expectedVerbatim } },
+      update: { category: s.category, priority: s.priority, expected: s.expected, data: { expected: s.expected, scenario: s.scenario, expectedVerbatim: s.expectedVerbatim } },
     });
     upserted++;
   }

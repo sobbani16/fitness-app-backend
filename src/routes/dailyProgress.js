@@ -67,33 +67,46 @@ router.get('/score-v2', wrap(async (req) => {
   const userId = uid(req);
   const now = new Date(); const day = new Date(now); day.setHours(0, 0, 0, 0);
   const weekAgo = new Date(day); weekAgo.setDate(weekAgo.getDate() - 6);
+  // Per-user MacroGoal beats generic FDA-DV references; ±20% band matches
+  // computeDay's "within target counts as met" tolerance. calorieFloor stays
+  // null until a reviewed low-intake policy lands (open decision G4).
+  const goals = await prisma.macroGoal.findUnique({ where: { userId }, select: { caloriesTarget: true, proteinTarget: true, carbsTarget: true, fatTarget: true, fiberTarget: true, waterMlTarget: true, source: true } }).catch(() => null);
+  const targets = goals ? {
+    proteinG: goals.proteinTarget, carbsG: goals.carbsTarget, fatG: goals.fatTarget, fiberG: goals.fiberTarget,
+    caloriesMin: goals.caloriesTarget * 0.8, caloriesMax: goals.caloriesTarget * 1.2,
+  } : {};
   const [status, workouts, sleeps, waters] = await Promise.all([
-    nutrientStatus(prisma, userId, { days: 1, now }),
-    prisma.workoutSession.findMany({ where: { userId, startedAt: { gte: weekAgo } }, select: { type: true, durationMin: true, startedAt: true } }),
+    nutrientStatus(prisma, userId, { days: 1, now, targets }),
+    prisma.workoutSession.findMany({ where: { userId, startedAt: { gte: weekAgo } }, select: { workoutType: true, durationMinutes: true, startedAt: true } }),
     prisma.sleepLog.findMany({ where: { userId, sleepEnd: { gte: day } }, orderBy: { sleepEnd: 'desc' }, take: 1 }),
     prisma.waterLog.findMany({ where: { userId, loggedAt: { gte: day } }, select: { amountMl: true } }),
   ]);
   const n = status.nutrients;
-  const minutes = workouts.reduce((s, w) => s + (w.durationMin || 0), 0);
-  const cardio = workouts.filter(w => /run|cycle|swim|cardio|walk|aerobic/i.test(w.type || '')).length;
-  const resist = workouts.filter(w => /strength|resist|weight|gym|push|pull|leg|upper|lower/i.test(w.type || '')).length;
+  const minutes = workouts.reduce((s, w) => s + (w.durationMinutes || 0), 0);
+  const cardio = workouts.filter(w => /run|cycle|swim|cardio|walk|aerobic/i.test(w.workoutType || '')).length;
+  const resist = workouts.filter(w => /strength|resist|weight|gym|push|pull|leg|upper|lower/i.test(w.workoutType || '')).length;
   const score = dailyScore({
     nutrition: {
       proteinG: n.proteinG.value, carbsG: n.carbsG.value, fatG: n.fatG.value, fiberG: n.fiberG.value,
       calories: n.calories.value,
-      targets: { proteinG: n.proteinG.reference, carbsG: n.carbsG.reference, fatG: n.fatG.reference, fiberG: n.fiberG.reference, caloriesMin: null, caloriesMax: null, calorieFloor: null },
+      targets: { proteinG: n.proteinG.reference, carbsG: n.carbsG.reference, fatG: n.fatG.reference, fiberG: n.fiberG.reference, caloriesMin: targets.caloriesMin ?? null, caloriesMax: targets.caloriesMax ?? null, calorieFloor: null },
     },
-    foodQuality: {},
+    // Real logged values when present; unknown stays no_data. A positive
+    // trans-fat reading flags the PHO path; absence of a reading stays honest.
+    foodQuality: {
+      addedSugarG: n.addedSugarG.value, saturatedFatG: n.saturatedFatG.value, sodiumMg: n.sodiumMg.value,
+      hasPartiallyHydrogenatedOil: typeof n.transFatG.value === 'number' && n.transFatG.value > 0,
+    },
     activity: { weeklyMovementMin: minutes, cardioSessions: cardio, resistanceSessions: resist },
     sleep: { hoursSlept: sleeps[0]?.hoursSlept ?? null },
-    hydration: { waterMl: waters.reduce((s, w) => s + (w.amountMl || 0), 0) || null },
+    hydration: { waterMl: waters.length ? waters.reduce((s, w) => s + (w.amountMl || 0), 0) : null, targetMl: goals?.waterMlTarget ?? null },
   });
   await prisma.dailyScoreSnapshot.upsert({
     where: { userId_date_version: { userId, date: day, version: SCORE_VERSION } },
     create: { userId, date: day, version: SCORE_VERSION, composite: score.composite, state: score.state, components: score.components },
     update: { composite: score.composite, state: score.state, components: score.components },
   }).catch(() => {}); // table may not exist until migration applies — read path still works
-  return { score, loggedCompleteness: status.completeness, disclaimer: score.note };
+  return { score, targetSource: goals ? `macro_goal:${goals.source}` : 'fda_dv_reference', loggedCompleteness: status.completeness, disclaimer: score.note };
 }));
 
 module.exports = router;

@@ -1,6 +1,7 @@
 const { statusFromScore, WEIGHTS } = require('../src/services/healthScoreEngine');
 
 const mockPrisma = {
+  user: { findUnique: jest.fn(async () => ({ timeZone: 'UTC' })) },
   macroGoal: { findUnique: jest.fn() },
   foodLog: { findMany: jest.fn() },
   supplementLog: { findMany: jest.fn() },
@@ -211,4 +212,82 @@ test('removes stale score snapshots after the underlying last record is removed'
   const result = await calculateHealthScore('user-1', '2026-06-13');
   expect(result.score).toBeNull();
   expect(mockPrisma.healthScore.delete).toHaveBeenCalledWith({ where: { id: 'old-score' } });
+});
+
+describe('v1 defect fixes (D11 interim corrections)', () => {
+  test('no MacroGoal → FDA-DV fallback (50/275/78/28), not the old demo 150/250/70/30', async () => {
+    mockPrisma.macroGoal.findUnique.mockResolvedValue(null);
+    // 60g protein: full credit vs DV 50 (ratio 1.2 → capped ~reliable); vs old
+    // fallback 150 it would show a large deficit.
+    mockPrisma.foodLog.findMany.mockResolvedValue([
+      { foodName: 'Fish', proteinG: 60, carbsG: 275, fatG: 78, fiberG: 28, calories: 2000 },
+    ]);
+    const result = await calculateHealthScore('user-1', '2026-06-13');
+    const proteinContributor = result.allContributors.find((c) => c.itemName === 'Protein Goal');
+    expect(proteinContributor.scoreImpact).toBe(10); // target achieved
+    expect(result.components.macro.score).toBeGreaterThanOrEqual(90);
+  });
+
+  test('supplement macros never merge into food intake', async () => {
+    mockPrisma.macroGoal.findUnique.mockResolvedValue({ proteinTarget: 100, carbsTarget: 250, fatTarget: 70, fiberTarget: 30, waterMlTarget: 2000 });
+    // Real food: 20g protein. Supplement claims 80g more — must not count.
+    mockPrisma.foodLog.findMany.mockResolvedValue([
+      { foodName: 'Eggs', proteinG: 20, carbsG: 2, fatG: 10, fiberG: 0, calories: 180 },
+    ]);
+    mockPrisma.supplementLog.findMany.mockResolvedValue([
+      { supplementName: 'Whey X2', proteinG: 80, carbsG: 5, fatG: 2, fiberG: 0 },
+    ]);
+    const result = await calculateHealthScore('user-1', '2026-06-13');
+    const proteinContributor = result.allContributors.find((c) => c.itemName === 'Protein Goal');
+    expect(proteinContributor.scoreImpact).toBeLessThan(0); // still short of 100g
+    expect(proteinContributor.reason).toContain('80g short');
+  });
+
+  test('same penalized food logged twice penalizes once (double-penalty guard)', async () => {
+    mockPrisma.macroGoal.findUnique.mockResolvedValue({ proteinTarget: 150, carbsTarget: 250, fatTarget: 70, fiberTarget: 30 });
+    mockPrisma.userHealthCondition.findMany.mockResolvedValue([{
+      userId: 'user-1', active: true,
+      condition: { name: 'T2D', conditionRules: [{ attribute: 'HIGH_SUGAR', target: 'ingredient', action: 'block', reason: 'test' }] },
+    }]);
+    mockPrisma.ingredient.findMany.mockResolvedValue([{ name: 'Candy', attributes: [{ attribute: 'HIGH_SUGAR' }] }]);
+    mockPrisma.foodLog.findMany.mockResolvedValue([
+      { foodName: 'Candy', proteinG: 0, carbsG: 60, fatG: 5, fiberG: 0, calories: 250 },
+      { foodName: 'Candy', proteinG: 0, carbsG: 60, fatG: 5, fiberG: 0, calories: 250 },
+    ]);
+    const result = await calculateHealthScore('user-1', '2026-06-13');
+    // One block penalty (−15), not two (−30).
+    expect(result.components.condition.score).toBe(85);
+  });
+
+  test('food-quality penalty wording never claims a sugar measurement; repeats don’t stack', async () => {
+    mockPrisma.foodLog.findMany.mockResolvedValue([
+      { foodName: 'White rice', proteinG: 3, carbsG: 80, fatG: 1, fiberG: 0.5, calories: 400 },
+      { foodName: 'White rice', proteinG: 3, carbsG: 80, fatG: 1, fiberG: 0.5, calories: 400 },
+    ]);
+    const result = await calculateHealthScore('user-1', '2026-06-13');
+    const penalty = result.allContributors.filter((c) => c.category === 'food_quality' && c.scoreImpact < 0);
+    expect(penalty).toHaveLength(1); // deduped
+    expect(penalty[0].reason).not.toMatch(/sugar/i);
+  });
+
+  test('rest day: steps recorded but no workout → neutral contributor, no −5', async () => {
+    mockPrisma.macroGoal.findUnique.mockResolvedValue({ proteinTarget: 150, carbsTarget: 250, fatTarget: 70, fiberTarget: 30 });
+    mockPrisma.foodLog.findMany.mockResolvedValue([
+      { foodName: 'Meal', proteinG: 150, carbsG: 250, fatG: 70, fiberG: 30, calories: 2200 },
+    ]);
+    mockPrisma.dailySteps.findFirst.mockResolvedValue({ steps: 0 });
+    const result = await calculateHealthScore('user-1', '2026-06-13');
+    const noActivity = result.allContributors.find((c) => c.itemName === 'No Activity');
+    expect(noActivity.scoreImpact).toBe(0);
+    expect(result.components.activity.score).toBe(40);
+  });
+
+  test('day windows follow the user timezone, not the server clock', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({ timeZone: 'Pacific/Kiritimati' }); // UTC+14
+    mockPrisma.foodLog.findMany.mockResolvedValue([]);
+    await calculateHealthScore('user-1', '2026-06-13');
+    const call = mockPrisma.foodLog.findMany.mock.calls[0][0];
+    // Kiritimati midnight → previous UTC day 10:00, not server-local midnight.
+    expect(call.where.loggedAt.gte.toISOString()).toBe('2026-06-12T10:00:00.000Z');
+  });
 });

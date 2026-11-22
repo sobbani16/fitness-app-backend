@@ -78,6 +78,33 @@ const SYMPTOMS_REVIEW = new Set([
   'palpitations', 'dizziness', 'severe_pain', 'joint_instability',
   'abnormal_weakness', 'fever', 'hypoglycemia', 'shortness_breath_exertion',
 ]);
+// Informational codes — recorded, not urgent, not review-escalating.
+const SYMPTOMS_INFORMATIONAL = new Set(['muscle_soreness_doms', 'systemic_illness']);
+// Canonical registry: any code that may appear on a UserSymptomReport row.
+const SYMPTOM_CODES = new Set([...SYMPTOMS_URGENT, ...SYMPTOMS_REVIEW, ...SYMPTOMS_INFORMATIONAL]);
+// Legacy/non-canonical tokens → canonical code (aliases expand on ingest).
+const SYMPTOM_ALIASES = {
+  severe_dyspnea: 'dyspnea_unusual',
+  neuro_deficit: 'numbness_neuro',
+  numbness: 'numbness_neuro',
+  severe_headache: 'severe_headache_sudden',
+  doms: 'muscle_soreness_doms',
+  soreness: 'muscle_soreness_doms',
+  illness: 'systemic_illness',
+  sick: 'systemic_illness',
+};
+
+// profileFlags the engine can derive from validated context (buildFlags) —
+// declared after CONDITION_KEYS below so every derivable token is listed.
+const DERIVABLE_PROFILE_FLAGS = new Set([
+  'pregnancy', 'postpartum', 'age_65_plus', 'wheelchair', 'med_flags',
+  'wb_non_weight_bearing', 'acute_injury_72h', 'severe_undiagnosed_pain',
+  'rehab_plan_active', 'post_surgical_undocumented',
+  'screening_incomplete', 'risk_flags_present',
+  'fall_risk', 'frailty', 'recent_hypoglycemia', 'joint_instability',
+  'rest_requested', 'rest_day', 'workout_planned', 'preference_match',
+  'env_unknown', 'env_stale',
+]);
 
 // Health-condition normalization — map UserHealthCondition names to engine
 // keys. Kept conservative: unmapped conditions land in `unmapped` so the
@@ -131,8 +158,11 @@ const ENV_HAZARDS = {
 const WET_CODES = [51, 52, 53, 54, 55, 56, 57, 61, 62, 63, 64, 65, 66, 67, 71, 72, 73, 74, 75, 76, 77, 80, 81, 82, 85, 86, 95, 96, 97, 98, 99];
 const THUNDER_CODES = [95, 96, 97, 98, 99];
 
+for (const k of Object.values(CONDITION_KEYS)) DERIVABLE_PROFILE_FLAGS.add(k);
+
 module.exports = {
   POLICY_VERSION, DECISIONS, DECISION_RANK, ACTIVITY_CATEGORIES,
   BODY_REGIONS, WEIGHT_BEARING_REGIONS, SYMPTOMS_URGENT, SYMPTOMS_REVIEW,
+  SYMPTOMS_INFORMATIONAL, SYMPTOM_CODES, SYMPTOM_ALIASES, DERIVABLE_PROFILE_FLAGS,
   CONDITION_KEYS, MED_FLAGS, ENV_HAZARDS, WET_CODES, THUNDER_CODES,
 };
