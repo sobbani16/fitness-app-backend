@@ -142,7 +142,7 @@ function aiAction(raw, segment, ctx) {
     missing = [e.exerciseName ? null : 'exercise', e.reps ? null : 'reps'].filter(Boolean);
     ready = Boolean(e.exerciseName && e.reps);
   } else if (intent === 'LOG_WATER') { missing = e.amountMl ? [] : ['amountMl']; ready = Boolean(e.amountMl); }
-  else if (intent === 'LOG_FOOD') { missing = e.items.length ? (e.items.some(i => i.grams == null) ? ['grams'] : []) : ['items']; ready = e.items.length > 0 && e.items.every(i => i.grams != null); }
+  else if (intent === 'LOG_FOOD') { const okItem = i => i.grams != null || (i.quantity != null && i.quantity > 0); missing = e.items.length ? (e.items.some(i => !okItem(i)) ? ['grams or quantity'] : []) : ['items']; ready = e.items.length > 0 && e.items.every(okItem); }
   else if (intent === 'MARK_SUPPLEMENT_TAKEN') { missing = e.name ? [] : ['name']; ready = Boolean(e.name); }
   else if (intent === 'UPDATE_EXERCISE_SET') { missing = [e.reps ? null : 'reps', ctx.lastSetId ? null : 'set'].filter(Boolean); ready = Boolean(e.reps && ctx.lastSetId); }
   else if (intent === 'LOG_MOOD') { const ok = ['very_low','low','neutral','good','very_good'].includes(e.mood); missing = ok ? [] : ['mood']; ready = ok; }
@@ -258,19 +258,40 @@ router.post('/commands/execute', wrap(async (req, res) => {
         for (const [i, item] of (a.entities.items || []).entries()) {
           const grams = Number(item.grams);
           const ing = item.ingredientId ? await prisma.ingredient.findUnique({ where: { id: String(item.ingredientId) } }) : await resolveIngredient(prisma, item.name);
-          if (!ing || !Number.isFinite(grams) || grams <= 0 || grams > 10000) {
-            results.push({ intent: a.intent, status: 'skipped', reason: `${item.name}: needs a gram amount and a catalog match` }); continue;
+          if (!ing) { results.push({ intent: a.intent, status: 'skipped', reason: `${item.name}: no catalog match` }); continue; }
+          // Household units resolve against the ingredient's catalog servings so
+          // "2 slices" logs the same way as the manual flow (server-side
+          // serving→gram conversion); grams-only items keep the weight path.
+          let n = null; let gramsUsed = Number.isFinite(grams) && grams > 0 ? grams : null; let servingMeta = null;
+          if (!gramsUsed) {
+            const qty = Number(item.quantity);
+            if (Number.isFinite(qty) && qty > 0) {
+              const full = await ingredientNutrition.getIngredient(ing.id, prisma);
+              const unitNorm = String(item.unit || '').toLowerCase().replace(/s$/, '').trim();
+              const srv = (full.servings || []).find(s => String(s.label).toLowerCase().replace(/^\d+(\.\d+)?\s*/, '').replace(/s$/, '').trim() === unitNorm)
+                || (['serving', 'portion', ''].includes(unitNorm) ? (full.servings || [])[0] : null);
+              if (srv) {
+                try { n = await ingredientNutrition.calculate(ing.id, { servingId: srv.id, count: qty }); }
+                catch { n = null; }
+                if (n) {
+                  gramsUsed = n.grams;
+                  servingMeta = { servingId: srv.id, selectedServing: srv.label, servingGrams: srv.grams, servingCount: qty };
+                }
+              }
+            }
+          } else n = await ingredientNutrition.calculate(ing.id, { grams: gramsUsed });
+          if (!n || !Number.isFinite(gramsUsed) || gramsUsed <= 0 || gramsUsed > 10000) {
+            results.push({ intent: a.intent, status: 'skipped', reason: `${item.name}: needs a gram amount or a recognized serving` }); continue;
           }
-          const n = await ingredientNutrition.calculate(ing.id, { grams });
           const saved = await prisma.foodLog.create({ data: {
             id: `voice-${commandId}-${i}`, userId, foodName: item.name.slice(0, 300),
-            quantityG: grams, calories: n.nutrition.calories ?? 0, proteinG: n.nutrition.proteinG ?? 0,
+            quantityG: gramsUsed, calories: n.nutrition.calories ?? 0, proteinG: n.nutrition.proteinG ?? 0,
             carbsG: n.nutrition.carbsG ?? 0, fatG: n.nutrition.fatG ?? 0, fiberG: n.nutrition.fiberG ?? null,
             mealType: String(a.entities.mealType || 'meal').slice(0, 30), ingredientId: ing.id,
-            nutritionSnapshot: { loggedSource: 'voice', grams, calculated: n.nutrition },
+            nutritionSnapshot: { loggedSource: 'voice', grams: gramsUsed, calculated: n.nutrition, ...(servingMeta || {}) },
           } });
           created.push({ kind: 'foodLog', id: saved.id });
-          results.push({ intent: a.intent, status: 'saved', detail: `${grams}g ${ing.name} → ${a.entities.mealType || 'meal'}` });
+          results.push({ intent: a.intent, status: 'saved', detail: `${gramsUsed}g ${ing.name} → ${a.entities.mealType || 'meal'}` });
         }
         break;
       }

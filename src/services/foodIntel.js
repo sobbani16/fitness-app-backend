@@ -367,7 +367,7 @@ async function alternatives(userId, { ingredientText = '', category, limit = 5 }
 }
 
 // Add-to-log through the existing FoodLog pipeline with source provenance.
-async function logScannedFood(userId, { productName, servingG, nutrients = {}, mealType = 'meal', barcode }) {
+async function logScannedFood(userId, { productName, servingG, servingLabel, nutrients = {}, mealType = 'meal', barcode }) {
   if (!productName || !Number.isFinite(Number(servingG)) || Number(servingG) <= 0 || Number(servingG) > 5000) {
     const e = new Error('productName and servingG (1-5000) required'); e.status = 400; throw e;
   }
@@ -379,7 +379,9 @@ async function logScannedFood(userId, { productName, servingG, nutrients = {}, m
     calories: n.calories ?? 0, proteinG: n.proteinG ?? 0, carbsG: n.carbsG ?? 0,
     fatG: n.fatG ?? 0, fiberG: n.fiberG ?? null,
     mealType: String(mealType).slice(0, 30),
-    nutritionSnapshot: { loggedSource: 'food-intel', barcode: barcode || null, perServing: n, reviewRecommended: !barcode },
+    nutritionSnapshot: { loggedSource: 'food-intel', barcode: barcode || null, perServing: n, reviewRecommended: !barcode,
+      selectedServing: typeof servingLabel === 'string' && servingLabel.trim() ? servingLabel.slice(0, 200) : null,
+      servingGrams: g, servingCount: 1 },
   } });
   return saved;
 }
