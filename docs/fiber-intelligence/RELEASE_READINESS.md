@@ -35,14 +35,30 @@ Mobile (`fitness-app-mobile`):
 - Mobile: `tsc --noEmit` clean; full jest 77/78 suites pass (DashboardScreen passes standalone — earlier OOM was a dep-array regression, fixed); eslint clean on touched files
 - Live DB checks: `/fiber/daily`, `/fiber/trend` (31 g personalized), assistant grounding (dal 17 g, broccoli 2.6 g, oats 10.1 g per 100 g), sequencing runs
 
+## Updates since initial readiness (follow-up session)
+
+- **Assistant dry-basis fix**: "dal"-type questions previously resolved to one
+  alphabetically-first dry-basis row (chana dal, 17 g/100 g). Now multi-match
+  dry entries answer with an explicit range + dry-weight caveat; single
+  dry-marked rows get a basis note; raw-named rows unaffected. See
+  FIBER_DATA_AUDIT §8.
+- **Payload fix**: `GET /fiber/daily` target object now carries
+  `reviewRequired` + `restrictions` (was only inside `safety`) — found by the
+  E2E suite.
+- **Weekly review added**: `GET /fiber/weekly` (`fiber-weekly-v1`) — 7-day
+  rollup distinguishing incomplete logging from low intake, recurring-pattern
+  food suggestions, nonjudgmental verdicts. Mobile surfaces the headline +
+  first pattern inside `FiberProgressCard`.
+- **New coverage**: `tests/fiber.e2e.test.js` — 21 real-DB scenario tests;
+  mobile `FiberCards.test.js` — 20 component tests. Full suites re-verified.
+
 ## Known limitations
 
 - 64% of existing food logs have `NULL fiberG`; 21 ingredients lack `fiberPer100g`; `Supplement.fiberG` default 0 is a recorded value, not measured (see FIBER_DATA_AUDIT.md). Engine treats these as unknown — never zero.
 - Suggestions catalog is curated (~20 items), not the full ingredient DB.
 - Supplement fiber check covers psyllium/soluble-fiber naming patterns only.
 - Medication interaction knowledge for psyllium: none published → `medications_not_evaluated` is surfaced, not "safe".
-- Reminder weekly-review phase from the brief is not implemented (daily engine only).
-- Mobile fiber components have no dedicated rendering tests.
+- Reminder weekly-review phase from the brief is not implemented (daily engine only; the `/fiber/weekly` API + card headline covers the review UX, no weekly reminder exists).
 
 ## Safety posture
 

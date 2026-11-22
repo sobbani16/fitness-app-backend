@@ -60,3 +60,93 @@ Read-only queries — **no production or dev nutrition records were modified**.
 2. `Supplement.fiberG = 0` is "unrecorded", not "measured zero".
 3. `Recipe.fiberG = 0` is ambiguous — prefer recomputation for sequencing.
 4. No fixed grams-per-teaspoon assumption may ever exist for psyllium or any supplement.
+
+---
+
+## 8. Follow-up audit — dal basis investigation + recipe consistency (this task)
+
+### 8.1 The "dal = 17 g/100 g" report — investigated
+
+The assistant's earlier answer came from `Chana dal split chickpea, dry`
+(`fiberPer100g: 17`, source `humai-catalog`, serving cup=200 g, tbsp=12.5 g).
+Finding: **the value is correct for the record it belongs to** — it is a
+*dry-split-legume* basis figure, consistent with USDA dry-chickpea-family
+values. The defect was in the answer path, not the data: a generic "dal"
+question was resolved to one alphabetically-first dry-basis row and reported
+without a preparation qualifier, which could read as "cooked dal has 17 g
+per 100 g" (actual cooked dal ≈ 3–8 g/100 g; the seed recipes show 5–10.4 g
+per serving — see 8.2).
+
+All catalog rows matching /dal/ are dry-basis — **no cooked/prepared dal
+ingredient row exists**:
+
+| Ingredient | fiber/100 g | basis | source |
+|---|---|---|---|
+| Urad dal split, dry | 18 | dry | humai-catalog |
+| Chana dal split chickpea, dry | 17 | dry | humai-catalog |
+| Moong dal yellow, dry | 16 | dry | humai-catalog |
+| Toor/arhar dal, dry | 15 | dry | humai-catalog |
+| Masoor dal red, dry | 10.7 | dry | humai-catalog |
+| Brown lentils (dry) | 10.7 | dry | humai-catalog |
+
+Cooked legume rows exist only for non-dal beans (chickpeas 7.6, rajma 6.4,
+kala chana 7.6, black beans 8.7, pinto 9, cannellini 6.3) and USDA
+"Lentil curry" 3.4 / "Lentil curry with rice" 2.2 — all `humai-catalog` or
+`usda`.
+
+**Code fix applied (not a data change):** `assistant.js` now detects when a
+food phrase resolves to multiple dry-basis variants and answers with the
+explicit range + dry-weight caveat ("cooked portions have far less per
+100 g; a logged recipe's per-serving value is the number that counts").
+Single-row matches carrying dry/uncooked markers get a basis note.
+Raw-named rows (e.g. "Broccoli, raw") are NOT treated as dry-basis — raw
+vegetables are eaten raw. Duplicate catalog names collapse before ranging.
+
+### 8.2 Recipe-level fiber consistency (258 recipes checked)
+
+Recomputed `Recipe.fiberG` per serving from ingredient lines ×
+`Ingredient.fiberPer100g`:
+
+- **220/258 consistent** (within ±1.5 g or ±25% of computed)
+- **6 mismatches** — all `SYSTEM` meal-template recipes where stored per-
+  serving values diverge from line sums (recorded, NOT modified):
+  - Lentil soup with bread: stored 12 vs computed 19.7
+  - Greek yogurt with granola: stored 3 vs computed 5.6
+  - Eggs and whole wheat toast: stored 3 vs computed 7.0
+  - Salmon with quinoa: stored 5 vs computed 2.8 (overstated)
+  - Avocado toast with egg: stored 6 vs computed 11.7
+  - Overnight oats: stored 8 vs computed 16.2
+- **32 recipes unresolvable** — one or more lines have no linked ingredient
+  fiber (honest unknowns; e.g. condiment lines)
+- Indian dal recipes verified consistent: Moong dal 8.0, Dal tadka 8.0,
+  Dal makhani 10.4, Masoor dal 5.5, Moong dal khichdi ~4.6→5 — all per
+  serving, all `RESEARCH_DRAFT` (appropriately unverified status)
+
+Recommendation for catalog owners: the 6 SYSTEM recipes' `fiberG` values
+look like curated estimates that drifted from their ingredient sums;
+either accept the line-sum (preferred — keeps per-serving consistent with
+composition) or correct the line amounts. **No values were modified.**
+
+### 8.3 Other findings
+
+- `RecipeIngredient.fiberG`: 0/1714 rows populated (column added this
+  release; engine falls back to `ingredientId`→`Ingredient.fiberPer100g`).
+- `IngredientNutrient` FIBER rows: only 18 — the per-preparation profile
+  path is nearly empty; flat `fiberPer100g` is the operative store
+  (409/430 present, 21 NULL).
+- Serving conversions: 240/430 ingredients have NO `IngredientServing`
+  row — portion math falls back to raw grams (honest, but cups/tbsp UX
+  degrades to weight entry).
+- Two >50 g/100 g rows — `Cinnamon powder` 53, `Spices, curry powder` 53.2
+  (usda). **Verified plausible**: these are USDA-accurate spice values used
+  in gram amounts; flagged here to prevent a future "correction" mistake.
+- No `fiberPer100g < 0` rows; no serving rows with `grams <= 0` among dal.
+
+### 8.4 Data-quality invariants reaffirmed
+
+- Dry-basis values must never be presented as cooked/served values — now
+  enforced in the assistant path; sequencing uses component roles +
+  per-100 g only for "meaningful fiber" thresholds, where dry legumes
+  correctly qualify as fiber-rich.
+- Recipe `fiberG` remains per-serving; `RESEARCH_DRAFT` status honestly
+  communicates verification state.

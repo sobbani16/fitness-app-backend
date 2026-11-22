@@ -117,6 +117,16 @@ router.get('/trend', requireFeature('fiber_daily_goal_enabled'), async (req, res
   } catch (e) { next(e); }
 });
 
+// GET /fiber/weekly — 7-day review: distinguishes incomplete logging from
+// genuinely low intake, suggests food-first changes to recurring patterns.
+router.get('/weekly', requireFeature('fiber_daily_goal_enabled'), async (req, res, next) => {
+  try {
+    const { weeklyReview } = require('../services/fiber/weeklyReview');
+    const tz = await userTz(req);
+    res.json(await weeklyReview(uid(req), { zone: tz }));
+  } catch (e) { next(e); }
+});
+
 // POST /fiber/sequence — eating-order suggestion for a component-wise meal.
 // Body: { items: [{name, amountG, ingredientId?}] } OR { foodLogId } to
 // sequence a stored meal's nutritionSnapshot.components.

@@ -68,3 +68,34 @@ columns (causing 81 unrelated-suite failures) and lacked RBAC/module seeds
 - Mobile component rendering tests for the three new fiber components.
 - E2E: real scanned photo → sequence card (component flow tested at API level).
 - Clinical safety review — explicitly NOT done; see SUPPLEMENT_SAFETY_REVIEW.md.
+
+---
+
+## Follow-up task results (this session)
+
+| Check | Result |
+|---|---|
+| `tests/fiber.e2e.test.js` — REAL-DB scenario suite (sequencing, daily engine, psyllium eligibility, weekly review, assistant copy) | **21/21 pass** on isolated `fitness_test` DB |
+| `tests/fiber.assistant.test.js` after dry-basis fix | 17/17 pass (incl. new dry-range test) |
+| Mobile `FiberCards.test.js` — render/interaction for all 3 components | 20/20 pass |
+| Mobile full suite `npx jest` | **79/79 suites, 492 tests pass** — DashboardScreen now passes inline (previous OOM was the dep-array regression, resolved) |
+| Mobile `tsc --noEmit` | clean |
+| Mobile eslint (touched files) | 0 errors; the documented `isEnabled` exhaustive-deps warning stands intentionally (adding it caused a focus-effect render loop — comment in code) |
+
+### Scenario matrix verification (E2E, real DB)
+
+| Required scenario | Verified outcome |
+|---|---|
+| No meaningful fiber (chicken+rice) | `hasMeaningfulFiber:false` + food addition suggestion; protein→starch order |
+| Fiber-rich starch (chicken+quinoa) | starch stays last; no veg-first claim |
+| Mixed dishes (biryani, khichdi, pulao) | `separable:false`, no forced order |
+| Missing fiber nutrition | `knownFiber:false`, role `unknown`, fiberG null — never 0 |
+| Allergies | allergen excluded from suggested additions; exhaustively avoid-listed → no invented suggestion |
+| Incomplete daily logging | unknown ≠ deficit; "actual intake may be higher" |
+| GI condition (IBD) | `restricted_reference` target + `reviewRequired` + `professional_review_required` verdict — surfaced at BOTH target and safety levels (payload gap fixed this session) |
+| Psyllium: swallowing condition | `suppressed_safety` + persisted audit row |
+| Psyllium: unverified label | `suppressed_unverified`, fiber null not 0 |
+| Psyllium: verified label | `labelFiberG` verbatim + hydration directions, never a dose |
+| Medication timing | `medications_not_evaluated` — reported as not evaluated, never "safe" |
+| Weekly review | no_data / mostly_incomplete / on_track / below_on_logged_days verdicts verified; pattern suggestions food-first, no supplements, no catch-up language |
+| Copy contracts | no `will prevent/lower/reduce`, `guaranteed`, `proven to`; no `take N g/tsp` anywhere |

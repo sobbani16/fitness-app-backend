@@ -141,7 +141,7 @@ async function dailyFiber(userId, { date, tz, persist = true } = {}) {
 
   const payload = {
     date: day, timezone: zone,
-    target: { targetG: target.targetG, basis: target.basis, reference: target.reference, notes: target.notes },
+    target: { targetG: target.targetG, basis: target.basis, reference: target.reference, reviewRequired: target.reviewRequired, restrictions: target.restrictions, notes: target.notes },
     status: {
       confirmedG: round1(confirmed),
       estimatedG: round1(estimated),

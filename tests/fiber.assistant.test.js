@@ -7,11 +7,11 @@ jest.mock('../src/lib/prisma', () => ({
   getPrisma: () => ({
     user: { findUnique: async () => mockStore.user },
     ingredient: {
-      findFirst: async ({ where }) => {
+      findMany: async ({ where, take } = {}) => {
         const term = (where?.name?.contains || '').toLowerCase();
-        return mockStore.ingredients.filter((i) => i.name.toLowerCase().includes(term)).sort((a, b) => a.name.localeCompare(b.name))[0] || null;
+        const rows = mockStore.ingredients.filter((i) => i.name.toLowerCase().includes(term)).sort((a, b) => a.name.localeCompare(b.name));
+        return take ? rows.slice(0, take) : rows;
       },
-      findMany: async () => mockStore.ingredients,
     },
     foodLog: { findMany: async () => mockStore.foodLogs, findFirst: async () => mockStore.foodLogs[0] || null },
     macroGoal: { findUnique: async () => mockStore.macroGoal },
@@ -63,9 +63,16 @@ describe('groundFiberAnswer', () => {
     expect(r.answer).not.toMatch(/0 g of fiber/);
   });
   it('answers ingredient fiber verbatim per 100 g', async () => {
+    const r = await groundFiberAnswer('u1', 'Does broccoli have fiber?');
+    expect(r.answer).toMatch(/2.6 g.*per 100 g/);
+    expect(r.answer).toMatch(/Broccoli/);
+  });
+  it('reports a dry-weight range when a phrase matches several dry entries — never a cooked-looking single number', async () => {
+    mockStore.ingredients.push({ name: 'Toor/arhar dal, dry', fiberPer100g: 15 }, { name: 'Masoor dal red, dry', fiberPer100g: 10.7 });
     const r = await groundFiberAnswer('u1', 'Does dal contain enough fiber?');
-    expect(r.answer).toMatch(/17 g.*per 100 g/);
-    expect(r.answer).toMatch(/Chana dal/);
+    expect(r.answer).toMatch(/dry/i);
+    expect(r.answer).toMatch(/10\.7–17 g fiber per 100 g/);
+    expect(r.answer).not.toMatch(/^.{0,40}17 g of fiber per 100 g\./); // single dry figure must not be presented as the answer
   });
   it('says unknown when the ingredient has no fiber value', async () => {
     const r = await groundFiberAnswer('u1', 'Does mystery flakes have fiber?');

@@ -122,6 +122,25 @@ Post-implementation (see `TEST_RESULTS.md` for the full matrix):
 - Mobile: `npx tsc --noEmit` clean; `npx jest` 77/78 suites pass (DashboardScreen passes standalone after dep-fix); eslint on touched files clean (one `exhaustive-deps` warning class consistent with existing code).
 - Live-DB: `/fiber/daily` and `/fiber/trend` return correct personalized values (31 g @ 2,200 kcal); assistant answers dal 17 g/100g verbatim; sequencing orders veg→protein→starch and rejects biryani.
 
+## 6a. Follow-up session — quality gaps closed
+
+- **Nutrition audit follow-through** (FIBER_DATA_AUDIT §8): dal 17 g/100 g is
+  a *dry-basis* value and correct for its row — the defect was the answer
+  path, fixed in `assistant.js` (dry-range answers + basis notes). 220/258
+  recipes fiber-consistent; 6 SYSTEM recipes mismatched (recorded, unmodified);
+  `RecipeIngredient.fiberG` confirmed 0/1714 populated (engine falls back).
+- **Safety E2E**: `tests/fiber.e2e.test.js` — 21 real-DB tests covering the
+  full required scenario matrix incl. psyllium contraindications and
+  medication timing. Found + fixed: `reviewRequired`/`restrictions` were
+  dropped from the `/fiber/daily` target payload.
+- **Weekly review**: `services/fiber/weeklyReview.js` + `GET /fiber/weekly` +
+  mobile `FiberProgressCard` weekly headline (flag `fiber_daily_goal_enabled`).
+- **Mobile coverage**: `FiberCards.test.js` — 20 render/interaction tests;
+  full mobile suite 79/79 suites / 492 tests.
+- **Rollout**: `INTERNAL_ROLLOUT.md` — staged PostHog-flag plan for internal
+  accounts; supplement flag stays OFF; rollback = flag-off (instant) →
+  `ai_emergency_shutdown` → `FF_FIBER_INTELLIGENCE_ENABLED=false` → revert.
+
 ## 6. Deviations from original plan
 
 - **D8 implemented as interception, not prompt injection**: fiber questions in

@@ -44,34 +44,53 @@ function foodPhrase(message) {
   return null;
 }
 
+const DRY_BASIS_RE = /dry|uncooked/i;
+
 async function ingredientAnswer(prisma, message) {
   const phrase = foodPhrase(message);
   if (!phrase) return null;
-  const ing = await prisma.ingredient.findFirst({
+  let matches = await prisma.ingredient.findMany({
     where: { name: { contains: phrase, mode: 'insensitive' } },
     select: { name: true, fiberPer100g: true },
     orderBy: { name: 'asc' },
-  }).catch(() => null);
-  if (!ing) {
+    take: 4,
+  }).catch(() => []);
+  if (!matches.length) {
     // Try a looser match on the last word ("dal fry" -> "dal").
     const last = phrase.split(/\s+/).pop();
     if (!last || last === phrase || last.length < 3) return null;
-    const ing2 = await prisma.ingredient.findFirst({
+    matches = await prisma.ingredient.findMany({
       where: { name: { contains: last, mode: 'insensitive' } },
       select: { name: true, fiberPer100g: true },
       orderBy: { name: 'asc' },
-    }).catch(() => null);
-    if (!ing2) return null;
-    return fiberFor(ing2);
+      take: 4,
+    }).catch(() => []);
+    if (!matches.length) return null;
   }
-  return fiberFor(ing);
+  return fiberFor(matches);
 }
 
-function fiberFor(ing) {
+function fiberFor(matches) {
+  // Duplicate catalog rows (same name, different sources) collapse — a range
+  // like "2.6–2.6" would read as nonsense.
+  const seen = new Set();
+  const distinct = matches.filter((m) => { const k = m.name.toLowerCase(); return seen.has(k) ? false : seen.add(k); });
+  const ing = distinct[0];
   if (ing.fiberPer100g == null) {
     return `I found “${ing.name}” in the catalog, but its fiber content isn’t recorded — I’d rather say unknown than guess. A label or a similar food entry can fill the gap.`;
   }
-  return `${ing.name} has about ${fmt(ing.fiberPer100g)} g of fiber per 100 g. Whether that’s “enough” depends on your portion and your daily target — your Fiber card shows today’s confirmed total.`;
+  // Several catalog rows for one phrase (e.g. "dal" matches five dry-split
+  // legume entries) means no single number is honest — report the range and
+  // be explicit that these are dry-weight values. A cooked portion of dal
+  // runs roughly a third of the dry figure.
+  const known = distinct.filter((m) => m.fiberPer100g != null);
+  const lo = Math.min(...known.map((m) => m.fiberPer100g));
+  const hi = Math.max(...known.map((m) => m.fiberPer100g));
+  if (known.length > 1 && lo !== hi && known.every((m) => DRY_BASIS_RE.test(m.name))) {
+    return `Our catalog has ${known.length} entries matching that — all dry-weight values: ${fmt(lo)}–${fmt(hi)} g fiber per 100 g dry (e.g. ${known.slice(0, 3).map((m) => `${m.name.split(',')[0]} ~${fmt(m.fiberPer100g)} g`).join(', ')}). Cooked portions have far less per 100 g; a logged recipe’s per-serving value is the number that counts.`;
+  }
+  const basis = DRY_BASIS_RE.test(ing.name) ? ' (dry weight — cooked portions will be lower per 100 g)' : '';
+  return `${ing.name} has about ${fmt(ing.fiberPer100g)} g of fiber per 100 g${basis}. Whether that’s “enough” depends on your portion and your daily target — your Fiber card shows today’s confirmed total.`;
 }
 
 function dailyAnswer(engine) {
