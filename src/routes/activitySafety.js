@@ -22,6 +22,18 @@ async function envFor(req) {
   const lat = num(req.query.lat ?? body(req).lat);
   const lon = num(req.query.lon ?? body(req).lon);
   if (lat == null || lon == null) return null; // unknown location → env unknown (never "clear")
+  // OPS-REQ-4: server-side env fixture — non-prod only, synthetic users only,
+  // never a client field. SAFETY_ENV_FIXTURE holds the observation JSON.
+  if (process.env.NODE_ENV !== 'production' && process.env.SAFETY_ENV_FIXTURE) {
+    try {
+      const u = await getPrisma().user.findUnique({ where: { id: uid(req) }, select: { email: true } });
+      const domain = u?.email?.split('@')[1]?.toLowerCase();
+      if (['euploading.com', 'staging.test', 'syn.local', 'example.com'].includes(domain)) {
+        const f = JSON.parse(process.env.SAFETY_ENV_FIXTURE);
+        return { ...f, lat, lon, provider: 'safety_env_fixture', observedAt: new Date().toISOString(), fetchedAt: new Date().toISOString() };
+      }
+    } catch { /* fixture parse/lookup failure → fall through to real provider */ }
+  }
   try {
     return markStale(await fetchEnvironment(lat, lon));
   } catch {
