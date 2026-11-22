@@ -33,10 +33,18 @@ const CASES = [
 
 // Structural dependsOn chains (featureRegistry.js): env overrides can NEVER
 // satisfy a flag whose dependency is off — ON cases must enable ancestors too.
-const DEPS = {
-  trainer_paid_coaching_enabled: ['trainer_advanced_features_enabled'],
-  health_data_sources_enabled: ['wearable_platform_enabled'],
-};
+// Resolve ancestors from the registry so DEPS can never drift out of sync.
+function ancestorsOf(key) {
+  const { FEATURES } = require('../../src/config/featureRegistry');
+  const out = [];
+  const walk = (k) => {
+    for (const d of (FEATURES[k] || {}).dependsOn || []) {
+      if (!out.includes(d)) { out.push(d); walk(d); }
+    }
+  };
+  walk(key);
+  return out;
+}
 
 describe('FLAG MATRIX — server-side enforcement', () => {
   const saved = {};
@@ -55,7 +63,7 @@ describe('FLAG MATRIX — server-side enforcement', () => {
   });
 
   test.each(CASES)('%s ON → %s %s is NOT blocked by flag (status ≠ 403/FEATURE_DISABLED)', async (key, method, path) => {
-    for (const dep of DEPS[key] || []) set(dep, 'true');
+    for (const dep of ancestorsOf(key)) set(dep, 'true');
     set(key, 'true');
     flags.resetCache();
     const res = await request(app)[method](path).set('x-user-id', 'flag-matrix-user').send({});
