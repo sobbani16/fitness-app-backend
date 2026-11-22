@@ -409,11 +409,15 @@ function buildFlags(ctx, now) {
   return flags;
 }
 
-// Normalize raw context input into the shape the engine expects.
+// Normalize raw context input into the shape the engine expects. Must be
+// idempotent: evaluate()/evaluateActivity() both normalize, and producers may
+// pass an already-normalized ctx — already-canonical keys pass through as-is.
+const CANONICAL_CONDITION_KEYS = new Set(Object.values(CONDITION_KEYS));
 function normalizeContext(c) {
   const conditions = new Set();
   for (const name of c.conditions || []) {
-    const key = CONDITION_KEYS[String(name).toLowerCase().trim()];
+    const raw = String(name).toLowerCase().trim();
+    const key = CONDITION_KEYS[raw] || (CANONICAL_CONDITION_KEYS.has(raw) ? raw : null);
     if (key) conditions.add(key);
   }
   for (const k of c.conditionKeys || []) conditions.add(k);

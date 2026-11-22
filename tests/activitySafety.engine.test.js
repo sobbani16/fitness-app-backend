@@ -379,3 +379,24 @@ describe('recommend() pipeline', () => {
     expect(rec.restFallback).toBeTruthy();
   });
 });
+
+describe('normalizeContext idempotency (double-normalize regression)', () => {
+  // evaluate()/recommend() normalize the context and evaluateActivity()
+  // normalizes again — conditions whose canonical key is not itself a
+  // CONDITION_KEYS input name must survive the second pass.
+  test('canonical condition keys survive re-normalization', () => {
+    const { normalizeContext } = require('../src/services/activitySafety/engine');
+    const once = normalizeContext({ ...H(), conditions: ['type 2 diabetes', 'heart failure', 'epilepsy', 'stroke recovery', 'cancer treatment'] });
+    const twice = normalizeContext(once);
+    expect([...twice.conditions].sort()).toEqual(['cancer_treatment', 'diabetes_t2', 'heart_failure', 'seizure', 'stroke_recovery']);
+  });
+  test('evaluate() applies condition rules for non-self-mapping keys', () => {
+    const rule = { ruleCode: 'T-01', appliesTo: { conditionKeys: ['heart_failure'], activityCategories: ['vigorous'] }, effect: 'MODIFY', reason: 't' };
+    expect(dec({ ...H(), conditions: ['heart failure'] }, 'outdoor_run', MILD, [rule])).toBe('MODIFY');
+  });
+  test('recommend() retains condition-sensitive env flags', () => {
+    // diabetes_t2 is heat-sensitive: ≥35 °C defers, but only when the flag survives.
+    const hot = { ...MILD, apparentTempC: 36 };
+    expect(dec({ ...H(), conditions: ['type 2 diabetes'] }, 'outdoor_walk', hot)).toBe('DEFER_OUTDOOR');
+  });
+});
