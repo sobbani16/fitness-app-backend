@@ -37,3 +37,24 @@ Verified items (USDA-sourced, `sourceRecord` carries fdcId): whole-wheat bread, 
 ## Verdict on serving data
 
 Serving identity, ordering, provenance, and round-trip persistence are **implemented and device-verified** for the foods that have serving rows. Coverage is the blocker: 92% of the catalog still exposes weight-only logging, which reproduces the original user-visible gap for any unimported food. Production readiness requires closing the coverage gate or scoping a launch food list.
+
+## 2026-11-22 expansion run (release-blocker closure Phase 1)
+
+`import-ingredient-servings.js --all --apply`: 178 catalog items imported → **422 serving rows, 190/228 = 83.3% coverage** (was 7.9%). Every row carries USDA `fdcId + dataType + description + gramWeight` provenance; 400 SR Legacy/Foundation/FNDDS rows, 22 branded-label rows (manufacturer-declared serving for that product).
+
+Quality fixes during expansion: branded `householdServingFullText` path now passes the same weight-unit filter (`2 ONZ`, `4 GRM` rejected); duplicate AVOID key removed; wrong-food matches wiped (palak paneer ≠ paneer, made-with-oil/butter rice, soy vermicelli, ramen-as-soup); re-imports applied corrected records (paneer→'Cheese, paneer' 1 cup, rice→plain SR 1 cup 158g/202g).
+
+### Unresolved queue — 38 foods needing human verification
+
+| Food | Reason |
+|---|---|
+| atta, baking_powder, cashew, cocoa_powder, ground_beef_raw, imitation_crab, lamb_raw, potato_boiled, prawns_raw, rice_basmati_cooked, rice_noodles_dry, soba_noodles_dry, tofu_firm, turmeric_powder, dill | USDA record exists but only unlabeled gram-weights (1 oz/4 oz equivalents) — no honest household label |
+| arborio_rice_dry, glutinous_rice_dry, dumpling_wrappers, lasagna_sheets_dry, vermicelli_dry | No sane USDA record with portions (branded variants lack serving declarations) |
+| hummus, cream_cheese | Only branded records declaring weight-unit servings |
+| espresso_coffee | Only fl-oz servings (weight-unit filtered) |
+| jaggery | Only branded record declaring '4 GRM' weight serving |
+| berbere_spice, curry_leaves, curry_paste_red, gongura_raw, jerk_seasoning, methi_raw, mutton_raw (goat), poha_dry, ragi_flour, ridgegourd_raw, soy_chunks_dry, taco_seasoning, tindora_raw | No trustworthy USDA record — Indian/proxy/specialty items needing alternate source or manual measurement |
+| paneer_lowfat | 'Cheese, paneer' record covers full-fat; reduced-fat paneer needs its own record |
+| water | Volume-based; grams suffice |
+
+Gate re-check: coverage **83.3% ≥ 60%** → PASS. Verified conversions 422. Unresolved 38 (16.7%).

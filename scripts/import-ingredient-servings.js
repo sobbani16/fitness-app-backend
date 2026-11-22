@@ -90,7 +90,7 @@ const EXTRA = {
   pumpkin_raw: 'pumpkin, raw', quinoa_cooked: 'quinoa, cooked', radish_raw: 'radishes, raw',
   raisins: 'raisins', ramen_noodles_dry: 'ramen noodles', raw_mango: 'mangos, raw',
   red_chili_dry: 'pepper, cayenne', refried_beans: 'refried beans', rice_basmati_cooked: 'rice, basmati, cooked',
-  rice_brown_cooked: 'rice, brown, cooked', rice_noodles_dry: 'rice noodles', rice_white_cooked: 'rice, white, cooked',
+  rice_brown_cooked: 'rice, brown, long-grain, cooked', rice_noodles_dry: 'rice noodles', rice_white_cooked: 'rice, white, long-grain, regular, cooked',
   rice_white_dry: 'rice, white, raw', saffron: 'saffron', salmon_raw: 'salmon, atlantic, raw',
   salt: 'salt, table', sauerkraut: 'sauerkraut', sausage: 'sausage, pork', scallions: 'scallions',
   semolina: 'semolina', sesame: 'sesame seeds', soba_noodles_dry: 'soba', sour_cream: 'sour cream',
@@ -172,6 +172,11 @@ const cleanLabel = (p) => {
       sausage: ['turkey', 'beef, reduced', 'blood', 'liverwurst'],
       cheese_ravioli: ['meat-filled'],
       tofu_firm: ['fried', 'dried', 'salted', 'fermented'],
+      paneer_fullfat: ['palak', 'saag', 'curry', 'mutter', 'matar', 'tikka', 'butter', 'masala', 'biryani'],
+      paneer_lowfat: ['palak', 'saag', 'curry', 'mutter', 'matar', 'tikka', 'butter', 'masala', 'biryani'],
+      ramen_noodles_dry: ['soup', 'water added', 'flavor', 'cooked'],
+      rice_white_cooked: ['oil', 'fried', 'butter', 'glutinous', 'basmati', 'jasmine'],
+      rice_brown_cooked: ['butter', 'oil', 'fried', 'pilaf'],
       mozzarella: ['part skim', 'low moisture'],
       orange: ['juice'],
       mango: ['dried'],
@@ -208,8 +213,7 @@ const cleanLabel = (p) => {
       egg_noodles_dry: ['spinach'],
       udon_noodles: ['cooked'],
       soba_noodles_dry: ['cooked'],
-      ramen_noodles_dry: ['cooked, without', 'flavor'],
-      vermicelli_dry: ['rice'],
+      vermicelli_dry: ['rice', 'soy'],
       gnocchi_potato: ['sweet potato'],
       enchilada_sauce: ['green'],
       marinara_sauce: ['meat'],
@@ -250,7 +254,7 @@ const cleanLabel = (p) => {
       const usable = detail.foodPortions.filter((p) => {
         const lbl = cleanLabel(p);
         return !/^[0-9\s]+$/.test(lbl) && !/^1\s+(portion|undetermined)$/.test(lbl) // drop "1 90000" junk rows
-          && !/^\d+(\.\d+)?\s*(oz|ounces?|lbs?|g|grams?|kg|ml|fl\s?oz)$/i.test(lbl); // drop pure weight-unit pseudo-servings
+          && !/^\d+(\.\d+)?\s*(oz|onz|ounces?|lbs?|g|grm|gr|grams?|kg|ml|fl\s?oz|floz)\b/i.test(lbl); // drop weight-unit pseudo-servings even with suffixes ("4 oz (4 oz)", "1 ONZ", "4 GRM")
       });
       servings.push(...usable.slice(0, 12).map((p, i) => ({
         id: `srv_${catalogId}_${p.sequenceNumber ?? i}`,
@@ -263,7 +267,11 @@ const cleanLabel = (p) => {
     }
     // Branded/label records: manufacturer-declared serving (e.g. "1 slice", 32 g)
     // is a verified serving for THAT product — import it, flagged branded.
-    if (!servings.length && detail && Number.isFinite(detail.servingSize) && detail.servingSize > 0 && detail.householdServingFullText && ['g', 'gm', 'ml'].includes(String(detail.servingSizeUnit || '').toLowerCase())) {
+    // The label serving must not be a bare weight ("2 ONZ", "4 GRM") — same
+    // filter as foodPortions so branded pseudo-servings can't leak.
+    const labelTxt = (detail?.householdServingFullText || '').trim();
+    const labelIsWeight = /^\d+(\.\d+)?\s*(oz|onz|ounces?|lbs?|g|grm|gr|grams?|kg|ml|fl\s?oz|floz)\b/i.test(labelTxt);
+    if (!servings.length && detail && Number.isFinite(detail.servingSize) && detail.servingSize > 0 && labelTxt && !labelIsWeight && ['g', 'gm', 'ml'].includes(String(detail.servingSizeUnit || '').toLowerCase())) {
       servings.push({
         id: `srv_${catalogId}_label`,
         ingredientId: cat.ingredient.id,
