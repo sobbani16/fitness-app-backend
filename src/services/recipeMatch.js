@@ -21,7 +21,7 @@
 const { getPrisma } = require('../lib/prisma');
 const { normalize } = require('./ingredientCsv');
 const { httpError } = require('../lib/errors');
-const { loadConstraints, violatesHard, hasTerm } = require('./recipes/constraints');
+const { loadConstraints, violatesHard, hasTerm, textHasTerm } = require('./recipes/constraints');
 
 // Seasonings/staples assumed in a home kitchen. Users can narrow this to just
 // water/salt/ice (pantry.minimal) or extend it (pantry.extra) per request —
@@ -277,9 +277,53 @@ async function matchIngredients({
     });
   }
 
+  // ---- Phase 9: deterministic ranking of the survivors ---------------------
+  // Reached ONLY by recipes that passed every hard check above — ranking can
+  // never resurrect an excluded recipe. Signals: nutrition fit vs MacroGoal,
+  // prep-time fit, LOVE/LIKE + cuisine preferences, DISLIKE (soft penalty
+  // only — never removes), and the user's own engagement (favorite/rating).
+  const engagements = results.length && prisma.recipeEngagement?.findMany
+    ? await prisma.recipeEngagement.findMany({ where: { userId, recipeId: { in: results.map((r) => r.recipe.id) } } }).catch(() => [])
+    : [];
+  const engMap = new Map((engagements || []).map((e) => [e.recipeId, e]));
+
+  const mealShare = constraints.limits?.caloriesTarget ? constraints.limits.caloriesTarget / 3 : null;
+  const proteinShare = constraints.limits?.proteinTarget ? constraints.limits.proteinTarget / 3 : null;
+  for (const res of results) {
+    let bonus = 0;
+    const breakdown = { base: res.matchScore };
+    const r = res.recipe;
+    if (mealShare && Number.isFinite(r.perServing?.calories)) {
+      const fit = 0.10 * (1 - Math.min(1, Math.abs(r.perServing.calories - mealShare) / mealShare));
+      bonus += fit; breakdown.nutritionFit = +fit.toFixed(3);
+    }
+    if (proteinShare && Number.isFinite(r.perServing?.proteinG) && r.perServing.proteinG >= proteinShare) {
+      bonus += 0.04; breakdown.proteinFit = 0.04;
+    }
+    if (maxPrepMinutes && r.prepMinutes) {
+      const fit = 0.05 * (1 - r.prepMinutes / maxPrepMinutes);
+      bonus += fit; breakdown.timeFit = +fit.toFixed(3);
+    }
+    const txt = r.name + ' ' + res.availableIngredients.map((i) => i.name).join(' ');
+    for (const l of constraints.soft?.likes || []) {
+      if (textHasTerm(txt, l.name)) { const v = l.love ? 0.08 : 0.04; bonus += v; breakdown.preference = +(((breakdown.preference || 0) + v).toFixed(3)); }
+    }
+    for (const d of constraints.soft?.dislikes || []) {
+      if (textHasTerm(txt, d)) { bonus -= 0.06; breakdown.preference = +(((breakdown.preference || 0) - 0.06).toFixed(3)); }
+    }
+    if (r.cuisine && (constraints.soft?.cuisines || []).some((c) => normalize(c) === normalize(r.cuisine))) {
+      bonus += 0.03; breakdown.cuisinePref = 0.03;
+    }
+    const eng = engMap.get(r.id);
+    if (eng?.favorite) { bonus += 0.06; breakdown.favorite = 0.06; }
+    if (Number.isInteger(eng?.rating)) { const v = 0.02 * (eng.rating - 3) / 2; bonus += v; breakdown.rating = +v.toFixed(3); }
+    res.rankScore = Math.round((res.matchScore + bonus) * 1000) / 1000;
+    res.rankBreakdown = breakdown;
+  }
+
   results.sort((a, b) => {
     const order = { ready: 0, 'insufficient-quantity': 1, 'missing-one': 2, 'missing-few': 3, partial: 4 };
-    return (order[a.status] - order[b.status]) || (b.matchScore - a.matchScore) || a.recipe.name.localeCompare(b.recipe.name);
+    return (order[a.status] - order[b.status]) || ((b.rankScore ?? b.matchScore) - (a.rankScore ?? a.matchScore)) || a.recipe.name.localeCompare(b.recipe.name);
   });
 
   return {
