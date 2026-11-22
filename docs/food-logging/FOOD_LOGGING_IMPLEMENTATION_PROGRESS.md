@@ -89,3 +89,30 @@ RESUME POINT unchanged minus cleared blocker: Phase 2 map → Phase 3 DB audit �
 - Suites: voice 14/14, foodIntel+nutritionStatus+foodExpansion 26/26, mobile tsc clean + 426/426.
 - `FOOD_LOGGING_RELEASE_READINESS.md` written — **verdict NOT production-ready**: coverage gate 7.9% (needs ≥60%), barcode-product table empty, flows need device passes, prod verify outstanding.
 - RESUME POINT: serving-coverage expansion (DATA-001) → device passes for barcode/photo/label/menu flows → prod deploy + verify.
+
+## 2026-11-22 s10 — release-blocker closure: coverage + device passes + correctness fixes
+
+**Phase A — serving coverage:** 58 → **431 IngredientServing rows; 190/228 usable catalog items (83.3%)**, gate PASSED (was 7.9%). 178 dry-run-applied + targeted re-runs; weight-unit leaks (`1 ONZ`,`4 GRM`) and wrong-food matches (paneer→"Palak Paneer", wheat vermicelli→soy vermicelli) caught and filtered; 38-item unresolved queue in `FOOD_LOGGING_SERVING_COVERAGE.md` (hummus/cream cheese etc. — USDA rate-limited).
+
+**Phase B — barcode:** OFF fallback verified end-to-end (Coca-Cola `5449000000996`): lookup → normalize → cache → device scan → log → **reopen restores "1 portion (330 ml)"** via `snap:` pseudo-unit. Provenance whitelist stops `retrievedAt`/`packageQuantityG` leaking into nutrient maps (`8054699`).
+
+**Phase C — unknown nutrients:** `nutrientUnknowns` written on all 4 FoodLog paths; `unknownsFor()` prefers explicit metadata → source blocks → column nullability; `coverageFor()` surfaced in macroScore + healthScore; `fiber + null` arithmetic fixed; OFF `fiberG:null` → `nutrientUnknowns:["fiberG"]` persisted. Non-macro nulls stay null in snapshots (documented scope: 5 macro keys).
+
+**Phase D — volume≠mass (`7294951`):** OFF `serving_quantity` is in the label's declared unit — Coca-Cola's 330 was **ml not g**. `parseServingDeclaration` classifies g/ml/cl/fl-oz/l; response carries `servingUnit`,`servingSizeMl`,`servingSizeG`; volume-only products persist ml + `servingUnit:'ml'`, `servingSizeG:null`. Mobile gates volume-only products on user-entered mass.
+
+**Phase E — float artifacts:** Today counter showed `1846.2399999999998 kcal`. New `src/util/format.ts` (`fmtKcal`/`fmtG`, render-only) applied across FoodEntry/FoodIntelligence/IngredientSearch/History/LogMeal/MenuScan/PhotoMeal/WeeklyPlan/ClientMealPlan/WhatShouldIEat (mobile `e4eb95b`).
+
+**Phase F — device passes (iPhone 17 Pro sim, serialized):**
+- manual search → 2 slices bread: PASS (earlier)
+- barcode Coca-Cola log + reopen: PASS
+- voice "2 slices whole wheat bread": PASS (interpret ready → execute → serving in snapshot)
+- photo description → chicken tikka masala: PASS (`fiberG` unknown flagged)
+- nutrition label typed-text → "Typed oat cereal" 240 g/230 kcal: PASS (`reviewed:true`, sugar/sodium null preserved)
+- menu/quick-add/recent/favorites/recipe: RUNNING (serialized runner; parallel owner automation causes driver-port contention — runs retry on infra kills only)
+- **camera legs of photo/label/menu = PARTIAL** (sim cannot exercise physical camera)
+
+**Regression tests:** backend `tests/foodLoggingRegression.test.js` 16/16 (parser units, unknown propagation, gram fallback); mobile `format.test.ts` 4/4 (`48372e4`,`6be8f18`).
+
+**Test-env findings:** earlier "8 failing suites" + Maestro mid-run deaths are **environmental** — full backend suite green (136/137 suites, 5520 tests); driver deaths correlate with parallel `workout-verify`/`p22`/`mv2` sessions on the same UDID + memory pressure. Infra kills ≠ app defects — runner retries on `ConnectException`/EOF/timeout signatures.
+
+**RESUME POINT:** finish 4 in-flight device flows → push (needs authorization) → Railway staging deploy + synthetic checks → staging mobile build → physical-device camera pass → final GO decision.
