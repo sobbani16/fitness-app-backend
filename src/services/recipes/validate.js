@@ -358,6 +358,7 @@ async function validateGeneratedRecipe(recipe, constraints, ctx = {}) {
       stages,
       nutrition: per ? {
         perServing: { calories: per.calories, proteinG: per.proteinG, carbsG: per.carbsG, fatG: per.fatG, fiberG: per.fiberG },
+        totalG: Number.isFinite(totalG) ? Math.round(totalG) : null,
         computedLines: per._computedLines, missingLines: per._unresolvedLines,
         provenance: 'ingredient_per100_deterministic',
       } : { perServing: null, computedLines: 0, missingLines: lines?.length || 0, provenance: 'unavailable' },

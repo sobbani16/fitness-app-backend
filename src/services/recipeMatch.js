@@ -348,4 +348,4 @@ async function matchRecipes({ userId, ingredients, limit = 12 }) {
   };
 }
 
-module.exports = { matchIngredients, matchRecipes };
+module.exports = { matchIngredients, matchRecipes, resolveInputs };

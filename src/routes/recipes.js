@@ -144,6 +144,10 @@ router.post('/save-generated', require('../middleware/requireFeature').requireFe
         carbsG: per.carbsG ?? null,
         fatG: per.fatG ?? null,
         fiberG: per.fiberG ?? null,
+        finishedYieldG: validation.nutrition.totalG ?? null,
+        portionG: validation.nutrition.totalG != null
+          ? Math.round(validation.nutrition.totalG / (Number.isFinite(Number(cand.servings)) ? Math.min(20, Math.max(1, Math.round(Number(cand.servings)))) : 1))
+          : null,
         nutritionSource: {
           kind: 'AI_GENERATED_VALIDATED',
           validatorVersion: validation.validatorVersion,

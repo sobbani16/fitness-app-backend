@@ -152,16 +152,13 @@ async function generateRecipes({
   // Resolve available inputs against the catalog (same name/alias matching as
   // matching) — unresolved names go into the prompt as unavailable-context so
   // the model doesn't treat them as usable.
-  const available = [];
-  const unresolved = [];
-  for (const item of Array.isArray(items) ? items : []) {
-    const name = typeof item === 'string' ? item : item?.name || item?.ingredientName || '';
-    const amountG = typeof item === 'object' && item !== null && Number.isFinite(Number(item.amountG)) ? Number(item.amountG) : null;
-    const n = normalize(name);
-    const hit = n && catalog.byName.get(n);
-    if (hit) available.push(`${clean(hit.name)}${amountG ? ` (${Math.round(amountG)}g)` : ''}`);
-    else if (n) unresolved.push(clean(name));
-  }
+  // Resolve inputs with the SAME variant matching as matchIngredients —
+  // exact-normalized lookup misses legitimate names like 'rice' -> 'Rice,
+  // basmati, cooked' and the model would see an empty pantry.
+  const { resolveInputs } = require('../recipeMatch');
+  const { selected, unresolved: unresNames } = resolveInputs(catalog.rows || [], items);
+  const available = [...selected.values()].map((s) => `${clean(s.name)}${s.amountG ? ` (${Math.round(s.amountG)}g)` : ''}`);
+  const unresolved = unresNames.map((n) => clean(n));
 
   const servingsN = Number.isFinite(Number(servings)) ? Math.min(20, Math.max(1, Math.round(Number(servings)))) : 2;
   const promptText = [
@@ -191,6 +188,7 @@ async function generateRecipes({
   let { usable, rejected } = out?.candidates?.length
     ? await validateAll(out.candidates, constraints, ctx)
     : { usable: [], rejected: [] };
+  if (out && !out.candidates?.length && out.notes) meta.notes = String(out.notes).slice(0, 300);
 
   // Phase 8: ONE bounded correction attempt — feed failed ruleIds back so the
   // model can repair. Never retries an already-impossible combination more
