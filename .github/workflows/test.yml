@@ -1,0 +1,71 @@
+name: Backend Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main, 'feat/**']
+  schedule:
+    - cron: '17 6 * * *' # nightly full regression
+
+permissions:
+  contents: read
+
+jobs:
+  jest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fitness_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      NODE_ENV: test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/fitness_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Prisma generate + migrate deploy (test DB)
+        run: npx prisma generate && npx prisma migrate deploy
+      - name: Jest (in-band, JSON artifact)
+        run: npx jest --runInBand --json --outputFile=jest-results.json
+      - name: Jest (golden-path E2E vs disposable DB)
+        if: always()
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/fitness_auth_readiness
+        run: |
+          psql "$TEST_DATABASE_URL" -c 'SELECT 1' >/dev/null 2>&1 || true
+          # create the disposable DB, migrate, then run gated E2E
+          PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c 'CREATE DATABASE fitness_auth_readiness' || true
+          npx prisma migrate deploy
+          npx jest --runInBand tests/integration/platformE2E.test.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jest-results
+          path: jest-results.json
+          retention-days: 14
+
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --omit=dev
+      - name: Dependency vulnerability scan (report-only)
+        continue-on-error: true
+        run: npm audit --audit-level=high
