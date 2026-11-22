@@ -194,7 +194,12 @@ router.post('/interpret', voiceEnabled, wrap(async (req, res) => {
   const fiberVoice = await flags.isEnabled('fiber_voice_enabled', uid(req)).catch(() => false);
   const { isFiberQuestion } = require('../services/fiber/assistant');
   for (const a of parsed.actions) {
-    if (a.intent === 'UNKNOWN_INTENT' && fiberVoice && isFiberQuestion(a.segment || '')) {
+    const seg = String(a.segment || '');
+    // Interrogative fiber phrasing is a question, never a log — the rule
+    // parser maps "how much fiber have I had" to LOG_FOOD, so remap any
+    // question-shaped segment, not just UNKNOWN_INTENT.
+    const interrogative = /[?]\s*$|^\s*(how|what|why|which|can|could|should|do|does|is|are|am|will|tell me|show me)\b/i.test(seg);
+    if (fiberVoice && isFiberQuestion(seg) && (a.intent === 'UNKNOWN_INTENT' || (a.intent === 'LOG_FOOD' && interrogative))) {
       a.intent = 'ASK_FIBER'; a.status = 'ready'; a.missing = [];
       continue;
     }
