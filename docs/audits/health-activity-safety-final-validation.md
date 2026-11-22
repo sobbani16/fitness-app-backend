@@ -100,27 +100,32 @@ Weight-bearing orders, prohibited categories, acute/recovering/resolved lifecycl
 
 | Suite | Result |
 |---|---|
-| engine (S001–S020 + invariants) | 57/57 ✅ |
+| engine (S001–S020 + invariants + tie-break regression) | 60/60 ✅ |
 | scenario matrix (S021–S060) | 40/40 ✅ |
-| producer integration (gate/planner/coach/copilot/plans/formChecks/sleep/chat semantics) | 19/19 ✅ |
+| producer integration (gate/planner/coach/copilot/plans/formChecks/sleep/chat semantics + privacy assertion) | 21/21 ✅ |
 | shadow diff job | 6/6 ✅ |
+| review-package executable examples (all 71 rules) | 71/71 ✅ |
+| environmentService — NWS alerts | 6/6 ✅ |
+| stateful E2E workflow | 3/3 ✅ |
 | routes (mocked prisma) | 17/17 ✅ |
 | voice parser+execute | 17/17 ✅ |
 | todayActions gate | 3/3 ✅ |
-| **Full backend suite** | **117 suites / 1435 tests ✅ (2 consecutive clean runs)** |
+| **Full backend suite** | **118 suites / 1444+ tests ✅** |
 | mobile (weather/flags/composer/invalidation+screens) | **72 suites / 423 tests ✅, tsc+eslint clean** |
 
 **Nondeterminism investigation:** a prior full-suite run showed 4 flakes (`activitySafety.routes` 403s ×2, `messaging` 404 ×2 — all passing standalone). Root cause confirmed: `process.env` is shared across test files under `--runInBand` and Jest's sequencer reorders files between runs; several files mutated env without exception-safe restore (`messaging.test.js` afterAll *deleted* `FF_TRAINER_ADVANCED_FEATURES_ENABLED`; `featureFlags.test.js` didn't restore `FEATURE_FLAGS_PROVIDER`; `photoScan.test.js`/`trainerWorkoutPlans.test.js` set `'false'` without `finally`; `energySummary.test.js` deleted instead of restoring). The messaging 404 was the *downstream* symptom: flag-off made conversation creation 403, `.body.conversation.id` was undefined → POST `/conversations/undefined/messages` → 404. All confirmed mutators now restore env in `finally`/`afterAll`; two consecutive clean full runs since.
 
 ## 14. Remaining unsupported cases
 
-- Real severe-weather alert provider; UV is forecast-hour approximation — `alertsAvailable:false` honestly reported
+- Alert coverage is NWS (US + territories) only — live-verified; other regions report `alertsCoverage:'unsupported'` honestly, never "no alerts"
+- UV is forecast-hour approximation — `alertsAvailable`/`alertsCoverage` fields carry honest semantics
 - `rehabInstructions` semantic evaluation (stored, not parsed into restrictions)
 - Exercise-library-level per-exercise DB evaluation remains via `dbExerciseCategories` bridge + `planSafetyConflicts` (annotation layer, not per-exercise engine verdicts)
 - `isEvaluationFresh` has no consumer recommendation-cache (evaluations compute fresh — correct, uncached)
 - LLM rewording path not built (deterministic templates only)
-- `no_safe_candidate` unreachable at runtime by design (`seated_movement` last-resort + `rest` never blocked); reserved for approved-rule activation
 - Region-specific emergency numbers in escalation copy
+- 22 of 71 rules are inert as encoded (review package §per-rule) — wildcards, unreachable profileFlags, non-canonical symptom codes, uncovered catalog categories; structural coverage noted per rule; reviewer decides fix-vs-rely
+- Privacy gaps P-1..P-5 (retention endpoint, trainer consent category, dead consentScopes field, emergency copy regions, free-text latent exposure)
 
 ## 15. Clinical review requirements
 
@@ -128,13 +133,13 @@ Release gate unchanged: qualified clinician/specialist must review (a) all 71 DR
 
 ## 16. Release blockers
 
-1. **Clinical review of rules + scenarios (hard gate)** — all 71 rules still DRAFT; evidence register + review queue ready for reviewer assignment
-2. **Real alert provider or documented no-coverage handling** — `alertsAvailable:false`; severe-weather coverage must NOT be claimed until integrated + tested
+1. **Clinical review of rules + scenarios (hard gate)** — all 71 rules still DRAFT; evidence register + review queue + auto-generated review package (`docs/clinical/activity-safety-review-package.md`, includes reachability/inertness findings) ready for reviewer assignment
+2. ~~Real alert provider or documented no-coverage handling~~ — ✅ NWS integrated + live-verified (`978fd93`); coverage = US + territories only, honest elsewhere
 3. ~~Trainer/coaching/wearable entry points not yet wired~~ — ✅ all producers gated (`bbbc763`/`9ed1eac`)
 4. ~~Mobile feedback/report screens not built~~ — ✅ shipped gated (`f5fa88d`)
-5. ~~150-scenario target not met~~ — ✅ 166 tests (159 backend + 7 mobile)
-6. ~~Shadow-mode diff job not written~~ — ✅ `scripts/activity-safety-shadow-diff.js` + 6 tests
-7. **No staging/production deploy yet** — flags all default-off; deploy evidence outstanding
+5. ~~150-scenario target not met~~ — ✅ 232 tests (225 backend + 7 mobile)
+6. ~~Shadow-mode diff job not written~~ — ✅ `scripts/activity-safety-shadow-diff.js` + `activity-safety-shadow-report.js` (matrix: 39 disagreements, 0 LOOSER)
+7. **No staging/production deploy yet** — flags all default-off; staging runbook ready (`docs/deployment/activity-safety-staging-runbook.md`), deploy evidence outstanding
 
 ## 17. Deployment status
 
@@ -148,6 +153,23 @@ Local only. Migration applied additively to dev DB; production apply pending dep
 4. Rule de-activation: set `reviewStatus` back to `DRAFT` — engine instantly stops firing it (APPROVED-only load).
 5. Persisted evaluations/`shadow` rows are audit artifacts — keep for post-rollback comparison.
 
+## 19. PASS/FAIL/BLOCKED matrix (Phase 14)
+
+| Domain | Verdict | Evidence |
+|---|---|---|
+| Eligibility audit (seated/rest semantics) | **PASS** | `seated_movement` restrictable via upper_limb/trunk_load; `rest` never in suggestion slot (`restFallback`); 6 new tests `4f85cbd` |
+| Producer safety integration | **PASS** | 12 producers gated; 21 producer tests; wearable/LLM/trainer/flag fallbacks cannot override (`bbbc763`,`9ed1eac`) |
+| Scenario coverage (≥150) | **PASS** | 225 backend + 7 mobile = 232 safety tests green |
+| Clinical review package | **PASS (artifact) / BLOCKED (approval)** | `activity-safety-review-package.md` + 71 executable examples; 4 mirrors + 22 inert documented for reviewer; **approval itself remains externally gated — zero rules APPROVED** |
+| Shadow-mode comparison | **PASS** | diff job + 6 tests; disagreement report: 39 stricter / 0 LOOSER post tie-break fix (`9a58c4f`) |
+| Environmental coverage | **PASS (US) / BLOCKED (non-US)** | NWS live-verified US+territories (`978fd93`); `alertsCoverage` honest elsewhere — no non-US alert source exists to integrate |
+| Engine correctness | **PASS** | tie-break merge bug found by shadow report + fixed + regression tests |
+| Privacy/security | **PASS (with gaps)** | trainer leak T-1 fixed (`detail:'summary'`); access matrix verified; P-1..P-5 gaps documented (retention, consent category, emergency copy) |
+| Staging validation | **BLOCKED (external)** | runbook + synthetic personas + E2E suite ready; actual staging deploy not performed — no environment access |
+| E2E workflows | **PASS** | stateful E2E covers injury→restriction→suppression→recovery through real routes; producer paths covered by integration tests |
+| Rule activation | **BLOCKED (by design)** | all 71 DRAFT; CHECK constraint enforces review metadata; nothing may activate without qualified reviewer |
+| Production readiness claim | **NOT CLAIMED** | flags all default-off; staging + clinical gates unsatisfied |
+
 ---
 
-*Remaining for release: clinical review execution (external), real alert provider, staging deploy evidence. All engineering-side producer/UI/shadow/scenario work is complete and tested.*
+*Remaining for release: clinical review execution (external gate), staging deploy evidence (needs environment), non-US alert coverage (no source exists). All engineering-side producer/UI/shadow/scenario/package work is complete and tested.*

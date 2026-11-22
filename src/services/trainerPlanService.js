@@ -356,7 +356,9 @@ async function assign(trainerUserId, planId, clientUserId, tx) {
   if (existing) throw conflict('This plan is already assigned to the client.');
   // Advisory safety check against the client's recorded restrictions —
   // annotated on the assignment so the trainer sees conflicts, never silently.
-  const safety = await planSafetyConflicts(prisma, clientUserId, plan).catch(() => ({ available: false, conflicts: [] }));
+  // 'summary' detail: conflict flags without restriction categories — no
+  // consent scope exists that would permit sharing clinical detail.
+  const safety = await planSafetyConflicts(prisma, clientUserId, plan, { detail: 'summary' }).catch(() => ({ available: false, conflicts: [] }));
   return inTx(tx, async (t) => {
     const assignment = await t.trainerWorkoutAssignment.create({
       data: { planId, clientId: clientUserId, status: 'assigned' },

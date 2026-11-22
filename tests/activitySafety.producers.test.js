@@ -242,8 +242,12 @@ describe('trainerPlanService conflict annotation', () => {
       },
     });
     const r = await planService.assign('trainer1', 'p1', 'u1');
-    expect(r.safetyConflicts.find(c => c.exerciseName === 'Barbell Squat' && c.status === 'conflict')).toBeTruthy();
+    const conflict = r.safetyConflicts.find(c => c.exerciseName === 'Barbell Squat' && c.status === 'conflict');
+    expect(conflict).toBeTruthy();
     expect(r.safetyConflicts.find(c => c.exerciseName === 'Bicep Curl' && c.status === 'conflict')).toBeFalsy();
+    // Privacy: trainer-facing summary must not disclose restriction categories.
+    expect(conflict.blockedCategories).toBeUndefined();
+    expect(conflict.limitationConflict).toBeUndefined();
   });
 });
 

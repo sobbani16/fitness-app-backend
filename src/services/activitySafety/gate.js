@@ -231,7 +231,11 @@ function exerciseConflictsWithLimitations(cats, limitations = []) {
 // recorded restrictions. Conflicts are advisory annotations — the trainer is
 // the professional of record, but they must see them; unevaluated exercises
 // are flagged honestly, never assumed safe.
-async function planSafetyConflicts(prisma, clientUserId, plan, { gate } = {}) {
+// detail: 'full' returns the conflicting category/limitation tokens — for the
+// client's own views only. 'summary' strips them: trainers see WHICH of their
+// authored exercises conflict (needed to fix the plan) but never WHY — no
+// consent category exists that would permit sharing restriction categories.
+async function planSafetyConflicts(prisma, clientUserId, plan, { gate, detail = 'full' } = {}) {
   const g = gate || await safetyGate(prisma, clientUserId).catch(() => null);
   if (!g?.enabled) return { available: false, conflicts: [] };
   const conflicts = [];
@@ -245,7 +249,9 @@ async function planSafetyConflicts(prisma, clientUserId, plan, { gate } = {}) {
       const categoryHits = (g.blockedCategories || []).filter(c => cats.has(c));
       const limHit = exerciseConflictsWithLimitations(cats, g.limitations || []);
       if (categoryHits.length || limHit) {
-        conflicts.push({ ...base, status: 'conflict', blockedCategories: categoryHits, limitationConflict: limHit || null });
+        conflicts.push(detail === 'summary'
+          ? { ...base, status: 'conflict', note: 'Conflicts with the member\'s recorded safety profile — substitute or verify.' }
+          : { ...base, status: 'conflict', blockedCategories: categoryHits, limitationConflict: limHit || null });
       }
     }
   }
