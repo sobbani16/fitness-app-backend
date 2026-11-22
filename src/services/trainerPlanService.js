@@ -351,7 +351,7 @@ async function revise(trainerUserId, planId, tx) {
 // flags only, no categories).
 async function safetyDetailLevel(prisma, relationId, clientUserId) {
   if (relationId && await hasConsent(relationId, 'safety_restrictions').catch(() => false)) return 'full';
-  const profile = await prisma.userActivityProfile.findUnique({ where: { userId: clientUserId }, select: { consentScopes: true } }).catch(() => null);
+  const profile = await prisma.userActivityProfile?.findUnique({ where: { userId: clientUserId }, select: { consentScopes: true } }).catch(() => null);
   return profile?.consentScopes?.safetyRestrictions?.scope === 'granted' ? 'full' : 'summary';
 }
 

@@ -211,8 +211,8 @@ describe('request → accept → active flow', () => {
     const create = mockPrisma.trainerClient.upsert.mock.calls[0][0].create;
     expect(create.status).toBe('pending');
     expect(create.requestedBy).toBe('client');
-    // Proposed consent set: all 8 categories pending.
-    expect(mockPrisma.trainerClientConsent.upsert).toHaveBeenCalledTimes(8);
+    // Proposed consent set: all 9 categories pending.
+    expect(mockPrisma.trainerClientConsent.upsert).toHaveBeenCalledTimes(9);
     for (const call of mockPrisma.trainerClientConsent.upsert.mock.calls) {
       expect(call[0].create.status).toBe('pending');
     }
@@ -306,7 +306,7 @@ describe('consent management', () => {
       .set('x-user-id', 'client-1')
       .send({ grants: ['weight_trends'], revokes: ['workout_records'] });
     expect(res.status).toBe(200);
-    expect(res.body.consents).toHaveLength(8);
+    expect(res.body.consents).toHaveLength(9);
     const byCat = Object.fromEntries(res.body.consents.map((c) => [c.category, c.status]));
     expect(byCat.weight_trends).toBe('granted');
     expect(byCat.workout_records).toBe('revoked');
@@ -342,14 +342,14 @@ describe('consent management', () => {
     expect(mockPrisma.weightEntry.findMany).not.toHaveBeenCalled();
   });
 
-  test('GET consents returns all 8 categories for participants', async () => {
+  test('GET consents returns all 9 categories for participants', async () => {
     mockPrisma.trainerClient.findUnique.mockResolvedValue(relation);
     mockPrisma.trainerClientConsent.findMany.mockResolvedValue([]);
     const res = await request(app)
       .get('/trainer-relationships/rel-1/consents')
       .set('x-user-id', 'trainer-1');
     expect(res.status).toBe(200);
-    expect(res.body.consents).toHaveLength(8);
+    expect(res.body.consents).toHaveLength(9);
     expect(res.body.consents.every((c) => c.status === 'pending')).toBe(true);
     const outsider = await request(app)
       .get('/trainer-relationships/rel-1/consents')

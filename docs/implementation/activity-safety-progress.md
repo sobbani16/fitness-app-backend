@@ -104,3 +104,17 @@ None from activity-safety work. Pre-existing: `A06` nutrition fixture intentiona
 - Mobile `7d4c3d1` health-aware suggestion path · `44269a9` flag key fix · `f5fa88d` report/feedback screens + invalidation bus (mobile repo, main branch)
 - `4f85cbd` seated_movement restrictable + rest-as-fallback · `4ec5c79` clinical review package + 71 executable examples
 - `978fd93` NWS alerts live-integration · `b1889f8` stateful E2E · `9a58c4f` merge tie-break fix + shadow disagreement report (0 LOOSER)
+
+## Phase 15 — rule reachability, shadow adjudication, India env, privacy, staging (complete)
+
+**P1 Rule reachability** — 71 rules = **65 reachable + 4 intentional URGENT mirrors + 2 UNSUPPORTED_INPUT** (AS-REC-003/004 — no validated input exists, kept inactive), 0 unexplained inert. Repairs: canonical symptom alias registry (`SYMPTOM_ALIASES` — severe_dyspnea/neuro_deficit/severe_headache/muscle_soreness_doms/systemic_illness → canonical codes); `buildFlags` derives from conditions/pregnancy/age/wheelchair/med-flags and **merges** caller flags (never overwrites); wildcard + `a+b` composite matching; `__match_activity__` (restriction∩demand — fixed AS-CORE-002 over-restriction); `__always__` info markers; `inputStatus` column (migration `20261222000000`); `loadSafetyContext`/`rulesForEvaluation` read DB inputStatus. Report: `scripts/activity-safety-reachability-report.js`; tests: `tests/activitySafety.reachability.test.js` (31 cases — positive/negative/coexistence/over-restriction guards).
+
+**P2 Shadow adjudication** — `scripts/activity-safety-adjudication.js` dedupes 427 raw disagreements → **20 adjudication entries**, all mechanically verified, **0 LOOSER**; over-restriction candidates flagged (ADJ-003 NWB-ankle→overhead BLOCK, ADJ-019/020 high-risk pregnancy breadth) for clinical reviewers — stricter ≠ correct. Queue: `docs/clinical/activity-safety-adjudication-queue.md`.
+
+**P3 India env** — IMD CAP via WIS2 (`wis2box.imd.gov.in`, WMO open "core" policy): CAP XML parse, NDMA polygon point-matching (areaDesc alone never claims point coverage), severity/effective/expires honored, stale+expired filtered, outage→unavailable. CPCB via data.gov.in (GODL license, key-gated): `aqiMeasuredCoverage` = station-found/no-station-coverage/unconfigured; modeled AQI labeled separately. Gov-CA bundle (`certs/sectigo-*.pem`) augments Node CA store for gov.in hosts only (leaf-only chain). 18 env tests incl. Delhi/Mumbai/Chennai/Hyderabad/Bengaluru/rural/outage/stale/boundary. Live-verified Delhi → `alertsCoverage:imd-cap`. Doc: `docs/audits/india-environmental-sources.md`.
+
+**P4 Privacy P-1..P-5** — DELETE endpoints (user-scoped; clinician rows soft-delete→superseded); `safety_restrictions` consent category + `safetyDetailLevel` grant check (summary strips category tokens); `consentScopes.safetyRestrictions` wired; `emergencyCopy(region)` declared-region numbers; notes/rehabInstructions proven unsurfaced. 9 tests: `tests/activitySafety.privacy.test.js`.
+
+**P5 Staging** — `scripts/staging-preflight.js` (env vars, flags default-off, migrate status, rule inventory, provider probes, live Delhi probe). Caught real drift: migration recorded-but-not-run → column applied directly. Runbook updated. No deployment claimed.
+
+**Verification:** full suite 129/1617 green. Consent-category count 8→9 updates + `?.` on model access fixed the only regressions.
