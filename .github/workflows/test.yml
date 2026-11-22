@@ -58,6 +58,8 @@ jobs:
         run: node prisma/seed-foods.js
       - name: Seed safety conditions + rules (activity-safety E2E)
         run: npm run db:seed-safety
+      - name: Seed membership modules (entitlement engine)
+        run: node scripts/seed-modules.js
       - name: Jest (in-band, JSON artifact)
         run: npx jest --runInBand --json --outputFile=jest-results.json
       - name: Jest (golden-path E2E vs disposable DB)
