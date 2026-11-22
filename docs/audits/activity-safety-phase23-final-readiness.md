@@ -18,7 +18,7 @@ production gates remain human-controlled. Nothing here authorizes release.
 | iOS | **BLOCKED** | No registered device + interactive credential step required |
 | Backend regression | **PASS** | Safety 14/14 (4,163); full suite 148/150 — 2 failures attributed to user's uncommitted test-infra WIP (pass isolated); not a product regression |
 | Mobile regression | **PASS** | 82/82 (521) + tsc + eslint |
-| New staging APK | **IN PROGRESS** | `fcc9a14b` building; embeds staging URL only |
+| New staging APK | **PASS** | `fcc9a14b` finished; bundle verified staging-URL-only; installed + launched on-device |
 
 ## Release-readiness statement
 

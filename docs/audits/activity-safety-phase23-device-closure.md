@@ -56,5 +56,14 @@ remained 200 throughout every outage window.
 - `ac3c60de` — Phase 21 staging APK (validated through flow 6 then).
 - `fcc9a14b` — Phase 23 staging build: adds onboarding draft persistence
   (`e27aab0`), dead-token sign-out fix (`6f2868e`), fiber Stage-1 work.
-  Embeds `activity-safety-staging-staging.up.railway.app` + `staging` env
-  marker only (eas.json staging profile verified).
+  **Bundle verified to embed only `activity-safety-staging-staging.up.railway.app`**
+  (strings scan of `index.android.bundle` — zero production URLs). Installed
+  cleanly on `emulator-5554` after signature-mismatch uninstall, launched to
+  login screen (screenshot `/tmp/p23-newapk-final.png`) — install+launch
+  verified on-device; login blocked by the same dead NAT.
+
+## Phase 23 device evidence ledger
+
+- New staging APK installs + launches on-device: **PASS** (screenshot).
+- Flows 7–15: as table above — server-side PASS where verifiable,
+  NOT TESTED on-device otherwise.
