@@ -72,6 +72,15 @@ describe('FLAG MATRIX — server-side enforcement', () => {
     expect(res.body?.error?.code).toBe('FEATURE_DISABLED');
   });
 
+  test('registry integrity: every dependsOn references a registered key (DEF-001 regression)', () => {
+    const { KEYS, FEATURES } = require('../../src/config/featureRegistry');
+    const dangling = [];
+    for (const k of KEYS) for (const dep of FEATURES[k].dependsOn || []) {
+      if (!FEATURES[dep]) dangling.push(`${k} → ${dep}`);
+    }
+    expect(dangling).toEqual([]);
+  });
+
   test('medical-group flags are never auto-enabled by test setup', () => {
     const { FEATURES } = require('../../src/config/featureRegistry');
     const medical = Object.entries(FEATURES).filter(([, f]) => f.group === 'medical').map(([k]) => k);

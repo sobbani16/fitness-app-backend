@@ -38,7 +38,17 @@ function createExerciseSessionStore({ clock = () => new Date() } = {}) {
     const list = sessions.get(userId) || [];
     const idx = list.findIndex((s) => s.id === sessionId);
     if (idx === -1) return null;
-    if (set.id && list[idx].sets.some(s => s.id === set.id)) return list[idx];
+    if (set.id && list[idx].sets.some(s => s.id === set.id)) {
+      // Mirror persistentExerciseStore: same op-id + different payload is a
+      // conflict, not a silent no-op.
+      const existing = list[idx].sets.find(s => s.id === set.id);
+      if (existing.reps !== Number(set.reps) || existing.weight !== Number(set.weight)) {
+        const e = new Error('Operation ID already used');
+        e.status = 409;
+        throw e;
+      }
+      return list[idx];
+    }
     if (list[idx].finishedAt) throw new Error('Workout already finished');
     const now = clock().toISOString();
     list[idx] = {
@@ -81,7 +91,7 @@ function normalizeSet(s, fallbackTs) {
   if (!Number.isInteger(reps) || reps <= 0 || reps > 1000) {
     throw new Error('reps must be a positive number');
   }
-  if (!Number.isFinite(weight) || weight < 0 || weight > 2000) {
+  if (s.weight == null || !Number.isFinite(weight) || weight < 0 || weight > 2000) {
     throw new Error('weight must be a non-negative number');
   }
   return {
