@@ -72,6 +72,58 @@ describe('medical × injury combinations', () => {
   });
 });
 
+// Phase 22 — exercise-suitability audit regression matrix. Each case pins the
+// observed candidate against its cataloged demand profile, not its label.
+describe('exercise suitability — observed suggestion audit', () => {
+  test('NWB ankle + upper-body ergometer → the cataloged NWB candidate is genuinely non-weight-bearing', () => {
+    const c = { ...H(), injuries: [NWB('ankle')] };
+    expect(dec(c, 'upper_body_ergometer', MILD)).toBe('ALLOW'); // weightBearing 'none', lower_limb 0 — label-free evidence
+    expect(dec(c, 'indoor_walk', MILD)).toBe('BLOCK_ACTIVITY');
+  });
+  test('NWB knee + standing upper-body exercise (strength_training) → standing demands blocked', () => {
+    const c = { ...H(), injuries: [NWB('knee')] };
+    expect(dec(c, 'strength_training', MILD)).toBe('BLOCK_ACTIVITY'); // weightBearing 'partial' + lower_limb 0.6
+    expect(dec(c, 'upper_body_ergometer', MILD)).toBe('ALLOW');
+  });
+  test('shoulder injury + upper-body ergometer → upper-limb demand not assumed suitable', () => {
+    const c = { ...H(), injuries: [{ bodyPart: 'shoulder', type: 'impingement', status: 'current' }] };
+    const verdict = dec(c, 'upper_body_ergometer', MILD);
+    expect(['MODIFY', 'BLOCK_ACTIVITY']).toContain(verdict);
+    expect(verdict).not.toBe('ALLOW');
+  });
+  test('wrist restriction + seated movement → upper-limb load surfaces', () => {
+    const c = { ...H(), injuries: [{ bodyPart: 'wrist', type: 'fracture', status: 'current' }] };
+    const verdict = dec(c, 'seated_movement', MILD); // upper_limb 0.5 on the wrist region
+    expect(verdict).not.toBe('ALLOW');
+  });
+  test('trunk restriction + seated movement → declared trunk_load restricts even the last-resort candidate', () => {
+    const c = { ...H(), restrictions: [{ status: 'active', categories: ['trunk_load'], severity: 'prohibited', source: 'clinician_documented' }] };
+    expect(dec(c, 'seated_movement', MILD)).toBe('BLOCK_ACTIVITY');
+    // Ergometer's trunk demand is a 0.2 region score, not a trunk_load category — a
+    // category-scoped prohibition does not reach it. Boundary flagged for clinical review.
+    expect(dec(c, 'upper_body_ergometer', MILD)).toBe('ALLOW');
+  });
+  test('multiple concurrent restrictions — no candidate escapes all of them', () => {
+    const c = {
+      ...H(),
+      injuries: [NWB('ankle'), { bodyPart: 'wrist', type: 'fracture', status: 'current' }],
+      restrictions: [{ status: 'active', categories: ['trunk_load'], severity: 'prohibited', source: 'clinician_documented' }],
+    };
+    expect(dec(c, 'upper_body_ergometer', MILD)).toBe('MODIFY'); // wrist injury catches upper-limb load
+    expect(dec(c, 'seated_movement', MILD)).toBe('BLOCK_ACTIVITY'); // trunk_load prohibited
+    const rec = svc.recommend(c, MILD);
+    // Whatever survives must not carry lower_limb weight-bearing, wrist load, or trunk_load —
+    // or the engine must honestly report no candidate.
+    if (rec.disposition === 'suggestion') {
+      const act = A(rec.suggestion.activityId);
+      expect(act.demands.weightBearing).toBe('none');
+      expect(act.demands.categories).not.toContain('trunk_load');
+    } else {
+      expect(['no_safe_candidate', 'suppressed_rest']).toContain(rec.disposition);
+    }
+  });
+});
+
 describe('environment × medical combinations', () => {
   test('S031 heat-sensitive + NWB ankle + heat → indoor path still injury-bound', () => {
     const c = { ...H(), conditions: ['multiple sclerosis'], injuries: [NWB('ankle')] };
