@@ -14,6 +14,7 @@ const express = require('express');
 const router = express.Router();
 const { getPrisma } = require('../lib/prisma');
 const { requireFeature } = require('../middleware/requireFeature');
+const envFixture = require('../services/activitySafety/envFixtureStore');
 const audit = require('../services/auditService');
 const uid = req => req.userId;
 const body = req => (req.body && typeof req.body === 'object' ? req.body : {});
@@ -42,7 +43,10 @@ router.use(gate);
 router.post('/', requireFeature('activity_safety_engine'), async (req, res) => {
   try {
     const prisma = getPrisma(), userId = uid(req), b = body(req);
-    const made = { conditions: 0, restrictions: 0, surgeries: 0, profile: false, user: false };
+    const made = { conditions: 0, restrictions: 0, surgeries: 0, profile: false, user: false, env: false };
+    // env: per-scenario deterministic environment fixture (envPatch) for THIS
+    // synthetic user — in-memory only, cleared on DELETE and on restart.
+    if (b.env && typeof b.env === 'object') { envFixture.set(userId, b.env); made.env = true; }
     for (const name of b.conditions || []) {
       const cond = await prisma.healthCondition.upsert({
         where: { name: String(name) }, create: { name: String(name) }, update: {},
@@ -92,6 +96,7 @@ router.delete('/', requireFeature('activity_safety_engine'), async (req, res) =>
       prisma.userSymptomReport.deleteMany({ where: { userId } }),
     ]);
     await prisma.userActivityProfile.updateMany({ where: { userId }, data: { pregnancyStatus: null, postpartumWeeks: null, mobilityAids: [], wheelchairUser: false, balanceLimitation: false, standingToleranceMin: null } });
+    envFixture.clear(userId);
     await audit.log({ actorId: userId, action: 'fixture.safety_state_reset', entityType: 'SyntheticFixture', entityId: userId, afterData: { c: c.count, r: r.count, s: s.count, i: i.count, sy: sy.count } }).catch(() => null);
     res.json({ cleared: { conditions: c.count, restrictions: r.count, surgeries: s.count, injuries: i.count, symptoms: sy.count } });
   } catch (err) { res.status(400).json({ error: err.message }); }
