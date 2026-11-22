@@ -9,8 +9,8 @@ Nothing enabled in production; `fiber_supplement_suggestions_enabled` remains OF
 
 | Repo | Commit | Contents |
 |---|---|---|
-| backend | `<fill at commit>` | env guards on AI-group fiber flags; assistant weekly + mixed-dish + article-stripping + fiber-thread context; voice interrogative remap; chat fiber-thread map; tests |
-| mobile | `<fill at commit>` | ASK_FIBER preview/result UX, undo hidden for answer-only commands, `createdEntities` typing; `maestro/fiber-stage4-verify.yaml` |
+| backend | `2565642` | env guards on AI-group fiber flags; assistant weekly + mixed-dish + article-stripping + fiber-thread context; voice interrogative remap; chat fiber-thread map; tests |
+| mobile | `6dbf596` | ASK_FIBER preview/result UX, undo hidden for answer-only commands, `createdEntities` typing; `maestro/fiber-stage4-verify.yaml` |
 
 Prior: backend `7d35500` (Stage 3), mobile `20fef22` (Stage 3).
 
