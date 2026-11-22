@@ -188,17 +188,45 @@ async function dailyFiber(userId, { date, tz, persist = true } = {}) {
 // Food-first only — reminders never mention supplements, per the product
 // principle that psyllium is opt-in education, not a push notification.
 // Returns null when there is nothing useful to say (no target resolved).
-function fiberReminderBody(engine) {
+//
+// `kind` matches the auto-window that produced the instance:
+//   morning    — planning only, never a deficit claim
+//   midday     — progress + food suggestion when the day has honest data
+//   pre_dinner — food-first gap suggestion (only sent when a gap remains)
+//   evening    — nonjudgmental summary; no "eat more now"
+//   weekly     — pattern review from the 7-day rollup
+//   custom     — user-picked clock time (legacy body)
+// `restricted` = clinician-guided target — no food picks, no gap framing.
+function fiberReminderBody(engine, { kind = 'custom', restricted = false, weekly = null } = {}) {
   const t = engine?.target?.targetG;
   if (t == null) return null;
   const s = engine.status || {};
   const top = (engine.suggestions || [])[0];
   const suggestion = top ? ` ${top.food} (${top.serving}, ~${top.approxFiberG} g) is one option.` : '';
+
+  if (restricted) {
+    return `Fiber check-in — your target is clinician-guided, so a quick look at today's progress may help.`;
+  }
+  if (kind === 'weekly') {
+    if (!weekly || !weekly.headline) return `Your weekly fiber review is ready — see how the last 7 days went.`;
+    const pick = (weekly.patterns || [])[0];
+    return `${weekly.headline}${pick?.suggestion ? ` ${pick.suggestion}` : ''}`;
+  }
+  if (kind === 'morning') {
+    return `Today's fiber goal is ${t} g. A fiber-rich side at one meal is usually all it takes.${suggestion}`;
+  }
+  if (kind === 'evening') {
+    if (s.remainingG != null && s.remainingG <= 0) return `Nice — you reached today's ${t} g fiber goal.`;
+    if (s.mealsLogged) return `Fiber today: ${s.confirmedG} g confirmed toward ${t} g. Tomorrow is another chance — no catching up needed tonight.`;
+    return `Today's fiber goal was ${t} g. Tomorrow is another chance — no catching up needed tonight.`;
+  }
+  // midday / pre_dinner / custom
   if (!s.mealsLogged) {
     return `Today's fiber goal is ${t} g. Planning a fiber-rich side at your next meal is an easy start.${suggestion}`;
   }
   if (s.remainingG != null && s.remainingG > 0) {
-    return `You've logged ${s.confirmedG} g of your ${t} g fiber goal.${suggestion}`;
+    const when = kind === 'pre_dinner' ? 'at dinner ' : '';
+    return `You've logged ${s.confirmedG} g of your ${t} g fiber goal.${suggestion ? suggestion.replace(' is one option.', ` ${when}could help close the gap.`) : ''}`;
   }
   return `Nice — you've reached today's ${t} g fiber goal.`;
 }
