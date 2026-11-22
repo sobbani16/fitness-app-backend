@@ -98,4 +98,48 @@ describe('PostHog provider outage fallback', () => {
     process.env.FEATURE_FLAGS_PROVIDER = 'env';
     for (const key of Object.keys(FEATURES)) setEnv(key, 'true');
   });
+
+  test('outage does not weaken env guards, deps, allowlists, or shutdown', async () => {
+    process.env.FEATURE_FLAGS_PROVIDER = 'posthog';
+    const provider = require('../src/services/featureFlags/provider');
+    jest.spyOn(provider, 'fetchProviderFlags').mockRejectedValue(new Error('posthog down'));
+    for (const key of Object.keys(FEATURES)) clearEnv(key);
+
+    // 1. env override must NOT bypass an environment restriction during outage
+    const prevEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    setEnv('fiber_intelligence_enabled', 'true'); // environments: dev/test only
+    flags.resetCache();
+    expect(await flags.isEnabled('fiber_intelligence_enabled', 'uX')).toBe(false);
+    process.env.NODE_ENV = prevEnv;
+    clearEnv('fiber_intelligence_enabled');
+
+    // 2. dependent flag must NOT resolve true when its dependency is off
+    setEnv('fiber_ai_enabled', 'true');
+    flags.resetCache();
+    expect(await flags.isEnabled('fiber_ai_enabled', 'uX')).toBe(false); // fiber_intelligence_enabled default-off
+    clearEnv('fiber_ai_enabled');
+
+    // 3. allowlist still narrows during outage
+    process.env.FF_MANUAL_FOOD_LOGGING_USERS = 'someone-else';
+    setEnv('manual_food_logging', 'true');
+    flags.resetCache();
+    expect(await flags.isEnabled('manual_food_logging', 'uX')).toBe(false);
+    delete process.env.FF_MANUAL_FOOD_LOGGING_USERS;
+    flags.resetCache();
+    expect(await flags.isEnabled('manual_food_logging', 'uX')).toBe(true);
+    clearEnv('manual_food_logging');
+
+    // 4. FF_ env override for the shutdown flag still kills the AI group
+    setEnv('ai_emergency_shutdown', 'true');
+    setEnv('ai_coach', 'true');
+    flags.resetCache();
+    expect(await flags.isEnabled('ai_coach', 'uX')).toBe(false);
+    clearEnv('ai_emergency_shutdown');
+    clearEnv('ai_coach');
+
+    provider.fetchProviderFlags.mockRestore();
+    process.env.FEATURE_FLAGS_PROVIDER = 'env';
+    for (const key of Object.keys(FEATURES)) setEnv(key, 'true');
+  });
 });

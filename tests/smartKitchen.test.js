@@ -153,6 +153,7 @@ describe('grocery list', () => {
   });
   it('blocks cross-user access', async () => {
     const add = await request(app).post('/grocery').set('x-user-id', uid).send({ items: [{ name: 'Mine' }] });
+    if (!add.body.items?.[0]) console.log('DIAG grocery-add:', add.status, JSON.stringify(add.body));
     const res = await request(app).patch(`/grocery/${add.body.items[0].id}`).set('x-user-id', 'intruder').send({ status: 'purchased' });
     expect(res.status).toBe(404);
     await request(app).delete(`/grocery/${add.body.items[0].id}`).set('x-user-id', uid);

@@ -1,0 +1,332 @@
+{
+  "retrievedAt": "2026-11-22T05:45:55.852Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [
+      {
+        "id": 2564555,
+        "value": 5,
+        "name": "Nutrient Added",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      }
+    ],
+    "foodPortions": [],
+    "fdcId": 2284435,
+    "description": "GLUCOSE TABLETS, GRAPE",
+    "publicationDate": "5/23/2022",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28062001,
+        "amount": 88.89
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28061998,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1162,
+          "number": "401",
+          "name": "Vitamin C, total ascorbic acid",
+          "rank": 6300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28062003,
+        "amount": 133.3
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28061997,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28062002,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28061999,
+        "amount": 88.89
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28062000,
+        "amount": 444
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "shortDescription": "",
+    "modifiedDate": "7/24/2021",
+    "availableDate": "7/24/2021",
+    "brandOwner": "Wal-Mart Stores, Inc.",
+    "brandName": "RELION",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Milk Additives",
+    "gtinUpc": "681131100946",
+    "householdServingFullText": "1 Tablet",
+    "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED)+, ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+    "marketCountry": "United States",
+    "servingSize": 4.5,
+    "servingSizeUnit": "g",
+    "packageWeight": "50 Tablet",
+    "notaSignificantSourceOf": "NOT A SIGNIFICANT SOURCE OF CALORIES FROM FAT, SATURATED FAT, TRANS FAT, CHOLESTEROL, DIETARY FIBER, VITAMIN A, CALCIUM AND IRON.",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2284435,
+        "description": "GLUCOSE TABLETS, GRAPE",
+        "publicationDate": "5/23/2022",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "shortDescription": "",
+        "modifiedDate": "7/24/2021",
+        "availableDate": "7/24/2021",
+        "brandOwner": "Wal-Mart Stores, Inc.",
+        "brandName": "RELION",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Milk Additives",
+        "gtinUpc": "681131100946",
+        "householdServingFullText": "1 Tablet",
+        "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED)+, ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+        "marketCountry": "United States",
+        "servingSize": 4.5,
+        "servingSizeUnit": "g",
+        "packageWeight": "50 Tablet",
+        "notaSignificantSourceOf": "NOT A SIGNIFICANT SOURCE OF CALORIES FROM FAT, SATURATED FAT, TRANS FAT, CHOLESTEROL, DIETARY FIBER, VITAMIN A, CALCIUM AND IRON."
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1841833,
+        "description": "GLUCOSE TABLETS, GRAPE",
+        "publicationDate": "6/25/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "5/5/2021",
+        "availableDate": "5/5/2021",
+        "brandOwner": "Wal-Mart Stores, Inc.",
+        "brandName": "RELION",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Milk Additives",
+        "gtinUpc": "681131100946",
+        "householdServingFullText": "1 Tablet",
+        "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED)+, ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+        "marketCountry": "United States",
+        "servingSize": 4.5,
+        "servingSizeUnit": "g",
+        "packageWeight": "50 Tablet",
+        "notaSignificantSourceOf": "NOT A SIGNIFICANT SOURCE OF CALORIES FROM FAT, SATURATED FAT, TRANS FAT, CHOLESTEROL, DIETARY FIBER, VITAMIN A, CALCIUM AND IRON."
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1652961,
+        "description": "GLUCOSE TABLETS",
+        "publicationDate": "3/19/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "6/5/2018",
+        "availableDate": "6/5/2018",
+        "brandOwner": "Wal-Mart Stores, Inc.",
+        "brandName": "RELION",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Specialty Formula Supplements",
+        "gtinUpc": "681131100946",
+        "householdServingFullText": "1 Tablet",
+        "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED)+, ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+        "marketCountry": "United States",
+        "servingSize": 4.5,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1360766,
+        "description": "GLUCOSE TABLETS",
+        "publicationDate": "2/26/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "6/5/2018",
+        "availableDate": "6/5/2018",
+        "brandOwner": "Wal-Mart Stores, Inc.",
+        "brandName": "RELION",
+        "subbrandName": "",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Specialty Formula Supplements",
+        "gtinUpc": "681131100946",
+        "householdServingFullText": "1 Tablet",
+        "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED)+, ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+        "marketCountry": "United States",
+        "servingSize": 4.5,
+        "servingSizeUnit": "g",
+        "packageWeight": "",
+        "notaSignificantSourceOf": ""
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "modifiedDate": "6/5/2018",
+        "availableDate": "6/5/2018",
+        "brandOwner": "Wal-Mart Stores, Inc.",
+        "dataSource": "LI",
+        "gpcCategoryGroup": "Specialty Formula Supplements",
+        "gtinUpc": "681131100946",
+        "householdServingFullText": "1 Tablet",
+        "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED)+, ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+        "marketCountry": "United States",
+        "servingSize": 4.5,
+        "servingSizeUnit": "g",
+        "fdcId": 565684,
+        "description": "GLUCOSE TABLETS",
+        "publicationDate": "4/1/2019",
+        "workingFoodId": 45350047,
+        "dataType": "Branded",
+        "foodClass": "Branded"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 0
+      },
+      "sodium": {
+        "value": 0
+      },
+      "carbohydrates": {
+        "value": 4
+      },
+      "sugars": {
+        "value": 4
+      },
+      "protein": {
+        "value": 0
+      },
+      "calories": {
+        "value": 20
+      }
+    }
+  }
+}

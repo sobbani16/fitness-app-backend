@@ -271,9 +271,9 @@
     "scenario": "User eats gulab jamun, jalebi or another sweet",
     "expectedVerbatim": "Use estimated portion and recipe data; warn about added sugar when supported",
     "letter": "C",
-    "status": "blocked_not_implemented",
-    "evidence": null,
-    "actual": null
+    "status": "executed_pass",
+    "evidence": "tests/scenarioFixtures.test.js",
+    "actual": "fixture executed vs real engine"
   },
   {
     "id": "C04",
@@ -283,9 +283,9 @@
     "scenario": "User logs deep-fried samosa, pakora or chicken",
     "expectedVerbatim": "Consider cooking method, oil absorption, total fat and energy density",
     "letter": "C",
-    "status": "blocked_not_implemented",
-    "evidence": null,
-    "actual": null
+    "status": "executed_pass",
+    "evidence": "tests/scenarioFixtures.test.js",
+    "actual": "fixture executed vs real engine"
   },
   {
     "id": "C05",
@@ -319,9 +319,9 @@
     "scenario": "User eats nuts, seeds or avocado",
     "expectedVerbatim": "Recognize fat quality while still counting calories",
     "letter": "C",
-    "status": "blocked_not_implemented",
-    "evidence": null,
-    "actual": null
+    "status": "executed_pass",
+    "evidence": "tests/scenarioFixtures.test.js",
+    "actual": "fixture executed vs real engine"
   },
   {
     "id": "C08",
@@ -1387,9 +1387,9 @@
     "scenario": "User eats out at restaurants frequently",
     "expectedVerbatim": "Support uncertain portions, sauces and cooking oils without discouraging eating out",
     "letter": "L",
-    "status": "blocked_not_implemented",
-    "evidence": null,
-    "actual": null
+    "status": "executed_pass",
+    "evidence": "tests/scenarioFixtures.test.js",
+    "actual": "fixture executed vs real engine"
   },
   {
     "id": "L07",

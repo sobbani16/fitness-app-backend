@@ -51,3 +51,20 @@ Five flags registered OFF/fail-closed (`group:'medical'`): `allergen_warnings`, 
 - **Pharmacist**: 47 supplement DRAFT rules, J02/J03 content, `supplement_safety`/`medication_interaction` activation prerequisites.
 - **ED specialist**: A05 (review-only, no consumer), G4 floor, L02 rate bound, any underconsumption messaging.
 - **Obstetric**: I10 pregnancy/lactation — full block, no waiver path.
+
+## Scenario review packages — async-evidence cohort (8 IDs)
+
+Evidence: `data/scenarioEvidence.async.json`, `tests/asyncScenarios.test.js` (service+DB), `tests/asyncScenarios.api.test.js` (authenticated HTTP). Each row = what engineering demonstrated vs what needs a clinical decision.
+
+| ID | Verbatim expectation | Engineering evidence (verified) | Clinical decision needed | Specialty | Proposed acceptance fixture |
+|---|---|---|---|---|---|
+| H01 | "Ask location, timing, severity and frequency; avoid assuming protein is the cause" | POST /symptoms captures severity/context/timing; urgent codes escalate; no causal attribution | Conversational probing flow (location/frequency questions) — is scripted triage wording acceptable? | Physician | Reviewer defines probe set + wording |
+| H02 | "Review fiber, fluids, relevant medication changes and symptom history" | Symptom history + co-occurrence context | Medication-change review is a clinical rule — approved rule set + thresholds required | Physician + Pharmacist | Approved medication-review rule rows |
+| H03 | "Explore changes in fiber quantity, food preparation and tolerance" | Association surfaces food names + timing | Tolerance/preparation guidance = reviewed educational content | Dietitian | Approved guidance library entries |
+| H05 | "Offer reviewed preparation and gradual-adjustment guidance" | — (no content exists) | Entire guidance must come from approved content; nothing ships unapproved | Dietitian | Reviewer-authored fixture + content |
+| H07 | "Offer appropriate reflux-related education" | Single-report path verified not to fabricate | Reflux-specific education = condition-specific content — approval required | Physician | Approved education module |
+| D02 | "Recognize a possible temporal association; suggest gradual adjustments from approved guidance" | Temporal association + dose/timing context demonstrated (service+API) | "Gradual adjustments" text must be approved | Dietitian | Approved adjustment wording |
+| E04 | "Identify possible pattern; offer reviewed guidance" | Pattern identification demonstrated | Reviewed guidance delivery mechanism + content | Dietitian | Approved guidance fixture |
+| G04 | "Identify possible association and review dose/timing" | Association includes priorMeals + reportedAt (service+API) | Dose-review guidance content | Dietitian | Approved dose-review wording |
+
+**Gate unchanged:** approval ≠ activation — all relevant flags OFF; no unapproved guidance reaches user output. The non-clinical portions (pattern recognition, observational context, professional-review suggestion) are already exercised end-to-end.

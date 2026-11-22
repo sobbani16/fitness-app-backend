@@ -21,10 +21,12 @@
  * bounds kill-switch propagation delay on the server.
  */
 
-const { FEATURES, KEYS, AI_GROUP_KEYS, envOverrideName } = require('../../config/featureRegistry');
+const { FEATURES, KEYS, envOverrideName } = require('../../config/featureRegistry');
 const provider = require('./provider');
 
-const CACHE_TTL_MS = Number(process.env.FF_CACHE_TTL_MS) || 60_000;
+const CACHE_TTL_MS = process.env.FF_CACHE_TTL_MS !== undefined
+  ? Number(process.env.FF_CACHE_TTL_MS)
+  : 60_000;
 const CACHE_MAX = Number(process.env.FF_CACHE_MAX) || 5_000;
 
 // userId -> { flags: {key:boolean}, expiresAt }
@@ -44,6 +46,16 @@ function envOverride(key) {
   return undefined;
 }
 
+// FF_<KEY>_USERS=u1,u2 — explicit per-account allowlist. When set, the flag
+// can only resolve true for listed userIds; everyone else resolves false
+// regardless of overrides/provider. Used for internal-cohort rollouts where
+// PostHog targeting is unavailable. Parses lazily per evaluation.
+function envAllowlist(key) {
+  const raw = process.env[`${envOverrideName(key)}_USERS`];
+  if (typeof raw !== 'string' || !raw.trim()) return null;
+  return new Set(raw.split(',').map((s) => s.trim()).filter(Boolean));
+}
+
 function envAllowed(feature) {
   if (!feature.environments) return true;
   return feature.environments.includes(process.env.NODE_ENV || 'development');
@@ -53,7 +65,7 @@ function envAllowed(feature) {
  * Resolve one key against provider flags + env, following the precedence above.
  * `resolved` memoizes within a single evaluation pass (dependency chains).
  */
-function resolveKey(key, providerFlags, aiShutdown, resolved, visiting) {
+function resolveKey(key, providerFlags, aiShutdown, resolved, visiting, userId) {
   if (resolved.has(key)) return resolved.get(key);
   const feature = FEATURES[key];
   if (!feature) { resolved.set(key, false); return false; }
@@ -66,15 +78,20 @@ function resolveKey(key, providerFlags, aiShutdown, resolved, visiting) {
   } else if (feature.dependsOn && !visiting.has(key) &&
              feature.dependsOn.some((dep) => {
                const seen = new Set(visiting); seen.add(key);
-               return !resolveKey(dep, providerFlags, aiShutdown, resolved, seen);
+               return !resolveKey(dep, providerFlags, aiShutdown, resolved, seen, userId);
              })) {
     value = false;                                                  // 4
-  } else if (envOverride(key) !== undefined) {
-    value = envOverride(key);                                       // 5
-  } else if (Object.prototype.hasOwnProperty.call(providerFlags, key)) {
-    value = Boolean(providerFlags[key]);                            // 6
   } else {
-    value = feature.default;                                        // 7
+    const allow = envAllowlist(key);
+    if (allow && !allow.has(String(userId))) {
+      value = false;                                                // 5 — cohort gate
+    } else if (envOverride(key) !== undefined) {
+      value = envOverride(key);                                     // 6
+    } else if (Object.prototype.hasOwnProperty.call(providerFlags, key)) {
+      value = Boolean(providerFlags[key]);                          // 7
+    } else {
+      value = feature.default;                                      // 8
+    }
   }
   resolved.set(key, value);
   return value;
@@ -97,34 +114,28 @@ async function getProviderFlags(userId) {
  * snake_case plus the resolved ai_emergency_shutdown state.
  */
 async function evaluateAll(userId) {
-  const cached = cache.get(String(userId));
+  const cached = CACHE_TTL_MS > 0 ? cache.get(String(userId)) : null;
   if (cached && cached.expiresAt > Date.now()) return cached.flags;
 
   const providerFlags = await getProviderFlags(userId);
   const flags = {};
   const resolved = new Map();
 
-  if (providerFlags === null) {
-    // Provider outage: env overrides + registry defaults only.
-    for (const key of KEYS) {
-      flags[key] = envOverride(key) !== undefined ? envOverride(key)
-        : envAllowed(FEATURES[key]) ? FEATURES[key].default : false;
-    }
-    flags.ai_emergency_shutdown = envAiShutdown();
-    if (flags.ai_emergency_shutdown) {
-      for (const key of AI_GROUP_KEYS) flags[key] = false;
-    }
-  } else {
-    // Resolve the control flag first so its env/provider value participates in
-    // this same evaluation pass for every group:'ai' key.
-    const shutdownFlag = resolveKey('ai_emergency_shutdown', providerFlags, false, resolved, new Set());
-    const aiShutdown = envAiShutdown() || shutdownFlag;
-    resolved.set('ai_emergency_shutdown', shutdownFlag);
-    for (const key of KEYS) flags[key] = resolveKey(key, providerFlags, aiShutdown, resolved, new Set());
-  }
+  // Provider outage (null) resolves through the SAME precedence chain with an
+  // empty provider contribution — env guards, dependencies, allowlists, and
+  // the emergency shutdown must not weaken when the provider is unreachable.
+  const pf = providerFlags === null ? {} : providerFlags;
+  // Resolve the control flag first so its env/provider value participates in
+  // this same evaluation pass for every group:'ai' key.
+  const shutdownFlag = resolveKey('ai_emergency_shutdown', pf, false, resolved, new Set(), userId);
+  const aiShutdown = envAiShutdown() || shutdownFlag;
+  resolved.set('ai_emergency_shutdown', shutdownFlag);
+  for (const key of KEYS) flags[key] = resolveKey(key, pf, aiShutdown, resolved, new Set(), userId);
 
-  if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value);
-  cache.set(String(userId), { flags, expiresAt: Date.now() + CACHE_TTL_MS });
+  if (CACHE_TTL_MS > 0) {
+    if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value);
+    cache.set(String(userId), { flags, expiresAt: Date.now() + CACHE_TTL_MS });
+  }
   return flags;
 }
 

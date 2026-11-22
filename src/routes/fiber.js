@@ -59,7 +59,14 @@ router.put('/target', requireFeature('fiber_daily_goal_enabled'), async (req, re
     } else {
       const t = Number(targetG);
       if (!Number.isFinite(t) || t < 0 || t > 100) throw httpError(400, 'targetG must be 0–100 g');
-      const basis = clinicianDirected === true ? 'clinician' : 'custom';
+      // 'clinician' provenance is attested data — a member must not be able to
+      // mark their own target clinician-directed. Honoured only for clinical
+      // roles; everyone else silently records 'custom'.
+      const isClinical = await prisma.userRole.findFirst({
+        where: { userId, active: true, role: { name: { in: ['CLINICAL_REVIEWER', 'NUTRITIONIST', 'ADMIN'] } } },
+        select: { id: true },
+      });
+      const basis = clinicianDirected === true && isClinical ? 'clinician' : 'custom';
       data = { ...base, fiberTarget: t, fiberTargetBasis: basis, fiberTargetNote: typeof note === 'string' ? note.slice(0, 300) : null };
     }
     const saved = await prisma.macroGoal.upsert({ where: { userId }, update: data, create: { userId, ...data } });

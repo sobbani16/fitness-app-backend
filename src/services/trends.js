@@ -12,6 +12,17 @@ const { getPrisma } = require('../lib/prisma');
 const { normalizeGoal } = require('./calorieEngine');
 
 const DAY_MS = 86400000;
+// Provisional engineering heuristics for pattern surfacing — versioned +
+// configurable, NOT medical guidance. minLogs avoids over-reading small
+// samples; minSharePct ties the flag to meaningful daily share.
+const PATTERN_THRESHOLDS = {
+  version: 'pattern-v1',
+  frequentCalorieDense: { minLogs: 3, minSharePct: 15, minLoggedDays: 3 },
+  proteinBelowTargetPct: 0.8,
+  fiberBelowTargetPct: 0.7,
+  kcalOverTargetPct: 115,
+  kcalUnderTargetPct: 80,
+};
 const round1 = (x) => (x == null ? null : Math.round(x * 10) / 10);
 const toStr = (d) => d.toISOString().slice(0, 10);
 
@@ -144,6 +155,52 @@ async function getTrends(userId, { tz = 'UTC', days = 14, rapidLossBoundKgPerWee
     if (r.outcomeReview || (r.weeksOverBound || 0) > 0) reviews.push({ kind: 'rapid_weight_loss', outcome: r.outcomeReview ? 'professional_review' : 'monitor', reason: r.reason });
   }
 
+  // ---- Sprint B: symptom/context + outcome-divergence ----------------------
+  const symptoms = await require('./symptomContext').getSymptomContext(userId, { days: daysN }).catch(() => null);
+  if (symptoms?.escalation) reviews.push(symptoms.escalation);
+
+  // L10/A09-style divergence: recent score snapshots vs computed goalProgress.
+  const snapshots = await q(prisma.dailyScoreSnapshot?.findMany?.({ where: { userId, date: { gte: new Date(toStr(start)) } }, orderBy: { date: 'desc' }, take: 14, select: { composite: true } })) || [];
+  const divergence = require('./scenarioCapabilities').detectOutcomeDivergence({
+    recentScores: (snapshots || []).map((s) => s.composite).filter((n) => n != null),
+    goalProgress,
+  });
+  if (divergence.outcomeReview) reviews.push({ kind: 'score_outcome_divergence', outcome: 'outcome_review', reason: divergence.reason, avgScore: divergence.avgScore });
+
+  // ---- goal-aware educational observations (deterministic templates) --------
+  const observations = [];
+  if (energy.state !== 'insufficient' && macroGoal?.caloriesTarget) {
+    if (energy.adherencePct > 115 && ['weight_loss', 'fat_loss'].includes(currentGoal)) {
+      observations.push({ key: 'kcal_over_target', goal: currentGoal, observation: `Recorded intake averaged ${Math.round(energy.adherencePct - 100)}% above your selected calorie target over ${energy.loggedDays} logged day(s).`, periodDays: daysN, coveragePct: coverage.foodCoveragePct, confidence: energy.state === 'partial' ? 'low' : 'moderate', nextStep: 'Review portion sizes or the goal target if this is a recurring pattern.' });
+    }
+    if (energy.adherencePct < 80 && ['weight_gain', 'muscle_gain', 'bulking'].includes(currentGoal)) {
+      observations.push({ key: 'kcal_under_target', goal: currentGoal, observation: `Recorded intake averaged ${Math.round(100 - energy.adherencePct)}% below your selected calorie target over ${energy.loggedDays} logged day(s).`, periodDays: daysN, coveragePct: coverage.foodCoveragePct, confidence: energy.state === 'partial' ? 'low' : 'moderate', nextStep: 'Check whether missed logging or missed meals is the cause before changing the plan.' });
+    }
+  }
+  if (macros.state === 'ok' && macroGoal?.proteinTarget && macros.avgProteinG != null && macros.avgProteinG < macroGoal.proteinTarget * 0.8 && ['muscle_gain', 'weight_gain', 'bulking'].includes(currentGoal)) {
+    observations.push({ key: 'protein_below_target', goal: currentGoal, observation: `Recorded protein averaged ${macros.avgProteinG}g vs your ${macroGoal.proteinTarget}g target on logged days.`, periodDays: daysN, coveragePct: coverage.foodCoveragePct, confidence: 'moderate', nextStep: 'Protein-rich additions may help close the gap if intake is genuinely low.' });
+  }
+  // Sprint C: repeated calorie-dense-food pattern (frequency × share) —
+  // thresholds from PATTERN_THRESHOLDS (provisional, configurable).
+  const p = PATTERN_THRESHOLDS.frequentCalorieDense;
+  if (macroGoal?.caloriesTarget && loggedDays.length >= p.minLoggedDays) {
+    const byFood = new Map();
+    for (const m of meals || []) {
+      const k = String(m.foodName || '').trim().toLowerCase(); if (!k) continue;
+      const e = byFood.get(k) || { count: 0, kcalSum: 0 };
+      e.count++; e.kcalSum += m.calories || 0; byFood.set(k, e);
+    }
+    for (const [food, e] of byFood) {
+      const avgShare = e.kcalSum / e.count / macroGoal.caloriesTarget * 100;
+      if (e.count >= p.minLogs && avgShare >= p.minSharePct) {
+        observations.push({ key: 'frequent_calorie_dense', goal: currentGoal, observation: `"${food}" was logged ${e.count} times this window, averaging ~${round1(avgShare)}% of your daily calorie target each time.`, periodDays: daysN, coveragePct: coverage.foodCoveragePct, confidence: 'moderate', basis: 'frequency×portion pattern — not a food classification', nextStep: 'If the pattern is unintended, portion size is the practical lever.' });
+      }
+    }
+  }
+  if (macros.state === 'ok' && macroGoal?.fiberTarget && macros.avgFiberG != null && macros.avgFiberG < macroGoal.fiberTarget * 0.7) {
+    observations.push({ key: 'fiber_below_target', goal: currentGoal, observation: `Recorded fiber averaged ${macros.avgFiberG}g vs a ${macroGoal.fiberTarget}g reference target — some logged foods may lack fiber data.`, periodDays: daysN, coveragePct: coverage.foodCoveragePct, confidence: 'low', nextStep: 'Verify whether fiber is actually low or just unlogged/unrecorded.' });
+  }
+
   const sufficient = coverage.foodLoggedDays >= 3 || coverage.weightEntries >= 3 || coverage.workoutSessions >= 2 || coverage.stepDays >= 3;
   return {
     version: 'trends-v1', timezone: tz, windowDays: daysN,
@@ -151,9 +208,11 @@ async function getTrends(userId, { tz = 'UTC', days = 14, rapidLossBoundKgPerWee
     insufficientReason: sufficient ? null : 'Not enough recorded days in this window — trends need records, gaps are unknowns.',
     coverage, energy, macros, weight, activity, activeKcalNotes,
     goal: { current: currentGoal, expectedDirection, changesInWindow },
-    progress: { goalProgress, basis: 'smoothed weight direction vs goal expectation — observational' },
+    progress: { goalProgress, divergence: divergence.state === 'reliable' ? divergence : { state: divergence.state }, basis: 'smoothed weight direction vs goal expectation — observational' },
+    symptoms: symptoms ? { state: symptoms.state, coverage: symptoms.coverage, reportCount: symptoms.coverage.symptomReports, associations: symptoms.associations, escalation: symptoms.escalation } : null,
+    observations,
     reviews,
-    provenance: { meals: 'FoodLog.loggedAt(local)', weights: 'WeightEntry', workouts: 'WorkoutSession', steps: 'DailySteps', goals: 'GoalHistory+User.goalType' },
+    provenance: { meals: 'FoodLog.loggedAt(local)', weights: 'WeightEntry', workouts: 'WorkoutSession', steps: 'DailySteps', goals: 'GoalHistory+User.goalType', symptoms: 'UserSymptomReport', scores: 'DailyScoreSnapshot' },
   };
 }
 

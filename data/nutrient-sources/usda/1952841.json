@@ -1,0 +1,308 @@
+{
+  "retrievedAt": "2026-11-22T05:45:53.388Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [
+      {
+        "id": 2107813,
+        "value": 9,
+        "name": "Added Package Weight",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      }
+    ],
+    "foodPortions": [],
+    "fdcId": 1952841,
+    "description": "GLUCOSE LIQUID SHOT",
+    "publicationDate": "7/29/2021",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 23770940,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 23770945,
+        "amount": 17
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 23770943,
+        "amount": 102
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 23770941,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 23770942,
+        "amount": 25.42
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 23770944,
+        "amount": 25.42
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "modifiedDate": "5/5/2021",
+    "availableDate": "5/5/2021",
+    "brandOwner": "CVS Pharmacy, Inc.",
+    "brandName": "CVS PHARMACY",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Alcohol",
+    "gtinUpc": "050428338070",
+    "householdServingFullText": "2 OZA",
+    "ingredients": "PURIFIED WATER DEXTROSE (D-GLUCOSE), CITRIC ACID, ARTIFICIAL AND NATURAL FLAVOR, SODIUM BENZOATE (PRESERVATIVE), FD&C RED #40.",
+    "marketCountry": "United States",
+    "servingSize": 59,
+    "servingSizeUnit": "ml",
+    "packageWeight": "2 fl oz/59 mL",
+    "notaSignificantSourceOf": "NOT A SIGNIFICANT SOURCE OF CALORIES FROM FAT, SATURATED FAT, TRANS FAT, CHOLESTEROL, DIETARY FIBER, VITAMIN A, VITAMIN C, CALCIUM AND IRON.",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1952841,
+        "description": "GLUCOSE LIQUID SHOT",
+        "publicationDate": "7/29/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "5/5/2021",
+        "availableDate": "5/5/2021",
+        "brandOwner": "CVS Pharmacy, Inc.",
+        "brandName": "CVS PHARMACY",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Alcohol",
+        "gtinUpc": "050428338070",
+        "householdServingFullText": "2 OZA",
+        "ingredients": "PURIFIED WATER DEXTROSE (D-GLUCOSE), CITRIC ACID, ARTIFICIAL AND NATURAL FLAVOR, SODIUM BENZOATE (PRESERVATIVE), FD&C RED #40.",
+        "marketCountry": "United States",
+        "servingSize": 59,
+        "servingSizeUnit": "ml",
+        "packageWeight": "2 fl oz/59 mL",
+        "notaSignificantSourceOf": "NOT A SIGNIFICANT SOURCE OF CALORIES FROM FAT, SATURATED FAT, TRANS FAT, CHOLESTEROL, DIETARY FIBER, VITAMIN A, VITAMIN C, CALCIUM AND IRON."
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1842523,
+        "description": "GLUCOSE LIQUID SHOT",
+        "publicationDate": "6/25/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "5/5/2021",
+        "availableDate": "5/5/2021",
+        "brandOwner": "CVS Pharmacy, Inc.",
+        "brandName": "CVS PHARMACY",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Alcohol",
+        "gtinUpc": "050428338070",
+        "householdServingFullText": "2 OZA",
+        "ingredients": "PURIFIED WATER DEXTROSE (D-GLUCOSE), CITRIC ACID, ARTIFICIAL AND NATURAL FLAVOR, SODIUM BENZOATE (PRESERVATIVE), FD&C RED #40.",
+        "marketCountry": "United States",
+        "servingSize": 59,
+        "servingSizeUnit": "ml",
+        "packageWeight": "59 mL",
+        "notaSignificantSourceOf": "NOT A SIGNIFICANT SOURCE OF CALORIES FROM FAT, SATURATED FAT, TRANS FAT, CHOLESTEROL, DIETARY FIBER, VITAMIN A, VITAMIN C, CALCIUM AND IRON."
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1671515,
+        "description": "GLUCOSE LIQUID SHOT",
+        "publicationDate": "3/19/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "7/7/2018",
+        "availableDate": "7/7/2018",
+        "brandOwner": "CVS Pharmacy, Inc.",
+        "brandName": "CVS PHARMACY",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Energy, Protein & Muscle Recovery Drinks",
+        "gtinUpc": "050428338070",
+        "householdServingFullText": "2 OZA",
+        "ingredients": "PURIFIED WATER DEXTROSE (D-GLUCOSE), CITRIC ACID, ARTIFICIAL AND NATURAL FLAVOR, SODIUM BENZOATE (PRESERVATIVE), FD&C RED #40.",
+        "marketCountry": "United States",
+        "servingSize": 59,
+        "servingSizeUnit": "ml"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1379289,
+        "description": "GLUCOSE LIQUID SHOT",
+        "publicationDate": "2/26/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "7/7/2018",
+        "availableDate": "7/7/2018",
+        "brandOwner": "CVS Pharmacy, Inc.",
+        "brandName": "CVS PHARMACY",
+        "subbrandName": "",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Energy, Protein & Muscle Recovery Drinks",
+        "gtinUpc": "050428338070",
+        "householdServingFullText": "2 OZA",
+        "ingredients": "PURIFIED WATER DEXTROSE (D-GLUCOSE), CITRIC ACID, ARTIFICIAL AND NATURAL FLAVOR, SODIUM BENZOATE (PRESERVATIVE), FD&C RED #40.",
+        "marketCountry": "United States",
+        "servingSize": 59,
+        "servingSizeUnit": "ml",
+        "packageWeight": "",
+        "notaSignificantSourceOf": ""
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "modifiedDate": "7/7/2018",
+        "availableDate": "7/7/2018",
+        "brandOwner": "CVS Pharmacy, Inc.",
+        "dataSource": "LI",
+        "gpcCategoryGroup": "Energy, Protein & Muscle Recovery Drinks",
+        "gtinUpc": "050428338070",
+        "householdServingFullText": "2 OZA",
+        "ingredients": "PURIFIED WATER DEXTROSE (D-GLUCOSE), CITRIC ACID, ARTIFICIAL AND NATURAL FLAVOR, SODIUM BENZOATE (PRESERVATIVE), FD&C RED #40.",
+        "marketCountry": "United States",
+        "servingSize": 59,
+        "servingSizeUnit": "ml",
+        "fdcId": 588709,
+        "description": "GLUCOSE LIQUID SHOT",
+        "publicationDate": "4/1/2019",
+        "workingFoodId": 45380783,
+        "dataType": "Branded",
+        "foodClass": "Branded"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 0
+      },
+      "sodium": {
+        "value": 10
+      },
+      "carbohydrates": {
+        "value": 15
+      },
+      "sugars": {
+        "value": 15
+      },
+      "protein": {
+        "value": 0
+      },
+      "calories": {
+        "value": 60.2
+      }
+    }
+  }
+}

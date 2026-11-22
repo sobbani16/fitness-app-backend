@@ -1,0 +1,382 @@
+{
+  "retrievedAt": "2026-11-22T05:45:55.853Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [
+      {
+        "id": 2335922,
+        "value": 9,
+        "name": "Added Package Weight",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      }
+    ],
+    "foodPortions": [],
+    "fdcId": 2125953,
+    "description": "GLUCOSE TABLETS, ORANGE",
+    "publicationDate": "10/28/2021",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1258,
+          "number": "606",
+          "name": "Fatty acids, total saturated",
+          "rank": 9700,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25922893,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1079,
+          "number": "291",
+          "name": "Fiber, total dietary",
+          "rank": 1200,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25922889,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25922885,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25922887,
+        "amount": 375
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25922888,
+        "amount": 100
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25922890,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25922886,
+        "amount": 100
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25922884,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1253,
+          "number": "601",
+          "name": "Cholesterol",
+          "rank": 15700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25922891,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1257,
+          "number": "605",
+          "name": "Fatty acids, total trans",
+          "rank": 15400,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25922892,
+        "amount": 0
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "modifiedDate": "5/5/2021",
+    "availableDate": "5/5/2021",
+    "brandOwner": "Amerisourcebergen Corporation ",
+    "brandName": "GOOD NEIGHBOR PHARMACY",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Candy",
+    "gtinUpc": "087701426018",
+    "householdServingFullText": "1 Tablet",
+    "ingredients": "DEXTROSE (D-GLUCOSE), MALTODEXTRIN, CITRIC ACID, MAGNESIUM STEARATE, MICROCRYSTALLINE CELLULOSE, NATURAL & ARTIFICIAL ORANGE FLAVOR, ASCORBIC ACID, YELLOW #6.",
+    "marketCountry": "United States",
+    "servingSize": 4,
+    "servingSizeUnit": "g",
+    "notaSignificantSourceOf": "NOT A SIGNIFICANT SOURCE OF VITAMIN A, VITAMIN C, CALCIUM, IRON.",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2125953,
+        "description": "GLUCOSE TABLETS, ORANGE",
+        "publicationDate": "10/28/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "5/5/2021",
+        "availableDate": "5/5/2021",
+        "brandOwner": "Amerisourcebergen Corporation ",
+        "brandName": "GOOD NEIGHBOR PHARMACY",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Candy",
+        "gtinUpc": "087701426018",
+        "householdServingFullText": "1 Tablet",
+        "ingredients": "DEXTROSE (D-GLUCOSE), MALTODEXTRIN, CITRIC ACID, MAGNESIUM STEARATE, MICROCRYSTALLINE CELLULOSE, NATURAL & ARTIFICIAL ORANGE FLAVOR, ASCORBIC ACID, YELLOW #6.",
+        "marketCountry": "United States",
+        "servingSize": 4,
+        "servingSizeUnit": "g",
+        "notaSignificantSourceOf": "NOT A SIGNIFICANT SOURCE OF VITAMIN A, VITAMIN C, CALCIUM, IRON."
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1842198,
+        "description": "GLUCOSE TABLETS, ORANGE",
+        "publicationDate": "6/25/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "5/5/2021",
+        "availableDate": "5/5/2021",
+        "brandOwner": "Amerisourcebergen Corporation ",
+        "brandName": "GOOD NEIGHBOR PHARMACY",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Candy",
+        "gtinUpc": "087701426018",
+        "householdServingFullText": "1 Tablet",
+        "ingredients": "DEXTROSE (D-GLUCOSE), MALTODEXTRIN, CITRIC ACID, MAGNESIUM STEARATE, MICROCRYSTALLINE CELLULOSE, NATURAL & ARTIFICIAL ORANGE FLAVOR, ASCORBIC ACID, YELLOW #6.",
+        "marketCountry": "United States",
+        "servingSize": 4,
+        "servingSizeUnit": "g",
+        "notaSignificantSourceOf": "NOT A SIGNIFICANT SOURCE OF VITAMIN A, VITAMIN C, CALCIUM, IRON."
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1810811,
+        "description": "GLUCOSE TABLETS, ORANGE",
+        "publicationDate": "6/17/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "6/14/2018",
+        "availableDate": "6/14/2018",
+        "brandOwner": "Amerisourcebergen Corporation ",
+        "brandName": "GOOD NEIGHBOR PHARMACY",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Specialty Formula Supplements",
+        "gtinUpc": "087701426018",
+        "householdServingFullText": "1 Tablet",
+        "ingredients": "DEXTROSE (D-GLUCOSE), MALTODEXTRIN, CITRIC ACID, MAGNESIUM STEARATE, MICROCRYSTALLINE CELLULOSE, NATURAL & ARTIFICIAL ORANGE FLAVOR, ASCORBIC ACID, YELLOW #6.",
+        "marketCountry": "United States",
+        "servingSize": 4,
+        "servingSizeUnit": "g",
+        "notaSignificantSourceOf": "NOT A SIGNIFICANT SOURCE OF VITAMIN A, VITAMIN C, CALCIUM, IRON."
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "modifiedDate": "6/14/2018",
+        "availableDate": "6/14/2018",
+        "brandOwner": "GOOD NEIGHBOR PHARMACY",
+        "dataSource": "LI",
+        "gpcCategoryGroup": "Specialty Formula Supplements",
+        "gtinUpc": "087701426018",
+        "householdServingFullText": "1 Tablet",
+        "ingredients": "DEXTROSE (D-GLUCOSE), MALTODEXTRIN, CITRIC ACID, MAGNESIUM STEARATE, MICROCRYSTALLINE CELLULOSE, NATURAL & ARTIFICIAL ORANGE FLAVOR, ASCORBIC ACID, YELLOW #6.",
+        "marketCountry": "United States",
+        "servingSize": 4,
+        "servingSizeUnit": "g",
+        "fdcId": 580743,
+        "description": "GLUCOSE TABLETS",
+        "publicationDate": "4/1/2019",
+        "workingFoodId": 45371306,
+        "dataType": "Branded",
+        "foodClass": "Branded"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 0
+      },
+      "saturatedFat": {
+        "value": 0
+      },
+      "transFat": {
+        "value": 0
+      },
+      "cholesterol": {
+        "value": 0
+      },
+      "sodium": {
+        "value": 0
+      },
+      "carbohydrates": {
+        "value": 4
+      },
+      "fiber": {
+        "value": 0
+      },
+      "sugars": {
+        "value": 4
+      },
+      "protein": {
+        "value": 0
+      },
+      "calories": {
+        "value": 15
+      }
+    }
+  }
+}

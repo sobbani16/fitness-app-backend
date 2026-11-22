@@ -2,6 +2,13 @@ jest.mock('../src/services/aiService', () => require('./fixtures/aiService'));
 const request = require('supertest');
 const app = require('../src/app');
 
+// Self-sufficient flag state — POST /chat is requireFeature('ai_coach')-gated.
+beforeAll(() => {
+  const { envOverrideName } = require('../src/config/featureRegistry');
+  process.env[envOverrideName('ai_coach')] = 'true';
+  require('../src/services/featureFlags/service').resetCache();
+});
+
 // Reset the in-module limiter between tests so counts don't leak.
 beforeEach(() => {
   const chatRouter = require('../src/routes/chat');

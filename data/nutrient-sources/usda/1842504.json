@@ -1,0 +1,327 @@
+{
+  "retrievedAt": "2026-11-22T05:45:55.852Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [
+      {
+        "id": 1949740,
+        "value": 1,
+        "name": "Food Category",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      }
+    ],
+    "foodPortions": [],
+    "fdcId": 1842504,
+    "description": "GLUCOSE TABLETS, GRAPE",
+    "publicationDate": "6/25/2021",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 22275488,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1162,
+          "number": "401",
+          "name": "Vitamin C, total ascorbic acid",
+          "rank": 6300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 22275494,
+        "amount": 133.3
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 22275490,
+        "amount": 88.89
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 22275489,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 22275492,
+        "amount": 88.89
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 22275491,
+        "amount": 444
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 22275493,
+        "amount": 0
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "modifiedDate": "5/5/2021",
+    "availableDate": "5/5/2021",
+    "brandOwner": "CVS Pharmacy, Inc.",
+    "brandName": "CVS HEALTH",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Candy",
+    "gtinUpc": "050428315248",
+    "householdServingFullText": "0.2 ONZ",
+    "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED)+, ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+    "marketCountry": "United States",
+    "servingSize": 4.5,
+    "servingSizeUnit": "g",
+    "packageWeight": "50 Tablet",
+    "notaSignificantSourceOf": "NOT A SIGNIFICANT SOURCE OF CALORIES FROM FAT, SATURATED FAT, TRANS FAT, CHOLESTEROL, DIETARY FIBER, VITAMIN A, CALCIUM AND IRON.",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1842504,
+        "description": "GLUCOSE TABLETS, GRAPE",
+        "publicationDate": "6/25/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "5/5/2021",
+        "availableDate": "5/5/2021",
+        "brandOwner": "CVS Pharmacy, Inc.",
+        "brandName": "CVS HEALTH",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Candy",
+        "gtinUpc": "050428315248",
+        "householdServingFullText": "0.2 ONZ",
+        "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED)+, ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+        "marketCountry": "United States",
+        "servingSize": 4.5,
+        "servingSizeUnit": "g",
+        "packageWeight": "50 Tablet",
+        "notaSignificantSourceOf": "NOT A SIGNIFICANT SOURCE OF CALORIES FROM FAT, SATURATED FAT, TRANS FAT, CHOLESTEROL, DIETARY FIBER, VITAMIN A, CALCIUM AND IRON."
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1670861,
+        "description": "GLUCOSE TABLETS, GRAPE",
+        "publicationDate": "3/19/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "6/20/2019",
+        "availableDate": "6/20/2019",
+        "brandOwner": "CVS Pharmacy, Inc.",
+        "brandName": "CVS HEALTH",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Specialty Formula Supplements",
+        "gtinUpc": "050428315248",
+        "householdServingFullText": "0.2 ONZ",
+        "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED)+, ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+        "marketCountry": "United States",
+        "servingSize": 4.5,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1378636,
+        "description": "GLUCOSE TABLETS, GRAPE",
+        "publicationDate": "2/26/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "6/20/2019",
+        "availableDate": "6/20/2019",
+        "brandOwner": "CVS Pharmacy, Inc.",
+        "brandName": "CVS HEALTH",
+        "subbrandName": "",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Specialty Formula Supplements",
+        "gtinUpc": "050428315248",
+        "householdServingFullText": "0.2 ONZ",
+        "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED)+, ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+        "marketCountry": "United States",
+        "servingSize": 4.5,
+        "servingSizeUnit": "g",
+        "packageWeight": "",
+        "notaSignificantSourceOf": ""
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 682824,
+        "description": "GLUCOSE TABLETS, GRAPE",
+        "publicationDate": "12/6/2019",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "6/20/2019",
+        "availableDate": "6/20/2019",
+        "brandOwner": "CVS Pharmacy, Inc.",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Specialty Formula Supplements",
+        "gtinUpc": "050428315248",
+        "householdServingFullText": "0.2 ONZ",
+        "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED)+, ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+        "marketCountry": "United States",
+        "servingSize": 4.5,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "modifiedDate": "8/9/2018",
+        "availableDate": "8/9/2018",
+        "brandOwner": "CVS Pharmacy, Inc.",
+        "dataSource": "LI",
+        "gpcCategoryGroup": "Specialty Formula Supplements",
+        "gtinUpc": "050428315248",
+        "householdServingFullText": "0.2 ONZ",
+        "ingredients": "DEXTROSE (D-GLUCOSE), POTASSIUM CITRATE, MICROCRYSTALLINE CELLULOSE, MAGNESIUM STEARATE, CITRIC ACID, HYDROGENATED VEGETABLE OIL (COTTONSEED)+, ASCORBIC ACID, MALIC ACID, FD&C BLUE #2 ALUMINUM LAKE, FD&C RED #40 ALUMINUM LAKE, NATURAL AND ARTIFICIAL FLAVOR.",
+        "marketCountry": "United States",
+        "servingSize": 4.5,
+        "servingSizeUnit": "g",
+        "fdcId": 587816,
+        "description": "GLUCOSE TABLETS",
+        "publicationDate": "4/1/2019",
+        "workingFoodId": 45379889,
+        "dataType": "Branded",
+        "foodClass": "Branded"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 0
+      },
+      "sodium": {
+        "value": 0
+      },
+      "carbohydrates": {
+        "value": 4
+      },
+      "sugars": {
+        "value": 4
+      },
+      "protein": {
+        "value": 0
+      },
+      "calories": {
+        "value": 20
+      }
+    }
+  }
+}

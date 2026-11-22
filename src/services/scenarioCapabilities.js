@@ -156,3 +156,8 @@ function assessNutrientCaution({ nutrient, valueG, reviewedLimitG = null }) {
 }
 
 module.exports = Object.assign(module.exports, { planGoalSwitch, assessNutrientCaution });
+
+// Re-export the ingredient-impact engine so scenario fixtures (CAP engine)
+// can call it without duplicating logic.
+const { evaluatePortion, suggestSubstitutions, classifyFood } = require('./ingredientImpact');
+module.exports = Object.assign(module.exports, { evaluatePortion, suggestSubstitutions, classifyFood });

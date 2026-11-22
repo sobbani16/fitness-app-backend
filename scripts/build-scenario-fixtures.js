@@ -13,6 +13,7 @@ const N = (o) => ({ nutrition: { proteinG: null, carbsG: null, fatG: null, fiber
 const DS = (o) => ({ engine: 'dailyScore', ...o });
 const DE = (o) => ({ engine: 'decisionEngine', ...o });
 const CAP = (o) => ({ engine: 'capabilities', ...o });
+const B = (o) => ({ engine: 'blocked', ...o });
 
 // Authoring shorthand for assertions on the engine result.
 const EXEC = {
@@ -87,6 +88,29 @@ const EXEC = {
   K09: CAP({ fn: 'validateWearableEnergy', input: { activeKcal: 4200, plausibleMaxKcal: 1200 }, expect: { plausible: { eq: false }, allowanceKcal: { eq: 1200 }, flagged: { eq: true } } }),
   L02: CAP({ fn: 'assessWeightLossRate', input: { weeklyLosses: [1.4, 1.6, 1.5], maxLossKgPerWeek: 1.0 }, expect: { outcomeReview: { eq: true }, rewardFasterLoss: { eq: false } } }),
   L10: CAP({ fn: 'detectOutcomeDivergence', input: { recentScores: [88, 91, 85], goalProgress: 'stalled' }, expect: { outcomeReview: { eq: true } } }),
+  // -- Sprint D–E unlocks: deterministic ingredient-impact engine --
+  C03: CAP({ fn: 'evaluatePortion', input: { meal: { foodName: 'Cola', quantityG: 330, calories: 140, addedSugarG: 35 }, goal: 'weight_loss', targets: { calories: 1800 }, categoryId: 'sugar_sweetened_beverage' }, expect: { verdict: { notNull: true }, 'education.evidence': { contains: 'WHO' } }, note: 'estimated portion data accepted; added-sugar guidance fires only when verified + goal-relevant' }),
+  C04: CAP({ fn: 'evaluatePortion', input: { meal: { foodName: 'Ghee (measured)', quantityG: 60, calories: 540, fatG: 60 }, goal: 'fat_loss', targets: { caloriesTarget: 1800 }, categoryId: 'cooking_fat' }, expect: { verdict: { eq: 'moderate_portion' }, 'education.evidence': { contains: 'kcal/g' }, 'education.note': { contains: 'oil' } }, note: 'cooking method/fat handled: energy density + measured-oil education, portion dimension fires at ≥30% share' }),
+  C07: CAP({ fn: 'evaluatePortion', input: { meal: { foodName: 'Almonds', quantityG: 30, calories: 174, fatG: 15, fiberG: 3.6 }, goal: 'fat_loss', targets: { caloriesTarget: 1800 }, categoryId: 'nuts_seeds' }, expect: { 'portion.calories': { eq: 174 }, verdict: { eq: 'small_portion' } }, note: 'fat quality noted while calories still counted; nutrient-dense ≠ harmful' }),
+  L06: CAP({ fn: 'evaluatePortion', input: { meal: { foodName: 'Restaurant curry (estimate)', quantityG: 300 }, goal: 'weight_loss', targets: {} }, expect: { verdict: { eq: 'INCOMPLETE_DATA' } }, note: 'uncertain portions → honest insufficient-data state, never discouraging estimates' }),
+  // Async DB-backed coverage exists (tests/asyncScenarios.test.js, real
+  // fitness_test fixtures → getTrends/getSymptomContext). Still blocked for
+  // sync-fixture counting: reviewer converts observed output → approved assert.
+  A08: B({ reason: 'async evidence: tests/asyncScenarios.test.js + asyncScenarios.api.test.js (authenticated) + data/scenarioEvidence.async.json (multi-domain review data, observational basis) — needs reviewer-approved assert' }),
+  A09: B({ reason: 'async evidence: tests/asyncScenarios.test.js + asyncScenarios.api.test.js (authenticated) + data/scenarioEvidence.async.json (14d coverage+goalProgress) — needs reviewer-approved assert' }),
+  D02: B({ reason: 'async evidence: temporal_cooccurrence_within_6h + non-causal note verified — needs reviewer-approved assert' }),
+  E04: B({ reason: 'async evidence: persistent reports → professional_review_suggested — needs reviewer-approved assert' }),
+  G04: B({ reason: 'async evidence: association + dose/timing context — needs reviewer-approved assert' }),
+  H01: B({ reason: 'async evidence: timing/severity enrichment + non-causal association — needs reviewer-approved assert' }),
+  H02: B({ reason: 'async evidence: co-occurrence counting verified — needs reviewer-approved assert' }),
+  H03: B({ reason: 'async evidence: co-occurrence counting verified — needs reviewer-approved assert' }),
+  H04: B({ reason: 'async evidence: co-occurrence counting verified — needs reviewer-approved assert' }),
+  H05: B({ reason: 'async evidence: persistent→professional_review_suggested — needs reviewer-approved assert' }),
+  H06: B({ reason: 'async evidence: co-occurrence counting verified — needs reviewer-approved assert' }),
+  H07: B({ reason: 'async evidence: single report → no escalation, no fabricated association — needs reviewer-approved assert' }),
+  L03: B({ reason: 'async evidence: score_outcome_divergence review fires on stalled+high-scores — needs reviewer-approved assert' }),
+  L04: B({ reason: 'async evidence: weight direction without fat-loss promise — needs reviewer-approved assert' }),
+  L05: B({ reason: 'async evidence: energy adherence + activity fields available for surplus/training review — needs reviewer-approved assert' }),
 };
 const out = { version: 'fixtures-v1', generated: new Date().toISOString(), source: 'data/scenarioAppendixA.json (verbatim) + registry', fixtures: [] };
 for (const s of reg.scenarios) {

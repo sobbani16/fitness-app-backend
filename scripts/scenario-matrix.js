@@ -27,6 +27,23 @@ const CAT={goal_energy:'A',macros:'B',food_quality:'C',micronutrients:'D',meal_t
 const FIX={}; // A06 resolved in dps-v2.1 — energy now earns points (HF-0020 fixed)
 const fixtures=require('../data/scenarioFixtures.json');
 for(const f of fixtures.fixtures){if(f.status==='executable'&&!FIX[f.id])FIX[f.id]='pass';}
+// Reviewer-approved API evidence: async/API behaviors whose only valid
+// executor is an HTTP suite. Counts ONLY when a hash-chained 'approve'
+// decision exists in data/scenarioReviewDecisions.json (recorded by an
+// authorized reviewer via scripts/submit-scenario-review.js — never
+// auto-approved).
+const API_EVIDENCE={
+  A08:{test:'tests/asyncScenarios.api.test.js',behavior:'POST /symptoms persists; GET lists caller-owned reports only'},
+  A09:{test:'tests/asyncScenarios.api.test.js',behavior:'PATCH owner-scoped; cross-user 404; DELETE removes'},
+  H04:{test:'tests/asyncScenarios.api.test.js',behavior:'co-occurrence surfaced as observation, no causal claim'},
+  H06:{test:'tests/asyncScenarios.api.test.js',behavior:'flag-off → graceful degradation, no crash/phantom data'},
+  L03:{test:'tests/asyncScenarios.api.test.js',behavior:'outcome divergence lands in trends.reviews'},
+  L04:{test:'tests/asyncScenarios.api.test.js',behavior:'persistence field PATCHable, owner-scoped'},
+  L05:{test:'tests/asyncScenarios.api.test.js',behavior:'cross-user id → 404 (isolation invariant)'},
+};
+const decisions=fs.existsSync('data/scenarioReviewDecisions.json')?require('../data/scenarioReviewDecisions.json'):{decisions:[]};
+const approved=new Set(decisions.decisions.filter(d=>d.decision==='approve').map(d=>d.scenarioId));
+for(const id in API_EVIDENCE){if(approved.has(id)&&!COVERED[id]&&!FIX[id])COVERED[id]=API_EVIDENCE[id];}
 const rows=registry.scenarios.map(s=>{
   const c=COVERED[s.id];
   const fx=FIX[s.id];

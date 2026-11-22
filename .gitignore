@@ -6,3 +6,6 @@ node_modules/
 .DS_Store
 coverage/
 var/uploads/
+*.bak
+var/test-reports/
+/app.json

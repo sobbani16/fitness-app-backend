@@ -53,6 +53,7 @@ model User {
   dailyScoreSnapshots DailyScoreSnapshot[]
   goalHistories      GoalHistory[]
   workoutSessions  WorkoutSession[]
+  coachingSessions CoachingSession[]
   energyRecords    HealthEnergyRecord[]
   workoutPlans     UserWorkoutPlan[]
   groceryItems     GroceryItem[]
@@ -272,6 +273,50 @@ model ExerciseSet {
   setNumber Int
 
   workoutSession WorkoutSession @relation(fields: [workoutSessionId], references: [id])
+}
+
+// Camera-coaching session — landmark-derived, consent-gated, additive.
+// NEVER stores raw frames/video; only rep diagnostics, coaching events shown,
+// and user-confirmed/corrected counts. Unconfirmed sessions are not workout
+// records — confirmed reps may be copied into ExerciseSet by the client.
+model CoachingSession {
+  id String @id @default(uuid())
+
+  userId String
+
+  exerciseId String
+
+  startedAt DateTime
+  endedAt   DateTime?
+
+  // Build + version provenance for reproducibility/rollback decisions.
+  devicePlatform String?
+  appBuild       String?
+  modelVersion   String? // e.g. "pose_landmarker_lite@59929e1d"
+  ruleVersion    String?
+  cameraView     String? // side | front | unknown
+
+  // Camera-derived count and the user's reviewed/corrected final.
+  countedReps   Int  @default(0)
+  confirmedReps Int?
+  discarded     Boolean @default(false)
+
+  // Explicit consent to persist this session's analytics.
+  consentToStore Boolean @default(true)
+
+  repDiagnostics Json? // [{side,samplesUsed,minVisibilitySeen,rangeOfMotion,durationMs}]
+  corrections    Json? // {adjust, final, note?}
+  observations   Json? // coaching events shown [{ruleId,deviation,confidence,priority}]
+  limitations    String?
+
+  source    String   @default("camera")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, exerciseId])
+  @@index([userId, startedAt])
 }
 
 model Recipe {

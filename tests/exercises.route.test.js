@@ -117,5 +117,7 @@ it('finishes an owned workout idempotently and rejects new sets after finish', a
   expect(finished.status).toBe(200);
   expect(finished.body.finishedAt).toBeTruthy();
   expect((await request(app).post(url).set('x-user-id', USER)).body.finishedAt).toBe(finished.body.finishedAt);
-  expect((await request(app).post(`/exercises/${created.body.id}/sets`).set('x-user-id', USER).send({ reps: 5, weight: 100 })).status).toBe(400);
+  const setsRes = await request(app).post(`/exercises/${created.body.id}/sets`).set('x-user-id', USER).send({ reps: 5, weight: 100 });
+  if (setsRes.status !== 400) console.log('DIAG sets-after-finish:', setsRes.status, JSON.stringify(setsRes.body), JSON.stringify(setsRes.headers.allow));
+  expect(setsRes.status).toBe(400);
 });

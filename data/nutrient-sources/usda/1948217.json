@@ -1,0 +1,333 @@
+{
+  "retrievedAt": "2026-11-22T05:45:55.851Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [
+      {
+        "id": 2099562,
+        "value": 9,
+        "name": "Added Package Weight",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      }
+    ],
+    "foodPortions": [],
+    "fdcId": 1948217,
+    "description": "GLUCOSE LIQUID, POMEGRANATE",
+    "publicationDate": "7/29/2021",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 23470360,
+        "amount": 25
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 23470362,
+        "amount": 17
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 23470358,
+        "amount": 26.67
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 23470357,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 23470356,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 23470359,
+        "amount": 117
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1079,
+          "number": "291",
+          "name": "Fiber, total dietary",
+          "rank": 1200,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 23470361,
+        "amount": 0
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "modifiedDate": "5/5/2021",
+    "availableDate": "5/5/2021",
+    "brandOwner": "Walgreens Co.",
+    "brandName": "WALGREENS",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Milk",
+    "gtinUpc": "311917167275",
+    "householdServingFullText": "2 OZA",
+    "ingredients": "WATER, DEXTROSE (D-GLUCOSE), MALTODEXTRIN, CITRIC ACID, NATURAL POMEGRANATE FLAVOR, SODIUM BENZOATE.",
+    "marketCountry": "United States",
+    "servingSize": 60,
+    "servingSizeUnit": "ml",
+    "packageWeight": "2 fl oz/60 mL",
+    "notaSignificantSourceOf": "NOT A SIGNIFICANT SOURCE OF VITAMIN A, VITAMIN C, CALCIUM, IRON.",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1948217,
+        "description": "GLUCOSE LIQUID, POMEGRANATE",
+        "publicationDate": "7/29/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "5/5/2021",
+        "availableDate": "5/5/2021",
+        "brandOwner": "Walgreens Co.",
+        "brandName": "WALGREENS",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Milk",
+        "gtinUpc": "311917167275",
+        "householdServingFullText": "2 OZA",
+        "ingredients": "WATER, DEXTROSE (D-GLUCOSE), MALTODEXTRIN, CITRIC ACID, NATURAL POMEGRANATE FLAVOR, SODIUM BENZOATE.",
+        "marketCountry": "United States",
+        "servingSize": 60,
+        "servingSizeUnit": "ml",
+        "packageWeight": "2 fl oz/60 mL",
+        "notaSignificantSourceOf": "NOT A SIGNIFICANT SOURCE OF VITAMIN A, VITAMIN C, CALCIUM, IRON."
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1842170,
+        "description": "GLUCOSE LIQUID, POMEGRANATE",
+        "publicationDate": "6/25/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "5/5/2021",
+        "availableDate": "5/5/2021",
+        "brandOwner": "Walgreens Co.",
+        "brandName": "WALGREENS",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Milk",
+        "gtinUpc": "311917167275",
+        "householdServingFullText": "2 OZA",
+        "ingredients": "WATER, DEXTROSE (D-GLUCOSE), MALTODEXTRIN, CITRIC ACID, NATURAL POMEGRANATE FLAVOR, SODIUM BENZOATE.",
+        "marketCountry": "United States",
+        "servingSize": 60,
+        "servingSizeUnit": "ml",
+        "packageWeight": "60 mL",
+        "notaSignificantSourceOf": "NOT A SIGNIFICANT SOURCE OF VITAMIN A, VITAMIN C, CALCIUM, IRON."
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1665324,
+        "description": "GLUCOSE LIQUID",
+        "publicationDate": "3/19/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "6/14/2018",
+        "availableDate": "6/14/2018",
+        "brandOwner": "Walgreens Co.",
+        "brandName": "WALGREENS",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Specialty Formula Supplements",
+        "gtinUpc": "311917167275",
+        "householdServingFullText": "2 OZA",
+        "ingredients": "WATER, DEXTROSE (D-GLUCOSE), MALTODEXTRIN, CITRIC ACID, NATURAL POMEGRANATE FLAVOR, SODIUM BENZOATE.",
+        "marketCountry": "United States",
+        "servingSize": 60,
+        "servingSizeUnit": "ml"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1373110,
+        "description": "GLUCOSE LIQUID",
+        "publicationDate": "2/26/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "6/14/2018",
+        "availableDate": "6/14/2018",
+        "brandOwner": "Walgreens Co.",
+        "brandName": "WALGREENS",
+        "subbrandName": "",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Specialty Formula Supplements",
+        "gtinUpc": "311917167275",
+        "householdServingFullText": "2 OZA",
+        "ingredients": "WATER, DEXTROSE (D-GLUCOSE), MALTODEXTRIN, CITRIC ACID, NATURAL POMEGRANATE FLAVOR, SODIUM BENZOATE.",
+        "marketCountry": "United States",
+        "servingSize": 60,
+        "servingSizeUnit": "ml",
+        "packageWeight": "",
+        "notaSignificantSourceOf": ""
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "modifiedDate": "6/14/2018",
+        "availableDate": "6/14/2018",
+        "brandOwner": "Walgreens Co.",
+        "dataSource": "LI",
+        "gpcCategoryGroup": "Specialty Formula Supplements",
+        "gtinUpc": "311917167275",
+        "householdServingFullText": "2 OZA",
+        "ingredients": "WATER, DEXTROSE (D-GLUCOSE), MALTODEXTRIN, CITRIC ACID, NATURAL POMEGRANATE FLAVOR, SODIUM BENZOATE.",
+        "marketCountry": "United States",
+        "servingSize": 60,
+        "servingSizeUnit": "ml",
+        "fdcId": 580252,
+        "description": "GLUCOSE LIQUID",
+        "publicationDate": "4/1/2019",
+        "workingFoodId": 45370782,
+        "dataType": "Branded",
+        "foodClass": "Branded"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 0
+      },
+      "sodium": {
+        "value": 10.2
+      },
+      "carbohydrates": {
+        "value": 16
+      },
+      "fiber": {
+        "value": 0
+      },
+      "sugars": {
+        "value": 15
+      },
+      "protein": {
+        "value": 0
+      },
+      "calories": {
+        "value": 70.2
+      }
+    }
+  }
+}

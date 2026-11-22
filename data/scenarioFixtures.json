@@ -1,6 +1,6 @@
 {
   "version": "fixtures-v1",
-  "generated": "2026-11-22T01:47:53.258Z",
+  "generated": "2026-11-22T05:19:50.792Z",
   "source": "data/scenarioAppendixA.json (verbatim) + registry",
   "fixtures": [
     {
@@ -339,9 +339,9 @@
       "status": "blocked_not_implemented",
       "run": null,
       "expect": null,
-      "note": null,
+      "note": "async evidence: tests/asyncScenarios.test.js + asyncScenarios.api.test.js (authenticated) + data/scenarioEvidence.async.json (multi-domain review data, observational basis) — needs reviewer-approved assert",
       "requiredToValidate": [
-        "capability does not exist yet — author implementation + fixture"
+        "async evidence: tests/asyncScenarios.test.js + asyncScenarios.api.test.js (authenticated) + data/scenarioEvidence.async.json (multi-domain review data, observational basis) — needs reviewer-approved assert"
       ],
       "evidence": null,
       "reviewerStatus": "pending"
@@ -355,9 +355,9 @@
       "status": "blocked_not_implemented",
       "run": null,
       "expect": null,
-      "note": null,
+      "note": "async evidence: tests/asyncScenarios.test.js + asyncScenarios.api.test.js (authenticated) + data/scenarioEvidence.async.json (14d coverage+goalProgress) — needs reviewer-approved assert",
       "requiredToValidate": [
-        "capability does not exist yet — author implementation + fixture"
+        "async evidence: tests/asyncScenarios.test.js + asyncScenarios.api.test.js (authenticated) + data/scenarioEvidence.async.json (14d coverage+goalProgress) — needs reviewer-approved assert"
       ],
       "evidence": null,
       "reviewerStatus": "pending"
@@ -886,12 +886,36 @@
       "category": "food_quality",
       "scenario": "User eats gulab jamun, jalebi or another sweet",
       "expectedVerbatim": "Use estimated portion and recipe data; warn about added sugar when supported",
-      "status": "blocked_not_implemented",
-      "run": null,
-      "expect": null,
-      "note": null,
+      "status": "executable",
+      "run": {
+        "engine": "capabilities",
+        "fn": "evaluatePortion",
+        "input": {
+          "meal": {
+            "foodName": "Cola",
+            "quantityG": 330,
+            "calories": 140,
+            "addedSugarG": 35
+          },
+          "goal": "weight_loss",
+          "targets": {
+            "calories": 1800
+          },
+          "categoryId": "sugar_sweetened_beverage"
+        },
+        "extra": {}
+      },
+      "expect": {
+        "verdict": {
+          "notNull": true
+        },
+        "education.evidence": {
+          "contains": "WHO"
+        }
+      },
+      "note": "estimated portion data accepted; added-sugar guidance fires only when verified + goal-relevant",
       "requiredToValidate": [
-        "capability does not exist yet — author implementation + fixture"
+        "clinical reviewer confirms assert = expectedVerbatim"
       ],
       "evidence": null,
       "reviewerStatus": "pending"
@@ -902,12 +926,39 @@
       "category": "food_quality",
       "scenario": "User logs deep-fried samosa, pakora or chicken",
       "expectedVerbatim": "Consider cooking method, oil absorption, total fat and energy density",
-      "status": "blocked_not_implemented",
-      "run": null,
-      "expect": null,
-      "note": null,
+      "status": "executable",
+      "run": {
+        "engine": "capabilities",
+        "fn": "evaluatePortion",
+        "input": {
+          "meal": {
+            "foodName": "Ghee (measured)",
+            "quantityG": 60,
+            "calories": 540,
+            "fatG": 60
+          },
+          "goal": "fat_loss",
+          "targets": {
+            "caloriesTarget": 1800
+          },
+          "categoryId": "cooking_fat"
+        },
+        "extra": {}
+      },
+      "expect": {
+        "verdict": {
+          "eq": "moderate_portion"
+        },
+        "education.evidence": {
+          "contains": "kcal/g"
+        },
+        "education.note": {
+          "contains": "oil"
+        }
+      },
+      "note": "cooking method/fat handled: energy density + measured-oil education, portion dimension fires at ≥30% share",
       "requiredToValidate": [
-        "capability does not exist yet — author implementation + fixture"
+        "clinical reviewer confirms assert = expectedVerbatim"
       ],
       "evidence": null,
       "reviewerStatus": "pending"
@@ -1012,12 +1063,37 @@
       "category": "food_quality",
       "scenario": "User eats nuts, seeds or avocado",
       "expectedVerbatim": "Recognize fat quality while still counting calories",
-      "status": "blocked_not_implemented",
-      "run": null,
-      "expect": null,
-      "note": null,
+      "status": "executable",
+      "run": {
+        "engine": "capabilities",
+        "fn": "evaluatePortion",
+        "input": {
+          "meal": {
+            "foodName": "Almonds",
+            "quantityG": 30,
+            "calories": 174,
+            "fatG": 15,
+            "fiberG": 3.6
+          },
+          "goal": "fat_loss",
+          "targets": {
+            "caloriesTarget": 1800
+          },
+          "categoryId": "nuts_seeds"
+        },
+        "extra": {}
+      },
+      "expect": {
+        "portion.calories": {
+          "eq": 174
+        },
+        "verdict": {
+          "eq": "small_portion"
+        }
+      },
+      "note": "fat quality noted while calories still counted; nutrient-dense ≠ harmful",
       "requiredToValidate": [
-        "capability does not exist yet — author implementation + fixture"
+        "clinical reviewer confirms assert = expectedVerbatim"
       ],
       "evidence": null,
       "reviewerStatus": "pending"
@@ -1226,9 +1302,9 @@
       "status": "blocked_not_implemented",
       "run": null,
       "expect": null,
-      "note": null,
+      "note": "async evidence: temporal_cooccurrence_within_6h + non-causal note verified — needs reviewer-approved assert",
       "requiredToValidate": [
-        "capability does not exist yet — author implementation + fixture"
+        "async evidence: temporal_cooccurrence_within_6h + non-causal note verified — needs reviewer-approved assert"
       ],
       "evidence": null,
       "reviewerStatus": "pending"
@@ -1491,9 +1567,9 @@
       "status": "blocked_not_implemented",
       "run": null,
       "expect": null,
-      "note": null,
+      "note": "async evidence: persistent reports → professional_review_suggested — needs reviewer-approved assert",
       "requiredToValidate": [
-        "capability does not exist yet — author implementation + fixture"
+        "async evidence: persistent reports → professional_review_suggested — needs reviewer-approved assert"
       ],
       "evidence": null,
       "reviewerStatus": "pending"
@@ -2041,9 +2117,9 @@
       "status": "blocked_not_implemented",
       "run": null,
       "expect": null,
-      "note": null,
+      "note": "async evidence: association + dose/timing context — needs reviewer-approved assert",
       "requiredToValidate": [
-        "capability does not exist yet — author implementation + fixture"
+        "async evidence: association + dose/timing context — needs reviewer-approved assert"
       ],
       "evidence": null,
       "reviewerStatus": "pending"
@@ -2200,9 +2276,9 @@
       "status": "blocked_not_implemented",
       "run": null,
       "expect": null,
-      "note": null,
+      "note": "async evidence: timing/severity enrichment + non-causal association — needs reviewer-approved assert",
       "requiredToValidate": [
-        "capability does not exist yet — author implementation + fixture"
+        "async evidence: timing/severity enrichment + non-causal association — needs reviewer-approved assert"
       ],
       "evidence": null,
       "reviewerStatus": "pending"
@@ -2216,9 +2292,9 @@
       "status": "blocked_not_implemented",
       "run": null,
       "expect": null,
-      "note": null,
+      "note": "async evidence: co-occurrence counting verified — needs reviewer-approved assert",
       "requiredToValidate": [
-        "capability does not exist yet — author implementation + fixture"
+        "async evidence: co-occurrence counting verified — needs reviewer-approved assert"
       ],
       "evidence": null,
       "reviewerStatus": "pending"
@@ -2232,9 +2308,9 @@
       "status": "blocked_not_implemented",
       "run": null,
       "expect": null,
-      "note": null,
+      "note": "async evidence: co-occurrence counting verified — needs reviewer-approved assert",
       "requiredToValidate": [
-        "capability does not exist yet — author implementation + fixture"
+        "async evidence: co-occurrence counting verified — needs reviewer-approved assert"
       ],
       "evidence": null,
       "reviewerStatus": "pending"
@@ -2248,9 +2324,9 @@
       "status": "blocked_not_implemented",
       "run": null,
       "expect": null,
-      "note": null,
+      "note": "async evidence: co-occurrence counting verified — needs reviewer-approved assert",
       "requiredToValidate": [
-        "capability does not exist yet — author implementation + fixture"
+        "async evidence: co-occurrence counting verified — needs reviewer-approved assert"
       ],
       "evidence": null,
       "reviewerStatus": "pending"
@@ -2264,9 +2340,9 @@
       "status": "blocked_not_implemented",
       "run": null,
       "expect": null,
-      "note": null,
+      "note": "async evidence: persistent→professional_review_suggested — needs reviewer-approved assert",
       "requiredToValidate": [
-        "capability does not exist yet — author implementation + fixture"
+        "async evidence: persistent→professional_review_suggested — needs reviewer-approved assert"
       ],
       "evidence": null,
       "reviewerStatus": "pending"
@@ -2280,9 +2356,9 @@
       "status": "blocked_not_implemented",
       "run": null,
       "expect": null,
-      "note": null,
+      "note": "async evidence: co-occurrence counting verified — needs reviewer-approved assert",
       "requiredToValidate": [
-        "capability does not exist yet — author implementation + fixture"
+        "async evidence: co-occurrence counting verified — needs reviewer-approved assert"
       ],
       "evidence": null,
       "reviewerStatus": "pending"
@@ -2296,9 +2372,9 @@
       "status": "blocked_not_implemented",
       "run": null,
       "expect": null,
-      "note": null,
+      "note": "async evidence: single report → no escalation, no fabricated association — needs reviewer-approved assert",
       "requiredToValidate": [
-        "capability does not exist yet — author implementation + fixture"
+        "async evidence: single report → no escalation, no fabricated association — needs reviewer-approved assert"
       ],
       "evidence": null,
       "reviewerStatus": "pending"
@@ -3357,9 +3433,9 @@
       "status": "blocked_not_implemented",
       "run": null,
       "expect": null,
-      "note": null,
+      "note": "async evidence: score_outcome_divergence review fires on stalled+high-scores — needs reviewer-approved assert",
       "requiredToValidate": [
-        "capability does not exist yet — author implementation + fixture"
+        "async evidence: score_outcome_divergence review fires on stalled+high-scores — needs reviewer-approved assert"
       ],
       "evidence": null,
       "reviewerStatus": "pending"
@@ -3373,9 +3449,9 @@
       "status": "blocked_not_implemented",
       "run": null,
       "expect": null,
-      "note": null,
+      "note": "async evidence: weight direction without fat-loss promise — needs reviewer-approved assert",
       "requiredToValidate": [
-        "capability does not exist yet — author implementation + fixture"
+        "async evidence: weight direction without fat-loss promise — needs reviewer-approved assert"
       ],
       "evidence": null,
       "reviewerStatus": "pending"
@@ -3389,9 +3465,9 @@
       "status": "blocked_not_implemented",
       "run": null,
       "expect": null,
-      "note": null,
+      "note": "async evidence: energy adherence + activity fields available for surplus/training review — needs reviewer-approved assert",
       "requiredToValidate": [
-        "capability does not exist yet — author implementation + fixture"
+        "async evidence: energy adherence + activity fields available for surplus/training review — needs reviewer-approved assert"
       ],
       "evidence": null,
       "reviewerStatus": "pending"
@@ -3402,12 +3478,28 @@
       "category": "outcomes",
       "scenario": "User eats out at restaurants frequently",
       "expectedVerbatim": "Support uncertain portions, sauces and cooking oils without discouraging eating out",
-      "status": "blocked_not_implemented",
-      "run": null,
-      "expect": null,
-      "note": null,
+      "status": "executable",
+      "run": {
+        "engine": "capabilities",
+        "fn": "evaluatePortion",
+        "input": {
+          "meal": {
+            "foodName": "Restaurant curry (estimate)",
+            "quantityG": 300
+          },
+          "goal": "weight_loss",
+          "targets": {}
+        },
+        "extra": {}
+      },
+      "expect": {
+        "verdict": {
+          "eq": "INCOMPLETE_DATA"
+        }
+      },
+      "note": "uncertain portions → honest insufficient-data state, never discouraging estimates",
       "requiredToValidate": [
-        "capability does not exist yet — author implementation + fixture"
+        "clinical reviewer confirms assert = expectedVerbatim"
       ],
       "evidence": null,
       "reviewerStatus": "pending"
