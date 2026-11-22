@@ -54,11 +54,10 @@ function inputVariants(raw) {
 }
 
 async function loadCatalogIndex(prisma) {
-  const catalog = await prisma.ingredientCatalog.findMany({
+  return require('./recipes/cache').cachedCatalog(prisma, 'match', async () => prisma.ingredientCatalog.findMany({
     where: { usable: true },
     select: { id: true, identityKey: true, normalizedName: true, aliases: true, category: true, sourceRecord: true, ingredient: { select: { id: true, name: true, caloriesPer100g: true, proteinPer100g: true, carbsPer100g: true, fatPer100g: true, fiberPer100g: true } } },
-  });
-  return catalog;
+  }));
 }
 
 // Resolve mixed inputs {ingredientId}|{identityKey}|{name}[, amountG] →

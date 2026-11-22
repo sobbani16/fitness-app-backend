@@ -85,7 +85,7 @@ router.get('/analytics', requirePermission('VIEW_PLATFORM_ANALYTICS'), async (re
 // GET /admin/recipe-intelligence/metrics — privacy-conscious counters only.
 router.get('/recipe-intelligence/metrics', requirePermission('VIEW_PLATFORM_ANALYTICS'), async (req, res) => {
   try {
-    res.json(require('../services/recipes/metrics').snapshot());
+    res.json({ ...require('../services/recipes/metrics').snapshot(), cache: require('../services/recipes/cache').snapshot() });
   } catch (err) { fail(res, err); }
 });
 

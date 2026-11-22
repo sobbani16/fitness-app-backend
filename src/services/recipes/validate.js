@@ -73,20 +73,22 @@ const SEVERITY_RANK = { block: 4, clarify: 3, review: 2, warn: 1 };
 const STATUS_BY_SEVERITY = { block: 'FAIL', clarify: 'NEEDS_CLARIFICATION', review: 'NEEDS_REVIEW', warn: 'PASS' };
 
 async function loadCatalog(prisma) {
-  const rows = await prisma.ingredientCatalog.findMany({
-    where: { usable: true },
-    select: {
-      id: true, name: true, identityKey: true, normalizedName: true, aliases: true, category: true, sourceRecord: true,
-      ingredient: { select: { id: true, name: true, caloriesPer100g: true, proteinPer100g: true, carbsPer100g: true, fatPer100g: true, fiberPer100g: true, attributes: { select: { attribute: true } } } },
-    },
+  return require('./cache').cachedCatalog(prisma, 'validate', async () => {
+    const rows = await prisma.ingredientCatalog.findMany({
+      where: { usable: true },
+      select: {
+        id: true, name: true, identityKey: true, normalizedName: true, aliases: true, category: true, sourceRecord: true,
+        ingredient: { select: { id: true, name: true, caloriesPer100g: true, proteinPer100g: true, carbsPer100g: true, fatPer100g: true, fiberPer100g: true, attributes: { select: { attribute: true } } } },
+      },
+    });
+    const byName = new Map();
+    const byId = new Map();
+    for (const c of rows) {
+      if (c.ingredient?.id) byId.set(c.ingredient.id, c);
+      for (const n of [c.normalizedName, ...(c.aliases || [])]) if (n && !byName.has(n)) byName.set(n, c);
+    }
+    return { rows, byName, byId };
   });
-  const byName = new Map();
-  const byId = new Map();
-  for (const c of rows) {
-    if (c.ingredient?.id) byId.set(c.ingredient.id, c);
-    for (const n of [c.normalizedName, ...(c.aliases || [])]) if (n && !byName.has(n)) byName.set(n, c);
-  }
-  return { rows, byName, byId };
 }
 
 function catAllergens(c) {
