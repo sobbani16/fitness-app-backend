@@ -36,6 +36,12 @@ const aiStructured = {
 };
 
 beforeAll(async () => {
+  // Purge residue from earlier runs first — stale `Ps *`/`sk *` rows otherwise
+  // crowd the matcher's bounded candidate window (TEST_ISOLATION_REPORT).
+  await prisma.recipeIngredient.deleteMany({ where: { ingredientName: { startsWith: 'sk ' } } }).catch(() => {});
+  await prisma.recipe.deleteMany({ where: { recipeName: { startsWith: 'Ps ' } } }).catch(() => {});
+  await prisma.ingredient.deleteMany({ where: { name: { startsWith: 'sk ' } } }).catch(() => {});
+  await prisma.ingredientCatalog.deleteMany({ where: { name: { startsWith: 'sk ' } } }).catch(() => {});
   await prisma.user.create({ data: { id: uid, email: `${uid}@t.dev` } }).catch(() => {});
   const mkCat = async (name, per100) => {
     const cat = await prisma.ingredientCatalog.create({ data: {
@@ -93,14 +99,18 @@ describe('detectFood structured output', () => {
 
   it('feature gate rejects when disabled', async () => {
     const { resetCache } = require('../src/services/featureFlags/service');
-    process.env.FF_FOOD_PHOTO_SCANNING = 'false';
-    resetCache();
-    askJSON.mockClear();
-    const res = await request(app).post('/meals/detect').set('x-user-id', uid).send({ imageDataUrl: photo, hasPhoto: true });
-    delete process.env.FF_FOOD_PHOTO_SCANNING;
-    resetCache();
-    expect(res.status).toBe(403);
-    expect(askJSON).not.toHaveBeenCalled();
+    try {
+      process.env.FF_FOOD_PHOTO_SCANNING = 'false';
+      resetCache();
+      askJSON.mockClear();
+      const res = await request(app).post('/meals/detect').set('x-user-id', uid).send({ imageDataUrl: photo, hasPhoto: true });
+      expect(res.status).toBe(403);
+      expect(askJSON).not.toHaveBeenCalled();
+    } finally {
+      // process.env is shared across test files under --runInBand — always restore.
+      process.env.FF_FOOD_PHOTO_SCANNING = 'true';
+      resetCache();
+    }
   });
 });
 
@@ -198,4 +208,14 @@ describe('computeMealNutrition', () => {
     expect(res.body.totals.calories).toBe(165);
     expect(askJSON).not.toHaveBeenCalled();
   });
+});
+
+afterAll(async () => {
+  // Deterministic cleanup — FK order: recipe lines, recipes, catalog→ingredient.
+  await prisma.recipeIngredient.deleteMany({ where: { ingredientName: { startsWith: 'sk ' } } }).catch(() => {});
+  await prisma.recipe.deleteMany({ where: { recipeName: { startsWith: 'Ps ' } } }).catch(() => {});
+  await prisma.ingredient.deleteMany({ where: { name: { startsWith: 'sk ' } } }).catch(() => {});
+  await prisma.ingredientCatalog.deleteMany({ where: { name: { startsWith: 'sk ' } } }).catch(() => {});
+  await prisma.foodLog.deleteMany({ where: { userId: uid } }).catch(() => {});
+  await prisma.user.delete({ where: { id: uid } }).catch(() => {});
 });

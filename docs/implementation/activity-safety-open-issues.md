@@ -9,11 +9,13 @@
 6. Mobile `api/recommendations.ts` stale client — still unused; deprecate once health_aware path is default.
 7. Emergency copy is template-based per symptom class (urgent vs review); region-specific numbers still a TODO (open).
 8. **NEW** Real severe-weather alert provider missing — `alertsAvailable:false` honestly flagged; thunderstorm inferred from WMO codes only. Needed before production: NWS/cap feed or provider with alert coverage.
-9. **NEW** `group_indoor` category referenced by AS-SYS-004 not in catalog — rule inert until catalog gains group-class activities.
-10. **NEW** Trainer-facing + wearable + coaching entry points not yet wired (trainerCopilot, wearable insights, ai_coach re-rank). Engine gate exists for todayActions, voice, dashboard.
-11. **NEW** Mobile feedback UI surface not built (API client exists); symptom/injury entry screens not built — voice + API paths work.
-12. **NEW** Shadow-mode diff tooling: persist exists; offline comparison job not written.
-13. **NEW** `isEvaluationFresh` cache-invalidation is implemented but has no consumer cache yet (evaluations are computed fresh; cache layer arrives with the recommendation cache work).
+9. ✅ RESOLVED: `group_indoor` — `GROUP_INDOOR` category + `group_fitness_class` catalog entry with real demand metadata (weight-bearing, impact, balance). Indoor never implies safe (S052).
+10. ✅ RESOLVED: all producers routed through shared `gate.js` — progressCoach COMPLETE_WORKOUT, weeklyHealthReview copy, sleepRecovery overlay, workoutPlanner/personalPlans (draft/edit/confirm/catalog/progression), workoutProgression (increase→review coercion), trainerCopilot (privacy-safe presence notice only), trainerPlanService (safetyConflicts annotation at assign + client view), formChecks (clientSafetyNotice), chat (post-generation deflection). See progress doc for per-producer semantics.
+11. ✅ RESOLVED: mobile `SafetyReportScreen` (injury + symptom forms w/ backend codes) + `SafetyFeedbackScreen` (verdict vocabulary) + `safetyInvalidation` bus + Dashboard links — gated `activitySafetyEngine` (mobile `f5fa88d`).
+12. ✅ RESOLVED: `scripts/activity-safety-shadow-diff.js` — live-vs-shadow deltas per candidate, privacy-preserving output, flag-off skip, `shadow:true`-only persistence. 6 tests green.
+13. **PARTIAL** `isEvaluationFresh` still has no consumer recommendation-cache layer — evaluations are computed fresh on every request (correct but uncached). Cache layer is a performance item, not a correctness one.
+14. **NEW** Producer-gate semantics note: `activityPushOk` requires the generic `strength_training` proxy to be fully `ALLOW` — a MODIFY verdict suppresses generic pushes too (deliberately conservative; the dedicated safety card remains).
+15. **NEW** `no_safe_candidate` is currently unreachable at runtime: `seated_movement` is the intentional unblockable last-resort candidate, so restrictions alone always leave a suggestion. The disposition exists for future approved-rule activations (or all-candidate urgent suppression, which uses `suppressed_urgent`).
 
 ## Decisions log
 - **Doc location:** backend `docs/` (engine artifacts); mobile audit stays in mobile repo.

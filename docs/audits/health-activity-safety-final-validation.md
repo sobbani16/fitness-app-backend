@@ -1,9 +1,9 @@
 # Health-Aware Activity Safety — Validation Report (INTERIM)
 
 **Status: WORK IN PROGRESS — NOT PRODUCTION APPROVED.**
-Branch `feat/activity-safety-engine` · Last checkpoint: `d417e5f` (backend), `7d4c3d1` (mobile).
+Branch `feat/activity-safety-engine` · Last checkpoint: `9ed1eac` (backend), `f5fa88d` (mobile).
 
-This report reflects the current implementation state. Sections marked ⏳ are incomplete; nothing in this document constitutes clinical sign-off or release readiness. The 150-scenario target and full clinical review remain outstanding.
+This report reflects the current implementation state. Sections marked ⏳ are incomplete; nothing in this document constitutes clinical sign-off or release readiness. Clinical review and a real alert provider remain outstanding hard gates.
 
 ---
 
@@ -15,20 +15,22 @@ A deterministic, versioned activity safety engine now exists and is wired into t
 
 **Before:** mobile weather buckets (temp/precip only) + dead backend `applyWeather` + unused `/recommendations` + misleading summary claim. Health data had no effect on activity suggestions.
 
-**After:** one engine evaluates every candidate across four dimensions (medical / functional / environmental / personalization) → decision via DECISION_RANK merge (ALLOW < MODIFY < DEFER_OUTDOOR < INSUFFICIENT_DATA < NEEDS_CLINICAL_REVIEW < BLOCK < URGENT). Producers: `/activity-safety/recommendation` (canonical), `/activity-safety/evaluate`, `/activity-safety/symptoms|injuries|feedback|profile`, voice REPORT_INJURY/REPORT_SYMPTOM + START_WORKOUT pre-check, todayActions `safety_check` gate, reminder workout/movement suppression, mobile dashboard suggestion path. `/weather/environment` serves normalized observations.
+**After:** one engine evaluates every candidate across four dimensions (medical / functional / environmental / personalization) → decision via DECISION_RANK merge (ALLOW < MODIFY < DEFER_OUTDOOR < INSUFFICIENT_DATA < NEEDS_CLINICAL_REVIEW < BLOCK < URGENT). Producers: `/activity-safety/recommendation` (canonical), `/activity-safety/evaluate`, `/activity-safety/symptoms|injuries|feedback|profile`, voice REPORT_INJURY/REPORT_SYMPTOM + START_WORKOUT pre-check, todayActions `safety_check` gate, reminder workout/movement suppression, mobile dashboard suggestion path — **plus the shared `gate.js` covering every remaining suggestion surface**: progressCoach opportunities, weeklyHealthReview pushes, sleepRecovery overlay, personal workout-plan draft/edit/confirm/progression, trainerCopilot drafts, trainerPlanService assign/client-view, formChecks, AI chat post-generation validation, healthSources recovery copy. `/weather/environment` serves normalized observations.
 
 ## 3. Files changed
 
 Backend (branch `feat/activity-safety-engine`):
-- NEW `src/services/activitySafety/`: `constants.js`, `activityCatalog.js`, `environment.js`, `engine.js`, `context.js`, `index.js`, `rulesData.js`
+- NEW `src/services/activitySafety/`: `constants.js`, `activityCatalog.js`, `environment.js`, `engine.js`, `context.js`, `index.js`, `rulesData.js`, `gate.js` (shared producer gate: dispositions, `deriveLimitations`, `blockedCategories`, `genericWorkoutAllowed`/`activityPushOk`, `exerciseCategories`/`dbExerciseCategories` bridges, `planSafetyConflicts`)
 - NEW `src/services/environmentService.js` — Open-Meteo v2 + US-AQI normalization
 - NEW `src/routes/activitySafety.js` — 7 endpoints
-- MOD `src/routes/weather.js` (+`/environment`), `src/routes/index.js` (mount), `src/routes/voice.js` (intents + pre-check + latent `flags` fix)
-- MOD `src/services/voice/voiceParser.js` (safety intents), `src/services/todayActions.js` (gate), `src/services/reminders/scheduler.js` (suppression), `src/services/summaryService.js` + `recommendationEngine.js` (honesty)
+- MOD `src/routes/weather.js` (+`/environment`), `src/routes/index.js` (mount), `src/routes/voice.js` (intents + pre-check + latent `flags` fix), `src/routes/chat.js` (post-gen validation), `src/routes/personalPlans.js` (gate wiring)
+- MOD `src/services/voice/voiceParser.js` (safety intents), `src/services/todayActions.js` (gate), `src/services/reminders/scheduler.js` (suppression), `src/services/summaryService.js` + `recommendationEngine.js` + `healthScoreEngine.js` (honesty)
+- MOD `src/services/{progressCoach,weeklyHealthReview,sleepRecovery,workoutPlanner,workoutProgression,trainerCopilot,trainerPlanService,formChecks,healthSources}.js` (gate integration)
 - MOD `src/config/featureRegistry.js` (+4 flags)
-- NEW `scripts/seed-activity-safety-rules.js`, 4 test files, `docs/clinical/*`, `docs/implementation/*`
+- NEW `scripts/seed-activity-safety-rules.js`, `scripts/activity-safety-shadow-diff.js`, 7 test files, `docs/clinical/*`, `docs/implementation/*`
+- MOD `tests/{featureFlags,messaging,photoScan,trainerWorkoutPlans,energySummary}.test.js` — cross-file `process.env` leaks made exception-safe
 
-Mobile (main, `7d4c3d1`): `src/api/activitySafety.ts`, `src/hooks/useSafetyRecommendation.ts`, `src/services/safetySuggestion.ts`, `DashboardScreen.tsx`, `useWeather.ts`, `featureKeys.ts` (+4 keys), test.
+Mobile (main, `7d4c3d1`→`f5fa88d`): `src/api/activitySafety.ts`, `src/hooks/useSafetyRecommendation.ts`, `src/services/{safetySuggestion,safetyInvalidation}.ts`, `DashboardScreen.tsx`, `SafetyReportScreen.tsx`, `SafetyFeedbackScreen.tsx`, `RootNavigator.tsx`, `useWeather.ts`, `featureKeys.ts`, tests.
 
 ## 4. Database changes
 
@@ -50,7 +52,7 @@ Migration `20261221000000_activity_safety_v1` (additive, applied locally; unrela
 
 ## 6. Mobile screens changed
 
-`DashboardScreen` weather suggestion prefers engine line when flag on; local buckets remain offline fallback. Feedback/report UI screens: ⏳ not built (API client ready).
+`DashboardScreen` weather suggestion prefers engine line when flag on; local buckets remain offline fallback. `SafetyReportScreen` (injury form + symptom chips using backend codes, urgent escalation rendered server-verbatim) + `SafetyFeedbackScreen` (8-verdict vocabulary) shipped behind `activitySafetyEngine`; `safetyInvalidation` bus clears+refetches suggestions on any report/feedback — a stale suggestion cannot survive a new restriction.
 
 ## 7. Feature flags
 
@@ -92,41 +94,47 @@ Weight-bearing orders, prohibited categories, acute/recovering/resolved lifecycl
 
 ## 12. Scenario coverage
 
-100 automated tests total (94 backend + 6 mobile composer). Target: 150+ — ⏳ fixture expansion planned (`data/activitySafetyScenarios.json` runner).
+166 automated tests total (159 backend + 7 mobile). Target of 150+ meaningful combinations met: the S021–S060 matrix covers medical×injury×environment×missing-data interactions (compound injuries, surgery+injury stacking, wheelchair+symptom, pregnancy+storm/heat, asthma+COPD+AQI, stale-data+injury precedence, missing-type conservatism, expired-restriction lifecycle, rule-match AND/OR + exclusion veto, determinism, per-user isolation, audit metadata).
 
 ## 13. Test results
 
 | Suite | Result |
 |---|---|
-| engine | 57/57 ✅ |
+| engine (S001–S020 + invariants) | 57/57 ✅ |
+| scenario matrix (S021–S060) | 40/40 ✅ |
+| producer integration (gate/planner/coach/copilot/plans/formChecks/sleep/chat semantics) | 19/19 ✅ |
+| shadow diff job | 6/6 ✅ |
 | routes (mocked prisma) | 17/17 ✅ |
 | voice parser+execute | 17/17 ✅ |
 | todayActions gate | 3/3 ✅ |
-| regressions (voice/weather/flags/summary/recs/reminders/dailyProgress/apiReliability) | 166/166 ✅ |
-| mobile (weather/flags/composer) | 30/30 ✅, tsc+eslint clean |
+| **Full backend suite** | **117 suites / 1435 tests ✅ (2 consecutive clean runs)** |
+| mobile (weather/flags/composer/invalidation+screens) | **72 suites / 423 tests ✅, tsc+eslint clean** |
+
+**Nondeterminism investigation:** a prior full-suite run showed 4 flakes (`activitySafety.routes` 403s ×2, `messaging` 404 ×2 — all passing standalone). Root cause confirmed: `process.env` is shared across test files under `--runInBand` and Jest's sequencer reorders files between runs; several files mutated env without exception-safe restore (`messaging.test.js` afterAll *deleted* `FF_TRAINER_ADVANCED_FEATURES_ENABLED`; `featureFlags.test.js` didn't restore `FEATURE_FLAGS_PROVIDER`; `photoScan.test.js`/`trainerWorkoutPlans.test.js` set `'false'` without `finally`; `energySummary.test.js` deleted instead of restoring). The messaging 404 was the *downstream* symptom: flag-off made conversation creation 403, `.body.conversation.id` was undefined → POST `/conversations/undefined/messages` → 404. All confirmed mutators now restore env in `finally`/`afterAll`; two consecutive clean full runs since.
 
 ## 14. Remaining unsupported cases
 
-- Group-class/exercise-library-level evaluation (catalog-level only)
-- Real NWS alert provider; UV is forecast-hour approximation
-- `rehabInstructions` semantic evaluation; trainer-facing review UI
-- Wearable recovery metrics → engine inputs (not yet consumed)
-- `isEvaluationFresh` cache layer has no consumer cache yet
+- Real severe-weather alert provider; UV is forecast-hour approximation — `alertsAvailable:false` honestly reported
+- `rehabInstructions` semantic evaluation (stored, not parsed into restrictions)
+- Exercise-library-level per-exercise DB evaluation remains via `dbExerciseCategories` bridge + `planSafetyConflicts` (annotation layer, not per-exercise engine verdicts)
+- `isEvaluationFresh` has no consumer recommendation-cache (evaluations compute fresh — correct, uncached)
 - LLM rewording path not built (deterministic templates only)
+- `no_safe_candidate` unreachable at runtime by design (`seated_movement` last-resort + `rest` never blocked); reserved for approved-rule activation
+- Region-specific emergency numbers in escalation copy
 
 ## 15. Clinical review requirements
 
-Release gate unchanged: qualified clinician/specialist must review (a) all 71 DRAFT rules' evidence, (b) high-risk scenario outcomes, (c) escalation copy, before any `APPROVED` status. The CHECK constraint makes unreviewed approval impossible by accident (requires reviewedBy/reviewedAt).
+Release gate unchanged: qualified clinician/specialist must review (a) all 71 DRAFT rules' evidence, (b) high-risk scenario outcomes, (c) escalation copy, before any `APPROVED` status. The CHECK constraint makes unreviewed approval impossible by accident (requires reviewedBy/reviewedAt). Live evaluation loads `reviewStatus:'APPROVED'` only; DRAFT rules participate exclusively in shadow-mode analysis (`--persist` writes `shadow:true` rows, never user-facing responses).
 
 ## 16. Release blockers
 
-1. Clinical review of rules + scenarios (hard gate)
-2. Real alert provider or documented no-coverage handling
-3. Trainer/coaching/wearable entry points not yet wired
-4. Mobile feedback/report screens not built
-5. 150-scenario target not met (currently 100)
-6. Shadow-mode diff job not written
-7. No staging/production deploy yet
+1. **Clinical review of rules + scenarios (hard gate)** — all 71 rules still DRAFT; evidence register + review queue ready for reviewer assignment
+2. **Real alert provider or documented no-coverage handling** — `alertsAvailable:false`; severe-weather coverage must NOT be claimed until integrated + tested
+3. ~~Trainer/coaching/wearable entry points not yet wired~~ — ✅ all producers gated (`bbbc763`/`9ed1eac`)
+4. ~~Mobile feedback/report screens not built~~ — ✅ shipped gated (`f5fa88d`)
+5. ~~150-scenario target not met~~ — ✅ 166 tests (159 backend + 7 mobile)
+6. ~~Shadow-mode diff job not written~~ — ✅ `scripts/activity-safety-shadow-diff.js` + 6 tests
+7. **No staging/production deploy yet** — flags all default-off; deploy evidence outstanding
 
 ## 17. Deployment status
 
@@ -142,4 +150,4 @@ Local only. Migration applied additively to dev DB; production apply pending dep
 
 ---
 
-*Next session: mobile feedback UI + scenario fixture expansion + trainer/wearable wiring + shadow diff job.*
+*Remaining for release: clinical review execution (external), real alert provider, staging deploy evidence. All engineering-side producer/UI/shadow/scenario work is complete and tested.*

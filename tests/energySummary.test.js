@@ -268,6 +268,6 @@ describe('GET /energy/summary', () => {
     const b = (await request(app).get(`/energy/summary?date=${today}&tz=UTC`).set(auth(u.id))).body;
     expect(b.resting.source).toBe('wearable:healthkit');
     expect(b.active.soFarKcal).toBe(240);
-    delete process.env.FF_APPLE_HEALTH_SYNC;
+    process.env.FF_APPLE_HEALTH_SYNC = 'true'; // restore shared env, never delete
   });
 });
