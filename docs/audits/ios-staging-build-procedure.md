@@ -5,8 +5,17 @@ Android build succeeded via `eas build --profile staging` (see `activity-safety-
 ## Prerequisites
 
 - `eas whoami` → `sobbani16` ✓ (already authenticated)
-- Apple Developer account `8FQ5RQS3P8` (from `eas.json` submit config)
+- Apple Developer account `8FQ5RQS3P8` (verified Phase 22 via `eas device:list --apple-team-id`)
+- **Zero devices registered on the team** (Phase 22: `eas device:list` returned none) —
+  at least one test-device UDID must be registered before an internal-distribution
+  build can install. Register via `eas device:create` or the Apple portal.
 - No production change needed — `staging` profile already exists in `eas.json`
+
+## Phase 22 re-verified blocker
+
+`eas build --profile staging --platform ios --non-interactive` still fails with
+*"EAS CLI couldn't find any credentials suitable for internal distribution."* —
+the interactive credential-setup requirement is unchanged and remains a human action.
 
 ## Commands
 
