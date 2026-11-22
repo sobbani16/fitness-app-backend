@@ -41,3 +41,14 @@ Metadata gaps (cannot be derived): 87 null `mechanic`, 77 null `equipment`, 8 nu
 ## Verdict
 
 Library is **usable for restriction matching after the D-1 vocab fix** (56%→0.9% uncategorized). Remaining gaps are metadata-model limits, not code defects — E-1/E-2/E-3/E-6 are clinically consequential and require specialist review rather than engineering changes.
+
+## Phase-17 addendum — coverage matrix + unmapped handling
+
+| Class | Count | Definition |
+|---|---|---|
+| Fully mapped | 742 | categories derived + mechanic/equipment/category present |
+| Partially mapped | 134 | categories derived but ≥1 null metadata field (mechanic/equipment/category) — under-flags WB/valsalva class |
+| Unmapped → review-required | 8 | neck-isolation (sternocleidomastoid) — no engine category exists |
+| Trainer-created | same pipeline | exerciseId join → same classifier; free-text → `unevaluated` |
+
+Change: `planSafetyConflicts` now emits `status:'review'` for zero-category exercises — unmapped demand metadata is surfaced as "verify manually", never treated as unrestricted. The 8 neck exercises are honest `review` rows, not silent passes.

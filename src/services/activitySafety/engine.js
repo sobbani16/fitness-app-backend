@@ -113,6 +113,40 @@ function matchesRule(rule, ctx, activity) {
 // Functional dimension — injuries, surgeries, restrictions, mobility
 // ---------------------------------------------------------------------------
 
+// Clearance precedence (Phase 17 §2): resolves a surgery's activityClearance
+// into an explicit scoped result. Shapes supported:
+//   legacy map:  { outdoor_walk: 'cleared', general: 'cleared', '*': 'restricted' }
+//   entries:     { entries: [{ activityId | scope:'general', status,
+//                   effectiveAt, expiresAt, documentedBy }] }  (or bare array)
+// Rules: activity-specific beats general; 'restricted' beats 'cleared' at equal
+// scope; not-yet-effective and expired records are ignored; a clearance only
+// ever affects the SURGERY dimension — it cannot suppress injury, restriction,
+// symptom or environmental decisions (those merge by rank elsewhere).
+function resolveClearance(sx, activityId, now) {
+  const ac = sx.activityClearance || {};
+  const entries = [];
+  if (Array.isArray(ac.entries)) {
+    for (const e of ac.entries) entries.push({ scope: e.scope || (e.activityId ? 'activity' : 'general'), activityId: e.activityId, status: e.status, effectiveAt: e.effectiveAt, expiresAt: e.expiresAt });
+  } else if (Array.isArray(ac)) {
+    for (const e of ac) entries.push({ scope: e.scope || (e.activityId ? 'activity' : 'general'), activityId: e.activityId, status: e.status, effectiveAt: e.effectiveAt, expiresAt: e.expiresAt });
+  } else {
+    for (const [k, v] of Object.entries(ac)) {
+      if (typeof v === 'object' && v) entries.push({ scope: k === 'general' || k === '*' ? 'general' : 'activity', activityId: k, status: v.status, effectiveAt: v.effectiveAt, expiresAt: v.expiresAt });
+      else entries.push({ scope: k === 'general' || k === '*' ? 'general' : 'activity', activityId: k, status: v === true ? 'cleared' : v });
+    }
+  }
+  const match = entries.filter(e =>
+    (e.activityId === activityId || e.scope === 'general')
+    && ['cleared', 'restricted'].includes(e.status)
+    && !(e.expiresAt && new Date(e.expiresAt) <= now)
+    && !(e.effectiveAt && new Date(e.effectiveAt) > now));
+  const specific = match.filter(e => e.activityId === activityId);
+  const pick = specific.length ? specific : match;
+  const best = pick.find(e => e.status === 'restricted') || pick[0];
+  if (!best) return { status: 'none', scope: null, effectiveAt: null, expiresAt: null };
+  return { status: best.status, scope: best.activityId === activityId ? 'activity' : 'general', effectiveAt: best.effectiveAt || null, expiresAt: best.expiresAt || null };
+}
+
 function evalFunctional(ctx, activity, now) {
   const dim = { status: 'ok', decisions: [], reasons: [], ruleIds: [], requiredData: [] };
   const cats = activity.demands.categories;
@@ -179,17 +213,15 @@ function evalFunctional(ctx, activity, now) {
         `Post-${sx.procedureCategory} restrictions prohibit this activity category.`, 'AS-MSK-008');
       continue;
     }
-    // activityClearance keys: activity ids, or 'general'/'*' for blanket clearance.
-    const ac = sx.activityClearance || {};
-    const gc = ac[activity.id] ?? ac.general ?? ac['*'];
-    const clearance = gc === true ? 'cleared' : gc;
-    if (clearance === 'restricted') {
+    const cl = resolveClearance(sx, activity.id, now);
+    if (cl.status === 'restricted') {
       add(dim, 'functional', D.BLOCK_ACTIVITY,
         `This activity is listed as restricted in the post-${sx.procedureCategory} guidance.`, 'AS-MSK-008');
-    } else if (clearance !== 'cleared' && activity.exertion !== 'light') {
+    } else if (cl.status !== 'cleared' && activity.exertion !== 'light') {
       add(dim, 'functional', D.NEEDS_CLINICAL_REVIEW,
         `Recovery from ${sx.procedureCategory} surgery without documented clearance for this activity — clearance is never inferred from elapsed time.`, 'AS-MSK-008');
     }
+    if (cl.status !== 'none') dim.clearances = [...(dim.clearances || []), { surgery: sx.procedureCategory, activityId: activity.id, status: cl.status, scope: cl.scope, effectiveAt: cl.effectiveAt || null, expiresAt: cl.expiresAt || null }];
     if (sx.reassessAt && new Date(sx.reassessAt) <= now) dim.requiredData.push('surgical_reassessment');
   }
 

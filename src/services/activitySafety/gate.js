@@ -259,6 +259,7 @@ async function planSafetyConflicts(prisma, clientUserId, plan, { gate, detail = 
       const ex = await prisma.exercise.findUnique({ where: { id: e.exerciseId }, include: { muscles: true } }).catch(() => null);
       if (!ex) { conflicts.push({ ...base, status: 'unevaluated', note: 'Exercise not found in catalog.' }); continue; }
       const cats = dbExerciseCategories(ex);
+      if (!cats.size) { conflicts.push({ ...base, status: 'review', note: 'Demand metadata insufficient to evaluate — verify manually against recorded restrictions.' }); continue; }
       const categoryHits = (g.blockedCategories || []).filter(c => cats.has(c));
       const limHit = exerciseConflictsWithLimitations(cats, g.limitations || []);
       if (categoryHits.length || limHit) {
