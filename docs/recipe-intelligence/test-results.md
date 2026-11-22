@@ -1,9 +1,14 @@
 # Test Results — Recipe Intelligence
 
-**Measured:** 2026-11-21, `npx jest` in-band on the six suites that exercise
-recipe-intelligence paths. **80 tests / 6 suites — all passing.** No
-result below was claimed without a run; scenario IDs map to
-`scenario-registry.json`.
+**Measured:** 2026-11-21 final pass — **backend `npx jest`: 125 suites /
+1554 tests green** (1 skipped suite, 3 skipped, 52 todo); **mobile `npx
+jest`: 73 suites / 423 tests green** and `tsc --noEmit` clean. Recipe-
+intelligence suites alone: 6 focused suites / 57 tests green
+(constraints, validate, generate, rank, cache, E2E, clinical workflow).
+Live-path verification: `scripts/recipe-synthetic-verify.js` **22/22
+checks pass** against the real app + DB + OpenAI provider with the flag
+toggled in-process only. No result below was claimed without a run;
+scenario IDs map to `scenario-registry.json`.
 
 ## Suites
 
@@ -13,6 +18,9 @@ result below was claimed without a run; scenario IDs map to
 | `recipeValidate.test.js` | 14 | Staged validator: identity/allergen/pattern/medical/limits/equipment/safety |
 | `recipeGenerate.test.js` | 8 | AI candidates, retry budget, fallback, NO_ELIGIBLE_RECIPE, flag-off |
 | `recipeE2E.test.js` | 6 | generate→save→customize + ISO-001 cross-user isolation |
+| `recipeRank.test.js` | 4 | Post-filter ranking; unsafe recipe never ranks/appears |
+| `recipeCache.test.js` | 3 | Version-aware shared cache; never user verdicts (CACHE-001/STALE-002) |
+| `clinicalRuleWorkflow.test.js` | 8 | Approval gate: permission, gaps, attestation, audit, demotion |
 | `smartKitchen.test.js` | (regression) | Constraint engine reuse in mealSuggestion path |
 | `foodIntel.test.js` | (regression) | Shared `LABEL_ANIMAL_TERMS` consolidation |
 
