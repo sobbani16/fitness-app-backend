@@ -8,6 +8,15 @@ const plan = { id: 'p1', userId: 'alice', status: 'draft', preferences: { equipm
 beforeEach(() => {
   prisma = { $queryRaw: jest.fn(), userWorkoutPlan: { findUnique: jest.fn(async () => plan), findFirst: jest.fn(async () => plan), update: jest.fn(), updateMany: jest.fn() }, workoutSession: { findMany: jest.fn(async () => []) } };
   prisma.$transaction = jest.fn(async action => action(prisma));
+  // Safety-gate models — empty by default; tests override per-case.
+  prisma.user = { findUnique: jest.fn(async () => null) };
+  prisma.userActivityProfile = { findUnique: jest.fn(async () => null) };
+  prisma.userInjury = { findMany: jest.fn(async () => []) };
+  prisma.userSurgery = { findMany: jest.fn(async () => []) };
+  prisma.userActivityRestriction = { findMany: jest.fn(async () => []) };
+  prisma.userSymptomReport = { findMany: jest.fn(async () => []) };
+  prisma.userHealthCondition = { findMany: jest.fn(async () => []) };
+  prisma.activitySafetyRule = { findMany: jest.fn(async () => []) };
   getPrisma.mockReturnValue(prisma);
 });
 test('revalidates and serializes confirmation and refuses archived plans', async () => {
@@ -35,4 +44,29 @@ test('does not reuse comfort feedback from an older completed session', async ()
   const feedback = JSON.stringify({ 'push-up': { sessionId: 'old', rir: 3 } });
   const result = await request(app).get('/personal-plans/suggestions').query({ feedback }).set('x-user-id', 'alice').expect(200);
   expect(result.body.suggestions[0].direction).toBe('maintain');
+});
+
+test('progression suggestion degrades to review when a recorded restriction conflicts', async () => {
+  // Plan says push-up and history supports progression — but a recorded
+  // restriction on upper-limb load must coerce the suggestion to review.
+  prisma.userWorkoutPlan.findFirst.mockResolvedValue({ ...plan, status: 'active' });
+  prisma.userActivityRestriction.findMany.mockResolvedValue([
+    { status: 'active', categories: ['upper_limb_load'], severity: 'prohibited', source: 'clinician_documented' },
+  ]);
+  const sets = [{ exerciseName: 'push-up', reps: 10, weightLbs: 0 }];
+  prisma.workoutSession.findMany.mockResolvedValue([{ exerciseSets: sets }, { exerciseSets: sets }]);
+  const res = await request(app).get('/personal-plans/suggestions?rir=3').set('x-user-id', 'alice').expect(200);
+  expect(res.body.suggestions[0].direction).toBe('review');
+  expect(res.body.suggestions[0].safetyConflict).toBe(true);
+  expect(res.body.suggestions[0].suggested).toBeUndefined();
+});
+
+test('catalog picker applies server-derived restrictions even when omitted from the query', async () => {
+  prisma.userActivityRestriction.findMany.mockResolvedValue([
+    { status: 'active', categories: ['upper_limb_load'], bodyRegions: ['upper_limb'], severity: 'prohibited', source: 'clinician_documented' },
+  ]);
+  const res = await request(app).get('/personal-plans/catalog').set('x-user-id', 'alice').expect(200);
+  expect(res.body.safetyApplied).toBe(true);
+  const push = res.body.exercises.find(e => e.id === 'push-up');
+  expect(['review', 'adapt']).toContain(push.suitability.status);
 });

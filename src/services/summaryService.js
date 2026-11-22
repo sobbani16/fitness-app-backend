@@ -67,7 +67,11 @@ function buildInsight({ balance, meals, recommendation, weather }) {
   parts.push(`Next action: ${recommendation.title}.`);
 
   if (weather && weather.condition) {
-    parts.push(`Weather is ${weather.condition} — the plan accounts for it.`);
+    // Only claim weather was applied when the engine actually adjusted the
+    // suggestion — previously this sentence asserted it unconditionally.
+    parts.push(recommendation.weatherAdjusted
+      ? `Weather is ${weather.condition} — the suggestion accounts for it.`
+      : `Weather is ${weather.condition}.`);
   }
 
   return parts.join(' ');

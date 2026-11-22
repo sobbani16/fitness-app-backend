@@ -1,7 +1,11 @@
 // AI workout-plan draft generation — deterministic gate around askJSON.
 // AI proposes structure; catalog + suitability rules decide what may appear.
+// The suitability profile merges user-stated preferences with limitations
+// derived server-side from recorded injuries/restrictions — a documented
+// prohibition cannot be bypassed by omitting it from preferences.
 const { EXERCISES, CATALOG_VERSION } = require('./exerciseCatalog');
 const { evaluateAll, RULE_VERSION } = require('./exerciseSuitability');
+const { exerciseCategories } = require('./activitySafety/gate');
 const { askJSON } = require('./aiProvider');
 const { httpError } = require('../lib/errors');
 
@@ -69,7 +73,11 @@ function sanitizePlan(raw, allowedIds, prefs = {}, errorStatus = 502) {
   return { plan: { days, summary: raw.summary || '' }, warnings };
 }
 
-function candidatesFor(prefs) {
+// `safety` = output of activitySafety gate (server-derived). limitations are
+// unioned with user-stated ones — the larger (safer) set always wins.
+// blockedCategories removes any exercise whose implied demand categories
+// intersect a documented prohibition.
+function candidatesFor(prefs, safety = {}) {
   if (!prefs || typeof prefs !== 'object' || Array.isArray(prefs)) throw httpError(400, 'Invalid workout preferences.');
   for (const key of ['equipment', 'limitations', 'preferredDays', 'likedExercises', 'dislikedExercises']) {
     if (prefs[key] != null && (!Array.isArray(prefs[key]) || prefs[key].length > 64 || prefs[key].some(v => typeof v !== 'string' || v.length > 100))) throw httpError(400, 'Invalid workout preferences.');
@@ -77,14 +85,25 @@ function candidatesFor(prefs) {
   if (prefs.preferredDays?.some(d => !['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].includes(d))
       || prefs.experience != null && !['beginner', 'intermediate', 'advanced'].includes(prefs.experience)
       || prefs.sessionMinutes != null && (!Number.isFinite(prefs.sessionMinutes) || prefs.sessionMinutes < 5 || prefs.sessionMinutes > 240)) throw httpError(400, 'Review your availability and experience.');
-  const evaluation = evaluateAll(Object.keys(EXERCISES), { ...prefs, experience: prefs.experience || 'beginner' });
-  const allowed = new Set(Object.keys(evaluation).filter(id => evaluation[id].status === 'suitable' && !(prefs.dislikedExercises || []).includes(id)));
-  return { allowed, evaluation };
+  const mergedLimitations = [...new Set([...(prefs.limitations || []), ...(safety.limitations || [])])];
+  const evaluation = evaluateAll(Object.keys(EXERCISES), { ...prefs, limitations: mergedLimitations, experience: prefs.experience || 'beginner' });
+  const blocked = new Set(safety.blockedCategories || []);
+  const allowed = new Set(Object.keys(evaluation).filter(id => {
+    if (evaluation[id].status !== 'suitable' || (prefs.dislikedExercises || []).includes(id)) return false;
+    if (blocked.size) {
+      for (const cat of exerciseCategories(EXERCISES[id])) if (blocked.has(cat)) return false;
+    }
+    return true;
+  }));
+  return { allowed, evaluation, mergedLimitations };
 }
 
-async function generateDraft(userId, prefs = {}) {
-  const { allowed, evaluation } = candidatesFor(prefs);
-  if (!allowed.size) throw httpError(422, 'No suitable exercises for these preferences. Broaden equipment or limitations, or request reviewed guidance.');
+async function generateDraft(userId, prefs = {}, safety = {}) {
+  if (safety.urgent) throw httpError(422, 'An active symptom report needs attention before a workout plan can be drafted — activity suggestions are paused.');
+  const { allowed, evaluation } = candidatesFor(prefs, safety);
+  if (!allowed.size) throw httpError(422, safety.blockedCategories?.length || safety.limitations?.length
+    ? 'No exercises fit the recorded restrictions. Broaden equipment or request reviewed guidance — restrictions were applied from your health record, not just preferences.'
+    : 'No suitable exercises for these preferences. Broaden equipment or limitations, or request reviewed guidance.');
   const dislikes = new Set(prefs.dislikedExercises || []);
   dislikes.forEach(id => allowed.delete(id));
   const catalogText = [...allowed].map(id => `${id} (${EXERCISES[id].name}: ${EXERCISES[id].muscle.join('+')}, ${EXERCISES[id].pattern})`).join(', ');
@@ -95,16 +114,27 @@ async function generateDraft(userId, prefs = {}) {
   })}\nAllowed exercise IDs: ${catalogText}`;
   const raw = await askJSON('workout_plan', SCHEMA, INSTRUCTIONS, text, null, userId);
   const { plan, warnings } = sanitizePlan(raw, allowed, prefs);
+  if (safety.reviewRequired) warnings.push('A documented restriction or surgery is awaiting professional review — confirm clearance before relying on this draft.');
   return {
     plan, warnings, suitability: evaluation,
+    safety: {
+      limitationsApplied: (safety.limitations || []).length,
+      restrictedCategoriesApplied: (safety.blockedCategories || []).length,
+      reviewRequired: Boolean(safety.reviewRequired),
+    },
     catalogVersion: CATALOG_VERSION, ruleVersion: RULE_VERSION, status: 'draft',
   };
 }
 
-// Re-validate an edited plan (user confirmation or edit path) — same rules.
-function validateEditedPlan(plan, prefs = {}) {
-  const { allowed } = candidatesFor(prefs);
-  return sanitizePlan(plan, allowed, prefs, 400);
+// Re-validate an edited plan (user confirmation or edit path) — same rules,
+// with the *current* server-derived restrictions re-applied every time.
+// The review notice is advisory on draft/edit; on confirm it must not re-block
+// (restriction violations already surface as sanitize warnings → 409).
+function validateEditedPlan(plan, prefs = {}, safety = {}, { includeReviewNotice = true } = {}) {
+  const { allowed } = candidatesFor(prefs, safety);
+  const out = sanitizePlan(plan, allowed, prefs, 400);
+  if (includeReviewNotice && safety.reviewRequired) out.warnings.push('A documented restriction or surgery is awaiting professional review — confirm clearance before relying on this plan.');
+  return out;
 }
 
 module.exports = { generateDraft, validateEditedPlan, candidatesFor };

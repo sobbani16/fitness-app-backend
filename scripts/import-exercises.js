@@ -8,9 +8,24 @@ const { canonicalMuscle, canonicalEquipment, slugify } = require('../src/service
 
 const prisma = new PrismaClient();
 const DATA = path.join(__dirname, '..', 'data', 'exercises.json');
+const PATCH = path.join(__dirname, '..', 'data', 'exercise-metadata-patch.json');
 
 async function main() {
   const rows = JSON.parse(fs.readFileSync(DATA, 'utf8'));
+  // Verified/provenance-tracked overlay for upstream-null metadata (Phase 19
+  // Workstream A). Source file stays pristine; patch entries cite the
+  // source-internal convention used for each inferred value.
+  const patch = fs.existsSync(PATCH) ? JSON.parse(fs.readFileSync(PATCH, 'utf8')) : { patches: [] };
+  const patchByName = new Map(patch.patches.map(p => [p.name, p]));
+  let patched = 0;
+  for (const raw of rows) {
+    const p = patchByName.get(raw.name);
+    if (!p) continue;
+    if (!raw.mechanic && p.mechanic) raw.mechanic = p.mechanic;
+    if (!raw.equipment && p.equipment) raw.equipment = p.equipment;
+    patched++;
+  }
+  if (patched) console.log(`Applied ${patched} provenance-tracked metadata patch(es)`);
   const seen = new Set();
   let imported = 0, skipped = 0;
   for (const raw of rows) {

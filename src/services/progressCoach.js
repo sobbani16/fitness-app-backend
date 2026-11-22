@@ -4,6 +4,7 @@
 // explain these objects but never invents points.
 const { getPrisma } = require('../lib/prisma');
 const { computeDay, CALC_VERSION } = require('./dailyProgress');
+const { safetyGate } = require('./activitySafety/gate');
 const ld = require('./localDay');
 
 const prisma = new Proxy({}, { get: (_t, p) => getPrisma()[p] });
@@ -63,11 +64,20 @@ function rank(opps, nowLocalMinutes) {
 }
 
 async function opportunities(userId, { tz, now = new Date() } = {}) {
-  const progress = await computeDay(userId, { tz, now, persist: false });
+  const [progress, gate] = await Promise.all([
+    computeDay(userId, { tz, now, persist: false }),
+    safetyGate(getPrisma(), userId, { now }).catch(() => ({ status: 'unknown', suppressActivityPushes: true })),
+  ]);
   const zone = progress.timezone;
   const mins = ld.localParts(now, zone).minutes;
-  const opps = progress.components.map((c) => opportunity(c, progress, zone)).filter(Boolean);
-  return { dayKey: progress.dayKey, earned: progress.earned, applicable: progress.applicable, version: CALC_VERSION, top: rank(opps, mins).slice(0, 3), all: rank(opps, mins) };
+  // Engine gate: a workout push never surfaces when the shared safety verdict
+  // can't confirm any compatible activity (urgent symptom, documented
+  // restriction, requested rest, or unverifiable safety state).
+  const opps = progress.components.map((c) => opportunity(c, progress, zone)).filter(Boolean)
+    .filter((o) => !(o.component === 'activity' && gate.activityPushOk === false));
+  const out = { dayKey: progress.dayKey, earned: progress.earned, applicable: progress.applicable, version: CALC_VERSION, top: rank(opps, mins).slice(0, 3), all: rank(opps, mins) };
+  if (gate.enabled && gate.activityPushOk === false) out.activitySafety = { status: gate.status, activityPushesSuppressed: true };
+  return out;
 }
 
 // --- Consistency streak: sustainable participation, not perfection.

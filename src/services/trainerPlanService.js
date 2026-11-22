@@ -10,6 +10,7 @@
 const { getPrisma } = require('../lib/prisma');
 const { httpError } = require('../lib/errors');
 const { requireApprovedTrainer, requireActiveRelation, hasConsent } = require('./trainerAccess');
+const { planSafetyConflicts } = require('./activitySafety/gate');
 
 const DIFFICULTIES = new Set(['beginner', 'intermediate', 'advanced']);
 const PLAN_STATUSES = new Set(['draft', 'published', 'archived']);
@@ -343,9 +344,20 @@ async function revise(trainerUserId, planId, tx) {
   });
 }
 
+// Trainer-facing clinical detail requires an explicit grant: a
+// 'safety_restrictions' consent row on the relation, or the client's own
+// consentScopes.safetyRestrictions grant on their activity profile. Either is
+// server-derived, user-controlled, revocable — default is 'summary' (conflict
+// flags only, no categories).
+async function safetyDetailLevel(prisma, relationId, clientUserId) {
+  if (relationId && await hasConsent(relationId, 'safety_restrictions').catch(() => false)) return 'full';
+  const profile = await prisma.userActivityProfile?.findUnique({ where: { userId: clientUserId }, select: { consentScopes: true } }).catch(() => null);
+  return profile?.consentScopes?.safetyRestrictions?.scope === 'granted' ? 'full' : 'summary';
+}
+
 async function assign(trainerUserId, planId, clientUserId, tx) {
   const prisma = getPrisma();
-  const { trainerId } = await requireActiveRelation({ trainerUserId, clientUserId });
+  const { relation, trainerId } = await requireActiveRelation({ trainerUserId, clientUserId });
   const plan = await prisma.workoutPlan.findUnique({ where: { id: planId } });
   if (!plan || plan.trainerId !== trainerId) throw notFound('Plan not found.');
   if (plan.status !== 'published') throw conflict('Only published plans can be assigned.');
@@ -353,6 +365,12 @@ async function assign(trainerUserId, planId, clientUserId, tx) {
     where: { planId, clientId: clientUserId, status: { in: OPEN_ASSIGNMENT_STATUSES } },
   });
   if (existing) throw conflict('This plan is already assigned to the client.');
+  // Advisory safety check against the client's recorded restrictions —
+  // annotated on the assignment so the trainer sees conflicts, never silently.
+  // Clinical detail (categories/limitations) only with an explicit grant.
+  const detail = await safetyDetailLevel(prisma, relation?.id, clientUserId);
+  const safety = await planSafetyConflicts(prisma, clientUserId, plan, { detail }).catch(() => ({ available: false, conflicts: [] }));
+  safety.detail = detail;
   return inTx(tx, async (t) => {
     const assignment = await t.trainerWorkoutAssignment.create({
       data: { planId, clientId: clientUserId, status: 'assigned' },
@@ -367,7 +385,7 @@ async function assign(trainerUserId, planId, clientUserId, tx) {
         body: `Your coach assigned you the plan "${plan.title}".`,
       },
     });
-    return assignment;
+    return { ...assignment, safetyConflicts: safety.conflicts, safetyStatus: safety.available ? safety.status : 'unavailable', safetyDetail: safety.detail || 'summary' };
   });
 }
 
@@ -502,7 +520,10 @@ async function getForClient(assignmentId, clientUserId) {
     orderBy: [{ startedAt: 'desc' }, { id: 'asc' }],
     select: SESSION_SELECT,
   });
-  return { ...assignment, sessions };
+  // Conflicts are recomputed on every view — a restriction recorded after
+  // assignment must still surface, never cached away.
+  const safety = await planSafetyConflicts(prisma, clientUserId, assignment.plan).catch(() => ({ available: false, conflicts: [] }));
+  return { ...assignment, sessions, safetyConflicts: safety.conflicts, safetyStatus: safety.available ? safety.status : 'unavailable' };
 }
 
 // Planned-vs-completed per assignment. The session list itself is workout

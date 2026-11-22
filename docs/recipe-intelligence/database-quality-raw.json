@@ -1,0 +1,335 @@
+{
+  "generatedAt": "2026-11-22T02:56:50.916Z",
+  "sections": {
+    "catalog": {
+      "total": 228,
+      "usable": 228,
+      "issues": {
+        "noIngredientLink": [],
+        "categoryCaseVariants": [
+          {
+            "normalized": "grains",
+            "variants": [
+              "Grains",
+              "grains"
+            ]
+          },
+          {
+            "normalized": "vegetable",
+            "variants": [
+              "Vegetable",
+              "vegetable"
+            ]
+          },
+          {
+            "normalized": "dairy",
+            "variants": [
+              "Dairy",
+              "dairy"
+            ]
+          },
+          {
+            "normalized": "fruit",
+            "variants": [
+              "Fruit",
+              "fruit"
+            ]
+          },
+          {
+            "normalized": "condiment",
+            "variants": [
+              "Condiment",
+              "condiment"
+            ]
+          },
+          {
+            "normalized": "sweetener",
+            "variants": [
+              "Sweetener",
+              "sweetener"
+            ]
+          },
+          {
+            "normalized": "seafood",
+            "variants": [
+              "Seafood",
+              "seafood"
+            ]
+          }
+        ],
+        "missingCategory": [],
+        "duplicateAliases": [],
+        "undeclaredAllergenHints": [
+          {
+            "name": "Finger millet ragi flour, dry",
+            "hintedMissing": [
+              "wheat"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Sorghum jowar flour, dry",
+            "hintedMissing": [
+              "wheat"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Pearl millet bajra flour, dry",
+            "hintedMissing": [
+              "wheat"
+            ],
+            "declared": []
+          },
+          {
+            "name": "Peanut butter plain",
+            "hintedMissing": [
+              "milk"
+            ],
+            "declared": [
+              "peanuts"
+            ]
+          },
+          {
+            "name": "Coconut milk, canned",
+            "hintedMissing": [
+              "milk"
+            ],
+            "declared": [
+              "tree nuts"
+            ]
+          }
+        ]
+      },
+      "counts": {
+        "noIngredientLink": 0,
+        "missingCategory": 0,
+        "duplicateAliases": 0,
+        "undeclaredAllergenHints": 5
+      }
+    },
+    "ingredients": {
+      "total": 420,
+      "counts": {
+        "missingCalories": 0,
+        "implausibleMacros": 5,
+        "macroSumOver100g": 0
+      },
+      "issues": {
+        "missingCalories": [],
+        "implausibleMacros": [
+          {
+            "name": "Whey protein powder generic",
+            "kcal": 400,
+            "protein": 80,
+            "fat": 5
+          },
+          {
+            "name": "Egg, white, dried, stabilized, glucose reduced",
+            "kcal": 357,
+            "protein": 84.1,
+            "fat": 0.32
+          },
+          {
+            "name": "Egg, white, dried, flakes, stabilized, glucose reduced",
+            "kcal": 351,
+            "protein": 76.9,
+            "fat": 0.04
+          },
+          {
+            "name": "Egg, white, dried, powder, stabilized, glucose reduced",
+            "kcal": 376,
+            "protein": 82.4,
+            "fat": 0.04
+          },
+          {
+            "name": "Whey protein powder",
+            "kcal": 400,
+            "protein": 80,
+            "fat": 5
+          }
+        ],
+        "macroSumOver100g": []
+      }
+    },
+    "recipes": {
+      "total": 258,
+      "counts": {
+        "missingInstructions": 150,
+        "invalidServings": 0,
+        "meatWithoutTempGuidance": 31,
+        "linesUndeclaredAllergen": 9,
+        "unlinkedIngredientLines": 17,
+        "byReviewStatus": {
+          "SYSTEM": 28,
+          "RESEARCH_DRAFT": 230
+        }
+      },
+      "issues": {
+        "missingInstructions": [
+          "Hummus with veggies",
+          "Oatmeal with berries",
+          "Baked salmon with asparagus",
+          "Cottage cheese and fruit",
+          "Egg frittata with veggies",
+          "Eggs and whole wheat toast",
+          "Greek yogurt",
+          "Hard boiled eggs (2)",
+          "Overnight oats",
+          "Salmon with quinoa",
+          "Shrimp stir-fry",
+          "Tuna bowl",
+          "Turkey meatballs with pasta",
+          "Turkey wrap",
+          "Apple with peanut butter",
+          "Gulab jamun",
+          "Grilled fish tacos",
+          "Banana",
+          "Chicken stir-fry with rice",
+          "Chicken thigh with brown rice",
+          "Grilled chicken salad",
+          "Lean beef with vegetables",
+          "Lentil soup with bread",
+          "Egg bhurji",
+          "Rava upma",
+          "Almonds (30g)",
+          "Avocado toast with egg",
+          "Greek yogurt with granola",
+          "Protein smoothie",
+          "Ven pongal"
+        ],
+        "invalidServings": [],
+        "meatWithoutTempGuidance": [
+          "Turkey meatballs with pasta",
+          "Turkey wrap",
+          "Chicken stir-fry with rice",
+          "Chicken thigh with brown rice",
+          "Grilled chicken salad",
+          "Lean beef with vegetables",
+          "Andhra chicken curry",
+          "Gongura chicken curry",
+          "Kodi vepudu",
+          "Chicken fried rice",
+          "Hyderabadi chicken biryani",
+          "Chicken pulao",
+          "Chicken chettinad",
+          "Chicken korma",
+          "Chicken soup",
+          "Chicken breast with sweet potato",
+          "Chicken tikka",
+          "Spaghetti Carbonara",
+          "Spaghetti Bolognese",
+          "Beef Tacos",
+          "Pozole",
+          "Beef Burger",
+          "Beef Chili",
+          "Chicken tikka masala",
+          "Pork Dumplings",
+          "Udon Stir-fry",
+          "Korean Bulgogi",
+          "Korean Bibimbap",
+          "Sausage with Sauerkraut",
+          "Butter chicken"
+        ],
+        "linesUndeclaredAllergen": [
+          "Apple with peanut butter",
+          "Lentil soup with bread",
+          "Jowar roti",
+          "Ragi roti",
+          "Ragi malt",
+          "Thai Red Curry",
+          "Thai Green Curry",
+          "Mango Sticky Rice",
+          "Tom Kha Gai"
+        ],
+        "unlinkedIngredientLines": [
+          {
+            "recipe": "Hummus with veggies",
+            "line": "vegetables"
+          },
+          {
+            "recipe": "Oatmeal with berries",
+            "line": "mixed berries"
+          },
+          {
+            "recipe": "Cottage cheese and fruit",
+            "line": "cottage cheese"
+          },
+          {
+            "recipe": "Cottage cheese and fruit",
+            "line": "mixed fruit"
+          },
+          {
+            "recipe": "Egg frittata with veggies",
+            "line": "vegetables"
+          },
+          {
+            "recipe": "Shrimp stir-fry",
+            "line": "vegetables"
+          },
+          {
+            "recipe": "Tuna bowl",
+            "line": "tuna"
+          },
+          {
+            "recipe": "Tuna bowl",
+            "line": "vegetables"
+          },
+          {
+            "recipe": "Turkey meatballs with pasta",
+            "line": "turkey meatballs"
+          },
+          {
+            "recipe": "Turkey wrap",
+            "line": "vegetables"
+          },
+          {
+            "recipe": "Turkey wrap",
+            "line": "wrap"
+          },
+          {
+            "recipe": "Grilled fish tacos",
+            "line": "vegetables"
+          },
+          {
+            "recipe": "Chicken stir-fry with rice",
+            "line": "vegetables"
+          },
+          {
+            "recipe": "Grilled chicken salad",
+            "line": "mixed greens"
+          },
+          {
+            "recipe": "Lean beef with vegetables",
+            "line": "mixed vegetables"
+          },
+          {
+            "recipe": "Protein smoothie",
+            "line": "almond milk"
+          },
+          {
+            "recipe": "Protein bar",
+            "line": "protein bar"
+          }
+        ]
+      }
+    },
+    "referenceData": {
+      "allergyCount": 2,
+      "allergyCaseDuplicates": [],
+      "conditionRules": {
+        "total": 34,
+        "byStatus": {
+          "DRAFT": 34
+        },
+        "blockRules": 17
+      },
+      "nutrientRules": {
+        "total": 14,
+        "byStatus": {
+          "DRAFT": 14
+        }
+      }
+    }
+  }
+}

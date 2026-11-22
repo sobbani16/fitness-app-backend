@@ -222,6 +222,25 @@ const FEATURES = {
     clientKey: 'symptomPathways', class: 'server', group: 'manual', default: false, failOpen: false,
     description: 'Symptom check-in and escalation routes (G/H series).',
   },
+  activity_safety_engine: {
+    clientKey: 'activitySafetyEngine', class: 'server', group: 'manual', default: false, failOpen: false,
+    endpoints: ['/activity-safety'],
+    description: 'Shared activity safety evaluation (structural safeguards + review-gated rules).',
+  },
+  weather_intelligence_v2: {
+    clientKey: 'weatherIntelligence', class: 'server', group: 'manual', default: false, failOpen: false,
+    endpoints: ['GET /weather/environment'],
+    description: 'Normalized environmental observation (feels-like, AQI, wind, UV, forecast).',
+  },
+  health_aware_recommendations: {
+    clientKey: 'healthAwareRecommendations', class: 'server', group: 'manual', default: false, failOpen: false,
+    endpoints: ['GET /activity-safety/recommendation'],
+    description: 'Recommendation pipeline output gated through the safety engine.',
+  },
+  activity_safety_shadow_mode: {
+    clientKey: 'activitySafetyShadowMode', class: 'server', group: 'manual', default: false, failOpen: false,
+    description: 'Persist shadow evaluations for old-vs-new outcome comparison without affecting users.',
+  },
   mobile_score_breakdown: {
     clientKey: 'mobileScoreBreakdown', class: 'server', group: 'manual', default: false, failOpen: false,
     description: 'Component-level score breakdown surfacing.',
@@ -560,7 +579,7 @@ const FEATURES = {
   mind_ai_coaching_enabled: {
     clientKey: 'mindAiCoachingEnabled',
     class: 'ai', group: 'ai', default: false, failOpen: false,
-    dependsOn: ['mind_habits_enabled', 'ai_coach_enabled'],
+    dependsOn: ['mind_habits_enabled', 'ai_coach'],
     endpoints: [],
     description: 'AI coaching on mind context — requires separate aiJournalConsent for journal data.',
   },
@@ -598,6 +617,11 @@ const FEATURES = {
     clientKey: 'recipeCustomizationAi', class: 'ai', group: 'ai', default: false, failOpen: false,
     endpoints: ['POST /recipes/:id/customize'],
     description: 'Opt-in AI recipe customization. Paid calls, quota + kill-switch via askJSON. Backend re-computes all nutrition; AI never supplies macros.',
+  },
+  ai_recipe_generation_enabled: {
+    clientKey: 'aiRecipeGeneration', class: 'ai', group: 'ai', default: false, failOpen: false,
+    endpoints: ['POST /recipes/generate'],
+    description: 'AI recipe candidate generation. Candidates are validated by the deterministic pipeline before display; AI never supplies nutrition or safety verdicts. Paid calls, quota + kill-switch via askJSON.',
   },
   oidc_login_enabled: {
     clientKey: 'oidcLogin', class: 'core', group: 'auth', default: false, failOpen: false,
@@ -691,6 +715,62 @@ const FEATURES = {
     endpoints: ['/health-sources/sim'],
     description: 'Synthetic wearable fixtures for internal testing — never exposed to ordinary users.',
   },
+  // --- Smart Fiber Intelligence — phased rollout, all default OFF until
+  // validated. Deterministic services sit in group 'manual'; the supplement
+  // pathway is a medical gate; AI/voice grounding joins the kill group.
+  fiber_intelligence_enabled: {
+    clientKey: 'fiberIntelligenceEnabled',
+    class: 'server', group: 'manual', default: false, failOpen: false,
+    // Stage-1 internal rollout only: can never resolve true in production,
+    // regardless of FF_* overrides or PostHog targeting. Remove when promoted.
+    environments: ['development', 'test'],
+    endpoints: ['/fiber'],
+    description: 'Parent gate for the Smart Fiber Intelligence system. Off => every /fiber endpoint 403s.',
+  },
+  fiber_daily_goal_enabled: {
+    clientKey: 'fiberDailyGoalEnabled',
+    class: 'server', group: 'manual', default: false, failOpen: false,
+    environments: ['development', 'test'],
+    dependsOn: ['fiber_intelligence_enabled'],
+    endpoints: ['GET /fiber/target', 'PUT /fiber/target', 'GET /fiber/daily', 'GET /fiber/trend'],
+    description: 'Personalized daily fiber target (14 g/1,000 kcal + life-stage rules) with confirmed/estimated/unknown progress.',
+  },
+  fiber_meal_sequencing_enabled: {
+    clientKey: 'fiberMealSequencingEnabled',
+    class: 'server', group: 'manual', default: false, failOpen: false,
+    environments: ['development', 'test'],
+    dependsOn: ['fiber_intelligence_enabled'],
+    endpoints: ['POST /fiber/sequence'],
+    description: 'Evidence-informed fiber-first eating order for component-wise meals.',
+  },
+  fiber_reminders_enabled: {
+    clientKey: 'fiberRemindersEnabled',
+    class: 'server', group: 'manual', default: false, failOpen: false,
+    dependsOn: ['fiber_daily_goal_enabled'],
+    endpoints: [],
+    description: 'Opt-in fiber progress reminders (food-first wording, dedupe-capped).',
+  },
+  fiber_supplement_suggestions_enabled: {
+    clientKey: 'fiberSupplementSuggestionsEnabled',
+    class: 'server', group: 'medical', default: false, failOpen: false,
+    dependsOn: ['fiber_daily_goal_enabled', 'supplements'],
+    endpoints: ['GET /fiber/supplement-check', 'POST /fiber/supplement-label'],
+    description: 'Optional label-verified fiber supplement pathway (psyllium). Medical gate — requires clinical review before enablement.',
+  },
+  fiber_ai_enabled: {
+    clientKey: 'fiberAiEnabled',
+    class: 'ai', group: 'ai', default: false, failOpen: false,
+    dependsOn: ['fiber_intelligence_enabled', 'ai_coach'],
+    endpoints: [],
+    description: 'AI coach grounding on deterministic fiber facts. In AI kill group.',
+  },
+  fiber_voice_enabled: {
+    clientKey: 'fiberVoiceEnabled',
+    class: 'ai', group: 'ai', default: false, failOpen: false,
+    dependsOn: ['fiber_intelligence_enabled', 'voice_food_logging'],
+    endpoints: [],
+    description: 'Hey Leo fiber read-outs/intents. In AI kill group.',
+  },
   ai_emergency_shutdown: {
     clientKey: 'aiEmergencyShutdown',
     class: 'control',
@@ -699,6 +779,38 @@ const FEATURES = {
     failOpen: false,
     endpoints: [],
     description: 'Global AI kill switch. When on, every group:ai flag resolves false regardless of targeting.',
+  },
+  // --- Clinical/medical gates (D1 authorization) — default OFF, fail-closed.
+  // Never bypassable by client input, admin scope without authorization, or AI.
+  allergen_warnings: {
+    clientKey: 'allergenWarnings',
+    class: 'server', group: 'medical', default: false, failOpen: false,
+    endpoints: ['/activity-safety', '/meals/*', '/food-intel/*'],
+    description: 'Surface allergen-exposure safety_warning outcomes. Requires allergist-approved wording before cohort enablement.',
+  },
+  calorie_floor_policy: {
+    clientKey: 'calorieFloorPolicy',
+    class: 'server', group: 'medical', default: false, failOpen: false,
+    endpoints: ['/daily-progress/score-v2'],
+    description: 'Wire evaluateCalorieSafety output into score-v2 calorieFloor. Inactive until G4 thresholds are clinically approved.',
+  },
+  condition_rules: {
+    clientKey: 'conditionRules',
+    class: 'server', group: 'medical', default: false, failOpen: false,
+    endpoints: ['/meal-suggest', '/health-score', '/weekly-diet'],
+    description: 'Allow condition-specific nutrition guidance surfacing. Rules themselves additionally require reviewStatus=APPROVED — flag alone activates nothing unreviewed.',
+  },
+  supplement_safety: {
+    clientKey: 'supplementSafety',
+    class: 'server', group: 'medical', default: false, failOpen: false,
+    endpoints: ['/supplements/*'],
+    description: 'Surface supplement condition/interaction cautions. Requires pharmacist review of the 47 DRAFT safety rules first.',
+  },
+  medication_interaction: {
+    clientKey: 'medicationInteraction',
+    class: 'server', group: 'medical', default: false, failOpen: false,
+    endpoints: ['/food-intel/*', '/supplements/*'],
+    description: 'Medication-food interaction content. No content module exists yet; flag gates the integration point only.',
   },
 };
 

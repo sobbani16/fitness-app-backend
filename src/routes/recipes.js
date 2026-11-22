@@ -48,9 +48,18 @@ router.get('/search', async (req, res) => {
 
 // GET /recipes/:id/nutrition
 // Returns macros + per-100g values so the client can re-scale by portion.
+// Optional ?servings=N rescales the per-serving map via the shared capability
+// fn (K05) — grams vs household servings stay distinct; nulls stay null.
 router.get('/:id/nutrition', async (req, res) => {
   try {
     const nutrition = await getRecipeNutrition(req.params.id, req.userId);
+    const servings = Number(req.query.servings);
+    if (Number.isFinite(servings) && servings > 0 && servings <= 20) {
+      const scaled = require('../services/scenarioCapabilities').rescaleServing({
+        nutrients: { calories: nutrition.calories }, servings,
+      });
+      if (scaled) { nutrition.servingsRequested = servings; nutrition.perServing = scaled; }
+    }
     res.json(nutrition);
   } catch (err) {
     res.status(err.status || 400).json({ error: err.message });
@@ -58,6 +67,125 @@ router.get('/:id/nutrition', async (req, res) => {
 });
 
 // GET /recipes/:id — full detail for the cooking flow: lines, instructions,
+// POST /recipes/generate — AI recipe candidates, deterministically validated.
+// Body: {items[], diet[], allergies[], exclusions[], cuisine, mealType,
+//        maxPrepMinutes, servings, equipment[], limit}
+// AI never supplies nutrition or safety verdicts; every candidate runs the
+// full validator before it can be returned. Flag-gated + quota via askJSON.
+router.post('/generate', require('../middleware/requireFeature').requireFeature('ai_recipe_generation_enabled'), async (req, res, next) => {
+  try {
+    const userId = req.userId || req.headers['x-user-id'];
+    if (!userId) return res.status(401).json({ error: 'Sign in required.' });
+    const b = req.body || {};
+    const { generateRecipes } = require('../services/recipes/generate');
+    const out = await generateRecipes({
+      userId,
+      items: Array.isArray(b.items) ? b.items.slice(0, 20) : [],
+      diet: Array.isArray(b.diet) ? b.diet.slice(0, 10) : [],
+      allergies: Array.isArray(b.allergies) ? b.allergies.slice(0, 20) : [],
+      exclusions: Array.isArray(b.exclusions) ? b.exclusions.slice(0, 20) : [],
+      cuisine: b.cuisine, mealType: b.mealType,
+      maxPrepMinutes: b.maxPrepMinutes, servings: b.servings,
+      equipment: Array.isArray(b.equipment) ? b.equipment.slice(0, 10) : null,
+      limit: Math.min(3, Math.max(1, Number(b.limit) || 3)),
+    });
+    res.json(out);
+  } catch (e) { next(e); }
+});
+
+// POST /recipes/save-generated — persist a validated AI candidate.
+// The posted candidate is RE-VALIDATED server-side against current
+// constraints — a client can never claim a pre-validated recipe. Persists
+// as RESEARCH_DRAFT (generated content is never VERIFIED automatically)
+// with a disambiguated name (Recipe.recipeName is globally unique, F-9).
+router.post('/save-generated', require('../middleware/requireFeature').requireFeature('ai_recipe_generation_enabled'), async (req, res, next) => {
+  try {
+    const db = require('../lib/prisma').getPrisma();
+    const userId = req.userId || req.headers['x-user-id'];
+    if (!userId) return res.status(401).json({ error: 'Sign in required.' });
+    const cand = req.body?.candidate;
+    if (!cand || typeof cand !== 'object') return res.status(400).json({ error: 'candidate object required.' });
+    const { loadConstraints } = require('../services/recipes/constraints');
+    const { validateGeneratedRecipe, loadCatalog, catAllergens, recordValidation } = require('../services/recipes/validate');
+    const metrics = require('../services/recipes/metrics');
+    const crypto = require('crypto');
+    const { normalize } = require('../services/ingredientCsv');
+
+    const constraints = await loadConstraints(userId, {});
+    const catalog = await loadCatalog(db);
+    const validation = await validateGeneratedRecipe(cand, constraints, { prisma: db, catalog });
+    metrics.inc(`save_generated.${validation.status}`);
+    await recordValidation(db, { userId, input: { name: cand?.name }, validation });
+    if (validation.status === 'FAIL') {
+      return res.status(422).json({ error: 'Candidate fails validation — cannot save.', violations: validation.violations });
+    }
+
+    const lines = (Array.isArray(cand.ingredients) ? cand.ingredients : []).map((l) => {
+      const name = String(l.ingredientName || l.name || '').trim();
+      const cat = catalog.byName.get(normalize(name));
+      return { name, amountG: Number(l.amountG) || 0, optional: !!l.optional, cat };
+    }).filter((l) => l.name && l.amountG > 0);
+
+    const allergens = [...new Set(lines.flatMap((l) => catAllergens(l.cat)))];
+    const instructions = (Array.isArray(cand.instructions) ? cand.instructions : [])
+      .map((s, i) => (typeof s === 'string' ? { step: i + 1, text: s } : { step: s.step ?? i + 1, ...s }));
+
+    const per = validation.nutrition.perServing || {};
+    const sourceKey = `ai:${userId}:${crypto.randomUUID()}`;
+    const uniqueName = `${String(cand.name || cand.recipeName || 'Generated recipe').slice(0, 90)} · ai-${crypto.randomUUID().slice(0, 8)}`;
+    const recipe = await db.recipe.create({
+      data: {
+        creatorId: userId,
+        recipeName: uniqueName,
+        description: String(cand.description || '').slice(0, 500) || null,
+        mealType: cand.mealType || null,
+        cuisine: cand.cuisine || null,
+        prepMinutes: Number.isFinite(Number(cand.estimatedMinutes)) ? Math.min(600, Math.max(1, Math.round(Number(cand.estimatedMinutes)))) : null,
+        servings: Number.isFinite(Number(cand.servings)) ? Math.min(20, Math.max(1, Math.round(Number(cand.servings)))) : 1,
+        reviewStatus: 'RESEARCH_DRAFT',
+        sourceKey,
+        isSystem: false,
+        instructions,
+        allergens,
+        safetyNotes: validation.warnings.length ? validation.warnings.slice(0, 10) : null,
+        calories: per.calories ?? null,
+        proteinG: per.proteinG ?? null,
+        carbsG: per.carbsG ?? null,
+        fatG: per.fatG ?? null,
+        fiberG: per.fiberG ?? null,
+        finishedYieldG: validation.nutrition.totalG ?? null,
+        portionG: validation.nutrition.totalG != null
+          ? Math.round(validation.nutrition.totalG / (Number.isFinite(Number(cand.servings)) ? Math.min(20, Math.max(1, Math.round(Number(cand.servings)))) : 1))
+          : null,
+        nutritionSource: {
+          kind: 'AI_GENERATED_VALIDATED',
+          validatorVersion: validation.validatorVersion,
+          constraintVersion: constraints.version,
+          validationStatus: validation.status,
+          computedLines: validation.nutrition.computedLines,
+          unresolvedLines: validation.nutrition.missingLines,
+          provenance: 'ingredient_per100_deterministic',
+        },
+        ingredients: {
+          create: lines.map((l) => ({
+            ingredientId: l.cat?.ingredient?.id || null,
+            ingredientName: l.cat?.name || l.name,
+            amountG: l.amountG,
+            optional: l.optional,
+            nutritionSnapshot: l.cat?.ingredient ? { per100: { calories: l.cat.ingredient.caloriesPer100g, proteinG: l.cat.ingredient.proteinPer100g, carbsG: l.cat.ingredient.carbsPer100g, fatG: l.cat.ingredient.fatPer100g, fiberG: l.cat.ingredient.fiberPer100g }, source: 'catalog' } : null,
+          })),
+        },
+      },
+    });
+    metrics.inc('save_generated.saved');
+    res.status(201).json({
+      recipe: { id: recipe.id, name: recipe.recipeName, servings: recipe.servings, reviewStatus: recipe.reviewStatus, sourceKey },
+      validation: { status: validation.status, violations: validation.violations },
+      provenance: { source: 'ai_generated_saved', reviewRequired: true, nutritionRecomputed: true },
+    });
+  } catch (e) { next(e); }
+});
+
 // allergens, verification, caller's engagement.
 router.get('/:id', async (req, res, next) => {
   try {
@@ -109,6 +237,9 @@ router.post('/:id/customize', require('../middleware/requireFeature').requireFea
     const { normalize } = require('../services/ingredientCsv');
     const { computeFromLines } = require('../services/recipeImport');
     const { askJSON } = require('../services/aiProvider');
+    const { loadConstraints, hasTerm, violatesHard } = require('../services/recipes/constraints');
+    const { validateGeneratedRecipe, recordValidation } = require('../services/recipes/validate');
+    const metrics = require('../services/recipes/metrics');
 
     const recipe = await db.recipe.findFirst({
       where: { id: req.params.id, reviewStatus: { not: 'REJECTED' }, OR: [{ isSystem: true }, { creatorId: String(userId) }] },
@@ -120,7 +251,10 @@ router.post('/:id/customize', require('../middleware/requireFeature').requireFea
     const request = String(b.request || '').trim();
     if (!request || request.length > 500) return res.status(400).json({ error: 'request must be 1–500 characters.' });
     const targetServings = Number.isFinite(Number(b.servings)) ? Math.min(20, Math.max(1, Math.round(Number(b.servings)))) : null;
-    const userAllergies = Array.isArray(b.allergies) ? b.allergies.map(normalize).filter(Boolean) : [];
+    // Server-side constraints are authoritative (F-1): profile allergies and
+    // saved restrictions always apply; request allergies can only narrow.
+    const constraints = await loadConstraints(userId, { allergies: b.allergies });
+    const userAllergenTerms = constraints.hard.allergenTerms;
 
     const lineSummary = recipe.ingredients.map((l) => ({ name: l.ingredientName, amountG: l.amountG, optional: l.optional }));
     const out = await askJSON('recipe_customization', {
@@ -142,13 +276,13 @@ router.post('/:id/customize', require('../middleware/requireFeature').requireFea
     },
       'You are adjusting a recipe for a user. You may ONLY change ingredient amounts, remove optional/existing lines, add common ingredients, or substitute one ingredient for another. ' +
       'You never invent nutrient values. Amounts are grams. Respect the user request literally; if you cannot safely satisfy it, return empty changes and explain in notes.',
-      `Recipe: ${recipe.recipeName} (servings ${recipe.servings})\nIngredients: ${JSON.stringify(lineSummary)}\nUser request: ${request}${targetServings ? `\nTarget servings: ${targetServings}` : ''}${userAllergies.length ? `\nUser allergies (never introduce these): ${userAllergies.join(', ')}` : ''}`,
+      `Recipe: ${recipe.recipeName} (servings ${recipe.servings})\nIngredients: ${JSON.stringify(lineSummary)}\nUser request: ${request}${targetServings ? `\nTarget servings: ${targetServings}` : ''}${userAllergenTerms.size ? `\nUser allergies (never introduce these, including derivatives): ${[...userAllergenTerms].slice(0, 40).join(', ')}` : ''}`,
       null, userId, { maxOutputTokens: 1200 });
 
     // ---- Backend validation ----
     const catalog = await db.ingredientCatalog.findMany({
       where: { usable: true },
-      include: { ingredient: { select: { id: true, caloriesPer100g: true, proteinPer100g: true, carbsPer100g: true, fatPer100g: true, fiberPer100g: true } } },
+      include: { ingredient: { select: { id: true, caloriesPer100g: true, proteinPer100g: true, carbsPer100g: true, fatPer100g: true, fiberPer100g: true, attributes: { select: { attribute: true } } } } },
     });
     const byName = new Map();
     for (const c of catalog) for (const n of [c.normalizedName, ...c.aliases]) if (c.ingredient && !byName.has(n)) byName.set(n, c);
@@ -191,10 +325,33 @@ router.post('/:id/customize', require('../middleware/requireFeature').requireFea
         applied.push(`Removed ${target.ingredientName}`);
       } else if (act === 'substitute' || act === 'add') {
         const newName = String(act === 'add' ? ch.ingredientName : ch.newIngredientName || '').trim();
+        // Hard-constraint term match on the raw name runs BEFORE catalog
+        // resolution: an unresolvable "peanut oil" must read as an allergy
+        // conflict, not a catalog miss.
+        const nameViol = violatesHard(constraints.hard, { text: newName, allergens: [], category: null, tags: [], attributes: [] });
+        if (nameViol) {
+          const reason = nameViol.ruleId.startsWith('ALLERGEN')
+            ? `"${newName}" conflicts with your allergies`
+            : `"${newName}" conflicts with your saved restrictions`;
+          rejected.push({ change: ch, reason }); continue;
+        }
         const cat = byName.get(normalize(newName));
         if (!cat?.ingredient) { rejected.push({ change: ch, reason: `"${newName}" not in food catalog` }); continue; }
-        if (userAllergies.length && catAllergens(cat).some((a) => userAllergies.includes(a))) {
-          rejected.push({ change: ch, reason: `"${newName}" conflicts with your allergies` }); continue;
+        // Added ingredients run through the same hard-constraint check as
+        // matching: allergens (declared + name text), saved exclusions, and
+        // APPROVED condition-rule attributes.
+        const addViol = violatesHard(constraints.hard, {
+          text: cat.name,
+          allergens: catAllergens(cat),
+          category: cat.category,
+          tags: Array.isArray(cat.sourceRecord?.tags) ? cat.sourceRecord.tags : [],
+          attributes: (cat.ingredient.attributes || []).map((a) => a.attribute),
+        });
+        if (addViol) {
+          const reason = addViol.ruleId.startsWith('ALLERGEN')
+            ? `"${newName}" conflicts with your allergies`
+            : `"${newName}" conflicts with your saved restrictions`;
+          rejected.push({ change: ch, reason }); continue;
         }
         const newline = { ingredientId: cat.ingredient.id, ingredientName: cat.name, amountG: g, optional: act === 'add', _per100: per100For(cat.ingredient.id) };
         if (act === 'substitute') Object.assign(target, newline, { optional: target.optional });
@@ -214,10 +371,29 @@ router.post('/:id/customize', require('../middleware/requireFeature').requireFea
       portionG: servings === recipe.servings ? recipe.portionG : null,
     });
 
+    // Every transformation re-validates the whole recipe against the user's
+    // authoritative constraints — the validator independently recomputes the
+    // proposal (schema → identity → hard filters → nutrition → safety).
+    const validation = await validateGeneratedRecipe({
+      name: recipe.recipeName,
+      servings,
+      allergens: recipe.allergens,
+      finishedYieldG: recipe.finishedYieldG,
+      portionG: recipe.portionG,
+      ingredients: finalLines.map((l) => ({ ingredientName: l.ingredientName, ingredientId: l.ingredientId, amountG: l.amountG, optional: l.optional })),
+      instructions: recipe.instructions || [],
+    }, constraints, { prisma: db });
+    for (const v of validation.violations) {
+      if (v.severity === 'warn') warnings.push(v.reason);
+      else warnings.push(`${v.ruleId}: ${v.reason}`);
+    }
+    metrics.inc(`customize.validate.${validation.status}`);
+    recordValidation(db, { userId, input: { name: `${recipe.recipeName} (customized)` }, validation });
+
     // Safety: if a swap introduced a user allergen via recipe-level allergen
     // list, warn explicitly (declared allergens, not a guarantee).
     const declared = (recipe.allergens || []).map(normalize);
-    const allergenNote = userAllergies.length && declared.some((a) => userAllergies.includes(a))
+    const allergenNote = declared.some((a) => hasTerm(userAllergenTerms, a))
       ? 'This recipe declares an allergen on your list — review before cooking.'
       : null;
     if (allergenNote) warnings.push(allergenNote);
@@ -231,7 +407,8 @@ router.post('/:id/customize', require('../middleware/requireFeature').requireFea
       proposedLines: finalLines.map((l) => ({ ingredientId: l.ingredientId, ingredientName: l.ingredientName, amountG: Math.round(l.amountG * 10) / 10, optional: l.optional })),
       perServing,
       warnings,
-      provenance: { source: 'ai_customization', reviewRequired: true, nutritionRecomputed: true },
+      validation: { status: validation.status, violations: validation.violations, validatorVersion: validation.validatorVersion },
+      provenance: { source: 'ai_customization', reviewRequired: true, nutritionRecomputed: true, revalidated: true },
     });
   } catch (e) { next(e); }
 });

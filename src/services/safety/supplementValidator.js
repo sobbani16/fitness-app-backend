@@ -15,7 +15,7 @@ async function validateSupplements(userId, supplements) {
   // Load user's active conditions.
   const userConditions = await prisma.userHealthCondition.findMany({
     where: { userId, active: true },
-    include: { condition: { include: { conditionRules: true } } },
+    include: { condition: { include: { conditionRules: { where: { reviewStatus: 'APPROVED' } } } } },
   });
 
   // Build condition rules targeting supplements.

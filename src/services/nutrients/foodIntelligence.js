@@ -72,12 +72,24 @@ async function label(facts,userId,db) {
 async function profilesForIngredient(ingredientId,db=getPrisma()) {
  return db.ingredientNutritionProfile.findMany({where:{ingredientId,verifiedAt:{not:null}},select:{id:true,ingredientId:true,preparationType:true,preparationMethod:true,source:true,sourceFoodId:true,sourceDataset:true,updatedAt:true}});
 }
-async function ingredient({ingredientId,profileId,grams},userId,db=getPrisma()) {
+async function ingredient({ingredientId,profileId,grams,consumedState,yieldFactor},userId,db=getPrisma()) {
  if(!positive(grams))return empty(ingredientId,'Enter the consumed weight in grams.');
  if(!profileId)return empty(ingredientId,'Select an exact raw/cooked nutrition profile. Existing macro logging remains available.');
  const [ctx,profile]=await Promise.all([contextFor(userId,db),db.ingredientNutritionProfile.findFirst({where:{id:profileId,ingredientId,verifiedAt:{not:null}},include:{nutrients:true,ingredient:{include:{attributes:true}}}})]);
  if(!profile)return empty(ingredientId,'A verified profile matching this ingredient was not found.');
- return memo(userId,{profile,grams},ctx,()=>format(ingredientId,profile,grams,ctx,'VERIFIED_DATABASE'));
+ // K04: raw↔cooked weight conversion only with an explicit per-food factor —
+ // no universal factor exists and none is invented. Mismatched state without
+ // a factor returns a no_data conversion object; the profile math is
+ // untouched (grams are interpreted in the PROFILE's state, stated honestly).
+ const conv=require('../scenarioCapabilities').convertFoodState({
+   grams,
+   from:consumedState||profile.preparationType,
+   to:profile.preparationType,
+   factor:yieldFactor??profile.sourceRecord?.yieldFactor??null,
+ });
+ const result=await memo(userId,{profile,grams:conv.grams??grams},ctx,()=>format(ingredientId,profile,conv.grams??grams,ctx,'VERIFIED_DATABASE'));
+ if(consumedState&&consumedState!==profile.preparationType)result.stateConversion=conv;
+ return result;
 }
 // Recipe rows carry approximate per-portion macros (USDA-derived or the
 // author's calc snapshot). When verified ingredient profiles can't reproduce a

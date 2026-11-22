@@ -262,7 +262,7 @@ describe('step 5 — client grants selected consents only', () => {
       .send({ grants: ['workout_records', 'weight_trends'] });
     expect(res.status).toBe(200);
     const byCat = Object.fromEntries(res.body.consents.map((c) => [c.category, c.status]));
-    expect(res.body.consents).toHaveLength(8);
+    expect(res.body.consents).toHaveLength(9);
     expect(byCat.workout_records).toBe('granted');
     expect(byCat.weight_trends).toBe('granted');
     for (const c of ['food_logs', 'nutrition_summaries', 'sleep_summaries', 'step_counts', 'body_measurements', 'health_scores']) {

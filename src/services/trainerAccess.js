@@ -12,6 +12,7 @@ const CONSENT_CATEGORIES = [
   'step_counts',
   'body_measurements',
   'health_scores',
+  'safety_restrictions', // opt-in: trainer may see restriction categories/limitations
 ];
 
 function forbidden(msg) {

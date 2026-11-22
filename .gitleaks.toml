@@ -1,0 +1,15 @@
+title = "Humai backend gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "generic-api-key FPs in data-dense files: nutrient/recipe catalogs, audit dumps, literal key:/token: object fields. Real secrets (env files, private keys, tokens with real formats) remain scanned repo-wide."
+paths = [
+  '''data/imports/.*''',
+  '''docs/audits/.*\.json''',
+  '''src/services/fiber/dailyEngine\.js''',
+  '''src/services/nutrientCatalog\.js''',
+  '''src/services/mind\.js''',
+  '''src/routes/voice\.js''',
+]

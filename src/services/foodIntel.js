@@ -3,6 +3,7 @@
 // no supplement-to-culinary overclaiming, hard exclusions always win.
 const { getPrisma } = require('../lib/prisma');
 const flags = require('./featureFlags/service');
+const { LABEL_ANIMAL_TERMS } = require('./recipes/constraints');
 // Lazy accessor — resolves getPrisma() per call so tests can swap the client.
 const prisma = new Proxy({}, { get: (_t, prop) => getPrisma()[prop] });
 
@@ -129,8 +130,41 @@ async function resolveBarcode(barcode) {
   const product = await prisma.barcodeProduct.findUnique({ where: { barcode: code } });
   if (product) return { found: true, barcode: code, product, verified: product.source === 'catalog' };
   const ext = await fetchOpenFoodFacts(code);
-  if (ext) return { found: true, barcode: code, product: ext, verified: false, externalSource: 'openfoodfacts', dataQuality: 'community' };
+  if (ext) {
+    // Cache community-sourced rows so repeat scans are local and auditable;
+    // source 'openfoodfacts' keeps verified=false and preserves provenance.
+    const row = { barcode: code, name: ext.name, brand: ext.brand, servingSizeG: ext.servingSizeG, servingLabel: ext.servingLabel, nutrients: { ...ext.nutrients, packageQuantityG: ext.packageQuantityG, servingSizeMl: ext.servingSizeMl ?? null, servingUnit: ext.servingUnit ?? 'unknown', retrievedAt: new Date().toISOString() }, ingredients: ext.ingredients, allergens: ext.allergens, source: 'openfoodfacts' };
+    try { await prisma.barcodeProduct.upsert({ where: { barcode: code }, create: row, update: { name: row.name, brand: row.brand, servingSizeG: row.servingSizeG, servingLabel: row.servingLabel, nutrients: row.nutrients, ingredients: row.ingredients, allergens: row.allergens } }); } catch { /* cache miss is non-fatal */ }
+    return { found: true, barcode: code, product: ext, verified: false, externalSource: 'openfoodfacts', dataQuality: 'community' };
+  }
   return { found: false, barcode: code, nextStep: 'label_photo_or_manual' };
+}
+
+// Parse a manufacturer serving declaration into mass vs volume. OFF's
+// `serving_quantity` is a number in the product's declared unit — "330" next
+// to a "330 ml" label is milliliters, NOT grams. Mass is only ever stored
+// when the label declares a mass unit; volume declarations keep their unit
+// so downstream never fabricates 1 ml = 1 g.
+const VOLUME_RE = /(\d+(?:\.\d+)?)\s*(ml|millilitre?s?|cl|dl|litres?|liters?|l)\b/i;
+const FL_OZ_RE = /(\d+(?:\.\d+)?)\s*(fl\.?\s?oz|fluid\s?ounces?)\b/i;
+const MASS_RE = /(\d+(?:\.\d+)?)\s*(g|grams?|kg|kgs)\b/i;
+function parseServingDeclaration(servingSizeText, servingQuantity) {
+  const text = String(servingSizeText || '');
+  const qty = Number(servingQuantity);
+  const vol = text.match(VOLUME_RE) || text.match(FL_OZ_RE);
+  if (vol) {
+    const amount = vol[2].toLowerCase().startsWith('fl') || /fluid/i.test(vol[2])
+      ? Math.round(Number(vol[1]) * 29.5735 * 100) / 100          // US fl oz → ml (approximate — recorded as derived)
+      : Number(vol[1]) * ({ cl: 10, dl: 100, l: 1000, litre: 1000, litres: 1000, liter: 1000, liters: 1000 }[vol[2].toLowerCase()] || 1);
+    return { unit: 'ml', amountMl: Number.isFinite(amount) ? Math.round(amount * 100) / 100 : (Number.isFinite(qty) ? qty : null), amountG: null };
+  }
+  const mass = text.match(MASS_RE);
+  if (mass) {
+    const g = mass[2].toLowerCase().startsWith('kg') ? Number(mass[1]) * 1000 : Number(mass[1]);
+    return { unit: 'g', amountMl: null, amountG: Number.isFinite(g) ? g : (Number.isFinite(qty) ? qty : null) };
+  }
+  // No unit in the label text — serving_quantity is ambiguous; never guess.
+  return { unit: 'unknown', amountMl: null, amountG: null };
 }
 
 // Authorized external fallback — Open Food Facts (ODbL). Community data is NEVER
@@ -141,15 +175,22 @@ async function fetchOpenFoodFacts(code) {
   if (!on || typeof fetch !== 'function') return null;
   try {
     const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 4000);
-    const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,serving_size,nutriments,ingredients_text,allergens_tags`, { signal: ctrl.signal, headers: { 'User-Agent': 'HumaiFitness/1.0 (contact: dev@humai.app)' } });
+    const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,serving_size,serving_quantity,product_quantity,nutriments,ingredients_text,allergens_tags`, { signal: ctrl.signal, headers: { 'User-Agent': 'HumaiFitness/1.0 (contact: dev@humai.app)' } });
     clearTimeout(t);
     if (!r.ok) return null;
     const j = await r.json();
     const p = j?.product; if (!p?.product_name) return null;
     const n = p.nutriments || {};
+    // serving_quantity is a number in the label's declared unit — classify
+    // before trusting it as mass. Volume servings keep unit + ml only.
+    const decl = parseServingDeclaration(p.serving_size, p.serving_quantity);
+    const servingG = decl.unit === 'g' ? decl.amountG : null;
     return { barcode: code, name: String(p.product_name).slice(0, 200), brand: p.brands || null,
-      servingSizeG: null, servingLabel: p.serving_size || null,
-      nutrients: { calories: n['energy-kcal_serving'] ?? null, proteinG: n.proteins_serving ?? null, carbsG: n.carbohydrates_serving ?? null, fatG: n.fat_serving ?? null, sugarG: n.sugars_serving ?? null, sodiumMg: n.sodium_serving != null ? n.sodium_serving * 1000 : null },
+      servingSizeG: Number.isFinite(servingG) && servingG > 0 && servingG <= 5000 ? servingG : null,
+      servingSizeMl: decl.unit === 'ml' && Number.isFinite(decl.amountMl) && decl.amountMl > 0 && decl.amountMl <= 5000 ? decl.amountMl : null,
+      servingUnit: decl.unit,
+      servingLabel: p.serving_size || null, packageQuantityG: Number(p.product_quantity) || null,
+      nutrients: { calories: n['energy-kcal_serving'] ?? null, proteinG: n.proteins_serving ?? null, carbsG: n.carbohydrates_serving ?? null, fatG: n.fat_serving ?? null, fiberG: n.fiber_serving ?? null, sugarG: n.sugars_serving ?? null, sodiumMg: n.sodium_serving != null ? n.sodium_serving * 1000 : null },
       ingredients: p.ingredients_text || null, allergens: (p.allergens_tags || []).map(a => String(a).replace('en:', '')), source: 'openfoodfacts' };
   } catch { return null; }
 }
@@ -246,8 +287,8 @@ async function checkSuitability(userId, { ingredientKeys = [], allergens = [], i
   // Dietary restrictions — hard exclusions via the canonical restriction map
   const planning = await prisma.userPlanningPreferences.findUnique({ where: { userId } }).catch(() => null);
   // Animal-derived additives that appear on labels but not in meal names —
-  // supplement the canonical restriction map for label scanning only.
-  const LABEL_ANIMAL_TERMS = ['gelatin', 'gelatine', 'lard', 'tallow', 'carmine', 'cochineal', 'isinglass', 'rennet'];
+  // LABEL_ANIMAL_TERMS is shared with the recipe-constraint module.
+
   for (const r of planning?.dietaryRestrictions || []) {
     const key = String(r).toLowerCase().replace(/[\s-]+/g, '_');
     let words = RESTRICTION_KEYWORDS[key] || [key.replace(/_/g, ' ')];
@@ -295,14 +336,25 @@ async function checkSuitability(userId, { ingredientKeys = [], allergens = [], i
   return result;
 }
 
+// Nutrients stored on BarcodeProduct carry provenance keys (retrievedAt,
+// packageQuantityG) alongside real values. Consumers must only ever see the
+// nutrient map — provenance lives on the product/snapshot itself.
+const NUTRIENT_KEYS = ['calories', 'proteinG', 'carbsG', 'fatG', 'fiberG', 'sugarG', 'sodiumMg'];
+const pickNutrients = (n) => Object.fromEntries(NUTRIENT_KEYS.filter((k) => k in (n || {})).map((k) => [k, n[k]]));
+
 // Compose the scan result view-model the screen renders.
 async function scanResult(userId, { barcode, ingredientKeys = [], ingredientText, nutrients, allergens = [], productName }) {
   const out = { product: null, nutrition: null, ingredients: [], evidence: [], suitability: null, provenance: {} };
   if (barcode) {
     const r = await resolveBarcode(barcode);
     if (r.found) {
-      out.product = r.product;
-      out.nutrition = { source: r.product.source, verified: r.verified, per: r.product.servingLabel || `${r.product.servingSizeG || 100}g`, values: r.product.nutrients };
+      // Surface serving-unit metadata from cache meta or the fresh lookup so
+      // clients can distinguish declared mass from declared volume.
+      const meta = r.product.nutrients || {};
+      out.product = { ...r.product,
+        servingSizeMl: r.product.servingSizeMl ?? meta.servingSizeMl ?? null,
+        servingUnit: r.product.servingUnit ?? meta.servingUnit ?? (r.product.servingSizeG ? 'g' : 'unknown') };
+      out.nutrition = { source: r.product.source, verified: r.verified, per: r.product.servingLabel || `${r.product.servingSizeG || 100}g`, values: pickNutrients(r.product.nutrients) };
       ingredientText = ingredientText || r.product.ingredients;
       allergens = allergens.length ? allergens : (r.product.allergens || []);
       ingredientKeys = ingredientKeys.length ? ingredientKeys : EVIDENCE_SEED.map((s) => s.ingredientKey).filter((k) => (r.product.ingredients || '').toLowerCase().includes(k));
@@ -366,22 +418,34 @@ async function alternatives(userId, { ingredientText = '', category, limit = 5 }
 }
 
 // Add-to-log through the existing FoodLog pipeline with source provenance.
-async function logScannedFood(userId, { productName, servingG, nutrients = {}, mealType = 'meal', barcode }) {
+async function logScannedFood(userId, { productName, servingG, servingLabel, servingVolumeMl, servingUnit, massSource, nutrients = {}, mealType = 'meal', barcode }) {
   if (!productName || !Number.isFinite(Number(servingG)) || Number(servingG) <= 0 || Number(servingG) > 5000) {
     const e = new Error('productName and servingG (1-5000) required'); e.status = 400; throw e;
   }
   const g = Number(servingG);
-  // nutrient values are per serving — scale by grams relative to serving size
-  const n = nutrients || {};
+  const volMl = Number.isFinite(Number(servingVolumeMl)) && Number(servingVolumeMl) > 0 && Number(servingVolumeMl) <= 5000 ? Number(servingVolumeMl) : null;
+  // nutrient values are per serving — scale by grams relative to serving size.
+  // Restrict to the known nutrient map so client/provenance keys can't leak
+  // into perServing snapshots or be mistaken for nutrients.
+  const n = pickNutrients(nutrients);
   const saved = await prisma.foodLog.create({ data: {
     userId, foodName: String(productName).slice(0, 300), quantityG: g,
     calories: n.calories ?? 0, proteinG: n.proteinG ?? 0, carbsG: n.carbsG ?? 0,
     fatG: n.fatG ?? 0, fiberG: n.fiberG ?? null,
     mealType: String(mealType).slice(0, 30),
-    nutritionSnapshot: { loggedSource: 'food-intel', barcode: barcode || null, perServing: n, reviewRecommended: !barcode },
+    nutritionSnapshot: { loggedSource: 'food-intel', barcode: barcode || null, perServing: n, reviewRecommended: !barcode,
+      nutrientUnknowns: require('./nutrientCompleteness').computeUnknowns(n),
+      selectedServing: typeof servingLabel === 'string' && servingLabel.trim() ? servingLabel.slice(0, 200) : null,
+      servingGrams: g, servingCount: 1,
+      // Mass provenance: 'manufacturer' when the label declared grams;
+      // 'user-entered' when the user supplied a weighed/labeled mass for a
+      // volume-declared product. Never a silent ml→g conversion.
+      servingVolumeMl: volMl,
+      servingUnit: ['g', 'ml', 'unknown'].includes(servingUnit) ? servingUnit : null,
+      massSource: ['manufacturer', 'user-entered'].includes(massSource) ? massSource : null },
   } });
   return saved;
 }
 
 module.exports = {
-  correctProduct, toggleFavorite, listFavorites, EVIDENCE_SEED, ensureEvidenceSeeded, resolveBarcode, upsertBarcodeProduct, getEvidence, listEvidence, checkSuitability, scanResult, explainIngredient, alternatives, logScannedFood, ALIASES };
+  correctProduct, toggleFavorite, listFavorites, EVIDENCE_SEED, ensureEvidenceSeeded, resolveBarcode, upsertBarcodeProduct, getEvidence, listEvidence, checkSuitability, scanResult, explainIngredient, alternatives, logScannedFood, parseServingDeclaration, ALIASES };

@@ -61,11 +61,22 @@ describe('calorieEngine', () => {
       expect(normalizeGoal('Weight Loss')).toBe('weight_loss');
       expect(normalizeGoal('body-recomposition')).toBe('body_recomposition');
     });
-    it('keeps legacy aliases and defaults unknowns to maintain', () => {
-      expect(normalizeGoal('lose')).toBe('lose');
-      expect(normalizeGoal('gain')).toBe('gain');
-      expect(normalizeGoal('bogus')).toBe('maintain');
-      expect(normalizeGoal()).toBe('maintain');
+    it('maps documented legacy aliases to canonical goals', () => {
+      expect(normalizeGoal('lose')).toBe('weight_loss');
+      expect(normalizeGoal('gain')).toBe('weight_gain');
+      expect(normalizeGoal('maintain')).toBe('maintenance');
+    });
+    it('accepts the Appendix A goal taxonomy', () => {
+      expect(normalizeGoal('fat_loss')).toBe('fat_loss');
+      expect(normalizeGoal('bulking')).toBe('bulking');
+      expect(normalizeGoal('maintenance')).toBe('maintenance');
+      expect(targetCalories(2500, 'fat_loss')).toBe(2000);
+      expect(targetCalories(2500, 'bulking')).toBe(3000);
+    });
+    it('returns null for unknown goals — never silently maintenance (D1)', () => {
+      expect(normalizeGoal('bogus')).toBeNull();
+      expect(normalizeGoal()).toBeNull();
+      expect(normalizeGoal('')).toBeNull();
     });
   });
 

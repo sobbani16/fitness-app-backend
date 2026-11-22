@@ -6,7 +6,37 @@ router.get('/profiles/:ingredientId',async(req,res,next)=>{try{res.json({profile
 router.post('/intelligence',async(req,res,next)=>{try{
  const b=req.body||{};
  if(typeof b.ingredientId!=='string'||b.ingredientId.length>120||(b.profileId!=null&&(typeof b.profileId!=='string'||!/^[0-9a-f-]{36}$/i.test(b.profileId))))throw httpError(400,'Invalid ingredient/profile');
- res.json(await intelligence.safe(()=>intelligence.ingredient({ingredientId:b.ingredientId,profileId:b.profileId,grams:b.grams},req.userId||req.headers['x-user-id']),b.ingredientId));
+ const userId=req.userId||req.headers['x-user-id'];
+ const intel=await intelligence.safe(()=>intelligence.ingredient({ingredientId:b.ingredientId,profileId:b.profileId,grams:b.grams,consumedState:['raw','cooked'].includes(b.consumedState)?b.consumedState:undefined,yieldFactor:Number.isFinite(b.yieldFactor)?b.yieldFactor:undefined},userId),b.ingredientId);
+ // Sprint C: goal-aware portion impact — computed from the SAME verified
+ // profile nutrients; unknown nutrients stay 'unverified'. Substitution
+ // screening uses server-loaded allergen terms only.
+ let impact=null,substitutions=null;
+ try{
+  const p=getPrisma();
+  const [u,goal,allergies]=await Promise.all([p.user.findUnique({where:{id:userId},select:{goalType:true}}),p.macroGoal.findUnique({where:{userId}}),p.userAllergy.findMany({where:{userId},select:{allergy:{select:{name:true}}}})]);
+  const canon=require('../services/calorieEngine').normalizeGoal(u?.goalType)||'maintenance';
+  const nutrientRows=intel?.nutrients||intel?.profile?.nutrients||[];
+  const NAME2KEY={calories:'calories',protein:'proteinG','total carbohydrate':'carbsG',carbohydrate:'carbsG','total fat':'fatG',fat:'fatG',fiber:'fiberG','dietary fiber':'fiberG'};
+  const per={};
+  for(const n of nutrientRows){
+   const key=NAME2KEY[String(n.nutrient?.name||n.code||'').toLowerCase()];if(!key)continue;
+   const per100=n.valuePer100g??n.per100g??n.value??null;
+   if(per100!=null&&Number.isFinite(Number(per100)))per[key]=Math.round(Number(per100)*b.grams)/100;
+  }
+  const meal={foodName:intel?.ingredient?.name||intel?.name||'logged food',quantityG:b.grams,calories:per.calories??null,proteinG:per.proteinG??null,carbsG:per.carbsG??null,fatG:per.fatG??null,fiberG:per.fiberG??null};
+  // Phase 1: server-derived classification — client-supplied categoryId is
+  // never authoritative. classifyFood runs on verified per-100g nutrients +
+  // name hints; multiple labels possible. Primary category for education =
+  // first label with a CATEGORIES entry.
+  const impactMod=require('../services/ingredientImpact');
+  const cls=impactMod.classifyFood({name:meal.foodName,per100:per,categoryRole:null});
+  const catId=cls.categories.find(c=>impactMod.CATEGORIES[c])||null;
+  impact=impactMod.evaluatePortion({meal,goal:canon,targets:goal||{},categoryId:catId});
+  impact.classification=cls;
+  substitutions=impactMod.suggestSubstitutions({meal,goal:canon,categoryId:catId,allergenTerms:new Set((allergies||[]).map(a=>String(a.allergy?.name||'').toLowerCase()).filter(Boolean))});
+ }catch{/* impact is best-effort — profile payload unaffected */}
+ res.json({...intel,impact,substitutions});
 }catch(e){next(e);}});
 router.post('/',async(req,res,next)=>{
  try {
@@ -26,20 +56,32 @@ router.post('/',async(req,res,next)=>{
   const existing=await prisma.foodLog.findUnique({where:{id:b.id}});
   if(existing){if(existing.userId!==userId)throw httpError(409,'Meal id conflict');return res.json(existing);}
   if(b.ingredientId){
-   const calculated=await require('../services/ingredientNutrition').calculate(b.ingredientId,{grams:data.quantityG});
+   // servingId + servingCount make the catalog the authoritative conversion;
+   // quantityG alone stays supported for weight entries.
+   const servingCount=Number.isFinite(Number(b.servingCount))&&Number(b.servingCount)>0?Number(b.servingCount):undefined;
+   const calculated=typeof b.servingId==='string'&&b.servingId
+     ?await require('../services/ingredientNutrition').calculate(b.ingredientId,{servingId:b.servingId,count:servingCount??1})
+     :await require('../services/ingredientNutrition').calculate(b.ingredientId,{grams:data.quantityG});
+   if(calculated.serving)data.quantityG=calculated.grams;
    const edited=['calories','proteinG','carbsG','fatG','fiberG'].some(k=>data[k]!=null && (calculated.nutrition[k]==null || Math.abs(data[k]-calculated.nutrition[k])>(k==='calories'?0.51:0.051)));
    data.ingredientId=b.ingredientId;
    const catalogRevisionAtSelection=typeof b.catalogRevision==='string'?b.catalogRevision.slice(0,64):null;
-   data.nutritionSnapshot={...calculated.provenance,catalogRevisionAtSelection,catalogChangedSinceSelection:!!catalogRevisionAtSelection && catalogRevisionAtSelection!==calculated.provenance.revision,grams:data.quantityG,loggedFoodName:data.foodName,selectedServing:b.selectedServing && typeof b.selectedServing==='string'?b.selectedServing.slice(0,200):null,calculated:calculated.nutrition,saved:{calories:data.calories,proteinG:data.proteinG,carbsG:data.carbsG,fatG:data.fatG,fiberG:data.fiberG},userEdited:edited,loggedSource:edited?'user-entered correction':'catalog calculation'};
-  } else data.nutritionSnapshot={loggedSource:'user-entered or external estimate',grams:data.quantityG};
+   data.nutritionSnapshot={...calculated.provenance,catalogRevisionAtSelection,catalogChangedSinceSelection:!!catalogRevisionAtSelection && catalogRevisionAtSelection!==calculated.provenance.revision,grams:data.quantityG,loggedFoodName:data.foodName,selectedServing:b.selectedServing && typeof b.selectedServing==='string'?b.selectedServing.slice(0,200):null,servingId:typeof b.servingId==='string'?b.servingId.slice(0,80):calculated.serving?.id??null,servingGrams:calculated.serving?.grams??null,servingCount:servingCount??(calculated.serving&&calculated.serving.grams>0?Math.round((calculated.grams/calculated.serving.grams)*100)/100:null),calculated:calculated.nutrition,saved:{calories:data.calories,proteinG:data.proteinG,carbsG:data.carbsG,fatG:data.fatG,fiberG:data.fiberG},nutrientUnknowns:require('../services/nutrientCompleteness').computeUnknowns(calculated.nutrition,{calories:data.calories,proteinG:data.proteinG,carbsG:data.carbsG,fatG:data.fatG,fiberG:data.fiberG}),userEdited:edited,loggedSource:edited?'user-entered correction':'catalog calculation'};
+  } else data.nutritionSnapshot={loggedSource:'user-entered or external estimate',grams:data.quantityG,nutrientUnknowns:data.fiberG==null?['fiberG']:[]};
   if(b.nutritionProfileId&&b.ingredientId){
    if(typeof b.nutritionProfileId!=='string'||!/^[0-9a-f-]{36}$/i.test(b.nutritionProfileId))throw httpError(400,'Invalid nutrition profile');
    data.nutritionSnapshot.nutritionProfileId=b.nutritionProfileId;
   }
   try {
+   // K08: possible-duplicate detection across logging channels. Detection is
+   // advisory only — the log is still written (legitimate repeated meals are
+   // never removed); the client sees duplicateWarning and can confirm/merge.
+   const prior=await prisma.foodLog.findFirst({where:{userId,loggedAt:{gte:new Date(loggedAt.getTime()-30*60000),lte:new Date(loggedAt.getTime()+30*60000)}},select:{id:true,foodName:true,loggedAt:true,nutritionSnapshot:true}}).catch(()=>null);
+   const dup=prior?require('../services/scenarioCapabilities').detectDuplicateLog({a:{fdcId:prior.nutritionSnapshot?.fdcId||prior.nutritionSnapshot?.sourceRecordKey,foodName:prior.foodName,loggedAt:prior.loggedAt},b:{fdcId:b.fdcId||b.sourceRecordKey,foodName:data.foodName,loggedAt}}):{possibleDuplicate:false};
+   if(dup.possibleDuplicate)data.nutritionSnapshot.possibleDuplicateOf={foodLogId:prior.id,basis:dup.basis,needsConfirmation:dup.needsConfirmation};
    const saved=await prisma.foodLog.create({data:{id:b.id,userId,...data,loggedAt}});
    const foodIntelligence=await intelligence.safe(()=>intelligence.ingredient({ingredientId:data.ingredientId,profileId:data.nutritionSnapshot.nutritionProfileId,grams:data.quantityG},userId,prisma),data.ingredientId);
-   res.status(201).json({...saved,foodIntelligence});
+   res.status(201).json({...saved,foodIntelligence,duplicateWarning:dup.possibleDuplicate?{possibleDuplicate:true,basis:dup.basis,existingId:prior.id,needsConfirmation:true,note:'A similar entry was logged within 30 minutes — kept both; confirm if this is a duplicate.'}:null});
   }
   catch(e){if(e.code!=='P2002')throw e;const log=await prisma.foodLog.findUnique({where:{id:b.id}});if(log?.userId!==userId)throw httpError(409,'Meal id conflict');res.json(log);}
  }catch(e){next(e);}

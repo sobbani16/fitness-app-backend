@@ -50,7 +50,7 @@ router.put('/goals', async (req, res, next) => {
     if (proteinTarget != null) updates.proteinTarget = Number(proteinTarget);
     if (carbsTarget != null) updates.carbsTarget = Number(carbsTarget);
     if (fatTarget != null) updates.fatTarget = Number(fatTarget);
-    if (fiberTarget != null) updates.fiberTarget = Number(fiberTarget);
+    if (fiberTarget != null) { updates.fiberTarget = Number(fiberTarget); updates.fiberTargetBasis = 'custom'; }
     if (waterMlTarget != null) updates.waterMlTarget = Number(waterMlTarget);
     if (Object.values(updates).some(v => !Number.isFinite(v) || v < 0)) return res.status(400).json({ error: 'Targets must be non-negative numbers.', code: 'INVALID_REQUEST' });
     const goals = await updateGoals(userId, updates);

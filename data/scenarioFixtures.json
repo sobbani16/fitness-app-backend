@@ -1,0 +1,3496 @@
+{
+  "version": "fixtures-v1",
+  "generated": "2026-11-22T01:47:53.258Z",
+  "source": "data/scenarioAppendixA.json (verbatim) + registry",
+  "fixtures": [
+    {
+      "id": "A01",
+      "priority": "P0",
+      "category": "goal_energy",
+      "scenario": "Weight-loss user consistently exceeds planned calories",
+      "expectedVerbatim": "Show intake difference, possible effect on intended deficit, and weekly trend",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": 3500,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {}
+      },
+      "expect": {
+        "components.nutrition.energy.state": {
+          "eq": "partial_data"
+        },
+        "components.nutrition.earned": {
+          "lt": 40
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "A02",
+      "priority": "P0",
+      "category": "goal_energy",
+      "scenario": "Weight-loss user eats far too little",
+      "expectedVerbatim": "Do not award a perfect energy score; assess suitability and potential restriction concerns",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": 30,
+            "carbsG": 80,
+            "fatG": 20,
+            "fiberG": null,
+            "calories": 600,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {}
+      },
+      "expect": {
+        "components.nutrition.energy.state": {
+          "eq": "safety_suspended"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "A03",
+      "priority": "P1",
+      "category": "goal_energy",
+      "scenario": "User exceeds calories primarily through protein",
+      "expectedVerbatim": "Count all calories; recognize protein adequacy separately",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": 220,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": 2900,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {}
+      },
+      "expect": {
+        "components.nutrition.energy.state": {
+          "eq": "partial_data"
+        },
+        "components.nutrition.parts.protein.points": {
+          "eq": 12
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "A04",
+      "priority": "P1",
+      "category": "goal_energy",
+      "scenario": "Muscle-gain user eats below energy needs",
+      "expectedVerbatim": "Explain inadequate energy may hinder training and growth",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": 150,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": 1500,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {}
+      },
+      "expect": {
+        "components.nutrition.energy.state": {
+          "eq": "partial_data"
+        },
+        "components.nutrition.energy.reason": {
+          "contains": "below range"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "A05",
+      "priority": "P1",
+      "category": "goal_energy",
+      "scenario": "Weight-gain user is afraid of eating above maintenance",
+      "expectedVerbatim": "Explain why an appropriate surplus may be part of the agreed goal",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": 2500,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {}
+      },
+      "expect": {
+        "components.nutrition.energy.state": {
+          "eq": "reliable"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "A06",
+      "priority": "P1",
+      "category": "goal_energy",
+      "scenario": "Bulking user consumes an excessive surplus",
+      "expectedVerbatim": "Avoid rewarding unlimited intake; show potential unnecessary fat-gain risk",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": 200,
+            "carbsG": 400,
+            "fatG": 140,
+            "fiberG": 40,
+            "calories": 4000,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {}
+      },
+      "expect": {
+        "components.nutrition.earned": {
+          "lt": 40
+        },
+        "components.nutrition.energy.points": {
+          "lt": 10
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "A07",
+      "priority": "P1",
+      "category": "goal_energy",
+      "scenario": "Maintenance user gradually gains or loses weight",
+      "expectedVerbatim": "Review trend and reassess estimated needs",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": 2200,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {}
+      },
+      "expect": {
+        "components.nutrition.energy.state": {
+          "eq": "reliable"
+        }
+      },
+      "note": "single-day; multi-week trend review not implemented",
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "A08",
+      "priority": "P1",
+      "category": "goal_energy",
+      "scenario": "Fat-loss user loses scale weight but strength also declines",
+      "expectedVerbatim": "Review training, protein, energy intake and recovery without assuming the cause",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "A09",
+      "priority": "P1",
+      "category": "goal_energy",
+      "scenario": "Weight stays unchanged despite recorded plan adherence",
+      "expectedVerbatim": "Evaluate multiple-week trends, logging confidence, activity assumptions and ordinary fluctuations",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "A10",
+      "priority": "P0",
+      "category": "goal_energy",
+      "scenario": "User changes from weight loss to muscle gain",
+      "expectedVerbatim": "Require confirmation; preserve old goal, targets and score history; activate one new primary goal",
+      "status": "executable",
+      "run": {
+        "engine": "capabilities",
+        "fn": "planGoalSwitch",
+        "input": {
+          "currentGoal": "weight_loss",
+          "currentTargets": {
+            "calories": 1800
+          },
+          "newGoal": "muscle_gain",
+          "confirmed": false
+        },
+        "extra": {}
+      },
+      "expect": {
+        "requiresConfirmation": {
+          "eq": true
+        },
+        "preservesHistory": {
+          "eq": true
+        }
+      },
+      "note": "confirmed path also tested in scenarioCapabilities unit coverage",
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "B01",
+      "priority": "P0",
+      "category": "macros",
+      "scenario": "Protein significantly below target",
+      "expectedVerbatim": "Show recorded shortfall and appropriate food options",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": 60,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": null,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {}
+      },
+      "expect": {
+        "components.nutrition.parts.protein.points": {
+          "lt": 12
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "B02",
+      "priority": "P1",
+      "category": "macros",
+      "scenario": "Protein moderately above target",
+      "expectedVerbatim": "Cap protein credit; count extra calories; don't automatically classify excess as harmful",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": 200,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": null,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {}
+      },
+      "expect": {
+        "components.nutrition.parts.protein.points": {
+          "eq": 12
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "B03",
+      "priority": "P0",
+      "category": "macros",
+      "scenario": "Very high protein combined with a kidney-related restriction",
+      "expectedVerbatim": "Apply an authorized individual restriction; require appropriate professional oversight",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "restrictions": [
+            "requires_professional"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "professional_review_required"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "B04",
+      "priority": "P0",
+      "category": "macros",
+      "scenario": "Carbohydrates above a target but calories appropriate",
+      "expectedVerbatim": "Evaluate dietary quality and context; no automatic \"carbs are bad\" warning",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": 320,
+            "fatG": null,
+            "fiberG": null,
+            "calories": 2200,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {}
+      },
+      "expect": {
+        "components.nutrition.parts.carbs.points": {
+          "gte": 4
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "B05",
+      "priority": "P1",
+      "category": "macros",
+      "scenario": "Very low carbohydrate intake during demanding endurance training",
+      "expectedVerbatim": "Assess fueling suitability and possible symptoms",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "B06",
+      "priority": "P1",
+      "category": "macros",
+      "scenario": "Fat intake extremely low over multiple days",
+      "expectedVerbatim": "Assess adequacy rather than rewarding fat avoidance",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": 15,
+            "fiberG": null,
+            "calories": null,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {}
+      },
+      "expect": {
+        "components.nutrition.parts.fat.points": {
+          "lt": 6
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "B07",
+      "priority": "P1",
+      "category": "macros",
+      "scenario": "Fat intake high but mainly unsaturated",
+      "expectedVerbatim": "Assess total energy and fat composition separately",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": 95,
+            "fiberG": null,
+            "calories": null,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {}
+      },
+      "expect": {
+        "components.nutrition.parts.fat.points": {
+          "gte": 4,
+          "lte": 6
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "B08",
+      "priority": "P2",
+      "category": "macros",
+      "scenario": "High-fat, low-carb diet deliberately selected",
+      "expectedVerbatim": "Evaluate individual suitability, nutritional adequacy and any medical constraints",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "B09",
+      "priority": "P1",
+      "category": "macros",
+      "scenario": "User reaches protein goal entirely through supplements",
+      "expectedVerbatim": "Award verified protein contribution, but separately assess dietary variety and food quality",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": 160,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": null,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {}
+      },
+      "expect": {
+        "components.nutrition.parts.protein.points": {
+          "eq": 12
+        }
+      },
+      "note": "verified supplement protein counts; dietary-variety assessment is outside the engine — partially covered",
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "B10",
+      "priority": "P0",
+      "category": "macros",
+      "scenario": "User meets all macro targets but has poor diet quality",
+      "expectedVerbatim": "Do not award maximum overall nutrition credit",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": 150,
+            "carbsG": 250,
+            "fatG": 70,
+            "fiberG": 30,
+            "calories": 2200,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {
+          "foodQuality": {
+            "addedSugarG": 80,
+            "satFatG": 30,
+            "sodiumMg": 5000
+          }
+        }
+      },
+      "expect": {
+        "components.nutrition.earned": {
+          "eq": 40
+        },
+        "composite": {
+          "lt": 100
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "C01",
+      "priority": "P0",
+      "category": "food_quality",
+      "scenario": "Sweetened soda pushes added sugar above a reference limit",
+      "expectedVerbatim": "Immediate warning; identify its contribution in daily review",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": 2200,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {
+          "foodQuality": {
+            "addedSugarG": 65
+          }
+        }
+      },
+      "expect": {
+        "components.foodQuality.parts.addedSugar.points": {
+          "lt": 5
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "C02",
+      "priority": "P0",
+      "category": "food_quality",
+      "scenario": "Fruit contains substantial natural sugar",
+      "expectedVerbatim": "Distinguish naturally occurring sugar from added sugar; evaluate the whole food",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": null,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {
+          "foodQuality": {
+            "addedSugarG": 0
+          }
+        }
+      },
+      "expect": {
+        "components.foodQuality.parts.addedSugar.points": {
+          "gte": 5
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "C03",
+      "priority": "P1",
+      "category": "food_quality",
+      "scenario": "User eats gulab jamun, jalebi or another sweet",
+      "expectedVerbatim": "Use estimated portion and recipe data; warn about added sugar when supported",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "C04",
+      "priority": "P1",
+      "category": "food_quality",
+      "scenario": "User logs deep-fried samosa, pakora or chicken",
+      "expectedVerbatim": "Consider cooking method, oil absorption, total fat and energy density",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "C05",
+      "priority": "P0",
+      "category": "food_quality",
+      "scenario": "Fried food has no known oil type",
+      "expectedVerbatim": "Warn about uncertainty; do not invent trans-fat content",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": null,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {}
+      },
+      "expect": {
+        "components.foodQuality.parts.pho.state": {
+          "eq": "no_data"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "C06",
+      "priority": "P1",
+      "category": "food_quality",
+      "scenario": "Recipe uses ghee or butter frequently",
+      "expectedVerbatim": "Account for saturated fat using known quantities",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": null,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {
+          "foodQuality": {
+            "saturatedFatG": 25
+          }
+        }
+      },
+      "expect": {
+        "components.foodQuality.parts.saturatedFat.points": {
+          "lt": 6
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "C07",
+      "priority": "P1",
+      "category": "food_quality",
+      "scenario": "User eats nuts, seeds or avocado",
+      "expectedVerbatim": "Recognize fat quality while still counting calories",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "C08",
+      "priority": "P0",
+      "category": "food_quality",
+      "scenario": "Packaged food contains partially hydrogenated oil",
+      "expectedVerbatim": "Flag the ingredient and relevant trans-fat concern, regardless of rounded label values",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": null,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {
+          "foodQuality": {
+            "hasPartiallyHydrogenatedOil": true,
+            "addedSugarG": 0,
+            "saturatedFatG": 0,
+            "sodiumMg": 0
+          }
+        }
+      },
+      "expect": {
+        "components.foodQuality.earned": {
+          "eq": 0
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "C09",
+      "priority": "P1",
+      "category": "food_quality",
+      "scenario": "Daily sodium is high from packaged foods",
+      "expectedVerbatim": "Identify contributing foods; apply a reviewed moderation rule",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": null,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {
+          "foodQuality": {
+            "sodiumMg": 4500
+          }
+        }
+      },
+      "expect": {
+        "components.foodQuality.parts.sodium.points": {
+          "lt": 4
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "C10",
+      "priority": "P1",
+      "category": "food_quality",
+      "scenario": "One treat occurs within an otherwise nutritious week",
+      "expectedVerbatim": "Give proportional feedback without treating a single food as failure",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": 150,
+            "carbsG": 250,
+            "fatG": 70,
+            "fiberG": 30,
+            "calories": 2200,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {
+          "foodQuality": {
+            "addedSugarG": 40
+          }
+        }
+      },
+      "expect": {
+        "composite": {
+          "gte": 50
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "D01",
+      "priority": "P1",
+      "category": "micronutrients",
+      "scenario": "Fiber persistently below appropriate intake",
+      "expectedVerbatim": "Show trend and practical food sources",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": 10,
+            "calories": null,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {}
+      },
+      "expect": {
+        "components.nutrition.parts.fiber.points": {
+          "lt": 10
+        }
+      },
+      "note": "single-day only; 7/14/30d trend not implemented",
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "D02",
+      "priority": "P1",
+      "category": "micronutrients",
+      "scenario": "Fiber suddenly increases and bloating begins",
+      "expectedVerbatim": "Recognize a possible temporal association; suggest gradual adjustments from approved guidance",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "D03",
+      "priority": "P1",
+      "category": "micronutrients",
+      "scenario": "Low vitamin B12 intake pattern in a vegan user",
+      "expectedVerbatim": "Identify dietary coverage concerns; avoid diagnosing deficiency",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "D04",
+      "priority": "P1",
+      "category": "micronutrients",
+      "scenario": "Insufficient dietary iron sources",
+      "expectedVerbatim": "Review dietary pattern and relevant risk context",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "D05",
+      "priority": "P1",
+      "category": "micronutrients",
+      "scenario": "Calcium intake appears low",
+      "expectedVerbatim": "Suggest suitable food sources; consider life stage",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "D06",
+      "priority": "P1",
+      "category": "micronutrients",
+      "scenario": "Vitamin D intake appears low",
+      "expectedVerbatim": "Explain that diet alone cannot establish vitamin D status",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "D07",
+      "priority": "P0",
+      "category": "micronutrients",
+      "scenario": "Potassium intake appears high",
+      "expectedVerbatim": "Usually avoid blanket warnings; apply reviewed restrictions only where relevant",
+      "status": "executable",
+      "run": {
+        "engine": "capabilities",
+        "fn": "assessNutrientCaution",
+        "input": {
+          "nutrient": "potassium",
+          "valueG": 5.2
+        },
+        "extra": {}
+      },
+      "expect": {
+        "warning": {
+          "eq": false
+        },
+        "state": {
+          "eq": "reliable"
+        }
+      },
+      "note": "reviewed-limit path: value>limit warns only when reviewedLimitG provided",
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "D08",
+      "priority": "P2",
+      "category": "micronutrients",
+      "scenario": "Omega-3-rich foods rarely appear",
+      "expectedVerbatim": "Suggest appropriate food options when relevant",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "D09",
+      "priority": "P1",
+      "category": "micronutrients",
+      "scenario": "User eats the same limited foods every day",
+      "expectedVerbatim": "Assess diversity and nutritional coverage over time",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "D10",
+      "priority": "P0",
+      "category": "micronutrients",
+      "scenario": "Nutrition database lacks micronutrient data",
+      "expectedVerbatim": "Mark nutrients unknown; do not treat unknown as zero or declare deficiency",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": null,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {}
+      },
+      "expect": {
+        "components.nutrition.parts.fiber.state": {
+          "eq": "no_data"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "E01",
+      "priority": "P1",
+      "category": "meal_timing",
+      "scenario": "User practices intermittent fasting",
+      "expectedVerbatim": "Support the eating schedule if appropriate, while evaluating overall adequacy",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "E02",
+      "priority": "P0",
+      "category": "meal_timing",
+      "scenario": "User skips breakfast but meets nutritional needs",
+      "expectedVerbatim": "No automatic deduction for skipping breakfast",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": 150,
+            "carbsG": 250,
+            "fatG": 70,
+            "fiberG": 30,
+            "calories": 2200,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {}
+      },
+      "expect": {
+        "components.nutrition.earned": {
+          "eq": 40
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "E03",
+      "priority": "P1",
+      "category": "meal_timing",
+      "scenario": "User eats most calories at dinner",
+      "expectedVerbatim": "Evaluate total intake, preferences and symptom patterns",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "E04",
+      "priority": "P1",
+      "category": "meal_timing",
+      "scenario": "Late meals are associated with reflux symptoms",
+      "expectedVerbatim": "Identify possible pattern; offer reviewed guidance",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "E05",
+      "priority": "P1",
+      "category": "meal_timing",
+      "scenario": "User reports excessive hunger during fat loss",
+      "expectedVerbatim": "Review deficit size, protein, fiber, meals and sleep",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "E06",
+      "priority": "P1",
+      "category": "meal_timing",
+      "scenario": "User feels uncomfortably full during weight gain",
+      "expectedVerbatim": "Suggest appropriate strategies for distributing intake; screen persistent symptoms",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "E07",
+      "priority": "P0",
+      "category": "meal_timing",
+      "scenario": "User repeatedly reports binge eating or loss of control",
+      "expectedVerbatim": "Avoid punitive coaching; offer supportive escalation and appropriate professional resources",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "medicalTriggers": [
+            "eating_disorder_risk"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "professional_review_required"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "E08",
+      "priority": "P0",
+      "category": "meal_timing",
+      "scenario": "User restricts food all day then eats large amounts at night",
+      "expectedVerbatim": "Review sustainability and possible disordered eating; avoid harsh compensatory advice",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "medicalTriggers": [
+            "eating_disorder_risk"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "professional_review_required"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "E09",
+      "priority": "P1",
+      "category": "meal_timing",
+      "scenario": "User works night shifts",
+      "expectedVerbatim": "Use actual sleep/wake schedule and local time, not rigid daytime assumptions",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "E10",
+      "priority": "P1",
+      "category": "meal_timing",
+      "scenario": "User observes religious fasting or has cultural meal preferences",
+      "expectedVerbatim": "Adapt timing and food options without requiring a universal eating pattern",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "F01",
+      "priority": "P1",
+      "category": "training",
+      "scenario": "Weight-loss user walks extensively but never performs strength training",
+      "expectedVerbatim": "Award movement credit; explain the value of suitable resistance training",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": null,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {
+          "activity": {
+            "weeklyMovementMin": 200,
+            "cardioSessions": 4,
+            "resistanceSessions": 0
+          }
+        }
+      },
+      "expect": {
+        "components.activity.parts.resistance.points": {
+          "eq": 0
+        },
+        "components.activity.parts.movement.points": {
+          "gt": 0
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "F02",
+      "priority": "P1",
+      "category": "training",
+      "scenario": "Muscle-gain user trains but eats too little",
+      "expectedVerbatim": "Review energy adequacy and protein",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "F03",
+      "priority": "P1",
+      "category": "training",
+      "scenario": "User trains seven days with persistent fatigue",
+      "expectedVerbatim": "Assess workload and recommend appropriate recovery review",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "F04",
+      "priority": "P0",
+      "category": "training",
+      "scenario": "Planned rest day with weekly training on target",
+      "expectedVerbatim": "Preserve appropriate activity credit; do not demand an extra workout",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": null,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {
+          "activity": {
+            "weeklyMovementMin": 150,
+            "cardioSessions": 3,
+            "resistanceSessions": 2
+          }
+        }
+      },
+      "expect": {
+        "components.activity.earned": {
+          "eq": 20
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "F05",
+      "priority": "P0",
+      "category": "training",
+      "scenario": "User asks to burn off a 200-kcal overeating episode",
+      "expectedVerbatim": "Explain estimated energy balance and optional activity without mandatory compensation",
+      "status": "executable",
+      "run": {
+        "engine": "capabilities",
+        "fn": "overeatingGuidance",
+        "input": {
+          "overageKcal": 200,
+          "tdee": 2200
+        },
+        "extra": {}
+      },
+      "expect": {
+        "mandatoryCompensation": {
+          "eq": false
+        },
+        "optionalActivity": {
+          "eq": true
+        },
+        "framing": {
+          "eq": "informational"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "F06",
+      "priority": "P1",
+      "category": "training",
+      "scenario": "Endurance athlete exercises for prolonged periods",
+      "expectedVerbatim": "Assess fueling, hydration and session demands",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "F07",
+      "priority": "P1",
+      "category": "training",
+      "scenario": "User's training performance suddenly declines",
+      "expectedVerbatim": "Review nutrition, sleep, recovery and possible illness; escalate when warranted",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "F08",
+      "priority": "P0",
+      "category": "training",
+      "scenario": "User has mobility limitations",
+      "expectedVerbatim": "Evaluate an accessible, individualized activity plan",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": null,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {
+          "activity": {
+            "mobilityLimited": true
+          }
+        }
+      },
+      "expect": {
+        "components.activity.state": {
+          "eq": "not_applicable"
+        },
+        "components.activity.reason": {
+          "contains": "individualized"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "F09",
+      "priority": "P0",
+      "category": "training",
+      "scenario": "Wearable records the same workout twice",
+      "expectedVerbatim": "Deduplicate activity and avoid inflated energy estimates",
+      "status": "executable",
+      "run": {
+        "engine": "capabilities",
+        "fn": "dedupeWorkouts",
+        "input": {
+          "sessions": [
+            {
+              "id": "a",
+              "workoutType": "run",
+              "durationMinutes": 40,
+              "startedAt": "2026-11-20T08:00:00Z"
+            },
+            {
+              "id": "b",
+              "workoutType": "run",
+              "durationMinutes": 40,
+              "startedAt": "2026-11-20T08:05:00Z"
+            }
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "sessions.length": {
+          "eq": 1
+        },
+        "duplicatesRemoved.length": {
+          "eq": 1
+        },
+        "energyInflated": {
+          "eq": true
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "F10",
+      "priority": "P0",
+      "category": "training",
+      "scenario": "User has severe muscle pain, weakness or dark urine after exercise",
+      "expectedVerbatim": "Trigger urgent medical escalation rather than routine recovery coaching",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "redFlags": [
+            "dark_urine_exercise",
+            "severe_exercise_symptoms"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "medical_escalation"
+        },
+        "suppressOrdinaryCoaching": {
+          "eq": true
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "G01",
+      "priority": "P1",
+      "category": "sleep_stress",
+      "scenario": "User cannot fall asleep after late training",
+      "expectedVerbatim": "Ask about workout timing, caffeine, symptoms and sleep schedule",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "G02",
+      "priority": "P1",
+      "category": "sleep_stress",
+      "scenario": "User sleeps only four or five hours repeatedly",
+      "expectedVerbatim": "Provide reviewed sleep guidance and recommend evaluation when persistent",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": null,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {
+          "sleep": {
+            "hoursSlept": 4.5
+          }
+        }
+      },
+      "expect": {
+        "components.sleep.parts.duration.points": {
+          "lt": 15
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "G03",
+      "priority": "P1",
+      "category": "sleep_stress",
+      "scenario": "User has adequate sleep duration but feels exhausted",
+      "expectedVerbatim": "Avoid assuming sleep is good solely from duration",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "G04",
+      "priority": "P1",
+      "category": "sleep_stress",
+      "scenario": "High caffeine or pre-workout use coincides with poor sleep",
+      "expectedVerbatim": "Identify possible association and review dose/timing",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "G05",
+      "priority": "P0",
+      "category": "sleep_stress",
+      "scenario": "Wearable indicates low HRV on one day",
+      "expectedVerbatim": "Avoid treating a single HRV number as illness or automatic workout prohibition",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {},
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "auto_feedback"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "G06",
+      "priority": "P1",
+      "category": "sleep_stress",
+      "scenario": "Persistent insomnia despite sleep-habit changes",
+      "expectedVerbatim": "Recommend appropriate professional evaluation, not automatic supplement treatment",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "medicalTriggers": [
+            "persistent_sleep_issues"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "professional_review_required"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "G07",
+      "priority": "P1",
+      "category": "sleep_stress",
+      "scenario": "User reports high stress and emotional eating",
+      "expectedVerbatim": "Provide supportive behavioral guidance without shaming",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "G08",
+      "priority": "P0",
+      "category": "sleep_stress",
+      "scenario": "User experiences dizziness while exercising",
+      "expectedVerbatim": "Stop routine exercise coaching and assess need for prompt medical attention",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "redFlags": [
+            "dizziness_exercise"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "medical_escalation"
+        },
+        "suppressOrdinaryCoaching": {
+          "eq": true
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "G09",
+      "priority": "P1",
+      "category": "sleep_stress",
+      "scenario": "User reports persistent fatigue during calorie restriction",
+      "expectedVerbatim": "Assess possible low energy intake and recommend evaluation as appropriate",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "G10",
+      "priority": "P1",
+      "category": "sleep_stress",
+      "scenario": "User reports daytime sleepiness or possible sleep apnea symptoms",
+      "expectedVerbatim": "Recommend professional evaluation rather than simply suggesting earlier bedtime",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "medicalTriggers": [
+            "possible_sleep_apnea"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "professional_review_required"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "H01",
+      "priority": "P1",
+      "category": "digestive",
+      "scenario": "Burning after spicy food",
+      "expectedVerbatim": "Ask location, timing, severity and frequency; avoid assuming protein is the cause",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "H02",
+      "priority": "P1",
+      "category": "digestive",
+      "scenario": "Constipation after switching to high-protein meals",
+      "expectedVerbatim": "Review fiber, fluids, relevant medication changes and symptom history",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "H03",
+      "priority": "P1",
+      "category": "digestive",
+      "scenario": "Bloating after high-fiber foods",
+      "expectedVerbatim": "Explore changes in fiber quantity, food preparation and tolerance",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "H04",
+      "priority": "P1",
+      "category": "digestive",
+      "scenario": "Diarrhea after milk or whey",
+      "expectedVerbatim": "Consider possible food-tolerance patterns without diagnosing lactose intolerance",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "H05",
+      "priority": "P1",
+      "category": "digestive",
+      "scenario": "Bloating after beans, lentils or chickpeas",
+      "expectedVerbatim": "Offer reviewed preparation and gradual-adjustment guidance",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "H06",
+      "priority": "P1",
+      "category": "digestive",
+      "scenario": "Abdominal discomfort following protein supplements",
+      "expectedVerbatim": "Review ingredients, serving size and other possible contributors",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "H07",
+      "priority": "P1",
+      "category": "digestive",
+      "scenario": "Heartburn after large late meals",
+      "expectedVerbatim": "Offer appropriate reflux-related education",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "H08",
+      "priority": "P0",
+      "category": "digestive",
+      "scenario": "Persistent abdominal symptoms despite dietary changes",
+      "expectedVerbatim": "Encourage medical evaluation",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "medicalTriggers": [
+            "persistent_abdominal_symptoms"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "professional_review_required"
+        }
+      },
+      "note": "encourage evaluation — cautious review path, no diagnosis",
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "H09",
+      "priority": "P0",
+      "category": "digestive",
+      "scenario": "Abdominal pain with blood in stool or black stools",
+      "expectedVerbatim": "Medical escalation; do not provide routine diet-only advice",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "redFlags": [
+            "blood_in_stool"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "medical_escalation"
+        },
+        "suppressOrdinaryCoaching": {
+          "eq": true
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "H10",
+      "priority": "P0",
+      "category": "digestive",
+      "scenario": "Severe abdominal pain with vomiting or concerning systemic symptoms",
+      "expectedVerbatim": "Urgent medical assessment pathway",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "redFlags": [
+            "severe_abdominal_pain",
+            "vomiting_systemic"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "medical_escalation"
+        },
+        "suppressOrdinaryCoaching": {
+          "eq": true
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "I01",
+      "priority": "P0",
+      "category": "medical",
+      "scenario": "Diabetes user takes insulin and wants aggressive carbohydrate restriction",
+      "expectedVerbatim": "Do not offer generic low-carb advice without medication-related safety review",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "medicalTriggers": [
+            "insulin_carbs_restriction"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "professional_review_required"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "I02",
+      "priority": "P0",
+      "category": "medical",
+      "scenario": "User reports symptoms suggestive of low blood glucose",
+      "expectedVerbatim": "Follow an approved safety pathway; do not treat as a routine calorie issue",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "redFlags": [
+            "hypoglycemia_symptoms"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "medical_escalation"
+        },
+        "suppressOrdinaryCoaching": {
+          "eq": true
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "I03",
+      "priority": "P1",
+      "category": "medical",
+      "scenario": "User with elevated triglycerides logs substantial added sugar regularly",
+      "expectedVerbatim": "Provide relevant dietary-quality insights and encourage appropriate follow-up",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "I04",
+      "priority": "P1",
+      "category": "medical",
+      "scenario": "User with elevated LDL frequently consumes saturated-fat-rich foods",
+      "expectedVerbatim": "Personalize reviewed fat-quality guidance",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "I05",
+      "priority": "P0",
+      "category": "medical",
+      "scenario": "User with CKD selects muscle gain",
+      "expectedVerbatim": "Do not apply universal bodybuilding protein targets; require individualized guidance",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "medicalTriggers": [
+            "ckd_protein_target"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "professional_review_required"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "I06",
+      "priority": "P1",
+      "category": "medical",
+      "scenario": "User with hypertension consumes high-sodium foods",
+      "expectedVerbatim": "Apply relevant reviewed sodium guidance",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "I07",
+      "priority": "P0",
+      "category": "medical",
+      "scenario": "User with a medically diagnosed food allergy logs a possible allergen",
+      "expectedVerbatim": "Show a safety warning regardless of the score",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "medicalTriggers": [
+            "diagnosed_allergen_exposure"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "safety_warning"
+        },
+        "suppressOrdinaryCoaching": {
+          "eq": false
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "I08",
+      "priority": "P0",
+      "category": "medical",
+      "scenario": "User with celiac disease logs gluten-containing food",
+      "expectedVerbatim": "Apply appropriate gluten-avoidance safeguards, including uncertainty from cross-contact",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "medicalTriggers": [
+            "celiac_gluten_exposure"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "safety_warning"
+        },
+        "suppressOrdinaryCoaching": {
+          "eq": false
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "I09",
+      "priority": "P1",
+      "category": "medical",
+      "scenario": "User reports PCOS or thyroid disease",
+      "expectedVerbatim": "Avoid simplistic causal claims or promising one diet will treat the condition",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "I10",
+      "priority": "P0",
+      "category": "medical",
+      "scenario": "User has multiple conditions with potentially conflicting restrictions",
+      "expectedVerbatim": "Route to professional review rather than combining generic rules mechanically",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "medicalTriggers": [
+            "conflicting_conditions"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "professional_review_required"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "J01",
+      "priority": "P0",
+      "category": "supplements_special",
+      "scenario": "User asks whether magnesium will improve sleep",
+      "expectedVerbatim": "Explain uncertain benefit and possible risks; don't automatically recommend supplementation",
+      "status": "executable",
+      "run": {
+        "engine": "capabilities",
+        "fn": "supplementQuestionPolicy",
+        "input": {
+          "topic": "magnesium_sleep",
+          "approvedContentAvailable": false
+        },
+        "extra": {}
+      },
+      "expect": {
+        "autoRecommend": {
+          "eq": false
+        },
+        "uncertaintyAcknowledged": {
+          "eq": true
+        },
+        "outcome": {
+          "eq": "professional_review_required"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "J02",
+      "priority": "P1",
+      "category": "supplements_special",
+      "scenario": "User reports taking several supplements with overlapping ingredients",
+      "expectedVerbatim": "Check for possible duplication and refer for interaction review",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "J03",
+      "priority": "P1",
+      "category": "supplements_special",
+      "scenario": "User wants creatine for strength training",
+      "expectedVerbatim": "Provide approved education appropriate to health context; distinguish benefits from contraindications and uncertainties",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "J04",
+      "priority": "P0",
+      "category": "supplements_special",
+      "scenario": "User begins a weight-loss medication and experiences nausea or constipation",
+      "expectedVerbatim": "Recognize medication relevance; direct treatment decisions to the prescribing professional",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "medicalTriggers": [
+            "medication_interaction"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "professional_review_required"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "J05",
+      "priority": "P0",
+      "category": "supplements_special",
+      "scenario": "User takes medicine affected by food or supplements",
+      "expectedVerbatim": "Prevent unsupported interaction advice; escalate to clinician/pharmacist",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "medicalTriggers": [
+            "medication_interaction"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "professional_review_required"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "J06",
+      "priority": "P0",
+      "category": "supplements_special",
+      "scenario": "User is pregnant and chooses weight loss",
+      "expectedVerbatim": "Do not apply an ordinary weight-loss algorithm; require pregnancy-appropriate care pathway",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "lifeStages": [
+            "pregnancy"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "professional_review_required"
+        },
+        "suppressOrdinaryCoaching": {
+          "eq": true
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "J07",
+      "priority": "P0",
+      "category": "supplements_special",
+      "scenario": "User is breastfeeding and wants an aggressive deficit",
+      "expectedVerbatim": "Require appropriate life-stage guidance and assessment",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "lifeStages": [
+            "breastfeeding"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "professional_review_required"
+        },
+        "suppressOrdinaryCoaching": {
+          "eq": true
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "J08",
+      "priority": "P0",
+      "category": "supplements_special",
+      "scenario": "User is under 18",
+      "expectedVerbatim": "Do not use the adult weight-management engine; keep unsupported features unavailable",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "lifeStages": [
+            "under_18"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "professional_review_required"
+        },
+        "suppressOrdinaryCoaching": {
+          "eq": true
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "J09",
+      "priority": "P0",
+      "category": "supplements_special",
+      "scenario": "Older adult is unintentionally losing weight",
+      "expectedVerbatim": "Prioritize evaluation of nutritional risk and functional needs",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "medicalTriggers": [
+            "unintentional_weight_loss_older_adult"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "professional_review_required"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "J10",
+      "priority": "P0",
+      "category": "supplements_special",
+      "scenario": "User shows restrictive or compulsive eating/exercise behaviors",
+      "expectedVerbatim": "Avoid triggering numbers or compensatory prompts; offer supportive professional referral",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "medicalTriggers": [
+            "eating_disorder_risk"
+          ]
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "professional_review_required"
+        },
+        "suppressOrdinaryCoaching": {
+          "eq": false
+        }
+      },
+      "note": "spec wants supportive referral without punitive coaching",
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "K01",
+      "priority": "P0",
+      "category": "logging_uncertainty",
+      "scenario": "User logs only breakfast",
+      "expectedVerbatim": "Show partial progress, not a definitive low-calorie full-day assessment",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": 40,
+            "carbsG": 60,
+            "fatG": 20,
+            "fiberG": null,
+            "calories": 700,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {}
+      },
+      "expect": {
+        "state": {
+          "eq": "partial_data"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "K02",
+      "priority": "P0",
+      "category": "logging_uncertainty",
+      "scenario": "User never logs food but records steps",
+      "expectedVerbatim": "No nutrition points awarded or inferred; display limited data coverage",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": null,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {
+          "activity": {
+            "weeklyMovementMin": 60
+          }
+        }
+      },
+      "expect": {
+        "components.nutrition.parts.protein.state": {
+          "eq": "no_data"
+        },
+        "components.nutrition.earned": {
+          "eq": 0
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "K03",
+      "priority": "P0",
+      "category": "logging_uncertainty",
+      "scenario": "Photo of biryani cannot identify oil amount",
+      "expectedVerbatim": "Use an explicitly uncertain estimate; ask for portion or recipe details",
+      "status": "executable",
+      "run": {
+        "engine": "decisionEngine",
+        "input": {
+          "missingInputs": [
+            "portion_size",
+            "oil_amount",
+            "recipe_details",
+            "cooking_method"
+          ],
+          "dataConfidence": "partially_known"
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcome": {
+          "eq": "need_more_information"
+        },
+        "questions.length": {
+          "lte": 3
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "K04",
+      "priority": "P0",
+      "category": "logging_uncertainty",
+      "scenario": "Same food logged in raw and cooked weights",
+      "expectedVerbatim": "Convert using appropriate food-state data; never treat weights as interchangeable",
+      "status": "executable",
+      "run": {
+        "engine": "capabilities",
+        "fn": "convertFoodState",
+        "input": {
+          "grams": 100,
+          "from": "cooked",
+          "to": "raw",
+          "factor": 0.35
+        },
+        "extra": {}
+      },
+      "expect": {
+        "grams": {
+          "eq": 35
+        }
+      },
+      "note": "also covered: missing factor returns null, never a guessed weight",
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "K05",
+      "priority": "P0",
+      "category": "logging_uncertainty",
+      "scenario": "Recipe portion changes from one to two servings",
+      "expectedVerbatim": "Recalculate all supported nutrients consistently",
+      "status": "executable",
+      "run": {
+        "engine": "capabilities",
+        "fn": "rescaleServing",
+        "input": {
+          "nutrients": {
+            "calories": 400,
+            "proteinG": 20,
+            "sodiumMg": null
+          },
+          "servings": 2
+        },
+        "extra": {}
+      },
+      "expect": {
+        "calories": {
+          "eq": 800
+        },
+        "proteinG": {
+          "eq": 40
+        },
+        "sodiumMg": {
+          "null": true
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "K06",
+      "priority": "P1",
+      "category": "logging_uncertainty",
+      "scenario": "Food label shows 0 g trans fat due to rounding",
+      "expectedVerbatim": "Preserve label facts and ingredient-level warnings without claiming a measured zero",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": null,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {
+          "foodQuality": {
+            "transFatG": 0,
+            "phoFlag": true
+          }
+        }
+      },
+      "expect": {
+        "components.foodQuality.earned": {
+          "eq": 0
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "K07",
+      "priority": "P0",
+      "category": "logging_uncertainty",
+      "scenario": "Database has calories but no added-sugar value",
+      "expectedVerbatim": "Added sugar is unknown, not zero",
+      "status": "executable",
+      "run": {
+        "engine": "dailyScore",
+        "input": {
+          "nutrition": {
+            "proteinG": null,
+            "carbsG": null,
+            "fatG": null,
+            "fiberG": null,
+            "calories": null,
+            "targets": {
+              "proteinG": 150,
+              "carbsG": 250,
+              "fatG": 70,
+              "fiberG": 30,
+              "caloriesMin": 1760,
+              "caloriesMax": 2640,
+              "calorieFloor": 1400
+            }
+          },
+          "foodQuality": {},
+          "activity": {},
+          "sleep": {},
+          "hydration": {}
+        },
+        "extra": {
+          "foodQuality": {
+            "addedSugarG": null
+          }
+        }
+      },
+      "expect": {
+        "components.foodQuality.parts.addedSugar.state": {
+          "eq": "no_data"
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "K08",
+      "priority": "P0",
+      "category": "logging_uncertainty",
+      "scenario": "Barcode scan and photo log refer to the same food",
+      "expectedVerbatim": "Detect possible duplicate entries and seek confirmation",
+      "status": "executable",
+      "run": {
+        "engine": "capabilities",
+        "fn": "detectDuplicateLog",
+        "input": {
+          "a": {
+            "foodName": "Paneer Curry",
+            "fdcId": "x1",
+            "loggedAt": "2026-11-20T12:00:00Z"
+          },
+          "b": {
+            "foodName": "Paneer Curry",
+            "fdcId": "x1",
+            "loggedAt": "2026-11-20T12:20:00Z"
+          }
+        },
+        "extra": {}
+      },
+      "expect": {
+        "possibleDuplicate": {
+          "eq": true
+        },
+        "needsConfirmation": {
+          "eq": true
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "K09",
+      "priority": "P0",
+      "category": "logging_uncertainty",
+      "scenario": "Wearable energy expenditure appears implausible",
+      "expectedVerbatim": "Apply validation and uncertainty handling; don't create a large automatic eating allowance",
+      "status": "executable",
+      "run": {
+        "engine": "capabilities",
+        "fn": "validateWearableEnergy",
+        "input": {
+          "activeKcal": 4200,
+          "plausibleMaxKcal": 1200
+        },
+        "extra": {}
+      },
+      "expect": {
+        "plausible": {
+          "eq": false
+        },
+        "allowanceKcal": {
+          "eq": 1200
+        },
+        "flagged": {
+          "eq": true
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "K10",
+      "priority": "P1",
+      "category": "logging_uncertainty",
+      "scenario": "User changes time zone or logs a meal after midnight",
+      "expectedVerbatim": "Attribute records to correct local eating day and preserve original timestamps",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "L01",
+      "priority": "P1",
+      "category": "outcomes",
+      "scenario": "Weight rises after a high-sodium meal",
+      "expectedVerbatim": "Explain possible short-term water fluctuation; avoid declaring fat gain",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "L02",
+      "priority": "P0",
+      "category": "outcomes",
+      "scenario": "User loses weight rapidly and repeatedly",
+      "expectedVerbatim": "Evaluate whether rate and symptoms warrant review; don't reward faster loss indefinitely",
+      "status": "executable",
+      "run": {
+        "engine": "capabilities",
+        "fn": "assessWeightLossRate",
+        "input": {
+          "weeklyLosses": [
+            1.4,
+            1.6,
+            1.5
+          ],
+          "maxLossKgPerWeek": 1
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcomeReview": {
+          "eq": true
+        },
+        "rewardFasterLoss": {
+          "eq": false
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "L03",
+      "priority": "P1",
+      "category": "outcomes",
+      "scenario": "Weight trend plateaus over several weeks",
+      "expectedVerbatim": "Reassess energy estimates, logging, activity and adherence before changing goals",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "L04",
+      "priority": "P1",
+      "category": "outcomes",
+      "scenario": "Muscle-gain user improves strength but weight stays stable",
+      "expectedVerbatim": "Recognize progress without promising muscle gain from strength alone",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "L05",
+      "priority": "P1",
+      "category": "outcomes",
+      "scenario": "Weight-gain user gains quickly with no strength improvement",
+      "expectedVerbatim": "Review surplus size and training response",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "L06",
+      "priority": "P1",
+      "category": "outcomes",
+      "scenario": "User eats out at restaurants frequently",
+      "expectedVerbatim": "Support uncertain portions, sauces and cooking oils without discouraging eating out",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "L07",
+      "priority": "P1",
+      "category": "outcomes",
+      "scenario": "User has limited food budget",
+      "expectedVerbatim": "Recommend affordable, culturally appropriate foods instead of expensive products",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "L08",
+      "priority": "P1",
+      "category": "outcomes",
+      "scenario": "User travels, attends celebrations or misses logging days",
+      "expectedVerbatim": "Support realistic plan adjustments without shame or streak penalties",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "L09",
+      "priority": "P1",
+      "category": "outcomes",
+      "scenario": "User reaches the selected goal",
+      "expectedVerbatim": "Offer a transition to maintenance or another chosen goal, with explicit confirmation",
+      "status": "blocked_not_implemented",
+      "run": null,
+      "expect": null,
+      "note": null,
+      "requiredToValidate": [
+        "capability does not exist yet — author implementation + fixture"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    },
+    {
+      "id": "L10",
+      "priority": "P0",
+      "category": "outcomes",
+      "scenario": "User's score looks excellent but their real-world goal is not progressing",
+      "expectedVerbatim": "Trigger an outcome review rather than claiming success",
+      "status": "executable",
+      "run": {
+        "engine": "capabilities",
+        "fn": "detectOutcomeDivergence",
+        "input": {
+          "recentScores": [
+            88,
+            91,
+            85
+          ],
+          "goalProgress": "stalled"
+        },
+        "extra": {}
+      },
+      "expect": {
+        "outcomeReview": {
+          "eq": true
+        }
+      },
+      "note": null,
+      "requiredToValidate": [
+        "clinical reviewer confirms assert = expectedVerbatim"
+      ],
+      "evidence": null,
+      "reviewerStatus": "pending"
+    }
+  ]
+}

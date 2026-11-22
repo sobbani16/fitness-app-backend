@@ -23,16 +23,16 @@ beforeAll(async () => {
     sourceRecord: { id: name },
     ingredient: { create: { name, normalizedName: name, source: 'humai-catalog', ...per100 } },
   } });
-  catEgg = await mkCat(`sk egg ${T}`, ['sk eggs'], { caloriesPer100g: 143, proteinPer100g: 12.6, carbsPer100g: 0.7, fatPer100g: 9.5, fiberPer100g: 0 });
-  catAvo = await mkCat(`sk avocado ${T}`, [], { caloriesPer100g: 160, proteinPer100g: 2, carbsPer100g: 8.5, fatPer100g: 14.7, fiberPer100g: 6.7 });
-  catBread = await mkCat(`sk bread ${T}`, [], { caloriesPer100g: 265, proteinPer100g: 9, carbsPer100g: 49, fatPer100g: 3.2, fiberPer100g: 2.7 });
-  catButter = await mkCat(`sk butter ${T}`, [], { caloriesPer100g: 717, proteinPer100g: 0.9, carbsPer100g: 0.1, fatPer100g: 81, fiberPer100g: 0 });
+  catEgg = await mkCat(`kk egg ${T}`, ['kk eggs'], { caloriesPer100g: 143, proteinPer100g: 12.6, carbsPer100g: 0.7, fatPer100g: 9.5, fiberPer100g: 0 });
+  catAvo = await mkCat(`kk avocado ${T}`, [], { caloriesPer100g: 160, proteinPer100g: 2, carbsPer100g: 8.5, fatPer100g: 14.7, fiberPer100g: 6.7 });
+  catBread = await mkCat(`kk bread ${T}`, [], { caloriesPer100g: 265, proteinPer100g: 9, carbsPer100g: 49, fatPer100g: 3.2, fiberPer100g: 2.7 });
+  catButter = await mkCat(`kk butter ${T}`, [], { caloriesPer100g: 717, proteinPer100g: 0.9, carbsPer100g: 0.1, fatPer100g: 81, fiberPer100g: 0 });
   catPeanut = await prisma.ingredientCatalog.create({ data: {
-    id: `skc_peanut_${T}`, name: `sk peanuts ${T}`, normalizedName: `sk peanuts ${T}`,
+    id: `skc_peanut_${T}`, name: `kk peanuts ${T}`, normalizedName: `kk peanuts ${T}`,
     aliases: [], category: 'Nuts', preparation: 'raw',
     status: 'GENERIC_COMPOSITION', usable: true, verificationLevel: 'GENERIC_COMPOSITION',
-    sourceRecord: { id: `sk peanuts ${T}`, allergens: ['peanut'] },
-    ingredient: { create: { name: `sk peanuts ${T}`, normalizedName: `sk peanuts ${T}`, source: 'humai-catalog', caloriesPer100g: 567, proteinPer100g: 25.8, carbsPer100g: 16.1, fatPer100g: 49.2, fiberPer100g: 8.5 } },
+    sourceRecord: { id: `kk peanuts ${T}`, allergens: ['peanut'] },
+    ingredient: { create: { name: `kk peanuts ${T}`, normalizedName: `kk peanuts ${T}`, source: 'humai-catalog', caloriesPer100g: 567, proteinPer100g: 25.8, carbsPer100g: 16.1, fatPer100g: 49.2, fiberPer100g: 8.5 } },
   } });
   const ingOf = (c) => prisma.ingredient.findUnique({ where: { catalogId: c.id } });
   ingEgg = await ingOf(catEgg); ingAvo = await ingOf(catAvo); ingBread = await ingOf(catBread); const ingButter = await ingOf(catButter);
@@ -75,7 +75,7 @@ afterAll(async () => {
 
 describe('matchIngredients v2', () => {
   it('eggs+avocado+bread → ready recipes, pantry salt never counted', async () => {
-    const r = await matchIngredients({ userId: uid, items: [{ name: 'sk egg ' + T }, { name: 'sk avocado ' + T }, { name: 'sk bread ' + T }] });
+    const r = await matchIngredients({ userId: uid, items: [{ name: 'kk egg ' + T }, { name: 'kk avocado ' + T }, { name: 'kk bread ' + T }] });
     const hit = r.results.find((x) => x.recipe.id === recipe.id);
     expect(hit).toBeTruthy();
     // butter is a required line the user didn't name → missing-one; salt is pantry.
@@ -87,13 +87,13 @@ describe('matchIngredients v2', () => {
     expect(hit.reasons.length).toBeGreaterThan(0);
   });
   it('reports missing-one status and reason strings', async () => {
-    const r = await matchIngredients({ userId: uid, items: [{ name: 'sk bread ' + T }, { name: 'sk egg ' + T }] });
+    const r = await matchIngredients({ userId: uid, items: [{ name: 'kk bread ' + T }, { name: 'kk egg ' + T }] });
     const hit = r.results.find((x) => x.recipe.id === recipeOpt.id);
     expect(hit.status).toBe('ready'); // cheese line is optional — never penalized
     expect(hit.missingOptional.map((m) => m.name)).toEqual(['Sk cheese']);
   });
   it('flags insufficient quantities only when user supplies amounts', async () => {
-    const r = await matchIngredients({ userId: uid, items: [{ name: 'sk bread ' + T, amountG: 30 }, { name: 'sk egg ' + T, amountG: 500 }, { name: 'sk avocado ' + T, amountG: 100 }, { name: 'sk butter ' + T, amountG: 10 }] });
+    const r = await matchIngredients({ userId: uid, items: [{ name: 'kk bread ' + T, amountG: 30 }, { name: 'kk egg ' + T, amountG: 500 }, { name: 'kk avocado ' + T, amountG: 100 }, { name: 'kk butter ' + T, amountG: 10 }] });
     const hit = r.results.find((x) => x.recipe.id === recipe.id);
     expect(hit.quantityAssumed).toBe(false);
     expect(hit.insufficientQuantities.some((i) => i.ingredientName === catBread.name && i.needG === 60 && i.haveG === 30)).toBe(true);
@@ -101,19 +101,19 @@ describe('matchIngredients v2', () => {
   });
   it('excludes recipes by user allergies (recipe-level declared)', async () => {
     const flagged = await prisma.recipe.update({ where: { id: recipe.id }, data: { allergens: ['egg'] } });
-    const r = await matchIngredients({ userId: uid, items: [{ name: 'sk egg ' + T }, { name: 'sk avocado ' + T }, { name: 'sk bread ' + T }], allergies: ['egg'] });
+    const r = await matchIngredients({ userId: uid, items: [{ name: 'kk egg ' + T }, { name: 'kk avocado ' + T }, { name: 'kk bread ' + T }], allergies: ['egg'] });
     expect(r.results.some((x) => x.recipe.id === recipe.id)).toBe(false);
     expect(r.excluded.allergy).toBeGreaterThanOrEqual(1);
     await prisma.recipe.update({ where: { id: flagged.id }, data: { allergens: [] } });
   });
   it('honors maxPrepMinutes', async () => {
-    const items = [{ name: 'sk egg ' + T }, { name: 'sk avocado ' + T }, { name: 'sk bread ' + T }, { name: 'sk butter ' + T }];
+    const items = [{ name: 'kk egg ' + T }, { name: 'kk avocado ' + T }, { name: 'kk bread ' + T }, { name: 'kk butter ' + T }];
     const r = await matchIngredients({ userId: uid, items, maxPrepMinutes: 5 });
     expect(r.results.some((x) => x.recipe.id === recipe.id)).toBe(false);
     expect(r.excluded.prepTime).toBeGreaterThanOrEqual(1);
   });
   it('resolves ingredientId + identityKey inputs', async () => {
-    const r = await matchIngredients({ userId: uid, items: [{ ingredientId: ingEgg.id }, { name: 'sk bread ' + T }] });
+    const r = await matchIngredients({ userId: uid, items: [{ ingredientId: ingEgg.id }, { name: 'kk bread ' + T }] });
     expect(r.results.some((x) => x.recipe.id === recipeOpt.id)).toBe(true);
   });
 });
@@ -121,7 +121,7 @@ describe('matchIngredients v2', () => {
 describe('POST /recipes/match-ingredients route', () => {
   it('returns v2 contract', async () => {
     const res = await request(app).post('/recipes/match-ingredients').set('x-user-id', uid)
-      .send({ items: [{ name: 'sk bread ' + T }, { name: 'sk egg ' + T }], limit: 5 });
+      .send({ items: [{ name: 'kk bread ' + T }, { name: 'kk egg ' + T }], limit: 5 });
     expect(res.status).toBe(200);
     const hit = res.body.results.find((x) => x.recipe.id === recipeOpt.id);
     expect(hit.status).toBe('ready');
@@ -181,13 +181,13 @@ describe('AI recipe customization (mocked provider)', () => {
   beforeEach(() => askJSON.mockReset());
   it('applies a valid substitution and recomputes nutrition server-side', async () => {
     askJSON.mockResolvedValue({
-      changes: [{ action: 'substitute', ingredientName: `sk butter ${T}`, newIngredientName: `sk avocado ${T}`, amountG: 5 }],
+      changes: [{ action: 'substitute', ingredientName: `kk butter ${T}`, newIngredientName: `kk avocado ${T}`, amountG: 5 }],
       notes: 'lighter fat', servings: 1,
     });
     const res = await request(app).post(`/recipes/${recipe.id}/customize`).set('x-user-id', uid).send({ request: 'lighter fat' });
     expect(res.status).toBe(200);
     expect(res.body.changesApplied[0]).toMatch(/Swapped/);
-    const avocadoLine = res.body.proposedLines.find((l) => l.ingredientName === `sk avocado ${T}` && l.amountG === 80 + 5 || l.amountG === 5);
+    const avocadoLine = res.body.proposedLines.find((l) => l.ingredientName === `kk avocado ${T}` && l.amountG === 80 + 5 || l.amountG === 5);
     expect(res.body.perServing).toBeTruthy();
     // nutrition recomputed from per-100g — never the model's numbers
     expect(typeof res.body.perServing.calories).toBe('number');
@@ -200,12 +200,12 @@ describe('AI recipe customization (mocked provider)', () => {
     expect(res.body.rejected[0].reason).toMatch(/not in food catalog/);
   });
   it('rejects out-of-bounds amounts', async () => {
-    askJSON.mockResolvedValue({ changes: [{ action: 'set_amount', ingredientName: `sk butter ${T}`, amountG: 99999 }], notes: '', servings: 1 });
+    askJSON.mockResolvedValue({ changes: [{ action: 'set_amount', ingredientName: `kk butter ${T}`, amountG: 99999 }], notes: '', servings: 1 });
     const res = await request(app).post(`/recipes/${recipe.id}/customize`).set('x-user-id', uid).send({ request: 'more butter' });
     expect(res.body.rejected[0].reason).toMatch(/amount out of bounds/);
   });
   it('rejects allergen-conflicting additions', async () => {
-    askJSON.mockResolvedValue({ changes: [{ action: 'add', ingredientName: `sk peanuts ${T}`, amountG: 20 }], notes: '', servings: 1 });
+    askJSON.mockResolvedValue({ changes: [{ action: 'add', ingredientName: `kk peanuts ${T}`, amountG: 20 }], notes: '', servings: 1 });
     const res = await request(app).post(`/recipes/${recipe.id}/customize`).set('x-user-id', uid).send({ request: 'add peanuts', allergies: ['peanut'] });
     expect(res.body.rejected[0].reason).toMatch(/conflicts with your allergies/);
   });

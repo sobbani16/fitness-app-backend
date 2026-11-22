@@ -4,4 +4,6 @@ process.env.AUTH_TEST_BYPASS = 'true';
 // and call featureFlags.resetCache() between assertions.
 process.env.FEATURE_FLAGS_PROVIDER = 'env';
 const { KEYS, FEATURES, envOverrideName } = require('../src/config/featureRegistry');
-for (const key of KEYS) if (FEATURES[key].class !== 'control') process.env[envOverrideName(key)] = 'true';
+// Control-plane and medical-group flags are NOT auto-enabled: they must be
+// explicitly turned on per-test, mirroring production governance.
+for (const key of KEYS) if (FEATURES[key].class !== 'control' && FEATURES[key].group !== 'medical') process.env[envOverrideName(key)] = 'true';

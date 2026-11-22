@@ -210,7 +210,7 @@ beforeEach(() => {
 });
 
 beforeAll(() => setFlag('trainer_advanced_features_enabled', 'true'));
-afterAll(() => { delete process.env[envOverrideName('trainer_advanced_features_enabled')]; flags.resetCache(); });
+afterAll(() => { process.env[envOverrideName('trainer_advanced_features_enabled')] = 'true'; process.env[envOverrideName('trainer_messaging_enabled')] = 'true'; flags.resetCache(); });
 
 describe('conversation creation', () => {
   test('trainer starts a conversation; repeat call is idempotent', async () => {

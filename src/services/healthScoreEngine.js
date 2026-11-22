@@ -12,6 +12,8 @@
 
 const { getPrisma } = require('../lib/prisma');
 const { scoreMacro } = require('./macroScoreService');
+const { dayRangeUtc, resolveZone } = require('./localDay');
+const { BY_KEY } = require('./nutrientCatalog');
 
 const WEIGHTS = {
   macro: 0.40,
@@ -35,24 +37,37 @@ function isoDate(d = new Date()) {
 // Convert a local calendar date (YYYY-MM-DD) to the start/end UTC timestamps
 // so logs stored in UTC line up with the user's local day. This matches the
 // simulator/Mac environment where the device and server share a timezone.
-function startOfDay(dateStr) {
-  const [y, mo, d] = dateStr.split('-').map(Number);
-  return new Date(y, mo - 1, d, 0, 0, 0, 0);
+// Fallback macro targets when a user has no MacroGoal: FDA Daily Values, the
+// same basis score-v2 falls back to — never the old hardcoded demo values.
+function fallbackTargets() {
+  return {
+    proteinTarget: BY_KEY.proteinG.referenceIntake,
+    carbsTarget: BY_KEY.carbsG.referenceIntake,
+    fatTarget: BY_KEY.fatG.referenceIntake,
+    fiberTarget: BY_KEY.fiberG.referenceIntake,
+    waterMlTarget: 2000, // product default — not a clinical target
+  };
 }
-function endOfDay(dateStr) {
-  const [y, mo, d] = dateStr.split('-').map(Number);
-  return new Date(y, mo - 1, d, 23, 59, 59, 999);
+// UTC bounds of the user's LOCAL calendar day — never the server's timezone.
+function dayWindow(dateStr, tz) {
+  const { startUtc, endUtc } = dayRangeUtc(dateStr, tz);
+  return { start: startUtc, end: endUtc };
+}
+async function userTz(prisma, userId) {
+  const u = await prisma.user?.findUnique({ where: { id: userId }, select: { timeZone: true } }).catch(() => null);
+  return resolveZone(u?.timeZone);
 }
 
 // ============================================================================
 // COMPONENT 1: MACRO ADHERENCE (40%)
 // ============================================================================
-async function scoreMacroAdherence(userId, dateStr, prisma) {
+async function scoreMacroAdherence(userId, dateStr, prisma, tz) {
   const goals = await prisma.macroGoal.findUnique({ where: { userId } });
-  const targets = goals || { proteinTarget: 150, carbsTarget: 250, fatTarget: 70, fiberTarget: 30 };
+  const targets = goals || fallbackTargets();
+  const win = dayWindow(dateStr, tz);
 
   const logs = await prisma.foodLog.findMany({
-    where: { userId, loggedAt: { gte: startOfDay(dateStr), lte: endOfDay(dateStr) } },
+    where: { userId, loggedAt: { gte: win.start, lt: win.end } },
   });
 
   const supplementLogs = await prisma.supplementLog.findMany({
@@ -65,17 +80,13 @@ async function scoreMacroAdherence(userId, dateStr, prisma) {
     return { score: null, available: false, contributors: [], insights: [] };
   }
 
+  // Supplements count toward the availability gate only — their nutrient
+  // claims are never merged into food totals (composition/dose comparability
+  // is not guaranteed; a shake can be logged as both food and supplement).
   const intake = logs.reduce(
-    (a, l) => ({ protein: a.protein + l.proteinG, carbs: a.carbs + l.carbsG, fat: a.fat + l.fatG, fiber: a.fiber + l.fiberG }),
+    (a, l) => ({ protein: a.protein + l.proteinG, carbs: a.carbs + l.carbsG, fat: a.fat + l.fatG, fiber: a.fiber + (l.fiberG ?? 0) }),
     { protein: 0, carbs: 0, fat: 0, fiber: 0 },
   );
-
-  for (const s of supplementLogs) {
-    intake.protein += s.proteinG;
-    intake.carbs += s.carbsG;
-    intake.fat += s.fatG;
-    intake.fiber += s.fiberG;
-  }
 
   const pScore = scoreMacro(intake.protein, targets.proteinTarget);
   const cScore = scoreMacro(intake.carbs, targets.carbsTarget);
@@ -118,7 +129,7 @@ async function scoreMacroAdherence(userId, dateStr, prisma) {
   }
 
   // Top food contributors
-  const allEntries = [...logs, ...supplementLogs.map((s) => ({ foodName: s.supplementName, proteinG: s.proteinG }))];
+  const allEntries = [...logs];
   const sorted = allEntries.sort((a, b) => b.proteinG - a.proteinG);
   for (const log of sorted.slice(0, 3)) {
     if (log.proteinG > 15) {
@@ -126,16 +137,16 @@ async function scoreMacroAdherence(userId, dateStr, prisma) {
     }
   }
 
-  return { score, available: true, contributors, insights, intake, targets };
+  return { score, available: true, contributors, insights, intake, targets, nutrientCoverage: require('./nutrientCompleteness').coverageFor(logs) };
 }
 
 // ============================================================================
 // COMPONENT 2: CONDITION COMPLIANCE (30%)
 // ============================================================================
-async function scoreConditionCompliance(userId, dateStr, prisma) {
+async function scoreConditionCompliance(userId, dateStr, prisma, tz) {
   const userConditions = await prisma.userHealthCondition.findMany({
     where: { userId, active: true },
-    include: { condition: { include: { conditionRules: true } } },
+    include: { condition: { include: { conditionRules: { where: { reviewStatus: 'APPROVED' } } } } },
   });
 
   // No recorded conditions is unknown, not a perfect score.
@@ -143,8 +154,9 @@ async function scoreConditionCompliance(userId, dateStr, prisma) {
     return { score: null, available: false, contributors: [], insights: [] };
   }
 
+  const win = dayWindow(dateStr, tz);
   const logs = await prisma.foodLog.findMany({
-    where: { userId, loggedAt: { gte: startOfDay(dateStr), lte: endOfDay(dateStr) } },
+    where: { userId, loggedAt: { gte: win.start, lt: win.end } },
   });
 
   // Load attributes for all ingredients the user has
@@ -160,13 +172,18 @@ async function scoreConditionCompliance(userId, dateStr, prisma) {
   let penalties = 0;
   const contributors = [];
   const insights = [];
+  // A given (food, attribute) pair penalizes once — logging the same item
+  // twice must not stack duplicate penalties.
+  const applied = new Set();
 
   for (const uc of userConditions) {
     const rules = uc.condition.conditionRules.filter((r) => r.target === 'ingredient');
     for (const log of logs) {
       const attrs = attrMap[log.foodName.toLowerCase()] || [];
       for (const rule of rules) {
-        if (attrs.includes(rule.attribute)) {
+        const pairKey = `${log.foodName.toLowerCase()}|${rule.attribute}`;
+        if (attrs.includes(rule.attribute) && !applied.has(pairKey)) {
+          applied.add(pairKey);
           const impact = rule.action === 'block' ? -15 : -8;
           penalties += Math.abs(impact);
           contributors.push({
@@ -207,9 +224,10 @@ async function scoreConditionCompliance(userId, dateStr, prisma) {
 // ============================================================================
 // COMPONENT 3: FOOD QUALITY (15%)
 // ============================================================================
-async function scoreFoodQuality(userId, dateStr, prisma) {
+async function scoreFoodQuality(userId, dateStr, prisma, tz) {
+  const win = dayWindow(dateStr, tz);
   const logs = await prisma.foodLog.findMany({
-    where: { userId, loggedAt: { gte: startOfDay(dateStr), lte: endOfDay(dateStr) } },
+    where: { userId, loggedAt: { gte: win.start, lt: win.end } },
   });
 
   // No food records means nothing to evaluate — unavailable, not mid-range.
@@ -218,18 +236,29 @@ async function scoreFoodQuality(userId, dateStr, prisma) {
   const contributors = [];
   let qualityPoints = 0;
   let totalItems = logs.length;
+  // Guard: a flagged food contributes credit/penalty once per day, no matter
+  // how many times it is logged. (Previously the same item stacked penalties.)
+  const flagged = new Set();
 
   for (const log of logs) {
     const name = log.foodName.toLowerCase();
-    // Simple heuristic: high protein + low sugar = quality, processed/sugar = bad
+    // Simple heuristic: protein-dominant = quality; refined-carb-dominant,
+    // fiber-poor = penalized. NOTE: carbs are not sugar — wording must not
+    // imply a sugar measurement. Per-100g/micronutrient quality waits for v2.
     if (log.proteinG > 15 && log.carbsG < log.proteinG) {
-      qualityPoints += 1;
-      if (log.proteinG > 25) {
-        contributors.push({ category: 'food_quality', itemName: log.foodName, scoreImpact: 5, reason: 'High-quality protein source' });
+      if (!flagged.has(name)) {
+        qualityPoints += 1;
+        flagged.add(name);
+        if (log.proteinG > 25) {
+          contributors.push({ category: 'food_quality', itemName: log.foodName, scoreImpact: 5, reason: 'High-quality protein source' });
+        }
       }
     } else if (log.carbsG > 50 && log.fiberG < 2) {
-      qualityPoints -= 1;
-      contributors.push({ category: 'food_quality', itemName: log.foodName, scoreImpact: -10, reason: 'High sugar/refined carb food reduced score' });
+      if (!flagged.has(name)) {
+        qualityPoints -= 1;
+        flagged.add(name);
+        contributors.push({ category: 'food_quality', itemName: log.foodName, scoreImpact: -10, reason: 'Refined-carb-dominant item (low fiber) reduced score' });
+      }
     } else {
       qualityPoints += 0.5;
     }
@@ -247,13 +276,14 @@ async function scoreFoodQuality(userId, dateStr, prisma) {
 // ============================================================================
 // COMPONENT 4: ACTIVITY BALANCE (10%)
 // ============================================================================
-async function scoreActivity(userId, dateStr, prisma) {
+async function scoreActivity(userId, dateStr, prisma, tz) {
+  const win = dayWindow(dateStr, tz);
   const workouts = await prisma.workoutSession.findMany({
-    where: { userId, startedAt: { gte: startOfDay(dateStr), lte: endOfDay(dateStr) } },
+    where: { userId, startedAt: { gte: win.start, lt: win.end } },
   });
 
   const stepsRecord = await prisma.dailySteps.findFirst({
-    where: { userId, date: startOfDay(dateStr) },
+    where: { userId, date: { gte: win.start, lt: win.end } },
   });
   const steps = stepsRecord?.steps || 0;
 
@@ -273,16 +303,16 @@ async function scoreActivity(userId, dateStr, prisma) {
     contributors.push({ category: 'activity', itemName: 'Workout Completed', scoreImpact: 10, reason: `${totalMinutes} min of activity today` });
   } else if (totalMinutes > 0) {
     score = 60 + Math.round((totalMinutes / 30) * 40);
-    contributors.push({ category: 'activity', itemName: 'Light Activity', scoreImpact: 5, reason: `${totalMinutes} min logged — aim for 30+` });
+    contributors.push({ category: 'activity', itemName: 'Light Activity', scoreImpact: 5, reason: `${totalMinutes} min logged today` });
   } else if (steps >= 6000) {
     score = 80 + Math.min(20, Math.round((steps - 6000) / 200));
     contributors.push({ category: 'activity', itemName: 'Steps', scoreImpact: 6, reason: `${steps.toLocaleString()} steps today` });
   } else if (steps > 0) {
     score = 40 + Math.round((steps / 6000) * 40);
-    contributors.push({ category: 'activity', itemName: 'Steps', scoreImpact: 3, reason: `${steps.toLocaleString()} steps — aim for 6,000+` });
+    contributors.push({ category: 'activity', itemName: 'Steps', scoreImpact: 3, reason: `${steps.toLocaleString()} steps today` });
   } else {
     score = 40;
-    contributors.push({ category: 'activity', itemName: 'No Activity', scoreImpact: -5, reason: 'Steps were recorded but no workout minutes today' });
+    contributors.push({ category: 'activity', itemName: 'No Activity', scoreImpact: 0, reason: 'Steps recorded; no workout minutes — rest day or untracked activity' });
   }
 
   return { score, available: true, contributors, insights };
@@ -291,22 +321,23 @@ async function scoreActivity(userId, dateStr, prisma) {
 // ============================================================================
 // COMPONENT 5: RECOVERY (5%)
 // ============================================================================
-async function scoreRecovery(userId, dateStr, prisma) {
-  const yesterday = new Date(dateStr);
-  yesterday.setDate(yesterday.getDate() - 1);
+async function scoreRecovery(userId, dateStr, prisma, tz) {
+  const prevKey = new Date(Date.parse(dateStr + 'T00:00:00Z') - 86400000).toISOString().slice(0, 10);
+  const prevStart = dayRangeUtc(prevKey, tz).startUtc;
+  const win = dayWindow(dateStr, tz);
 
   const sleep = await prisma.sleepLog.findMany({
-    where: { userId, sleepEnd: { gte: startOfDay(isoDate(yesterday)), lte: endOfDay(dateStr) } },
+    where: { userId, sleepEnd: { gte: prevStart, lt: win.end } },
     orderBy: { sleepEnd: 'desc' },
     take: 1,
   });
 
   const waterLogs = await prisma.waterLog.findMany({
-    where: { userId, loggedAt: { gte: startOfDay(dateStr), lte: endOfDay(dateStr) } },
+    where: { userId, loggedAt: { gte: win.start, lt: win.end } },
   });
   const waterMl = waterLogs.reduce((s, w) => s + (w.amountMl || 0), 0);
   const goals = await prisma.macroGoal.findUnique({ where: { userId } });
-  const waterTarget = goals?.waterMlTarget || 2000;
+  const waterTarget = goals?.waterMlTarget || fallbackTargets().waterMlTarget;
 
   const contributors = [];
   const insights = [];
@@ -362,13 +393,14 @@ async function scoreRecovery(userId, dateStr, prisma) {
 async function calculateHealthScore(userId, date) {
   const prisma = getPrisma();
   const dateStr = date || isoDate();
+  const tz = await userTz(prisma, userId);
 
   const [macro, condition, quality, activity, recovery] = await Promise.all([
-    scoreMacroAdherence(userId, dateStr, prisma),
-    scoreConditionCompliance(userId, dateStr, prisma),
-    scoreFoodQuality(userId, dateStr, prisma),
-    scoreActivity(userId, dateStr, prisma),
-    scoreRecovery(userId, dateStr, prisma),
+    scoreMacroAdherence(userId, dateStr, prisma, tz),
+    scoreConditionCompliance(userId, dateStr, prisma, tz),
+    scoreFoodQuality(userId, dateStr, prisma, tz),
+    scoreActivity(userId, dateStr, prisma, tz),
+    scoreRecovery(userId, dateStr, prisma, tz),
   ]);
 
   // Only components with real records contribute; weights renormalize over
@@ -489,19 +521,21 @@ async function calculateHealthScore(userId, date) {
 async function getImprovementActions(userId, date) {
   const prisma = getPrisma();
   const dateStr = date || isoDate();
+  const tz = await userTz(prisma, userId);
+  const win = dayWindow(dateStr, tz);
 
   const goals = await prisma.macroGoal.findUnique({ where: { userId } });
-  const targets = goals || { proteinTarget: 150, carbsTarget: 250, fatTarget: 70, fiberTarget: 30, waterMlTarget: 2000 };
+  const targets = goals || fallbackTargets();
 
   const logs = await prisma.foodLog.findMany({
-    where: { userId, loggedAt: { gte: startOfDay(dateStr), lte: endOfDay(dateStr) } },
+    where: { userId, loggedAt: { gte: win.start, lt: win.end } },
   });
   const waterLogs = await prisma.waterLog.findMany({
-    where: { userId, loggedAt: { gte: startOfDay(dateStr), lte: endOfDay(dateStr) } },
+    where: { userId, loggedAt: { gte: win.start, lt: win.end } },
   });
 
   const intake = logs.reduce(
-    (a, l) => ({ protein: a.protein + l.proteinG, carbs: a.carbs + l.carbsG, fat: a.fat + l.fatG, fiber: a.fiber + l.fiberG }),
+    (a, l) => ({ protein: a.protein + l.proteinG, carbs: a.carbs + l.carbsG, fat: a.fat + l.fatG, fiber: a.fiber + (l.fiberG ?? 0) }),
     { protein: 0, carbs: 0, fat: 0, fiber: 0 },
   );
   const waterMl = waterLogs.reduce((s, w) => s + (w.amountMl || 0), 0);
@@ -532,7 +566,7 @@ async function getImprovementActions(userId, date) {
 
   // Activity
   const workouts = await prisma.workoutSession.findMany({
-    where: { userId, startedAt: { gte: startOfDay(dateStr), lte: endOfDay(dateStr) } },
+    where: { userId, startedAt: { gte: win.start, lt: win.end } },
   });
   if (workouts.length === 0) {
     actions.push({

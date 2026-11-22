@@ -1,0 +1,337 @@
+{
+  "version": "1.0",
+  "generated": "2026-11-21",
+  "conventions": {
+    "implemented": "true means an executable assertion exists at testRef and passed in the last run",
+    "severity.critical": "a failing critical scenario blocks release (Phase 19 gates)",
+    "ruleIds": "emitted by recipes/validate.js or recipes/constraints.js violatesHard"
+  },
+  "categories": [
+    "single_allergies", "multiple_allergies", "hidden_allergens", "allergen_derivatives", "cross_contact_uncertainty",
+    "intolerances", "individual_medical_restrictions", "multiple_medical_conditions", "conflicting_medical_constraints",
+    "food_dislikes", "food_category_exclusions", "religious_dietary_requirements", "ethical_dietary_patterns",
+    "cultural_preferences", "ingredient_aliases", "regional_ingredient_names", "compound_ingredients",
+    "missing_ingredient_metadata", "missing_nutrition_data", "raw_cooked_conversions", "unit_conversions",
+    "cooking_yield", "nutrition_limits", "portion_scaling", "ingredient_substitutions", "cooking_method_changes",
+    "equipment_limitations", "food_safety", "ai_hallucinations", "malformed_ai_output", "prompt_injection",
+    "provider_outages", "regeneration_failures", "caching_errors", "stale_user_preferences",
+    "stale_medical_restrictions", "cross_user_isolation", "recipe_sharing", "meal_logging_discrepancies",
+    "concurrent_requests", "database_inconsistencies", "feature_flag_behavior", "rollback_behavior",
+    "cost_and_latency_limits", "accessibility", "localization", "user_feedback_and_corrections",
+    "no_feasible_recipe", "uncertain_ingredient_safety", "end_to_end_workflows"
+  ],
+  "scenarios": [
+    {
+      "id": "ALG-001", "category": "single_allergies", "severity": "critical", "implemented": true,
+      "description": "Saved peanut allergy excludes a peanut recipe even when the request omits allergies",
+      "input": {"profile": {"allergies": ["Peanuts"]}, "request": {"allergies": []}, "recipe": "peanut butter lines"},
+      "expected": {"status": "excluded", "ruleIds": ["ALLERGEN_TEXT", "ALLERGEN_DECLARED"]},
+      "testRef": "tests/recipeConstraints.test.js > F-1: saved peanut allergy"
+    },
+    {
+      "id": "ALG-002", "category": "single_allergies", "severity": "critical", "implemented": true,
+      "description": "Egg allergy excludes Scrambled Eggs but NOT Eggplant Curry (word-boundary, no substring false positive)",
+      "input": {"profile": {"allergies": ["Egg"]}, "recipes": ["Scrambled Eggs", "Eggplant Curry"]},
+      "expected": {"excluded": ["r_scramb"], "kept": ["r_eggp"], "excludedCounter": {"allergy": 1}},
+      "testRef": "tests/recipeConstraints.test.js > boundary: egg allergy"
+    },
+    {
+      "id": "ALG-003", "category": "multiple_allergies", "severity": "critical", "implemented": true,
+      "description": "Profile + request allergies union — request can only narrow, never remove a saved allergy",
+      "input": {"profile": {"allergies": ["Peanuts"]}, "request": {"allergies": ["Sesame"]}},
+      "expected": {"allergenTerms": ["peanut", "groundnut", "sesame", "tahini"]},
+      "testRef": "tests/recipeConstraints.test.js > loadConstraints profile allergy is authoritative"
+    },
+    {
+      "id": "ALG-004", "category": "hidden_allergens", "severity": "critical", "implemented": false,
+      "description": "Declared catalog allergens on compound items intersect expanded user terms",
+      "followUp": "catalog sourceRecord.allergens coverage is thin (audit §7) — add fixtures for derivative declarations",
+      "expected": {"ruleIds": ["ALLERGEN_DECLARED"]}
+    },
+    {
+      "id": "DER-001", "category": "allergen_derivatives", "severity": "critical", "implemented": true,
+      "description": "Peanut butter (derivative) in a recipe line blocks for peanut allergy",
+      "expected": {"status": "FAIL", "ruleIds": ["ALLERGEN_TEXT"]},
+      "testRef": "tests/recipeValidate.test.js > peanut derivative"
+    },
+    {
+      "id": "DER-002", "category": "allergen_derivatives", "severity": "critical", "implemented": false,
+      "description": "Fish sauce / whey / tahini derivative term coverage — keyword expansion exists; per-derivative fixtures pending",
+      "followUp": "add derivative fixtures (fish sauce, whey protein, tahini) to validator suite"
+    },
+    {
+      "id": "XCT-001", "category": "cross_contact_uncertainty", "severity": "high", "implemented": false,
+      "description": "Shared-facility/cross-contact uncertainty is recorded as unverifiable, not claimed safe",
+      "followUp": "surface cross_contact flag on catalog items; assert appears in constraints.unknown"
+    },
+    {
+      "id": "INT-001", "category": "intolerances", "severity": "high", "implemented": false,
+      "description": "Lactose intolerance vs milk allergy classified differently (intolerance = kind 'intolerance')",
+      "followUp": "classifyCondition covers it; add intolerance-specific rule fixtures (e.g., lactose-containing attributes)"
+    },
+    {
+      "id": "MED-001", "category": "individual_medical_restrictions", "severity": "critical", "implemented": true,
+      "description": "APPROVED CKD ingredient block rule excludes attributed ingredient in matching and validation",
+      "expected": {"ruleIds": ["CONDITION_ATTR"], "excludedCounter": {"condition": 1}},
+      "testRef": "tests/recipeConstraints.test.js + tests/recipeValidate.test.js > APPROVED condition rule"
+    },
+    {
+      "id": "MED-002", "category": "individual_medical_restrictions", "severity": "high", "implemented": true,
+      "description": "Warn-action rules surface as warnings, never silent hard blocks; DRAFT rules inert via APPROVED-gated query",
+      "testRef": "tests/recipeConstraints.test.js > APPROVED ingredient block rules produce bannedAttributes"
+    },
+    {
+      "id": "MED-003", "category": "multiple_medical_conditions", "severity": "high", "implemented": false,
+      "description": "Diabetes + CKD union of blocked attributes; rules from both conditions apply simultaneously",
+      "followUp": "multi-condition fixture in validator suite"
+    },
+    {
+      "id": "CONFL-001", "category": "conflicting_medical_constraints", "severity": "critical", "implemented": false,
+      "description": "High-protein goal + prescribed protein restriction → hard medical restriction wins, goal demoted",
+      "followUp": "limits-vs-rules precedence test once nutrient-limit stage lands"
+    },
+    {
+      "id": "CONFL-002", "category": "conflicting_medical_constraints", "severity": "critical", "implemented": true,
+      "description": "Impossible constraint combination returns no_eligible_recipe — restrictions never relaxed",
+      "expected": {"status": "no_eligible_recipe"},
+      "testRef": "tests/recipeGenerate.test.js > provider outage + exclusions are hard"
+    },
+    {
+      "id": "DIS-001", "category": "food_dislikes", "severity": "medium", "implemented": true,
+      "description": "DISLIKE is soft — never hard-excludes; NEVER_RECOMMEND hard-excludes",
+      "testRef": "tests/recipeConstraints.test.js > DISLIKE does not hard-exclude + NEVER_RECOMMEND is a hard exclusion"
+    },
+    {
+      "id": "EXC-001", "category": "food_category_exclusions", "severity": "critical", "implemented": true,
+      "description": "exclude_beef maps to literal term; saved restriction enforced on matching and customize",
+      "testRef": "tests/recipeConstraints.test.js > exclude_* entry + customize saved restrictions"
+    },
+    {
+      "id": "REL-001", "category": "religious_dietary_requirements", "severity": "high", "implemented": true,
+      "description": "Halal enforced on observable terms (pork/alcohol/additives) AND flagged unverifiable for certification",
+      "expected": {"excludeTerms": ["pork", "alcohol"], "unknown": ["cannot verify"]},
+      "testRef": "tests/recipeConstraints.test.js > halal is enforced but flagged unverifiable"
+    },
+    {
+      "id": "REL-002", "category": "religious_dietary_requirements", "severity": "high", "implemented": false,
+      "description": "Kosher/Jain specific term coverage + unverifiable surfacing",
+      "followUp": "per-pattern validator fixtures (shellfish, onion/garlic)"
+    },
+    {
+      "id": "PAT-001", "category": "ethical_dietary_patterns", "severity": "critical", "implemented": true,
+      "description": "Vegetarian blocks meat via term AND category-only path (opaque name, Animal protein category)",
+      "testRef": "tests/recipeConstraints.test.js > saved vegetarian"
+    },
+    {
+      "id": "PAT-002", "category": "ethical_dietary_patterns", "severity": "critical", "implemented": true,
+      "description": "Vegan request narrows: dairy/egg/meat recipes excluded",
+      "testRef": "tests/recipeConstraints.test.js > request diet still narrows"
+    },
+    {
+      "id": "CUL-001", "category": "cultural_preferences", "severity": "medium", "implemented": false,
+      "description": "cuisine_* entries are soft preferences, not exclusions — ranking input only",
+      "followUp": "ranking layer consumes soft.cuisines"
+    },
+    {
+      "id": "ALIAS-001", "category": "ingredient_aliases", "severity": "medium", "implemented": true,
+      "description": "Alias resolution: brinjal/aubergine → eggplant; catalog normalizedName+aliases matching",
+      "testRef": "tests/recipeValidate.test.js + recipeMatch inputVariants/ALIAS_TOKENS coverage"
+    },
+    {
+      "id": "REG-001", "category": "regional_ingredient_names", "severity": "medium", "implemented": false,
+      "description": "Indian names (curd/paneer/atta/besan/dals) resolve; non-identical nutrition flagged",
+      "followUp": "extend ALIAS_TOKENS + catalog rows; verify nutritional non-equivalence warning for regional pairs"
+    },
+    {
+      "id": "CMP-001", "category": "compound_ingredients", "severity": "critical", "implemented": true,
+      "description": "Undeclared compound ('house sauce') fails closed for allergic users, review otherwise",
+      "expected": {"ruleIds": ["COMPOUND_UNRESOLVED", "INGREDIENT_UNRESOLVED"]},
+      "testRef": "tests/recipeValidate.test.js > undeclared compound sauce + unresolved ingredient"
+    },
+    {
+      "id": "META-001", "category": "missing_ingredient_metadata", "severity": "high", "implemented": true,
+      "description": "Unknown ingredient: block with allergies, review without — never silent pass",
+      "testRef": "tests/recipeValidate.test.js > unresolved ingredient fails closed"
+    },
+    {
+      "id": "NUT-001", "category": "missing_nutrition_data", "severity": "high", "implemented": true,
+      "description": "Missing per-100g data → warn/review, never counted as zero",
+      "testRef": "tests/recipeValidate.test.js > implausible computed nutrition + NUTRITION_MISSING paths"
+    },
+    {
+      "id": "RC-001", "category": "raw_cooked_conversions", "severity": "high", "implemented": false,
+      "description": "Dry rice vs cooked rice handled via yield — no double-counting",
+      "followUp": "yield/retention fields on IngredientNutritionProfile + conversion stage in validator"
+    },
+    {
+      "id": "UNIT-001", "category": "unit_conversions", "severity": "medium", "implemented": false,
+      "description": "Volume→weight via density; unusual units rejected or converted explicitly",
+      "followUp": "unit table + IngredientServing integration"
+    },
+    {
+      "id": "YIELD-001", "category": "cooking_yield", "severity": "medium", "implemented": false,
+      "description": "finishedYieldG vs line-sum sanity; moisture loss/absorption modeled",
+      "followUp": "recipeImport already stores finishedYieldG — add validator cross-check"
+    },
+    {
+      "id": "LIM-001", "category": "nutrition_limits", "severity": "high", "implemented": false,
+      "description": "Hard nutrient limits (sodium/potassium for CKD/HTN) evaluated against computed totals — uncertainty escalates",
+      "followUp": "limits stage: computed per-serving vs MacroGoal/medical limits; missing nutrient on limited nutrient → review"
+    },
+    {
+      "id": "PORT-001", "category": "portion_scaling", "severity": "medium", "implemented": true,
+      "description": "Serving rescale recomputes nutrition; implausible per-serving grams flagged",
+      "testRef": "tests/recipeValidate.test.js > SERVING_IMPLAUSIBLE/TINY + computeFromLines scale"
+    },
+    {
+      "id": "SUB-001", "category": "ingredient_substitutions", "severity": "critical", "implemented": true,
+      "description": "Substitution colliding with exclusion blocks; catalog resolution required",
+      "testRef": "tests/recipeValidate.test.js > substitution against an exclusion blocks + customize rejected adds"
+    },
+    {
+      "id": "METH-001", "category": "cooking_method_changes", "severity": "high", "implemented": false,
+      "description": "Method change (air fry → raw serving) triggers safety re-evaluation on the SAME recipe",
+      "followUp": "transformation registry — method edits re-run safety stage"
+    },
+    {
+      "id": "EQP-001", "category": "equipment_limitations", "severity": "medium", "implemented": false,
+      "description": "Recipe requiring oven for stove-only user → clarify/downrank, never silently 'ready'",
+      "followUp": "equipment feasibility stage consumes constraints.equipment"
+    },
+    {
+      "id": "SAFE-001", "category": "food_safety", "severity": "critical", "implemented": true,
+      "description": "Poultry without ≥165°F/74°C verification → NEEDS_REVIEW; verified temp instruction clears it",
+      "testRef": "tests/recipeValidate.test.js > poultry without verified temperature"
+    },
+    {
+      "id": "SAFE-002", "category": "food_safety", "severity": "critical", "implemented": true,
+      "description": "Raw egg / raw flour / raw shellfish language → review; leftover-rice handling → warn",
+      "testRef": "tests/recipeValidate.test.js > raw egg preparation flags review (+ RAW_FLOUR/SHELLFISH_RAW/LEFTOVER_RICE rules in SAFETY_RULES)"
+    },
+    {
+      "id": "HALL-001", "category": "ai_hallucinations", "severity": "high", "implemented": true,
+      "description": "Instructions referencing absent ingredients flagged; majority-unreferenced lines → review",
+      "testRef": "rules INSTRUCTIONS_UNREFERENCED / INSTRUCTION_EXTRA_INGREDIENT in validate.js (fixture pending for extra-ingredient path)"
+    },
+    {
+      "id": "MALF-001", "category": "malformed_ai_output", "severity": "high", "implemented": true,
+      "description": "Schema-stage blocks: missing name, invalid servings, empty lines",
+      "testRef": "tests/recipeValidate.test.js > schema failures block outright"
+    },
+    {
+      "id": "INJ-001", "category": "prompt_injection", "severity": "high", "implemented": false,
+      "description": "Injection in ingredient names stripped before prompt; model 'ignore constraints' content still validated",
+      "followUp": "clean() strips control chars/delimiters — add injection fixture asserting constraint terms still enforced"
+    },
+    {
+      "id": "PROV-001", "category": "provider_outages", "severity": "critical", "implemented": true,
+      "description": "askJSON 503 → providerError meta + verified-fallback attempt → no_eligible_recipe, never unvalidated output",
+      "testRef": "tests/recipeGenerate.test.js > provider outage"
+    },
+    {
+      "id": "REGEN-001", "category": "regeneration_failures", "severity": "high", "implemented": true,
+      "description": "Retry budget = 1; failed ruleIds fed back to correction prompt; second failure → fallback path",
+      "testRef": "tests/recipeGenerate.test.js > ONE correction attempt + persistent failure falls back"
+    },
+    {
+      "id": "CACHE-001", "category": "caching_errors", "severity": "critical", "implemented": false,
+      "description": "Stale validation must not bypass restrictions — validation keyed to constraintVersion",
+      "followUp": "persist validation records w/ constraint+rule versions; cache lookup rejects version mismatch"
+    },
+    {
+      "id": "STALE-001", "category": "stale_user_preferences", "severity": "high", "implemented": false,
+      "description": "Restriction added mid-session applies to next request immediately (loadConstraints always reloads)",
+      "followUp": "two-call test: change prefs between calls → second call enforces new restriction"
+    },
+    {
+      "id": "STALE-002", "category": "stale_medical_restrictions", "severity": "critical", "implemented": false,
+      "description": "Newly APPROVED rule applies to cached recipe paths — no memoized PASS survives rule change",
+      "followUp": "validation record versioning (CACHE-001 covers mechanism)"
+    },
+    {
+      "id": "ISO-001", "category": "cross_user_isolation", "severity": "critical", "implemented": true,
+      "description": "Recipe query OR-scoped to {isSystem:true, creatorId:userId}; constraints loaded per-request userId",
+      "testRef": "tests/recipeConstraints.test.js > user-scoped query assertion"
+    },
+    {
+      "id": "ISO-002", "category": "cross_user_isolation", "severity": "critical", "implemented": false,
+      "description": "User B cannot customize/share user A's private recipe; constraint leak via shared recipe cache impossible",
+      "followUp": "route-level isolation test on /customize 404 path + shared-recipe validation independence"
+    },
+    {
+      "id": "SHARE-001", "category": "recipe_sharing", "severity": "high", "implemented": false,
+      "description": "Shared recipe revalidates against RECIPIENT constraints — sender's PASS never transfers",
+      "followUp": "share/copy path → validateGeneratedRecipe with recipient loadConstraints"
+    },
+    {
+      "id": "LOG-001", "category": "meal_logging_discrepancies", "severity": "medium", "implemented": false,
+      "description": "Logged-as-cooked ≠ recommended recipe — FoodLog accepts edited lines w/ recomputed nutrition",
+      "followUp": "log endpoint consumes proposedLines + validator before write"
+    },
+    {
+      "id": "CONC-001", "category": "concurrent_requests", "severity": "medium", "implemented": false,
+      "description": "Parallel generate calls consume independent quota reservations; no shared mutable constraint state",
+      "followUp": "concurrency test on checkQuota reservation semantics"
+    },
+    {
+      "id": "DB-001", "category": "database_inconsistencies", "severity": "high", "implemented": false,
+      "description": "Duplicate allergy rows (peanut/Peanuts) and mixed-case categories handled by normalization",
+      "followUp": "dedupe report in database-quality-report.md + normalization resilience tests"
+    },
+    {
+      "id": "FLAG-001", "category": "feature_flag_behavior", "severity": "critical", "implemented": true,
+      "description": "ai_recipe_generation_enabled fail-closed (default:false); requireFeature gate on route",
+      "testRef": "registry entry + tests/recipeGenerate.test.js > flag-gated route"
+    },
+    {
+      "id": "FLAG-002", "category": "feature_flag_behavior", "severity": "critical", "implemented": false,
+      "description": "Flag OFF → endpoint refuses; emergency AI shutdown overrides enable",
+      "followUp": "flag-disabled 403 test (mock isEnabled false) + isAiShutdown precedence assertion"
+    },
+    {
+      "id": "RB-001", "category": "rollback_behavior", "severity": "high", "implemented": false,
+      "description": "Rollback of generate flag leaves match/customize non-AI paths functional",
+      "followUp": "flag-off integration test on all three endpoints"
+    },
+    {
+      "id": "COST-001", "category": "cost_and_latency_limits", "severity": "high", "implemented": true,
+      "description": "Per-user daily call/token quota enforced in askJSON before provider call; retry consumes budget",
+      "testRef": "existing aiProvider quota tests + generate meta.providerCalls accounting"
+    },
+    {
+      "id": "A11Y-001", "category": "accessibility", "severity": "medium", "implemented": false,
+      "description": "Recipe cards readable by screen reader; validation status text not color-only",
+      "followUp": "mobile screen a11y pass on recommendation/cooking screens"
+    },
+    {
+      "id": "L10N-001", "category": "localization", "severity": "low", "implemented": false,
+      "description": "Reason strings translatable — ruleIds are locale-independent keys",
+      "followUp": "emit ruleId codes; mobile maps to localized copy"
+    },
+    {
+      "id": "FB-001", "category": "user_feedback_and_corrections", "severity": "medium", "implemented": false,
+      "description": "User reports problem → feedback stored w/ recipe + validation context",
+      "followUp": "RecipeEngagement feedback path + incident surfacing in metrics"
+    },
+    {
+      "id": "NFE-001", "category": "no_feasible_recipe", "severity": "critical", "implemented": true,
+      "description": "NO_ELIGIBLE_RECIPE is explainable — rejected ruleIds + reason; restrictions not relaxed",
+      "testRef": "tests/recipeGenerate.test.js > no_eligible_recipe + exclusions are hard"
+    },
+    {
+      "id": "UNC-001", "category": "uncertain_ingredient_safety", "severity": "critical", "implemented": true,
+      "description": "Unresolved/compound identity fails closed with allergies — unknown never treated as safe",
+      "testRef": "tests/recipeValidate.test.js > unresolved ingredient + compound sauce"
+    },
+    {
+      "id": "E2E-001", "category": "end_to_end_workflows", "severity": "critical", "implemented": false,
+      "description": "Profile → constraints → generate → validate → rank → display → transform → revalidate → log",
+      "followUp": "supertest E2E across generate/customize/match with synthetic profiles (healthy, allergic, restricted)"
+    }
+  ],
+  "summary": {
+    "total": 59, "implemented": 29, "pending": 30,
+    "criticalTotal": 26, "criticalImplemented": 18, "criticalPending": 8,
+    "note": "counts cover registered scenarios; each category needs programmatic combination expansion (Phase 14) before release-gate signoff"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "generatedAt": "2026-11-21T21:10:36.279Z",
+  "testUsers": 1829,
+  "edges": {
+    "foodLog": 147,
+    "foodPreference": 76,
+    "userAllergy": 76,
+    "userPlanningPreferences": 74,
+    "macroGoal": 48,
+    "mealPlan": 58,
+    "nutritionistProfile": 58,
+    "trainerProfile": 60,
+    "reminderPreference": 11,
+    "featureFlagOverride": "error: Cannot read properties of undefined (reading 'findMany')"
+  },
+  "crossLinks": {
+    "testClients_withRealNutritionist": 0,
+    "realClients_withTestNutritionist": 0
+  },
+  "ageDistribution": {
+    "<30d": 1010,
+    "<7d": 673,
+    "<1d": 146
+  },
+  "emailPrefixSample": {
+    "acadmw": 156,
+    "acadmv": 144,
+    "esmvzv": 133,
+    "c": 100,
+    "esmw1e": 78,
+    "sec": 65,
+    "esmwjp": 65,
+    "esmvzu": 60,
+    "msmvzv": 58,
+    "m": 55,
+    "msmwqw": 54,
+    "t": 52,
+    "esmwl2": 52,
+    "esmwjn": 52,
+    "esmwmj": 39
+  }
+}

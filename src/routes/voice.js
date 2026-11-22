@@ -1,5 +1,8 @@
 const express = require('express');
 const { getPrisma } = require('../lib/prisma');
+const safety = require('../services/activitySafety');
+const { SYMPTOMS_URGENT, BODY_REGIONS } = require('../services/activitySafety/constants');
+const flags = require('../services/featureFlags/service');
 const { parseTranscript } = require('../services/voice/voiceParser');
 const { aiEnabled, askJSON } = require('../services/aiProvider');
 const ingredientNutrition = require('../services/ingredientNutrition');
@@ -30,6 +33,20 @@ const resolveIngredient = (prisma, name) =>
     select: { id: true, name: true },
   });
 
+// Resolve a spoken quantity+unit ("2 slices") against the ingredient's catalog
+// servings — shared by interpret (readiness) and execute (conversion). Returns
+// { grams, servingId, label, count } or null when no serving matches.
+const resolveHouseholdServing = async (prisma, ingId, quantity, unit) => {
+  const qty = Number(quantity);
+  if (!Number.isFinite(qty) || qty <= 0 || qty > 1000) return null;
+  const full = await ingredientNutrition.getIngredient(ingId, prisma);
+  const unitNorm = String(unit || '').toLowerCase().replace(/s$/, '').trim();
+  const srv = (full.servings || []).find(s => String(s.label).toLowerCase().replace(/^\d+(\.\d+)?\s*/, '').replace(/s$/, '').trim() === unitNorm)
+    || (['serving', 'portion', ''].includes(unitNorm) ? (full.servings || [])[0] : null);
+  if (!srv) return null;
+  return { grams: srv.grams * qty, servingId: srv.id, label: srv.label, count: qty };
+};
+
 // Reverses one command's writes. createdEntities entries may carry `prev`
 // state for in-place updates so undo restores rather than deletes.
 const applyUndo = async (prisma, cmd) => {
@@ -49,7 +66,21 @@ const applyUndo = async (prisma, cmd) => {
       where: { id: e.id, userId: cmd.userId },
       data: { finishedAt: e.prev.finishedAt, endedAt: e.prev.endedAt, durationMinutes: e.prev.durationMinutes },
     });
+    if (e.kind === 'userInjury') await prisma.userInjury.deleteMany({ where: { id: e.id, userId: cmd.userId } });
+    if (e.kind === 'symptomReport') await prisma.userSymptomReport.deleteMany({ where: { id: e.id, userId: cmd.userId } });
   }
+};
+
+// Map a spoken workout type to the closest catalog activity for a safety
+// pre-check. Falls back to strength_training (the most general demand).
+const workoutActivityId = name => {
+  const n = String(name || '').toLowerCase();
+  if (/run|jog/.test(n)) return 'outdoor_run';
+  if (/walk|hike/.test(n)) return 'outdoor_walk';
+  if (/cycl|bike|spin/.test(n)) return 'stationary_cycling';
+  if (/swim/.test(n)) return 'swimming';
+  if (/stretch|mobility|yoga/.test(n)) return 'gentle_mobility';
+  return 'strength_training';
 };
 
 // POST /voice/transcribe — audio → text. Returns 503 until a provider is
@@ -73,7 +104,7 @@ router.post('/transcribe', voiceEnabled, wrap(async (req, res) => {
 // proposes candidate fields only — everything is re-validated and resolved
 // server-side; it can never emit an ID or execute anything.
 const VOICE_INTENTS = ['LOG_EXERCISE_SET', 'LOG_FOOD', 'LOG_WATER', 'MARK_SUPPLEMENT_TAKEN',
-  'UPDATE_EXERCISE_SET', 'START_WORKOUT', 'COMPLETE_WORKOUT', 'LOG_MOOD', 'START_BREATHING_EXERCISE', 'SHOW_MOOD_TRENDS', 'CREATE_REFLECTION_REMINDER', 'UNDO_ACTION', 'CANCEL_COMMAND', 'UNKNOWN_INTENT'];
+  'UPDATE_EXERCISE_SET', 'START_WORKOUT', 'COMPLETE_WORKOUT', 'LOG_MOOD', 'START_BREATHING_EXERCISE', 'SHOW_MOOD_TRENDS', 'CREATE_REFLECTION_REMINDER', 'ASK_FIBER', 'UNDO_ACTION', 'CANCEL_COMMAND', 'UNKNOWN_INTENT'];
 
 const NULLABLE = { type: ['number', 'null'] };
 const NULLABLE_STR = { type: ['string', 'null'] };
@@ -98,7 +129,7 @@ const INTENT_SCHEMA = {
   },
 };
 const INTENT_INSTRUCTIONS = `You convert short voice commands from a fitness logging app into structured actions, one action per numbered input segment.
-Intents: LOG_EXERCISE_SET (add sets/reps/weight of an exercise), LOG_FOOD (food items; split every distinct food), LOG_WATER (water amount), MARK_SUPPLEMENT_TAKEN, UPDATE_EXERCISE_SET (change the most recent set), START_WORKOUT, COMPLETE_WORKOUT, LOG_MOOD (record how the user feels: mood one of very_low|low|neutral|good|very_good, energy 1-5, stress 1-5), START_BREATHING_EXERCISE (open the breathing exercise), SHOW_MOOD_TRENDS (open mood trends/insights), CREATE_REFLECTION_REMINDER (enable the optional evening reflection reminder in Mind preferences), UNDO_ACTION, CANCEL_COMMAND, UNKNOWN_INTENT (not a logging command).
+Intents: LOG_EXERCISE_SET (add sets/reps/weight of an exercise), LOG_FOOD (food items; split every distinct food), LOG_WATER (water amount), MARK_SUPPLEMENT_TAKEN, UPDATE_EXERCISE_SET (change the most recent set), START_WORKOUT, COMPLETE_WORKOUT, LOG_MOOD (record how the user feels: mood one of very_low|low|neutral|good|very_good, energy 1-5, stress 1-5), START_BREATHING_EXERCISE (open the breathing exercise), SHOW_MOOD_TRENDS (open mood trends/insights), CREATE_REFLECTION_REMINDER (enable the optional evening reflection reminder in Mind preferences), ASK_FIBER (a question about dietary fiber, fiber in foods, or fiber supplements — informational only, never a logging action), UNDO_ACTION, CANCEL_COMMAND, UNKNOWN_INTENT (not a logging command).
 Rules: never invent IDs or foods not mentioned; keep weightUnit as "lbs" or "kg"; water amounts in ml; food grams only when the user gives a weight (e.g. "150 g"); household measures go in unit with quantity (e.g. "2 slices" -> quantity 2, unit "slice"); unknown or non-command speech -> UNKNOWN_INTENT. Output exactly one action per input segment, in order, echoing the segment text.`;
 
 const numOrNull = v => Number.isFinite(Number(v)) && v !== null ? Number(v) : null;
@@ -125,11 +156,11 @@ function aiAction(raw, segment, ctx) {
     missing = [e.exerciseName ? null : 'exercise', e.reps ? null : 'reps'].filter(Boolean);
     ready = Boolean(e.exerciseName && e.reps);
   } else if (intent === 'LOG_WATER') { missing = e.amountMl ? [] : ['amountMl']; ready = Boolean(e.amountMl); }
-  else if (intent === 'LOG_FOOD') { missing = e.items.length ? (e.items.some(i => i.grams == null) ? ['grams'] : []) : ['items']; ready = e.items.length > 0 && e.items.every(i => i.grams != null); }
+  else if (intent === 'LOG_FOOD') { const okItem = i => i.grams != null || (i.quantity != null && i.quantity > 0); missing = e.items.length ? (e.items.some(i => !okItem(i)) ? ['grams or quantity'] : []) : ['items']; ready = e.items.length > 0 && e.items.every(okItem); }
   else if (intent === 'MARK_SUPPLEMENT_TAKEN') { missing = e.name ? [] : ['name']; ready = Boolean(e.name); }
   else if (intent === 'UPDATE_EXERCISE_SET') { missing = [e.reps ? null : 'reps', ctx.lastSetId ? null : 'set'].filter(Boolean); ready = Boolean(e.reps && ctx.lastSetId); }
   else if (intent === 'LOG_MOOD') { const ok = ['very_low','low','neutral','good','very_good'].includes(e.mood); missing = ok ? [] : ['mood']; ready = ok; }
-  else if (['START_BREATHING_EXERCISE','SHOW_MOOD_TRENDS','CREATE_REFLECTION_REMINDER'].includes(intent)) { ready = true; }
+  else if (['START_BREATHING_EXERCISE','SHOW_MOOD_TRENDS','CREATE_REFLECTION_REMINDER','ASK_FIBER'].includes(intent)) { ready = true; }
   return { intent, entities: e, missing, segment, status: ready ? 'ready' : 'needs_review', source: 'ai' };
 }
 
@@ -158,6 +189,16 @@ router.post('/interpret', voiceEnabled, wrap(async (req, res) => {
   const ctx = context || {};
   const parsed = parseTranscript(transcript, ctx);
   await aiFillUnknown(parsed.actions, ctx, uid(req));
+  // Fiber questions get a deterministic answer at execute time — flag-gated;
+  // the same engine code that answers chat answers voice.
+  const fiberVoice = await flags.isEnabled('fiber_voice_enabled', uid(req)).catch(() => false);
+  const { isFiberQuestion } = require('../services/fiber/assistant');
+  for (const a of parsed.actions) {
+    if (a.intent === 'UNKNOWN_INTENT' && fiberVoice && isFiberQuestion(a.segment || '')) {
+      a.intent = 'ASK_FIBER'; a.status = 'ready'; a.missing = [];
+      continue;
+    }
+  }
   for (const a of parsed.actions) {
     if (a.intent === 'LOG_EXERCISE_SET' && a.entities.exerciseName) {
       a.matches = await resolveExercise(prisma, a.entities.exerciseName);
@@ -169,8 +210,16 @@ router.post('/interpret', voiceEnabled, wrap(async (req, res) => {
         const ing = await resolveIngredient(prisma, item.name);
         item.ingredientId = ing?.id || null;
         item.matchedName = ing?.name || null;
-        if (!ing || item.grams == null) { item.status = 'needs_review'; a.status = 'needs_review'; }
+        if (!ing) { item.status = 'needs_review'; a.status = 'needs_review'; continue; }
+        if (item.grams == null) {
+          // Household units ("2 slices") resolve at interpret time so the
+          // proposal shows the same grams the manual flow would compute.
+          const srv = await resolveHouseholdServing(prisma, ing.id, item.quantity, item.unit);
+          if (srv) { item.grams = Math.round(srv.grams * 100) / 100; item.resolvedServing = srv; item.status = 'ready'; }
+          else { item.status = 'needs_review'; a.status = 'needs_review'; }
+        }
       }
+      if (a.entities.items.length && a.entities.items.every(i => i.status !== 'needs_review')) { a.status = 'ready'; a.missing = (a.missing || []).filter(m => m !== 'grams'); }
     }
     if (a.intent === 'MARK_SUPPLEMENT_TAKEN') {
       const links = await prisma.userSupplement.findMany({
@@ -241,19 +290,48 @@ router.post('/commands/execute', wrap(async (req, res) => {
         for (const [i, item] of (a.entities.items || []).entries()) {
           const grams = Number(item.grams);
           const ing = item.ingredientId ? await prisma.ingredient.findUnique({ where: { id: String(item.ingredientId) } }) : await resolveIngredient(prisma, item.name);
-          if (!ing || !Number.isFinite(grams) || grams <= 0 || grams > 10000) {
-            results.push({ intent: a.intent, status: 'skipped', reason: `${item.name}: needs a gram amount and a catalog match` }); continue;
+          if (!ing) { results.push({ intent: a.intent, status: 'skipped', reason: `${item.name}: no catalog match` }); continue; }
+          // Household units resolve against the ingredient's catalog servings so
+          // "2 slices" logs the same way as the manual flow (server-side
+          // serving→gram conversion); grams-only items keep the weight path.
+          let n = null; let gramsUsed = Number.isFinite(grams) && grams > 0 ? grams : null; let servingMeta = null;
+          // Interpret echoes resolvedServing when a household unit matched a
+          // catalog serving; prefer it so the persisted snapshot keeps the
+          // serving identity for reopen. calculate() re-validates that the
+          // servingId belongs to this ingredient — a stale/forged id throws.
+          const echoed = item.resolvedServing;
+          if (echoed && typeof echoed.servingId === 'string' && Number.isFinite(Number(echoed.count)) && Number(echoed.count) > 0) {
+            try { n = await ingredientNutrition.calculate(ing.id, { servingId: String(echoed.servingId).slice(0, 80), count: Number(echoed.count) }); }
+            catch { n = null; }
+            if (n && n.serving) {
+              gramsUsed = n.grams;
+              servingMeta = { servingId: n.serving.id, selectedServing: n.serving.label, servingGrams: n.serving.grams, servingCount: n.serving.count };
+            }
           }
-          const n = await ingredientNutrition.calculate(ing.id, { grams });
+          if (!n && !gramsUsed) {
+            const srv = await resolveHouseholdServing(prisma, ing.id, item.quantity, item.unit);
+            if (srv) {
+              try { n = await ingredientNutrition.calculate(ing.id, { servingId: srv.servingId, count: srv.count }); }
+              catch { n = null; }
+              if (n) {
+                gramsUsed = n.grams;
+                servingMeta = { servingId: srv.servingId, selectedServing: srv.label, servingGrams: srv.grams, servingCount: srv.count };
+              }
+            }
+          }
+          if (!n && gramsUsed) n = await ingredientNutrition.calculate(ing.id, { grams: gramsUsed });
+          if (!n || !Number.isFinite(gramsUsed) || gramsUsed <= 0 || gramsUsed > 10000) {
+            results.push({ intent: a.intent, status: 'skipped', reason: `${item.name}: needs a gram amount or a recognized serving` }); continue;
+          }
           const saved = await prisma.foodLog.create({ data: {
             id: `voice-${commandId}-${i}`, userId, foodName: item.name.slice(0, 300),
-            quantityG: grams, calories: n.nutrition.calories ?? 0, proteinG: n.nutrition.proteinG ?? 0,
+            quantityG: gramsUsed, calories: n.nutrition.calories ?? 0, proteinG: n.nutrition.proteinG ?? 0,
             carbsG: n.nutrition.carbsG ?? 0, fatG: n.nutrition.fatG ?? 0, fiberG: n.nutrition.fiberG ?? null,
             mealType: String(a.entities.mealType || 'meal').slice(0, 30), ingredientId: ing.id,
-            nutritionSnapshot: { loggedSource: 'voice', grams, calculated: n.nutrition },
+            nutritionSnapshot: { loggedSource: 'voice', grams: gramsUsed, calculated: n.nutrition, nutrientUnknowns: require('../services/nutrientCompleteness').computeUnknowns(n.nutrition), ...(servingMeta || {}) },
           } });
           created.push({ kind: 'foodLog', id: saved.id });
-          results.push({ intent: a.intent, status: 'saved', detail: `${grams}g ${ing.name} → ${a.entities.mealType || 'meal'}` });
+          results.push({ intent: a.intent, status: 'saved', detail: `${gramsUsed}g ${ing.name} → ${a.entities.mealType || 'meal'}` });
         }
         break;
       }
@@ -306,6 +384,56 @@ router.post('/commands/execute', wrap(async (req, res) => {
         results.push({ intent: a.intent, status: 'saved', detail: `mood logged as ${a.entities.mood.replace('_',' ')}` });
         break;
       }
+      case 'REPORT_INJURY': {
+        // Voice-captured injury report — feeds the shared safety context so
+        // every suggestion respects it from the next evaluation on.
+        const bodyPart = String(a.entities.bodyPart || a.entities.affectedPart || '').toLowerCase().trim();
+        if (!bodyPart || bodyPart.length > 40) { results.push({ intent: a.intent, status: 'skipped', reason: 'affected body part unresolved' }); break; }
+        const laterality = ['left', 'right', 'bilateral', 'na'].includes(a.entities.laterality) ? a.entities.laterality
+          : (/right/i.test(transcript || '') ? 'right' : /left/i.test(transcript || '') ? 'left' : 'na');
+        const pain = Number(a.entities.painLevel);
+        const inj = await prisma.userInjury.create({ data: {
+          userId,
+          type: String(a.entities.type || 'unspecified').slice(0, 60),
+          bodyPart, laterality,
+          status: 'current',
+          painLevel: Number.isFinite(pain) ? Math.min(10, Math.max(0, Math.round(pain))) : null,
+          weightBearingRestriction: a.entities.weightBearingRestriction || null,
+          prohibitedCategories: Array.isArray(a.entities.prohibitedCategories) ? a.entities.prohibitedCategories : [],
+          source: 'voice',
+          injuredAt: new Date(),
+          rehabInstructions: a.entities.notes ? String(a.entities.notes).slice(0, 1000) : null,
+        } });
+        created.push({ kind: 'userInjury', id: inj.id });
+        const followUps = [];
+        if (inj.weightBearingRestriction == null) {
+          followUps.push('Did a clinician give you weight-bearing instructions (e.g., non-weight-bearing)?');
+        }
+        if (!a.entities.type) followUps.push('What kind of injury is it, if you know?');
+        results.push({ intent: a.intent, status: 'saved',
+          detail: `Recorded ${laterality !== 'na' ? `${laterality} ` : ''}${bodyPart} injury — activity suggestions now account for it.`,
+          safety: { injuryId: inj.id, followUps, notPermanent: true, noDiagnosis: true } });
+        break;
+      }
+      case 'REPORT_SYMPTOM': {
+        const codes = (Array.isArray(a.entities.symptoms) ? a.entities.symptoms : [a.entities.symptom])
+          .map(s => String(s || '').toLowerCase().trim()).filter(Boolean);
+        if (!codes.length) { results.push({ intent: a.intent, status: 'skipped', reason: 'symptom unresolved' }); break; }
+        const urgent = codes.filter(c => SYMPTOMS_URGENT.has(c));
+        const report = await prisma.userSymptomReport.create({ data: {
+          userId, symptoms: codes, source: 'voice',
+          severity: ['mild', 'moderate', 'severe'].includes(a.entities.severity) ? a.entities.severity : null,
+          context: 'unspecified', status: 'active',
+          triageOutcome: urgent.length ? 'urgent_escalation' : 'recorded',
+        } });
+        created.push({ kind: 'symptomReport', id: report.id });
+        results.push({ intent: a.intent, status: 'saved',
+          detail: urgent.length
+            ? 'Do not begin a workout. Your reported symptoms may require urgent medical attention — contact local emergency services or seek urgent care now.'
+            : 'Symptom recorded — activity suggestions will account for it.',
+          safety: { urgent: urgent.length > 0, urgentSymptoms: urgent, suppressesActivitySuggestions: true, noDiagnosis: true } });
+        break;
+      }
       case 'START_BREATHING_EXERCISE': {
         const mindOn = await flags.isEnabled('mind_habits_enabled', userId).catch(() => false);
         results.push({ intent: a.intent, status: mindOn ? 'saved' : 'skipped', reason: mindOn ? undefined : 'Mind & Habits is off', detail: 'breathing-2min', navigate: 'MindExercise', params: { exerciseKey: 'breathing-2min' } });
@@ -329,7 +457,20 @@ router.post('/commands/execute', wrap(async (req, res) => {
           startedAt: new Date(), endedAt: new Date(), durationMinutes: 0, source: 'voice',
         } });
         created.push({ kind: 'workoutSession', id: session.id });
-        results.push({ intent: a.intent, status: 'saved', detail: `${a.entities.name || 'Workout'} started` });
+        // Safety pre-check (flag-gated): voice can't bypass the engine. Starting
+        // a workout is the user's action — the engine annotates, never hijacks.
+        let safetyNote;
+        try {
+          if (await flags.isEnabled('activity_safety_engine', userId).catch(() => false)) {
+            const ctx = await safety.loadSafetyContext(prisma, userId);
+            const act = safety.getActivity(workoutActivityId(a.entities.name));
+            const r = safety.evaluate(ctx, act, null, { rules: await safety.loadRules(prisma) });
+            if (safety.DECISION_RANK[r.decision] >= safety.DECISION_RANK.INSUFFICIENT_DATA) {
+              safetyNote = { decision: r.decision, reasons: r.reasons.slice(0, 2) };
+            }
+          }
+        } catch { /* pre-check failure never blocks the user's own action */ }
+        results.push({ intent: a.intent, status: 'saved', detail: `${a.entities.name || 'Workout'} started`, ...(safetyNote ? { safetyNote } : {}) });
         break;
       }
       case 'COMPLETE_WORKOUT': {
@@ -354,6 +495,16 @@ router.post('/commands/execute', wrap(async (req, res) => {
         await applyUndo(prisma, last);
         await prisma.voiceCommand.update({ where: { id: last.id }, data: { undoneAt: new Date() } });
         results.push({ intent: a.intent, status: 'saved', detail: 'Last action undone' });
+        break;
+      }
+      case 'ASK_FIBER': {
+        // Deterministic fiber answer — same engine as chat. Flag re-checked
+        // server-side at execution; answers create no entities and need no undo.
+        const on = await flags.isEnabled('fiber_voice_enabled', userId).catch(() => false);
+        if (!on) { results.push({ intent: a.intent, status: 'skipped', reason: 'fiber voice answers are off for this account' }); break; }
+        const grounded = await require('../services/fiber/assistant').groundFiberAnswer(userId, String(a.segment || transcript || '')).catch(() => ({ handled: false }));
+        if (!grounded.handled) { results.push({ intent: a.intent, status: 'skipped', reason: 'could not answer from fiber data' }); break; }
+        results.push({ intent: a.intent, status: 'answered', detail: grounded.answer });
         break;
       }
       case 'CANCEL_COMMAND':

@@ -7,6 +7,7 @@ const { getSleepRecoverySummary } = require('./sleepRecovery');
 const { getGutHealthSummary } = require('./gutHealth');
 const { listHabits } = require('./habits');
 const flags = require('./featureFlags/service');
+const safety = require('./activitySafety');
 
 // Promise wrapper that also catches synchronous throws (missing models in
 // lightweight contexts) — missing data degrades to null, never crashes.
@@ -32,8 +33,24 @@ function localDayBounds(now = new Date(), tz = 'UTC') {
 
 const ACTION_DEFS = [
   {
+    // Safety gate — highest priority card whenever urgent symptoms or a
+    // documented restriction makes the generic workout suggestion unsafe.
+    // A nudge that bypasses the engine is worse than no nudge.
+    key: 'safety_check', weight: 100,
+    applies: async (c) => {
+      if (c.safetyUrgent) {
+        return { title: 'Check your symptoms before exercising', explanation: 'A reported symptom may require urgent medical attention — activity suggestions are paused.', evidence: ['Active symptom report'], action: { type: 'open', route: 'Dashboard' }, confidence: 'high', attribution: 'humai' };
+      }
+      if (c.safetyBlocked) {
+        return { title: 'Review your activity restrictions', explanation: 'A documented restriction or unresolved report limits the usual workout suggestion today.', evidence: ['Active restriction/injury record'], action: { type: 'open', route: 'Dashboard' }, confidence: 'high', attribution: 'humai' };
+      }
+      return null;
+    },
+  },
+  {
     key: 'start_workout', weight: 95,
     applies: async (c) => {
+      if (c.safetyUrgent || c.safetyBlocked) return null; // engine gate — no bypass
       // Partnership mode: an assigned trainer plan surfaces first, with
       // attribution. In trainer-led mode a missing trainer plan suppresses
       // this action entirely — never silently substitute an AI/self plan.
@@ -66,6 +83,7 @@ const ACTION_DEFS = [
   {
     key: 'recovery_lighter', weight: 80,
     applies: async (c) => {
+      if (c.safetyUrgent || c.safetyBlocked) return null;
       if (c.sleep?.suggestion !== 'lighter_intensity') return null;
       const ev = c.sleep.signals.map(s => s.detail);
       return { title: 'Consider a lighter session today', explanation: 'Recent sleep or reported energy is low — a recovery-focused day may serve you better.', evidence: ev, action: { type: 'open', route: 'WorkoutPlan' }, confidence: 'partial' };
@@ -172,6 +190,22 @@ async function buildContext(userId, tz) {
       trainerName: trainerAssignment.plan.trainer?.displayName || null,
     } : null,
     sleep: await getSleepRecoverySummary(userId).catch(() => null),
+    // Safety pre-check — flag-gated. Only loads the context when the engine
+    // is enabled; failures degrade to null (no gate) rather than blocking
+    // unrelated nutrition/recovery actions.
+    ...(await (async () => {
+      try {
+        if (!(await flags.isEnabled('activity_safety_engine', userId).catch(() => false))) return {};
+        const sctx = await safety.loadSafetyContext(getPrisma(), userId);
+        const urgent = (sctx.symptomReports || []).some(s => (s.symptoms || []).some(c => ['chest_pain', 'chest_pressure', 'syncope', 'dyspnea_unusual', 'pregnancy_bleeding'].includes(c)));
+        if (urgent) return { safetyUrgent: true };
+        // A documented prohibition or unresolved severe injury blocks the
+        // generic workout nudge.
+        const r = safety.evaluate(sctx, safety.getActivity('strength_training'), null,
+          { rules: await safety.loadRules(getPrisma()).catch(() => []) });
+        return { safetyBlocked: ['BLOCK_ACTIVITY', 'URGENT_ESCALATION', 'NEEDS_CLINICAL_REVIEW'].includes(r.decision) };
+      } catch { return {}; }
+    })()),
     gut: await getGutHealthSummary(userId).catch(() => null),
     habits: await listHabits(userId, tz).catch(() => null),
     mind: await (async () => {

@@ -1,0 +1,145 @@
+{
+  "generatedAt": "2026-11-22T02:53:00.744Z",
+  "profiles": {
+    "clean": {
+      "constraintShape": {
+        "allergenTerms": 13,
+        "excludeTerms": 25,
+        "hasLimits": true
+      },
+      "loadConstraints": {
+        "n": 20,
+        "p50": 1,
+        "p95": 3.8,
+        "p99": 3.8,
+        "min": 0.8,
+        "max": 3.8
+      },
+      "validate": {
+        "n": 30,
+        "p50": 0,
+        "p95": 0.9,
+        "p99": 3.9,
+        "min": 0,
+        "max": 3.9
+      },
+      "matchIngredients": {
+        "n": 15,
+        "p50": 53.4,
+        "p95": 70.9,
+        "p99": 70.9,
+        "min": 43.6,
+        "max": 70.9
+      }
+    },
+    "allergic": {
+      "constraintShape": {
+        "allergenTerms": 13,
+        "excludeTerms": 25,
+        "hasLimits": true
+      },
+      "loadConstraints": {
+        "n": 20,
+        "p50": 1.7,
+        "p95": 8,
+        "p99": 8,
+        "min": 0.7,
+        "max": 8
+      },
+      "validate": {
+        "n": 30,
+        "p50": 0,
+        "p95": 0.1,
+        "p99": 0.2,
+        "min": 0,
+        "max": 0.2
+      },
+      "matchIngredients": {
+        "n": 15,
+        "p50": 51.5,
+        "p95": 81.1,
+        "p99": 81.1,
+        "min": 43.2,
+        "max": 81.1
+      }
+    },
+    "constrained": {
+      "constraintShape": {
+        "allergenTerms": 13,
+        "excludeTerms": 25,
+        "hasLimits": true
+      },
+      "loadConstraints": {
+        "n": 20,
+        "p50": 1,
+        "p95": 2.2,
+        "p99": 2.2,
+        "min": 0.7,
+        "max": 2.2
+      },
+      "validate": {
+        "n": 30,
+        "p50": 0,
+        "p95": 0.1,
+        "p99": 0.2,
+        "min": 0,
+        "max": 0.2
+      },
+      "matchIngredients": {
+        "n": 15,
+        "p50": 47.5,
+        "p95": 228,
+        "p99": 228,
+        "min": 40.8,
+        "max": 228
+      }
+    }
+  },
+  "ai": {
+    "model": "gpt-4o-mini",
+    "calls": 2,
+    "tokensDelta": 1198,
+    "callsDelta": 2,
+    "runs": [
+      {
+        "profile": "clean",
+        "ms": 2326,
+        "status": "no_eligible_recipe",
+        "candidates": 0,
+        "rejected": 0,
+        "fallback": 0,
+        "error": null
+      },
+      {
+        "profile": "constrained",
+        "ms": 1253,
+        "status": "no_eligible_recipe",
+        "candidates": 0,
+        "rejected": 0,
+        "fallback": 0,
+        "error": null
+      }
+    ],
+    "estCostUsd": 0.0012
+  },
+  "cache": {
+    "catalogColdMs": 17.7,
+    "catalogWarmMs": 1.4,
+    "stats": {
+      "hits": 1,
+      "misses": 1,
+      "skips": 0,
+      "invalidated": 0,
+      "keys": [
+        "catalog:validate"
+      ]
+    }
+  },
+  "metrics": {
+    "sinceMs": 6407,
+    "counters": {
+      "generate.attempt": 2,
+      "generate.outcome.no_eligible_recipe": 2
+    }
+  }
+}

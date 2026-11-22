@@ -8,7 +8,7 @@ const CONFLICT_WINDOW_MS = 10 * 60000;
 const OPTIONAL_DEFER_MS = 15 * 60000;
 
 // Lower number wins a slot. Manual user schedules always outrank optional ones.
-const PRIORITY = { times: 0, trigger: 1, supplement: 2, water: 3, adaptive: 4 };
+const PRIORITY = { times: 0, trigger: 1, supplement: 2, water: 3, adaptive: 4, fiber: 5 };
 
 function whyOf(setting, trigger, checkedAt) {
   const source = setting.source === 'adaptive' ? 'a suggestion you accepted' : 'your own schedule';
@@ -24,6 +24,7 @@ const TITLES = {
   supplement: 'Supplement reminder',
   workout: 'Workout coming up',
   movement: 'Time to move a little?',
+  fiber: 'Fiber check-in',
 };
 
 // Effective reminder timezone (B2/B3). V2: FIXED_TIMEZONE pins `timezone`;
@@ -90,7 +91,8 @@ function candidates(prefs, settings, ctx) {
       if (fire <= ctx.now || fire - ctx.now > 15 * 60000) continue;
       out.push({
         category: cat,
-        priority: setting.source === 'adaptive' ? PRIORITY.adaptive : PRIORITY.times,
+        // Fiber check-ins are informational — they yield every other slot.
+        priority: cat === 'fiber' ? PRIORITY.fiber : (setting.source === 'adaptive' ? PRIORITY.adaptive : PRIORITY.times),
         dedupeKey: `${ctx.userId}|${cat}|${lp.dateKey}|${t}|${lead}`,
         scheduledFor: fire,
         payload: cat === 'workout' ? { startsAt: at.toISOString(), leadMinutes: lead } : undefined,
@@ -139,8 +141,15 @@ function resolveConflicts(planned, userId, dateKey, now) {
 async function planUser(prisma, userId, now) {
   const prefs = await prisma.reminderPreference.findUnique({ where: { userId } });
   if (!prefs || !prefs.masterEnabled) return [];
-  const settings = await prisma.reminderCategorySetting.findMany({ where: { userId, enabled: true } });
+  let settings = await prisma.reminderCategorySetting.findMany({ where: { userId, enabled: true } });
   if (!settings.length) return [];
+  // Fiber check-ins require the feature flag; when it is off the category is
+  // invisible and produces no instances even if a setting row exists.
+  if (settings.some(s => s.category === 'fiber')) {
+    const fiberOn = await require('../featureFlags/service').isEnabled('fiber_reminders_enabled', userId).catch(() => false);
+    if (!fiberOn) settings = settings.filter(s => s.category !== 'fiber');
+    if (!settings.length) return [];
+  }
   const since = new Date(now.getTime() - TRIGGER_LOOKBACK_MS);
   const [lastWater, supplementSchedules, links, recentMeals, recentWorkouts] = await Promise.all([
     prisma.waterLog.findFirst({ where: { userId }, orderBy: { loggedAt: 'desc' }, select: { loggedAt: true } }),
@@ -193,6 +202,21 @@ async function buildContext(prisma, userId, now, prefs) {
     workoutDoneToday: workoutToday > 0,
     sentToday,
     lastSentByCategory: Object.fromEntries(lastSends.map(s => [s.category, s.actedAt])),
+    // Urgent-symptom suppression for activity nudges — a workout reminder
+    // must not fire while an urgent symptom report is active. Flag-gated;
+    // failures degrade to false (reminder engine behavior unchanged).
+    safetyUrgent: await (async () => {
+      try {
+        const flags = require('../featureFlags/service');
+        if (!(await flags.isEnabled('activity_safety_engine', userId).catch(() => false))) return false;
+        const { SYMPTOMS_URGENT } = require('../activitySafety/constants');
+        const reports = await prisma.userSymptomReport.findMany({
+          where: { userId, status: 'active', reportedAt: { gte: new Date(now.getTime() - 72 * 3600000) } },
+          select: { symptoms: true },
+        });
+        return reports.some(r => (r.symptoms || []).some(c => SYMPTOMS_URGENT.has(c)));
+      } catch { return false; }
+    })(),
   };
 }
 
@@ -235,9 +259,34 @@ async function runTick(prisma, { now = new Date(), userIds } = {}) {
     const facts = factsByUser[instance.userId];
     const setting = await prisma.reminderCategorySetting.findUnique({ where: { userId_category: { userId: instance.userId, category: instance.category } } });
 
-    const verdict = evaluate({
+    // Fiber check-ins re-evaluate the daily engine at send time: the flag may
+    // have been turned off after planning, and the gap may already be closed.
+    let fiber = null;
+    if (instance.category === 'fiber') {
+      const on = await require('../featureFlags/service').isEnabled('fiber_reminders_enabled', instance.userId).catch(() => false);
+      if (!on) {
+        await prisma.reminderInstance.update({ where: { id: instance.id }, data: { status: 'suppressed', reason: 'feature_disabled', actedAt: now } });
+        await emit(prisma, instance.userId, 'reminder.suppressed', { category: instance.category, reason: 'feature_disabled' });
+        results.suppressed += 1;
+        continue;
+      }
+      fiber = await require('../fiber/dailyEngine').dailyFiber(instance.userId, { persist: false }).catch(() => null);
+      if (!fiber || fiber.target?.targetG == null) {
+        await prisma.reminderInstance.update({ where: { id: instance.id }, data: { status: 'suppressed', reason: 'no_fiber_target', actedAt: now } });
+        await emit(prisma, instance.userId, 'reminder.suppressed', { category: instance.category, reason: 'no_fiber_target' });
+        results.suppressed += 1;
+        continue;
+      }
+    }
+
+    const safetySuppress = facts.safetyUrgent && ['workout', 'movement'].includes(instance.category);
+    // A closed gap counts as "already done" — no nudge to hit an exact number.
+    const completed = fiber != null
+      ? (fiber.status.remainingG != null && fiber.status.remainingG <= require('../fiber/dailyEngine').GAP_SUGGESTION_THRESHOLD_G)
+      : completedFor(instance.category, instance, facts);
+    const verdict = safetySuppress ? { decision: 'suppress', reason: 'safety_urgent_symptom' } : evaluate({
       now, nowLocal: facts.lp, prefs, setting,
-      completed: completedFor(instance.category, instance, facts),
+      completed,
       sleeping: facts.sleeping,
       activeWorkout: facts.activeWorkout && instance.category !== 'workout',
       snoozedUntil: null,
@@ -251,7 +300,9 @@ async function runTick(prisma, { now = new Date(), userIds } = {}) {
       await prisma.reminderInstance.update({ where: { id: instance.id }, data: { status: 'sent', actedAt: now } });
       const merged = instance.payload?.merged;
       const title = merged ? `Reminder: ${merged.map(c => c.split(':').pop()).join(' and ')}` : (TITLES[instance.category] || 'Reminder');
-      await notifyInbox(prisma, { userId: instance.userId, category: instance.category, title, body: instance.payload?.body || title, why: instance.why });
+      const fiberBody = fiber ? require('../fiber/dailyEngine').fiberReminderBody(fiber) : null;
+      const body = fiberBody || instance.payload?.body || title;
+      await notifyInbox(prisma, { userId: instance.userId, category: instance.category, title, body, why: instance.why });
       await emit(prisma, instance.userId, 'reminder.sent', { category: instance.category });
       facts.sentToday += 1;
       facts.lastSentByCategory[instance.category] = now;

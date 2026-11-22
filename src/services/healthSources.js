@@ -120,6 +120,20 @@ async function ingestMeasurements(userId, providerId, records) {
       const overlap = await prisma.healthMeasurement.findFirst({ where: { userId, provider: providerId, metric: r.metric, startAt: { lt: data.endAt }, endAt: { gt: data.startAt } } });
       if (overlap) { duplicates++; continue; }
     }
+    // F09: cross-source workout duplication is marked, never deleted — two
+    // channels can report the same session (e.g. band + phone). The record is
+    // kept with meta.possibleDuplicateOf so energy consumers can dedupe.
+    if (r.metric === 'workout') {
+      const near = await prisma.healthMeasurement.findMany({ where: { userId, metric: 'workout', startAt: { gte: new Date(data.startAt.getTime() - 15 * 60000), lte: new Date(data.startAt.getTime() + 15 * 60000) } }, select: { id: true, meta: true, startAt: true } });
+      const check = require('./scenarioCapabilities').dedupeWorkouts({
+        sessions: [{ id: '__new__', workoutType: r.meta?.workoutType, durationMinutes: r.meta?.durationMinutes, startedAt: data.startAt },
+          ...near.map((n) => ({ id: n.id, workoutType: n.meta?.workoutType, durationMinutes: n.meta?.durationMinutes, startedAt: n.startAt }))],
+      });
+      if (check.duplicatesRemoved.some((d) => d.dropped === '__new__')) {
+        data.meta.possibleDuplicate = true;
+        data.meta.duplicateCheck = 'same type within 15min and duration ±3min — retained, consumer dedupes';
+      }
+    }
     await prisma.healthMeasurement.create({ data });
     accepted++;
   }

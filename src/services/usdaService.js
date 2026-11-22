@@ -22,4 +22,19 @@ async function searchUsda(query,number=8){
  let data;try{data=await res.json();}catch{throw httpError(503,'Food search service unavailable. Please retry.');}
  return (Array.isArray(data.foods)?data.foods:[]).map(mapFood).filter(x=>['caloriesPer100g','proteinPer100g','carbsPer100g','fatPer100g'].every(k=>x[k]!=null));
 }
-module.exports={searchUsda,setFetch,getApiKey,usingDemoKey,mapFood};
+// GET /fdc/v1/food/{fdcId} — detail incl. foodPortions (verified household
+// measures: measureUnit name, portionDescription, gramWeight, sequenceNumber).
+async function getUsdaFood(fdcId){
+ let res;
+ for(let attempt=0;attempt<2;attempt++){
+  try{res=await _fetch(`https://api.nal.usda.gov/fdc/v1/food/${encodeURIComponent(fdcId)}?api_key=${encodeURIComponent(getApiKey())}`,{signal:AbortSignal.timeout(8000)});}
+  catch{res=null;}
+  if(res?.ok)break;
+  if(res && res.status!==429 && res.status<500)break;
+  if(attempt===0)await new Promise(resolve=>setTimeout(resolve,250));
+ }
+ if(!res?.ok)throw httpError(res?.status===404?404:503,res?.status===404?'USDA food not found':'USDA detail service unavailable.');
+ const f=await res.json();
+ return {fdcId:String(f.fdcId),description:f.description||'',dataType:f.dataType||null,brandOwner:f.brandOwner||null,householdServingFullText:f.householdServingFullText||null,servingSize:f.servingSize??null,servingSizeUnit:f.servingSizeUnit||null,foodPortions:Array.isArray(f.foodPortions)?f.foodPortions.map(p=>({id:p.id??null,amount:p.amount??null,portionDescription:p.portionDescription||null,modifier:p.modifier||null,measureUnit:p.measureUnit?{id:p.measureUnit.id,name:p.measureUnit.name,abbreviation:p.measureUnit.abbreviation}:null,gramWeight:Number.isFinite(p.gramWeight)?p.gramWeight:null,sequenceNumber:p.sequenceNumber??null})).filter(p=>p.gramWeight>0):[]};
+}
+module.exports={searchUsda,getUsdaFood,setFetch,getApiKey,usingDemoKey,mapFood};

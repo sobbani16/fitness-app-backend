@@ -7,6 +7,7 @@ const clearEnv = (key) => { delete process.env[envOverrideName(key)]; };
 
 afterEach(() => {
   delete process.env.AI_EMERGENCY_SHUTDOWN;
+  process.env.FEATURE_FLAGS_PROVIDER = 'env'; // a mid-test failure must not leak 'posthog' into other files
   for (const key of Object.keys(FEATURES)) setEnv(key, 'true'); // restore setup.js defaults
   delete process.env[envOverrideName('ai_emergency_shutdown')];
   flags.resetCache();

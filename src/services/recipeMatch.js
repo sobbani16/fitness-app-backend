@@ -21,6 +21,7 @@
 const { getPrisma } = require('../lib/prisma');
 const { normalize } = require('./ingredientCsv');
 const { httpError } = require('../lib/errors');
+const { loadConstraints, violatesHard, hasTerm, textHasTerm } = require('./recipes/constraints');
 
 // Seasonings/staples assumed in a home kitchen. Users can narrow this to just
 // water/salt/ice (pantry.minimal) or extend it (pantry.extra) per request —
@@ -53,11 +54,10 @@ function inputVariants(raw) {
 }
 
 async function loadCatalogIndex(prisma) {
-  const catalog = await prisma.ingredientCatalog.findMany({
+  return require('./recipes/cache').cachedCatalog(prisma, 'match', async () => prisma.ingredientCatalog.findMany({
     where: { usable: true },
     select: { id: true, identityKey: true, normalizedName: true, aliases: true, category: true, sourceRecord: true, ingredient: { select: { id: true, name: true, caloriesPer100g: true, proteinPer100g: true, carbsPer100g: true, fatPer100g: true, fiberPer100g: true } } },
-  });
-  return catalog;
+  }));
 }
 
 // Resolve mixed inputs {ingredientId}|{identityKey}|{name}[, amountG] →
@@ -132,10 +132,15 @@ async function matchIngredients({
   const wantedExpanded = new Set();
   for (const w of wantedNames) for (const v of inputVariants(w)) wantedExpanded.add(v);
 
-  const allergySet = new Set((Array.isArray(allergies) ? allergies : []).map(normalize).filter(Boolean));
+  // Server-side constraints are authoritative (F-1): profile allergies,
+  // NEVER_RECOMMEND foods, saved restrictions, and APPROVED condition-rule
+  // blocks merge with request params — which can only narrow, never widen.
+  const constraints = await loadConstraints(userId, { allergies, diet });
+  const hard = constraints.hard;
   const dietSet = new Set((Array.isArray(diet) ? diet : []).map(normalize).filter(Boolean));
-  const bannedCats = new Set();
-  for (const d of dietSet) for (const c of DIET_RULES[d] || []) bannedCats.add(c);
+  const eggetarian = dietSet.has('eggetarian') || hard.patterns.some((p) => p.key === 'eggetarian');
+  const bannedCats = new Set([...hard.bannedCategories]);
+  for (const d of dietSet) for (const c of DIET_RULES[d] || []) bannedCats.add(normalize(c));
 
   const pantrySet = new Set([...(pantry.minimal ? PANTRY_CORE : PANTRY_DEFAULT), ...(Array.isArray(pantry.extra) ? pantry.extra.map(normalize) : [])]);
   const isPantryLine = (n) => pantrySet.has(normalize(n));
@@ -149,10 +154,27 @@ async function matchIngredients({
     include: { ingredients: true },
   });
 
+  // IngredientAttribute lookup for condition-rule blocks — one query across
+  // every candidate recipe's linked ingredients, only when rules can fire.
+  const attrsByIng = new Map();
+  if (hard.bannedAttributes.size) {
+    const linkedIds = [...new Set(recipes.flatMap((r) => r.ingredients.map((l) => l.ingredientId).filter(Boolean)))];
+    if (linkedIds.length) {
+      const rows = await prisma.ingredientAttribute.findMany({ where: { ingredientId: { in: linkedIds } } });
+      for (const row of rows) {
+        if (!attrsByIng.has(row.ingredientId)) attrsByIng.set(row.ingredientId, []);
+        attrsByIng.get(row.ingredientId).push(row.attribute);
+      }
+    }
+  }
+  const attrsOf = (r) => [...new Set(r.ingredients.flatMap((l) => (l.ingredientId ? attrsByIng.get(l.ingredientId) || [] : [])))];
+
   const results = [];
   let excludedAllergy = 0;
   let excludedDiet = 0;
   let excludedTime = 0;
+  let excludedExclusion = 0;
+  let excludedCondition = 0;
 
   for (const r of recipes) {
     if (maxPrepMinutes && r.prepMinutes && r.prepMinutes > maxPrepMinutes) { excludedTime++; continue; }
@@ -162,12 +184,20 @@ async function matchIngredients({
     const optional = lines.filter((l) => l.optional);
     if (!required.length) continue;
 
-    // Allergy exclusion: recipe-declared allergens OR line-level catalog
-    // allergens intersecting the user's list → excluded outright.
-    if (allergySet.size) {
-      const recipeAlg = (r.allergens || []).map(normalize);
-      const lineAlg = lines.flatMap((l) => lineAllergens(l, catByIngId));
-      if ([...recipeAlg, ...lineAlg].some((a) => allergySet.has(a))) { excludedAllergy++; continue; }
+    // Hard-constraint check (server-merged): declared + text allergens,
+    // exclusion terms (NEVER_RECOMMEND / exclude: / request), banned
+    // nutritionSource tags, APPROVED condition-rule attributes.
+    const viol = violatesHard(hard, {
+      text: [r.recipeName, ...lines.map((l) => l.ingredientName)].join(' '),
+      allergens: [...(r.allergens || []).map(normalize), ...lines.flatMap((l) => lineAllergens(l, catByIngId))],
+      tags: Array.isArray(r.nutritionSource?.tags) ? r.nutritionSource.tags : [],
+      attributes: attrsOf(r),
+    });
+    if (viol) {
+      if (viol.ruleId.startsWith('ALLERGEN')) excludedAllergy++;
+      else if (viol.ruleId === 'CONDITION_ATTR') excludedCondition++;
+      else excludedExclusion++;
+      continue;
     }
 
     // Diet exclusion via catalog categories. Egg-like lines are exempt under
@@ -175,8 +205,8 @@ async function matchIngredients({
     if (bannedCats.size) {
       const hit = required.find((l) => {
         const cat = l.ingredientId ? catByIngId.get(l.ingredientId) : null;
-        if (!cat?.category || !bannedCats.has(cat.category)) return false;
-        if (dietSet.has('eggetarian') && eggLike(l.ingredientName)) return false;
+        if (!cat?.category || !hasTerm(bannedCats, cat.category)) return false;
+        if (eggetarian && eggLike(l.ingredientName)) return false;
         return true;
       });
       if (hit) { excludedDiet++; continue; }
@@ -246,9 +276,53 @@ async function matchIngredients({
     });
   }
 
+  // ---- Phase 9: deterministic ranking of the survivors ---------------------
+  // Reached ONLY by recipes that passed every hard check above — ranking can
+  // never resurrect an excluded recipe. Signals: nutrition fit vs MacroGoal,
+  // prep-time fit, LOVE/LIKE + cuisine preferences, DISLIKE (soft penalty
+  // only — never removes), and the user's own engagement (favorite/rating).
+  const engagements = results.length && prisma.recipeEngagement?.findMany
+    ? await prisma.recipeEngagement.findMany({ where: { userId, recipeId: { in: results.map((r) => r.recipe.id) } } }).catch(() => [])
+    : [];
+  const engMap = new Map((engagements || []).map((e) => [e.recipeId, e]));
+
+  const mealShare = constraints.limits?.caloriesTarget ? constraints.limits.caloriesTarget / 3 : null;
+  const proteinShare = constraints.limits?.proteinTarget ? constraints.limits.proteinTarget / 3 : null;
+  for (const res of results) {
+    let bonus = 0;
+    const breakdown = { base: res.matchScore };
+    const r = res.recipe;
+    if (mealShare && Number.isFinite(r.perServing?.calories)) {
+      const fit = 0.10 * (1 - Math.min(1, Math.abs(r.perServing.calories - mealShare) / mealShare));
+      bonus += fit; breakdown.nutritionFit = +fit.toFixed(3);
+    }
+    if (proteinShare && Number.isFinite(r.perServing?.proteinG) && r.perServing.proteinG >= proteinShare) {
+      bonus += 0.04; breakdown.proteinFit = 0.04;
+    }
+    if (maxPrepMinutes && r.prepMinutes) {
+      const fit = 0.05 * (1 - r.prepMinutes / maxPrepMinutes);
+      bonus += fit; breakdown.timeFit = +fit.toFixed(3);
+    }
+    const txt = r.name + ' ' + res.availableIngredients.map((i) => i.name).join(' ');
+    for (const l of constraints.soft?.likes || []) {
+      if (textHasTerm(txt, l.name)) { const v = l.love ? 0.08 : 0.04; bonus += v; breakdown.preference = +(((breakdown.preference || 0) + v).toFixed(3)); }
+    }
+    for (const d of constraints.soft?.dislikes || []) {
+      if (textHasTerm(txt, d)) { bonus -= 0.06; breakdown.preference = +(((breakdown.preference || 0) - 0.06).toFixed(3)); }
+    }
+    if (r.cuisine && (constraints.soft?.cuisines || []).some((c) => normalize(c) === normalize(r.cuisine))) {
+      bonus += 0.03; breakdown.cuisinePref = 0.03;
+    }
+    const eng = engMap.get(r.id);
+    if (eng?.favorite) { bonus += 0.06; breakdown.favorite = 0.06; }
+    if (Number.isInteger(eng?.rating)) { const v = 0.02 * (eng.rating - 3) / 2; bonus += v; breakdown.rating = +v.toFixed(3); }
+    res.rankScore = Math.round((res.matchScore + bonus) * 1000) / 1000;
+    res.rankBreakdown = breakdown;
+  }
+
   results.sort((a, b) => {
     const order = { ready: 0, 'insufficient-quantity': 1, 'missing-one': 2, 'missing-few': 3, partial: 4 };
-    return (order[a.status] - order[b.status]) || (b.matchScore - a.matchScore) || a.recipe.name.localeCompare(b.recipe.name);
+    return (order[a.status] - order[b.status]) || ((b.rankScore ?? b.matchScore) - (a.rankScore ?? a.matchScore)) || a.recipe.name.localeCompare(b.recipe.name);
   });
 
   return {
@@ -256,7 +330,7 @@ async function matchIngredients({
     totalMatched: results.length,
     unresolvedInputs: unresolved,
     quantityAssumed,
-    excluded: { allergy: excludedAllergy, diet: excludedDiet, prepTime: excludedTime },
+    excluded: { allergy: excludedAllergy, diet: excludedDiet, prepTime: excludedTime, exclusion: excludedExclusion, condition: excludedCondition },
   };
 }
 
@@ -274,4 +348,4 @@ async function matchRecipes({ userId, ingredients, limit = 12 }) {
   };
 }
 
-module.exports = { matchIngredients, matchRecipes };
+module.exports = { matchIngredients, matchRecipes, resolveInputs };

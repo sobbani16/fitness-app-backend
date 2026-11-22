@@ -36,8 +36,28 @@ beforeAll(async () => {
   await prisma.recipeIngredient.create({ data: { recipeId: ing.id, ingredientName: 'peanut satay sauce', amountG: 30 } });
 });
 afterAll(async () => {
-  // Fixture cleanup — the shared dev DB keeps recipes between runs otherwise.
+  // Fixture cleanup — the shared dev DB keeps rows between runs otherwise.
   await prisma.recipe.deleteMany({ where: { recipeName: { startsWith: S } } });
+  const conds = await prisma.healthCondition.findMany({ where: { name: { startsWith: S } }, select: { id: true } });
+  const condIds = conds.map(c => c.id);
+  await prisma.userHealthCondition.deleteMany({ where: { conditionId: { in: condIds } } });
+  await prisma.conditionRule.deleteMany({ where: { conditionId: { in: condIds } } });
+  await prisma.healthCondition.deleteMany({ where: { id: { in: condIds } } });
+  const allergies = await prisma.allergy.findMany({ where: { name: { startsWith: S } }, select: { id: true } });
+  await prisma.userAllergy.deleteMany({ where: { allergyId: { in: allergies.map(a => a.id) } } });
+  await prisma.allergy.deleteMany({ where: { id: { in: allergies.map(a => a.id) } } });
+  await prisma.ingredient.deleteMany({ where: { name: { startsWith: S } } });
+  const testUsers = await prisma.user.findMany({ where: { email: { startsWith: S } }, select: { id: true } });
+  const uids = testUsers.map(u => u.id);
+  await prisma.foodLog.deleteMany({ where: { userId: { in: uids } } });
+  await prisma.foodPreference.deleteMany({ where: { userId: { in: uids } } });
+  await prisma.userPlanningPreferences.deleteMany({ where: { userId: { in: uids } } });
+  await prisma.userHealthCondition.deleteMany({ where: { userId: { in: uids } } });
+  await prisma.userAllergy.deleteMany({ where: { userId: { in: uids } } });
+  // Users may still own other rows (meal plans, nutritionist profiles) —
+  // delete what we can, leave stragglers as report-only residue.
+  await prisma.user.deleteMany({ where: { id: { in: uids } } }).catch(() => null);
+  await prisma.ruleEvidence.deleteMany({ where: { code: { startsWith: S } } });
 });
 const auth = id => ({ 'x-user-id': id });
 
@@ -122,9 +142,23 @@ describe('GET /meal-suggest', () => {
       gender: 'male', currentWeightKg: 80, heightCm: 180, dateOfBirth: new Date(Date.now() - 30 * 365.25 * 86400000), timeZone: 'UTC',
     }});
     const condition = await prisma.healthCondition.upsert({ where: { name: `${S} Diabetes test` }, update: {}, create: { name: `${S} Diabetes test` } });
+    // APPROVED requires the full evidence trail (DB check constraint):
+    // RuleEvidence + clinicalAction + reviewer identity/timestamp.
+    const ev = await prisma.ruleEvidence.upsert({
+      where: { code: `${S}-EV` },
+      update: {},
+      create: { code: `${S}-EV`, organization: 'Test Fixture', guidelineTitle: 'Fixture guideline', sourceUrl: 'https://example.org/fixture', lastReviewedAt: new Date(), evidenceNotes: 'Test fixture — not real evidence.' },
+    });
     await prisma.conditionRule.upsert({
       where: { conditionId_attribute_target: { conditionId: condition.id, attribute: `${S}_HIGH_SUGAR`, target: 'ingredient' } },
-      update: {}, create: { conditionId: condition.id, attribute: `${S}_HIGH_SUGAR`, target: 'ingredient', action: 'block', reason: 'test block' },
+      update: { reviewStatus: 'APPROVED', clinicalAction: 'AVOID_IF_INDICATED', reviewedBy: 'fixture', reviewedAt: new Date(), evidenceSourceId: ev.id },
+      create: { conditionId: condition.id, attribute: `${S}_HIGH_SUGAR`, target: 'ingredient', action: 'block', reason: 'test block', reviewStatus: 'APPROVED', clinicalAction: 'AVOID_IF_INDICATED', reviewedBy: 'fixture', reviewedAt: new Date(), evidenceSourceId: ev.id },
+    });
+    // Unreviewed rules must be inert: a DRAFT block on a second attribute
+    // must NOT exclude anything.
+    await prisma.conditionRule.upsert({
+      where: { conditionId_attribute_target: { conditionId: condition.id, attribute: `${S}_DRAFT_ATTR`, target: 'ingredient' } },
+      update: {}, create: { conditionId: condition.id, attribute: `${S}_DRAFT_ATTR`, target: 'ingredient', action: 'block', reason: 'unreviewed' },
     });
     await prisma.userHealthCondition.create({ data: { userId: u.id, conditionId: condition.id, active: true } });
     const ing = await prisma.ingredient.create({ data: { name: `${S} glucose syrup`, normalizedName: `${S} glucose syrup`, caloriesPer100g: 300, proteinPer100g: 0, carbsPer100g: 75, fatPer100g: 0 } });
@@ -136,6 +170,18 @@ describe('GET /meal-suggest', () => {
     expect(res.status).toBe(200);
     expect(res.body.options.map(o => o.name).join(' | ')).not.toContain(`${S} Sweet glaze lunch`);
     expect(res.body.eligibility.conditionBlocksApplied).toContain(`${S} Diabetes test`);
+    // The DRAFT rule above targets an attribute no ingredient carries — but
+    // the gate is reviewStatus, not attribute matching: verify by adding an
+    // ingredient that carries only the DRAFT attribute and confirming it stays.
+    const draftIng = await prisma.ingredient.create({ data: { name: `${S} draft syrup`, normalizedName: `${S} draft syrup`, caloriesPer100g: 100, proteinPer100g: 0, carbsPer100g: 25, fatPer100g: 0 } });
+    await prisma.ingredientAttribute.create({ data: { ingredientId: draftIng.id, attribute: `${S}_DRAFT_ATTR` } });
+    const draftRec = await prisma.recipe.create({ data: { creatorId: 'system', isSystem: true, recipeName: `${S} Draft glaze lunch`, mealType: 'lunch', calories: 400, proteinG: 15 } });
+    await prisma.recipeIngredient.create({ data: { recipeId: draftRec.id, ingredientName: `${S} draft syrup`, amountG: 50 } });
+    const { getMealSuggestions: suggest } = require('../src/services/mealSuggestion');
+    const res2 = await suggest(prisma, u.id, { occasion: 'lunch', limit: 400, timeZone: 'UTC' });
+    expect(res2.options.map(o => o.name).join(' | ')).toContain(`${S} Draft glaze lunch`);
+    expect(res2.options.map(o => o.name).join(' | ')).not.toContain(`${S} Sweet glaze lunch`);
+    await prisma.recipe.delete({ where: { id: draftRec.id } }).catch(() => null);
     // A user without the condition still sees it — check the full eligible set
     // via the service directly (route caps limit at 10; shared DB has fixtures).
     const { getMealSuggestions } = require('../src/services/mealSuggestion');

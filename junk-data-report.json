@@ -1,0 +1,143 @@
+{
+  "apply": false,
+  "generatedAt": "2026-11-21T21:01:36.343Z",
+  "actions": [
+    {
+      "kind": "ingredient:test-residue-delete",
+      "count": 0,
+      "detail": {
+        "names": []
+      }
+    },
+    {
+      "kind": "allergy:test-residue-delete",
+      "count": 0,
+      "detail": {
+        "names": []
+      }
+    },
+    {
+      "kind": "healthCondition:test-residue-delete",
+      "count": 0,
+      "detail": {
+        "names": []
+      }
+    },
+    {
+      "kind": "recipe:test-residue-delete",
+      "count": 0,
+      "detail": {
+        "names": []
+      }
+    },
+    {
+      "kind": "ingredient:dummy-fdcId-null",
+      "count": 0,
+      "detail": {
+        "names": []
+      }
+    },
+    {
+      "kind": "ingredient:impossible-kcal-delete",
+      "count": 0,
+      "detail": {
+        "names": []
+      }
+    }
+  ],
+  "reportOnly": {
+    "duplicateNames": [
+      {
+        "normalized": "pad thai rice noodles, pad thai",
+        "rows": 2,
+        "names": [
+          "PAD THAI RICE NOODLES, PAD THAI"
+        ]
+      },
+      {
+        "normalized": "broccoli, raw",
+        "rows": 2,
+        "names": [
+          "Broccoli, raw"
+        ]
+      },
+      {
+        "normalized": "pad thai seasoning mix, pad thai",
+        "rows": 2,
+        "names": [
+          "PAD THAI SEASONING MIX, PAD THAI"
+        ]
+      },
+      {
+        "normalized": "chicken teriyaki",
+        "rows": 2,
+        "names": [
+          "CHICKEN TERIYAKI"
+        ]
+      },
+      {
+        "normalized": "chicken curry",
+        "rows": 3,
+        "names": [
+          "Chicken curry",
+          "CHICKEN CURRY"
+        ]
+      },
+      {
+        "normalized": "quinoa, cooked",
+        "rows": 2,
+        "names": [
+          "Quinoa, cooked"
+        ]
+      },
+      {
+        "normalized": "spinach, raw",
+        "rows": 2,
+        "names": [
+          "Spinach, raw"
+        ]
+      },
+      {
+        "normalized": "almonds, raw",
+        "rows": 2,
+        "names": [
+          "Almonds, raw"
+        ]
+      },
+      {
+        "normalized": "bread",
+        "rows": 9,
+        "names": [
+          "BREAD"
+        ]
+      },
+      {
+        "normalized": "avocado",
+        "rows": 2,
+        "names": [
+          "Avocado"
+        ]
+      },
+      {
+        "normalized": "pad thai",
+        "rows": 2,
+        "names": [
+          "PAD THAI"
+        ]
+      },
+      {
+        "normalized": "pad thai sauce, pad thai",
+        "rows": 2,
+        "names": [
+          "PAD THAI SAUCE, PAD THAI"
+        ]
+      }
+    ],
+    "zeroKcalRows": 2,
+    "testResidueUsers": 1817,
+    "allergyNames": [
+      "Peanuts",
+      "peanut"
+    ]
+  }
+}

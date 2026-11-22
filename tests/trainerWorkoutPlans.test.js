@@ -425,14 +425,18 @@ describe('negative gates', () => {
   test('flag OFF → 403 FEATURE_DISABLED on both routers', async () => {
     process.env.FF_TRAINER_WORKOUT_PLANS_ENABLED = 'false';
     flags.resetCache();
-    const res = await asTrainer(request(app).get('/trainer/workout-plans'));
-    expect(res.status).toBe(403);
-    expect(res.body.error.code).toBe('FEATURE_DISABLED');
-    const res2 = await asClient(request(app).get('/me/workout-plans'));
-    expect(res2.status).toBe(403);
-    expect(res2.body.error.code).toBe('FEATURE_DISABLED');
-    process.env.FF_TRAINER_WORKOUT_PLANS_ENABLED = 'true';
-    flags.resetCache();
+    try {
+      const res = await asTrainer(request(app).get('/trainer/workout-plans'));
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('FEATURE_DISABLED');
+      const res2 = await asClient(request(app).get('/me/workout-plans'));
+      expect(res2.status).toBe(403);
+      expect(res2.body.error.code).toBe('FEATURE_DISABLED');
+    } finally {
+      // process.env is shared across test files under --runInBand — always restore.
+      process.env.FF_TRAINER_WORKOUT_PLANS_ENABLED = 'true';
+      flags.resetCache();
+    }
   });
 
   test('declined assignment cannot complete; re-assign allowed after decline', async () => {
