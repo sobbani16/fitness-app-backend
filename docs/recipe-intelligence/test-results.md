@@ -44,5 +44,10 @@ FLAG-002 (kill-switch mid-request), LABEL-005.
 - Route tests hit `auth` bypass via `x-user-id` + `AUTH_TEST_BYPASS`.
 - One Express stack trace prints in CI output (deliberate 500-path test);
   suite still green.
-- Full repo suite (all jest files) not re-run end-to-end for this effort —
-  targeted suites cover every touched module; run `npm test` in release gate.
+- Full-repo run verified 2026-11-21: **118 suites / 1444 tests passing**
+  (3 skipped, 52 todo). A cross-suite DB-interference defect was found +
+  fixed during this run: `photoScan.test.js` sweeps catalog rows named
+  `sk %` in the shared dev DB while `smartKitchen.test.js` seeded
+  `sk <name>` fixtures — fixtures renamed to `kk ` prefix, and `/customize`
+  now term-matches proposed names against hard constraints *before* catalog
+  resolution so rejection reasons are deterministic regardless of DB state.

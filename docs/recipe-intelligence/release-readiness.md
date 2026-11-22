@@ -21,7 +21,7 @@
 | 13 | Mobile generation surface | ✅ code done | `RecipeByIngredients` generate flow, mobile `a4c2dbf`; flag-gated |
 | 14 | Ranking/personalization beyond hard filter | ❌ not built | Phase 9 pending |
 | 15 | Performance measurements vs targets | ⚠️ component-cost only | PERF-001 pending |
-| 16 | Full-repo regression (`npm test`) | ⚠️ targeted only | 80 tests green; full suite not run |
+| 16 | Full-repo regression (`npx jest`) | ✅ | 118 suites / 1444 tests green; DB-interference flake found + fixed |
 | 17 | Production synthetic-user check behind flag | ❌ | requires deploy + flag control |
 | 18 | Human clinical review of rules + evidence | ❌ | `medical-rule-evidence.md` protocol |
 | 19 | DB migration | ✅ n/a | no schema changes — existing models reused |
@@ -34,7 +34,7 @@ testing behind `ai_recipe_generation_enabled` off-by-default, continued
 data-quality work, and clinical review kickoff.
 
 Blocking items for user-facing release: gates **7, 10** minimum;
-recommended also **12, 14, 15, 16, 17**.
+recommended also **12, 14, 15, 17**.
 
 ## Rollback posture
 
