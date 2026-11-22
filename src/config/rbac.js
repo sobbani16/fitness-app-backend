@@ -49,6 +49,7 @@ const PERMISSIONS = [
   { name: 'MANAGE_ROLES', description: 'Assign and remove roles.' },
   { name: 'MANAGE_TRAINERS', description: 'Verify/manage trainer profiles.' },
   { name: 'MANAGE_NUTRITIONISTS', description: 'Verify/manage nutritionist profiles.' },
+  { name: 'NUTRITION_DATA_REVIEW', description: 'Review/approve source-backed ingredient nutrition profiles (non-clinical).' },
   { name: 'MANAGE_SUBSCRIPTIONS', description: 'Manage billing and subscriptions.' },
   { name: 'VIEW_PLATFORM_ANALYTICS', description: 'View platform-wide stats.' },
 
@@ -95,12 +96,12 @@ const ROLE_PERMISSIONS = {
   ADMIN: [
     'VIEW_OWN_PROFILE', 'MANAGE_USERS', 'MANAGE_ROLES', 'MANAGE_TRAINERS',
     'MANAGE_NUTRITIONISTS', 'MANAGE_SUBSCRIPTIONS', 'VIEW_PLATFORM_ANALYTICS',
-    'MANAGE_RECIPES', 'VIEW_AUDIT_LOGS',
+    'MANAGE_RECIPES', 'VIEW_AUDIT_LOGS', 'NUTRITION_DATA_REVIEW',
   ],
   SUPER_ADMIN: [
     'VIEW_OWN_PROFILE', 'MANAGE_USERS', 'MANAGE_ROLES', 'MANAGE_TRAINERS',
     'MANAGE_NUTRITIONISTS', 'MANAGE_SUBSCRIPTIONS', 'VIEW_PLATFORM_ANALYTICS',
-    'MANAGE_RECIPES', 'VIEW_AUDIT_LOGS', 'MANAGE_SUPER_ADMINS',
+    'MANAGE_RECIPES', 'VIEW_AUDIT_LOGS', 'MANAGE_SUPER_ADMINS', 'NUTRITION_DATA_REVIEW',
     'MANAGE_FEATURE_FLAGS', 'MANAGE_PLATFORM_SETTINGS', 'MANAGE_AI_SETTINGS',
     'MANAGE_BILLING_SETTINGS',
     'ACADEMY_AUTHOR', 'ACADEMY_REVIEW', 'ACADEMY_CLINICAL_REVIEW', 'ACADEMY_PUBLISH',

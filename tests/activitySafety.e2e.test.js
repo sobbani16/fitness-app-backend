@@ -16,6 +16,7 @@ const mockPrisma = {
   user: { findUnique: jest.fn(async ({ where }) => ({ id: where.id, dateOfBirth: new Date('1990-01-01'), activityLevel: 'moderate', goalType: 'fitness' })) },
   userActivityProfile: { findUnique: jest.fn(async () => null) },
   userInjury: {
+    findFirst: jest.fn(async ({ where }) => store.injuries.find(i => i.id === where.id && i.userId === where.userId) || null),
     findMany: jest.fn(async ({ where }) => store.injuries.filter(i => i.userId === where.userId && where.status.in.includes(i.status))),
     create: jest.fn(async ({ data }) => { const r = { id: nid(), updatedAt: new Date(), ...data }; store.injuries.push(r); return r; }),
     updateMany: jest.fn(async ({ where, data }) => {

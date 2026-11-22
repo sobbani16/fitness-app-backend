@@ -91,7 +91,7 @@ describe('academy editorial workflow', () => {
 
     // run publisher
     const { execSync } = require('child_process');
-    const out = execSync('node scripts/weekly-publish.js').toString();
+    const out = execSync('node scripts/weekly-publish.js', { env: { ...process.env } }).toString();
     expect(out).toContain('"published":true');
 
     // public now visible
@@ -101,7 +101,7 @@ describe('academy editorial workflow', () => {
     expect(r.body.article.sources.length).toBeGreaterThan(0);
 
     // rerun is idempotent
-    const out2 = execSync('node scripts/weekly-publish.js').toString();
+    const out2 = execSync('node scripts/weekly-publish.js', { env: { ...process.env } }).toString();
     expect(out2).not.toContain('"published":true');
   });
 

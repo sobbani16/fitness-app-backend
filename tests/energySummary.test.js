@@ -185,7 +185,9 @@ describe('GET /energy/summary', () => {
       { userId: u.id, provider: 'health_connect', sourceId: `${S}-hcr`, startAt: new Date(s0), endAt: new Date(s0 + 12 * H), restingKcal: 650, activeKcal: 0 },
       { userId: u.id, provider: 'health_connect', sourceId: `${S}-hca`, startAt: new Date(s0), endAt: new Date(s0 + 12 * H), activeKcal: 280 },
     ]});
-    const b = (await request(app).get(`/energy/summary?date=${today}&tz=UTC`).set(auth(u.id))).body;
+    const res = await request(app).get(`/energy/summary?date=${today}&tz=UTC`).set(auth(u.id));
+    expect(res.status).toBe(200);
+    const b = res.body;
     expect(b.resting.source).toBe('wearable:health_connect');
     expect(b.active.source).toBe('wearable:health_connect');
     expect(b.expenditure.soFarKcal).toBe(930);
@@ -202,8 +204,12 @@ describe('GET /energy/summary', () => {
       { userId: u.id, provider: 'fitbit', sourceId: `${S}-sw3`, startAt: new Date(s2), endAt: new Date(s2 + 2 * H), activeKcal: 60 },
       { userId: u.id, provider: 'healthkit', sourceId: `${S}-sw4`, startAt: new Date(s2), endAt: new Date(s2 + 12 * H), activeKcal: 500 },
     ]});
-    const b1 = (await request(app).get(`/energy/summary?date=${d1}&tz=UTC`).set(auth(u.id))).body;
-    const b2 = (await request(app).get(`/energy/summary?date=${d2}&tz=UTC`).set(auth(u.id))).body;
+    const r1 = await request(app).get(`/energy/summary?date=${d1}&tz=UTC`).set(auth(u.id));
+    const r2 = await request(app).get(`/energy/summary?date=${d2}&tz=UTC`).set(auth(u.id));
+    expect(r1.status).toBe(200);
+    expect(r2.status).toBe(200);
+    const b1 = r1.body;
+    const b2 = r2.body;
     expect(b1.active.provider).toBe('fitbit');
     expect(b1.active.soFarKcal).toBe(300);
     expect(b2.active.provider).toBe('healthkit');

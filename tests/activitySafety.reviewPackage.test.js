@@ -34,7 +34,7 @@ describe('review package — executable examples (all rules DRAFT)', () => {
     expect(res.decision).toBe('BLOCK_ACTIVITY');
   });
   test('AS-MSK-002 Acute injury ≤72h', () => {
-    const res = run('AS-MSK-002', {"injuries":[{"status":"current","type":"sprain","bodyPart":"ankle","injuredAt":"2026-11-22T04:07:48.375Z"}]}, 'seated_movement', null);
+    const res = run('AS-MSK-002', {"injuries":[{"status":"current","type":"sprain","bodyPart":"ankle","injuredAt":new Date(Date.now()-24*3600e3).toISOString()}]}, 'seated_movement', null);
     expect(res.ruleIds).toContain('AS-MSK-002');
     expect(res.decision).toBe('MODIFY');
   });

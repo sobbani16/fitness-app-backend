@@ -15,6 +15,12 @@ const U = 'voice-test-u';
 const H = { 'x-user-id': U };
 
 beforeAll(async () => {
+  // Self-sufficient flag state — voice routes are requireAnyFeature-gated;
+  // without this the suite only passes when another suite leaks FF_* envs.
+  const { envOverrideName } = require('../src/config/featureRegistry');
+  ['voice_food_logging', 'voice_exercise_logging', 'manual_food_logging', 'manual_exercise_logging']
+    .forEach(k => { process.env[envOverrideName(k)] = 'true'; });
+  require('../src/services/featureFlags/service').resetCache();
   await prisma.user.upsert({ where: { id: U }, update: {}, create: { id: U, email: `${U}@device.local` } });
   await prisma.voiceCommand.deleteMany({ where: { userId: U } }); // re-runnable: clear prior runs
   await prisma.waterLog.deleteMany({ where: { userId: U } });
