@@ -1,5 +1,12 @@
 # Fiber Intelligence — Internal Rollout Plan
 
+> **Stage 1 executed 2026-11-23 — see `STAGE1_REPORT.md`.** Key deviation:
+> this dev instance has no PostHog (`provider: env`), so targeting is
+> instance-wide rather than per-account; mitigated by (a) a new
+> `environments: ['development','test']` guard on both Stage-1 flags making
+> prod resolution impossible, and (b) a zero-public-user dev DB. Per-account
+> PostHog targeting is a hard prerequisite for any shared deployment.
+
 Audience: internal test accounts only. Server-side flags gate every surface;
 mobile UI hiding is secondary. **`fiber_supplement_suggestions_enabled` stays
 OFF for the entire internal phase** — clinical review gate is documented in

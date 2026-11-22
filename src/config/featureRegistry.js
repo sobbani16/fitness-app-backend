@@ -721,12 +721,16 @@ const FEATURES = {
   fiber_intelligence_enabled: {
     clientKey: 'fiberIntelligenceEnabled',
     class: 'server', group: 'manual', default: false, failOpen: false,
+    // Stage-1 internal rollout only: can never resolve true in production,
+    // regardless of FF_* overrides or PostHog targeting. Remove when promoted.
+    environments: ['development', 'test'],
     endpoints: ['/fiber'],
     description: 'Parent gate for the Smart Fiber Intelligence system. Off => every /fiber endpoint 403s.',
   },
   fiber_daily_goal_enabled: {
     clientKey: 'fiberDailyGoalEnabled',
     class: 'server', group: 'manual', default: false, failOpen: false,
+    environments: ['development', 'test'],
     dependsOn: ['fiber_intelligence_enabled'],
     endpoints: ['GET /fiber/target', 'PUT /fiber/target', 'GET /fiber/daily', 'GET /fiber/trend'],
     description: 'Personalized daily fiber target (14 g/1,000 kcal + life-stage rules) with confirmed/estimated/unknown progress.',

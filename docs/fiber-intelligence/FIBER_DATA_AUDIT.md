@@ -127,6 +127,30 @@ look like curated estimates that drifted from their ingredient sums;
 either accept the line-sum (preferred — keeps per-serving consistent with
 composition) or correct the line amounts. **No values were modified.**
 
+#### 8.2.1 Root-cause analysis of the six mismatches (2026-11-23)
+
+Each recipe's lines recomputed against the live catalog; servings=1 on all
+six, so computed total = per-serving. Common root cause across all six:
+`Recipe.fiberG` is a **manually-stored snapshot never recomputed from
+`RecipeIngredient` lines** — drift accumulates from recipe edits and
+portion-basis confusion (dry vs cooked, per-serving assumptions).
+
+| Recipe | Stored | Authoritative (line-sum) | Likely cause |
+|---|---|---|---|
+| Lentil soup with bread | 12 | 19.7 (lentils 150g×10.7 + bread 100g×3.6) | Stored looks like soup-only with a cooked-lentil basis (~8/100g × 150g ≈ 12); bread line likely added after the snapshot |
+| Greek yogurt with granola | 3 | 5.6 (granola 80g×7) | Stored assumes ~40g granola or a lower-fiber granola row |
+| Eggs and whole wheat toast | 3 | 7.0 (bread 100g×7) | Stored matches ~1 slice (45g) or white-bread data, not the 100g line |
+| Salmon with quinoa | 5 | 2.8 (quinoa 100g×2.8) | **Overstated**: stored used dry-quinoa basis (~7/100g) against a cooked-weight 100g line — this direction is the risky one (app would overstate confirmed fiber) |
+| Avocado toast with egg | 6 | 11.7 (avocado 70g×6.7 + bread 100g×7) | Stored counts avocado only, or a half-serving of bread |
+| Overnight oats | 8 | 16.2 (oats 120g×10.6 + chia 10g×34.4) | Stored matches a ~60-75g single-serve oats assumption; the 120g dry line may itself be oversized — needs owner judgment on which side is wrong |
+
+Safety impact: low-to-moderate. Under-statements under-report confirmed
+fiber (conservative for recommendations); the salmon-quinoa
+over-statement is the only direction that inflates recorded intake.
+Corrective proposal (not applied): recompute `fiberG` from lines at
+recipe-write time or backfill `RecipeIngredient.fiberG` per line so drift
+is detectable per ingredient rather than per recipe.
+
 ### 8.3 Other findings
 
 - `RecipeIngredient.fiberG`: 0/1714 rows populated (column added this
