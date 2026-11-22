@@ -448,4 +448,4 @@ async function logScannedFood(userId, { productName, servingG, servingLabel, ser
 }
 
 module.exports = {
-  correctProduct, toggleFavorite, listFavorites, EVIDENCE_SEED, ensureEvidenceSeeded, resolveBarcode, upsertBarcodeProduct, getEvidence, listEvidence, checkSuitability, scanResult, explainIngredient, alternatives, logScannedFood, ALIASES };
+  correctProduct, toggleFavorite, listFavorites, EVIDENCE_SEED, ensureEvidenceSeeded, resolveBarcode, upsertBarcodeProduct, getEvidence, listEvidence, checkSuitability, scanResult, explainIngredient, alternatives, logScannedFood, parseServingDeclaration, ALIASES };
