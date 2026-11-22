@@ -266,10 +266,11 @@ async function planSafetyConflicts(prisma, clientUserId, plan, { gate, detail = 
         conflicts.push(detail === 'summary'
           ? { ...base, status: 'conflict', note: 'Conflicts with the member\'s recorded safety profile — substitute or verify.' }
           : { ...base, status: 'conflict', blockedCategories: categoryHits, limitationConflict: limHit || null });
-      } else if (!ex.mechanic || !ex.equipment) {
+      } else if ((ex.category || '').toLowerCase() === 'strength' && (!ex.mechanic || !ex.equipment)) {
         // Partial metadata silently skips weight-bearing/Valsalva derivation —
-        // a clear verdict here is qualified, not unqualified. Never present it
-        // as safe; require manual verification against recorded restrictions.
+        // a clear verdict here is qualified, not unqualified. Scoped to
+        // 'strength': mechanic/equipment only feed demand derivation for
+        // strength-category rows (stretching/cardio/plyometrics don't use them).
         conflicts.push({ ...base, status: 'review', note: 'Demand metadata incomplete — evaluated on available fields only; verify manually against recorded restrictions.' });
       }
     }

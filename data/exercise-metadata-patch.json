@@ -1,0 +1,16 @@
+{
+  "description": "Humai metadata overlay for vendored free-exercise-db rows whose upstream fields are null. Applied by import-exercises.js before upsert; does NOT modify the pristine source. Every entry cites the source-internal convention used.",
+  "provenance": "inferred-from-source-convention",
+  "patches": [
+    { "name": "Bodyweight Walking Lunge", "equipment": "body only", "basis": "name + instructions: unweighted stepping lunge; source encodes all unweighted lower-body moves as 'body only'", "confidence": "high" },
+    { "name": "Decline Push-Up", "equipment": "body only", "basis": "push-up family; box is positional — source encodes Push-Ups/variants 'body only'", "confidence": "high" },
+    { "name": "Floor Glute-Ham Raise", "equipment": "body only", "basis": "floor/partner variant of Glute Ham Raise; no machine present — 'body only' is closest source value", "confidence": "medium" },
+    { "name": "Inverted Row", "equipment": "body only", "basis": "bodyweight-resistance row on fixed bar — same convention as Pullups/Chin-Up ('body only')", "confidence": "high" },
+    { "name": "Prone Manual Hamstring", "equipment": "other", "basis": "partner-applied manual resistance — 'other' is the source value for nonstandard implements", "confidence": "medium" },
+    { "name": "Scapular Pull-Up", "equipment": "body only", "basis": "bodyweight-resistance pull-up variant — same convention as Pullups", "confidence": "high" },
+    { "name": "Double Kettlebell Windmill", "mechanic": "compound", "basis": "sibling 'Kettlebell Windmill' is 'compound' (note: 'Advanced Kettlebell Windmill' is 'isolation' — upstream inconsistent; matched the non-advanced sibling)", "confidence": "medium" },
+    { "name": "Kettlebell Figure 8", "mechanic": "compound", "basis": "dynamic multi-joint movement pattern; consistent with source's compound tagging of dynamic KB moves", "confidence": "medium" },
+    { "name": "Reverse Hyperextension", "mechanic": "isolation", "basis": "closest sibling 'Hyperextensions (Back Extensions)' is 'isolation'; fixed-arc machine movement", "confidence": "medium" },
+    { "name": "Side Bridge", "mechanic": "isolation", "basis": "static trunk hold — siblings 'Plank' and 'Butt Lift (Bridge)' are 'isolation'", "confidence": "high" }
+  ]
+}

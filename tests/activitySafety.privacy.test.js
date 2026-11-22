@@ -157,4 +157,26 @@ describe('P-2/P-3 trainer clinical detail requires explicit grant', () => {
     const res2 = await planSafetyConflicts(mockPrisma, 'u1', { days: [{ dayIndex: 0, exercises: [{ exerciseName: 'Seated Curl', exerciseId: 'ex-full' }] }] });
     expect(res2.conflicts.filter(c => c.status === 'review')).toHaveLength(0);
   });
+  test('partial-metadata review is scoped to strength rows; non-strength nulls do not flag', async () => {
+    // Stretching/cardio/plyometrics never use mechanic/equipment in demand
+    // derivation — null fields there are inapplicable, not incomplete.
+    mockPrisma.exercise = { findUnique: jest.fn(async () => ({ id: 'ex-stretch', name: '90/90 Hamstring', mechanic: null, equipment: 'body only', category: 'stretching', muscles: [{ muscle: 'hamstrings', role: 'primary' }] })) };
+    mockPrisma.userActivityRestriction.findMany.mockResolvedValue([]);
+    const res = await planSafetyConflicts(mockPrisma, 'u1', { days: [{ dayIndex: 0, exercises: [{ exerciseName: '90/90 Hamstring', exerciseId: 'ex-stretch' }] }] });
+    expect(res.conflicts.filter(c => c.status === 'review')).toHaveLength(0);
+  });
+  test('patched bodyweight compound derives weight_bearing_lower (taxonomy remediation regression)', async () => {
+    // Bodyweight Walking Lunge: upstream equipment=null meant standingLoad was
+    // skipped → NWB restrictions missed it. Post-patch (equipment 'body only')
+    // it derives weight_bearing_lower and conflicts under a NWB restriction.
+    const { dbExerciseCategories } = require('../src/services/activitySafety/gate');
+    const cats = dbExerciseCategories({ name: 'Bodyweight Walking Lunge', mechanic: 'compound', equipment: 'body only', category: 'strength', muscles: [{ muscle: 'quadriceps', role: 'primary' }] });
+    expect(cats.has('weight_bearing_lower')).toBe(true);
+    mockPrisma.exercise = { findUnique: jest.fn(async () => ({ id: 'ex-lunge', name: 'Bodyweight Walking Lunge', mechanic: 'compound', equipment: 'body only', category: 'strength', muscles: [{ muscle: 'quadriceps', role: 'primary' }] })) };
+    mockPrisma.userActivityRestriction.findMany.mockResolvedValue([
+      { id: 'r1', status: 'active', severity: 'prohibited', categories: ['weight_bearing_lower'], bodyRegions: ['lower_limb'], source: 'clinician_documented' },
+    ]);
+    const res = await planSafetyConflicts(mockPrisma, 'u1', { days: [{ dayIndex: 0, exercises: [{ exerciseName: 'Bodyweight Walking Lunge', exerciseId: 'ex-lunge' }] }] });
+    expect(res.conflicts.find(c => c.exerciseName === 'Bodyweight Walking Lunge').status).toBe('conflict');
+  });
 });
