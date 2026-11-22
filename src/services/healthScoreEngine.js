@@ -84,7 +84,7 @@ async function scoreMacroAdherence(userId, dateStr, prisma, tz) {
   // claims are never merged into food totals (composition/dose comparability
   // is not guaranteed; a shake can be logged as both food and supplement).
   const intake = logs.reduce(
-    (a, l) => ({ protein: a.protein + l.proteinG, carbs: a.carbs + l.carbsG, fat: a.fat + l.fatG, fiber: a.fiber + l.fiberG }),
+    (a, l) => ({ protein: a.protein + l.proteinG, carbs: a.carbs + l.carbsG, fat: a.fat + l.fatG, fiber: a.fiber + (l.fiberG ?? 0) }),
     { protein: 0, carbs: 0, fat: 0, fiber: 0 },
   );
 
@@ -137,7 +137,7 @@ async function scoreMacroAdherence(userId, dateStr, prisma, tz) {
     }
   }
 
-  return { score, available: true, contributors, insights, intake, targets };
+  return { score, available: true, contributors, insights, intake, targets, nutrientCoverage: require('./nutrientCompleteness').coverageFor(logs) };
 }
 
 // ============================================================================
@@ -535,7 +535,7 @@ async function getImprovementActions(userId, date) {
   });
 
   const intake = logs.reduce(
-    (a, l) => ({ protein: a.protein + l.proteinG, carbs: a.carbs + l.carbsG, fat: a.fat + l.fatG, fiber: a.fiber + l.fiberG }),
+    (a, l) => ({ protein: a.protein + l.proteinG, carbs: a.carbs + l.carbsG, fat: a.fat + l.fatG, fiber: a.fiber + (l.fiberG ?? 0) }),
     { protein: 0, carbs: 0, fat: 0, fiber: 0 },
   );
   const waterMl = waterLogs.reduce((s, w) => s + (w.amountMl || 0), 0);

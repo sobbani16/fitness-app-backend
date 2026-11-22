@@ -269,7 +269,7 @@ async function saveScannedLabel(userId, data) {
         userId,
         foodName: productName || 'Scanned food',
         quantityG: actualPortionG,
-        nutritionSnapshot: { ...(data.labelInsights ? { labelInsights: data.labelInsights } : {}), loggedSource: 'user-reviewed scanned label', servingSizeG, actualPortionG, calculation: 'label nutrients × actual grams / label serving grams', verificationLevel: 'USER_REVIEWED_LABEL', sourceNutrition: {calories:labelCalories,proteinG:labelProteinG,carbsG:labelCarbsG,fatG:labelFatG,fiberG:labelFiberG ?? null}, adjusted },
+        nutritionSnapshot: { ...(data.labelInsights ? { labelInsights: data.labelInsights } : {}), loggedSource: 'user-reviewed scanned label', servingSizeG, actualPortionG, calculation: 'label nutrients × actual grams / label serving grams', verificationLevel: 'USER_REVIEWED_LABEL', sourceNutrition: {calories:labelCalories,proteinG:labelProteinG,carbsG:labelCarbsG,fatG:labelFatG,fiberG:labelFiberG ?? null}, nutrientUnknowns: require('./nutrientCompleteness').computeUnknowns({calories:labelCalories,proteinG:labelProteinG,carbsG:labelCarbsG,fatG:labelFatG,fiberG:labelFiberG ?? null}), adjusted },
         calories: adjusted.adjCalories,
         proteinG: adjusted.adjProteinG,
         carbsG: adjusted.adjCarbsG,

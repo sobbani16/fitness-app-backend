@@ -260,6 +260,9 @@ async function calculateScore(userId, date) {
     overallScore,
     overallColor: scoreColor(overallScore),
     calories: { actual: Math.round(intake.calories), target: goals.caloriesTarget },
+    // Stored 0s are not confirmed 0s — logs whose source never measured a
+    // nutrient are counted so clients can annotate totals honestly.
+    nutrientCoverage: require('./nutrientCompleteness').coverageFor(logs),
     hydration: {
       actual: waterMl,
       target: goals.waterMlTarget,

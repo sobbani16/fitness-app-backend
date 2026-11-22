@@ -6,7 +6,37 @@ router.get('/profiles/:ingredientId',async(req,res,next)=>{try{res.json({profile
 router.post('/intelligence',async(req,res,next)=>{try{
  const b=req.body||{};
  if(typeof b.ingredientId!=='string'||b.ingredientId.length>120||(b.profileId!=null&&(typeof b.profileId!=='string'||!/^[0-9a-f-]{36}$/i.test(b.profileId))))throw httpError(400,'Invalid ingredient/profile');
- res.json(await intelligence.safe(()=>intelligence.ingredient({ingredientId:b.ingredientId,profileId:b.profileId,grams:b.grams,consumedState:['raw','cooked'].includes(b.consumedState)?b.consumedState:undefined,yieldFactor:Number.isFinite(b.yieldFactor)?b.yieldFactor:undefined},req.userId||req.headers['x-user-id']),b.ingredientId));
+ const userId=req.userId||req.headers['x-user-id'];
+ const intel=await intelligence.safe(()=>intelligence.ingredient({ingredientId:b.ingredientId,profileId:b.profileId,grams:b.grams,consumedState:['raw','cooked'].includes(b.consumedState)?b.consumedState:undefined,yieldFactor:Number.isFinite(b.yieldFactor)?b.yieldFactor:undefined},userId),b.ingredientId);
+ // Sprint C: goal-aware portion impact — computed from the SAME verified
+ // profile nutrients; unknown nutrients stay 'unverified'. Substitution
+ // screening uses server-loaded allergen terms only.
+ let impact=null,substitutions=null;
+ try{
+  const p=getPrisma();
+  const [u,goal,allergies]=await Promise.all([p.user.findUnique({where:{id:userId},select:{goalType:true}}),p.macroGoal.findUnique({where:{userId}}),p.userAllergy.findMany({where:{userId},select:{allergy:{select:{name:true}}}})]);
+  const canon=require('../services/calorieEngine').normalizeGoal(u?.goalType)||'maintenance';
+  const nutrientRows=intel?.nutrients||intel?.profile?.nutrients||[];
+  const NAME2KEY={calories:'calories',protein:'proteinG','total carbohydrate':'carbsG',carbohydrate:'carbsG','total fat':'fatG',fat:'fatG',fiber:'fiberG','dietary fiber':'fiberG'};
+  const per={};
+  for(const n of nutrientRows){
+   const key=NAME2KEY[String(n.nutrient?.name||n.code||'').toLowerCase()];if(!key)continue;
+   const per100=n.valuePer100g??n.per100g??n.value??null;
+   if(per100!=null&&Number.isFinite(Number(per100)))per[key]=Math.round(Number(per100)*b.grams)/100;
+  }
+  const meal={foodName:intel?.ingredient?.name||intel?.name||'logged food',quantityG:b.grams,calories:per.calories??null,proteinG:per.proteinG??null,carbsG:per.carbsG??null,fatG:per.fatG??null,fiberG:per.fiberG??null};
+  // Phase 1: server-derived classification — client-supplied categoryId is
+  // never authoritative. classifyFood runs on verified per-100g nutrients +
+  // name hints; multiple labels possible. Primary category for education =
+  // first label with a CATEGORIES entry.
+  const impactMod=require('../services/ingredientImpact');
+  const cls=impactMod.classifyFood({name:meal.foodName,per100:per,categoryRole:null});
+  const catId=cls.categories.find(c=>impactMod.CATEGORIES[c])||null;
+  impact=impactMod.evaluatePortion({meal,goal:canon,targets:goal||{},categoryId:catId});
+  impact.classification=cls;
+  substitutions=impactMod.suggestSubstitutions({meal,goal:canon,categoryId:catId,allergenTerms:new Set((allergies||[]).map(a=>String(a.allergy?.name||'').toLowerCase()).filter(Boolean))});
+ }catch{/* impact is best-effort — profile payload unaffected */}
+ res.json({...intel,impact,substitutions});
 }catch(e){next(e);}});
 router.post('/',async(req,res,next)=>{
  try {
@@ -36,8 +66,8 @@ router.post('/',async(req,res,next)=>{
    const edited=['calories','proteinG','carbsG','fatG','fiberG'].some(k=>data[k]!=null && (calculated.nutrition[k]==null || Math.abs(data[k]-calculated.nutrition[k])>(k==='calories'?0.51:0.051)));
    data.ingredientId=b.ingredientId;
    const catalogRevisionAtSelection=typeof b.catalogRevision==='string'?b.catalogRevision.slice(0,64):null;
-   data.nutritionSnapshot={...calculated.provenance,catalogRevisionAtSelection,catalogChangedSinceSelection:!!catalogRevisionAtSelection && catalogRevisionAtSelection!==calculated.provenance.revision,grams:data.quantityG,loggedFoodName:data.foodName,selectedServing:b.selectedServing && typeof b.selectedServing==='string'?b.selectedServing.slice(0,200):null,servingId:typeof b.servingId==='string'?b.servingId.slice(0,80):calculated.serving?.id??null,servingGrams:calculated.serving?.grams??null,servingCount:servingCount??(calculated.serving&&calculated.serving.grams>0?Math.round((calculated.grams/calculated.serving.grams)*100)/100:null),calculated:calculated.nutrition,saved:{calories:data.calories,proteinG:data.proteinG,carbsG:data.carbsG,fatG:data.fatG,fiberG:data.fiberG},userEdited:edited,loggedSource:edited?'user-entered correction':'catalog calculation'};
-  } else data.nutritionSnapshot={loggedSource:'user-entered or external estimate',grams:data.quantityG};
+   data.nutritionSnapshot={...calculated.provenance,catalogRevisionAtSelection,catalogChangedSinceSelection:!!catalogRevisionAtSelection && catalogRevisionAtSelection!==calculated.provenance.revision,grams:data.quantityG,loggedFoodName:data.foodName,selectedServing:b.selectedServing && typeof b.selectedServing==='string'?b.selectedServing.slice(0,200):null,servingId:typeof b.servingId==='string'?b.servingId.slice(0,80):calculated.serving?.id??null,servingGrams:calculated.serving?.grams??null,servingCount:servingCount??(calculated.serving&&calculated.serving.grams>0?Math.round((calculated.grams/calculated.serving.grams)*100)/100:null),calculated:calculated.nutrition,saved:{calories:data.calories,proteinG:data.proteinG,carbsG:data.carbsG,fatG:data.fatG,fiberG:data.fiberG},nutrientUnknowns:require('../services/nutrientCompleteness').computeUnknowns(calculated.nutrition,{calories:data.calories,proteinG:data.proteinG,carbsG:data.carbsG,fatG:data.fatG,fiberG:data.fiberG}),userEdited:edited,loggedSource:edited?'user-entered correction':'catalog calculation'};
+  } else data.nutritionSnapshot={loggedSource:'user-entered or external estimate',grams:data.quantityG,nutrientUnknowns:data.fiberG==null?['fiberG']:[]};
   if(b.nutritionProfileId&&b.ingredientId){
    if(typeof b.nutritionProfileId!=='string'||!/^[0-9a-f-]{36}$/i.test(b.nutritionProfileId))throw httpError(400,'Invalid nutrition profile');
    data.nutritionSnapshot.nutritionProfileId=b.nutritionProfileId;

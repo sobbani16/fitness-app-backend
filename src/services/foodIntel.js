@@ -130,7 +130,13 @@ async function resolveBarcode(barcode) {
   const product = await prisma.barcodeProduct.findUnique({ where: { barcode: code } });
   if (product) return { found: true, barcode: code, product, verified: product.source === 'catalog' };
   const ext = await fetchOpenFoodFacts(code);
-  if (ext) return { found: true, barcode: code, product: ext, verified: false, externalSource: 'openfoodfacts', dataQuality: 'community' };
+  if (ext) {
+    // Cache community-sourced rows so repeat scans are local and auditable;
+    // source 'openfoodfacts' keeps verified=false and preserves provenance.
+    const row = { barcode: code, name: ext.name, brand: ext.brand, servingSizeG: ext.servingSizeG, servingLabel: ext.servingLabel, nutrients: { ...ext.nutrients, packageQuantityG: ext.packageQuantityG, retrievedAt: new Date().toISOString() }, ingredients: ext.ingredients, allergens: ext.allergens, source: 'openfoodfacts' };
+    try { await prisma.barcodeProduct.upsert({ where: { barcode: code }, create: row, update: { name: row.name, brand: row.brand, servingSizeG: row.servingSizeG, servingLabel: row.servingLabel, nutrients: row.nutrients, ingredients: row.ingredients, allergens: row.allergens } }); } catch { /* cache miss is non-fatal */ }
+    return { found: true, barcode: code, product: ext, verified: false, externalSource: 'openfoodfacts', dataQuality: 'community' };
+  }
   return { found: false, barcode: code, nextStep: 'label_photo_or_manual' };
 }
 
@@ -142,15 +148,17 @@ async function fetchOpenFoodFacts(code) {
   if (!on || typeof fetch !== 'function') return null;
   try {
     const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 4000);
-    const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,serving_size,nutriments,ingredients_text,allergens_tags`, { signal: ctrl.signal, headers: { 'User-Agent': 'HumaiFitness/1.0 (contact: dev@humai.app)' } });
+    const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,serving_size,serving_quantity,product_quantity,nutriments,ingredients_text,allergens_tags`, { signal: ctrl.signal, headers: { 'User-Agent': 'HumaiFitness/1.0 (contact: dev@humai.app)' } });
     clearTimeout(t);
     if (!r.ok) return null;
     const j = await r.json();
     const p = j?.product; if (!p?.product_name) return null;
     const n = p.nutriments || {};
+    const servingG = Number(p.serving_quantity); // manufacturer-declared grams per serving
     return { barcode: code, name: String(p.product_name).slice(0, 200), brand: p.brands || null,
-      servingSizeG: null, servingLabel: p.serving_size || null,
-      nutrients: { calories: n['energy-kcal_serving'] ?? null, proteinG: n.proteins_serving ?? null, carbsG: n.carbohydrates_serving ?? null, fatG: n.fat_serving ?? null, sugarG: n.sugars_serving ?? null, sodiumMg: n.sodium_serving != null ? n.sodium_serving * 1000 : null },
+      servingSizeG: Number.isFinite(servingG) && servingG > 0 && servingG <= 5000 ? servingG : null,
+      servingLabel: p.serving_size || null, packageQuantityG: Number(p.product_quantity) || null,
+      nutrients: { calories: n['energy-kcal_serving'] ?? null, proteinG: n.proteins_serving ?? null, carbsG: n.carbohydrates_serving ?? null, fatG: n.fat_serving ?? null, fiberG: n.fiber_serving ?? null, sugarG: n.sugars_serving ?? null, sodiumMg: n.sodium_serving != null ? n.sodium_serving * 1000 : null },
       ingredients: p.ingredients_text || null, allergens: (p.allergens_tags || []).map(a => String(a).replace('en:', '')), source: 'openfoodfacts' };
   } catch { return null; }
 }
@@ -380,6 +388,7 @@ async function logScannedFood(userId, { productName, servingG, servingLabel, nut
     fatG: n.fatG ?? 0, fiberG: n.fiberG ?? null,
     mealType: String(mealType).slice(0, 30),
     nutritionSnapshot: { loggedSource: 'food-intel', barcode: barcode || null, perServing: n, reviewRecommended: !barcode,
+      nutrientUnknowns: require('./nutrientCompleteness').computeUnknowns(n),
       selectedServing: typeof servingLabel === 'string' && servingLabel.trim() ? servingLabel.slice(0, 200) : null,
       servingGrams: g, servingCount: 1 },
   } });

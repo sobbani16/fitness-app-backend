@@ -288,7 +288,7 @@ router.post('/commands/execute', wrap(async (req, res) => {
             quantityG: gramsUsed, calories: n.nutrition.calories ?? 0, proteinG: n.nutrition.proteinG ?? 0,
             carbsG: n.nutrition.carbsG ?? 0, fatG: n.nutrition.fatG ?? 0, fiberG: n.nutrition.fiberG ?? null,
             mealType: String(a.entities.mealType || 'meal').slice(0, 30), ingredientId: ing.id,
-            nutritionSnapshot: { loggedSource: 'voice', grams: gramsUsed, calculated: n.nutrition, ...(servingMeta || {}) },
+            nutritionSnapshot: { loggedSource: 'voice', grams: gramsUsed, calculated: n.nutrition, nutrientUnknowns: require('../services/nutrientCompleteness').computeUnknowns(n.nutrition), ...(servingMeta || {}) },
           } });
           created.push({ kind: 'foodLog', id: saved.id });
           results.push({ intent: a.intent, status: 'saved', detail: `${gramsUsed}g ${ing.name} → ${a.entities.mealType || 'meal'}` });
