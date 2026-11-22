@@ -8,6 +8,14 @@
 
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 const AQ_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
+// NWS alert feed — authoritative US government source (api.weather.gov).
+// Coverage: US states + territories only; the point query rejects
+// out-of-service-area coordinates, which maps cleanly to honest coverage.
+const NWS_ALERTS_URL = 'https://api.weather.gov/alerts/active';
+// Coarse US-ish bounding box — skips the call entirely for clearly
+// unsupported regions; points inside the box but outside the service
+// area are caught by the provider's 4xx.
+const NWS_BOX = { latMin: 14, latMax: 72, lonMin: -180, lonMax: -60 };
 const STALE_AFTER_MS = 90 * 60 * 1000; // >90 min old → unusable for decisions
 
 let _fetch = globalThis.fetch;
@@ -15,10 +23,32 @@ function setFetch(fn) { _fetch = fn; }
 const num = v => { const n = Number(v); return Number.isFinite(n) ? n : null; };
 const valid = (lat, lon) => Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
 
-async function fetchJson(url) {
-  const res = await _fetch(url);
-  if (!res.ok) throw new Error(`provider fetch failed: ${res.status}`);
+async function fetchJson(url, { headers } = {}) {
+  const res = await _fetch(url, { headers, signal: AbortSignal.timeout(5000) });
+  if (!res.ok) { const e = new Error(`provider fetch failed: ${res.status}`); e.status = res.status; throw e; }
   return res.json();
+}
+
+// Fetch NWS active alerts for a point. Returns:
+//   { status:'ok', alerts:[...] }          provider answered — coverage real
+//   { status:'unsupported', alerts:[] }    provider rejects out-of-area points
+//   { status:'unavailable', alerts:[] }    outage/timeout — alerts unknown
+async function fetchNwsAlerts(lat, lon, now = new Date()) {
+  const inBox = lat >= NWS_BOX.latMin && lat <= NWS_BOX.latMax && lon >= NWS_BOX.lonMin && lon <= NWS_BOX.lonMax;
+  if (!inBox) return { status: 'unsupported', alerts: [] };
+  try {
+    const data = await fetchJson(`${NWS_ALERTS_URL}?${new URLSearchParams({ point: `${lat},${lon}` })}`,
+      { headers: { 'User-Agent': 'humai-fitness-app (activity-safety; contact: dev@humai.app)', Accept: 'application/geo+json' } });
+    const t = now.getTime();
+    const alerts = (Array.isArray(data?.features) ? data.features : [])
+      .map(f => f?.properties || {})
+      .filter(p => p.event)
+      .filter(p => !p.expires || new Date(p.expires).getTime() > t)
+      .map(p => ({ event: String(p.event), severity: String(p.severity || 'Unknown'), effective: p.effective || null, expires: p.expires || null }));
+    return { status: 'ok', alerts };
+  } catch (err) {
+    return { status: err.status && err.status >= 400 && err.status < 500 ? 'unsupported' : 'unavailable', alerts: [] };
+  }
 }
 
 /**
@@ -37,10 +67,11 @@ async function fetchEnvironment(lat, lon) {
     hourly: 'temperature_2m,apparent_temperature,precipitation_probability,weather_code,uv_index',
     forecast_hours: '12',
   });
-  const [fc, aq] = await Promise.all([
+  const [fc, aq, nws] = await Promise.all([
     fetchJson(`${FORECAST_URL}?${fcParams}`),
     fetchJson(`${AQ_URL}?${new URLSearchParams({ latitude: lat, longitude: lon, current: 'us_aqi' })}`)
       .catch(() => null), // AQI outage never blocks weather
+    fetchNwsAlerts(lat, lon, now), // alert outage never blocks weather
   ]);
 
   const cur = fc && fc.current ? fc.current : {};
@@ -75,8 +106,14 @@ async function fetchEnvironment(lat, lon) {
     aqi: aq && aq.current && num(aq.current.us_aqi) != null
       ? { value: num(aq.current.us_aqi), source: 'open-meteo-air-quality' } : null,
     aqiAvailable: !!(aq && aq.current && num(aq.current.us_aqi) != null),
-    // Open-Meteo carries no NWS/government alert feed — honest unavailability.
-    alerts: [], alertsAvailable: false,
+    // NWS government alert feed (US + territories). `alertsAvailable` is true
+    // only when the provider actually answered for a covered point — outage or
+    // unsupported region both leave it false so the engine never implies
+    // "no alerts" from an absent field.
+    alerts: nws.alerts,
+    alertsAvailable: nws.status === 'ok',
+    alertsCoverage: nws.status === 'ok' ? 'nws-us' : nws.status, // 'nws-us'|'unsupported'|'unavailable'
+    alertsSource: 'api.weather.gov',
     forecast,
   };
   return obs;
