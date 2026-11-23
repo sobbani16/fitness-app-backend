@@ -247,6 +247,43 @@ const FEATURES = {
     endpoints: ['/supplements'],
     description: 'Supplement catalog + logging.',
   },
+  // Health-outcomes P0 — server-class, fail-closed, off by default.
+  health_conditions: {
+    clientKey: 'healthConditions',
+    class: 'server',
+    group: 'manual',
+    default: false,
+    failOpen: false,
+    endpoints: ['/me/health-conditions', '/health-conditions'],
+    description: 'User health-condition persistence (F-C1).',
+  },
+  user_medications: {
+    clientKey: 'userMedications',
+    class: 'server',
+    group: 'manual',
+    default: false,
+    failOpen: false,
+    endpoints: ['/me/medications'],
+    description: 'User medication records for recommendation safety (F-C3).',
+  },
+  clinical_measurements: {
+    clientKey: 'clinicalMeasurements',
+    class: 'server',
+    group: 'manual',
+    default: false,
+    failOpen: false,
+    endpoints: ['/me/clinical-measurements'],
+    description: 'Manual clinical/lab measurement tracking (F-C4).',
+  },
+  clinical_rule_admin: {
+    clientKey: 'clinicalRuleAdmin',
+    class: 'server',
+    group: 'manual',
+    default: false,
+    failOpen: false,
+    endpoints: ['/super-admin/clinical-rules'],
+    description: 'Clinical rule review/approval/activation governance workflow (F-C2).',
+  },
   // v2 platform — server-enforced, internal-test targeting until launch.
   health_score_v2: {
     clientKey: 'healthScoreNext', class: 'server', group: 'manual', default: false, failOpen: false,

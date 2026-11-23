@@ -62,7 +62,7 @@ async function generateMealRecommendation(userId, opts = {}) {
   const mealFat = Math.min(Math.round(dailyFat * split), remainingFat);
 
   // Generate food suggestions based on targets and context.
-  const foods = await generateFoodSuggestions({
+  const { foods, provenance } = await generateFoodSuggestions({
     mealType,
     caloriesTarget: mealCalories,
     proteinTarget: mealProtein,
@@ -141,6 +141,7 @@ async function generateMealRecommendation(userId, opts = {}) {
   return {
     id: recommendation.id,
     foodIntelligence,
+    provenance,
     mealType,
     caloriesTarget: mealCalories,
     proteinTarget: mealProtein,
@@ -169,19 +170,63 @@ function determineMealType(timeOfDay, mealCount) {
   return 'snack';
 }
 
-async function generateFoodSuggestions({ mealType, caloriesTarget, allergies }) {
+async function generateFoodSuggestions({ mealType, caloriesTarget, allergies, conditions }) {
   // Suggestions use the same reviewed recipes and central ingredient records as weekly planning.
   const db=getPrisma();
   const recipes=await require('../weekly/centralRecipes').resolveRecipes(await db.recipe.findMany({where:{isSystem:true,mealType},include:{ingredients:true}}),db);
   const {recipeAllowed}=require('../weekly/planningPolicy');
+  const {isRuleLive}=require('../healthOutcomes/clinicalRuleGovernance');
   const restrictions=[];
   const map={'Nut Allergy':'nut-free','Dairy Allergy':'dairy-free','Egg Allergy':'egg-free','Shellfish Allergy':'shellfish-free','Peanut Allergy':'peanut-free','Fish Allergy':'fish-free','Soy Allergy':'soy-free','Gluten Allergy':'gluten-free'};
-  for(const allergy of allergies || []){if(!map[allergy])return [];restrictions.push(map[allergy]);}
-  const candidate=recipes.filter(r=>recipeAllowed(r,[],restrictions)).sort((a,b)=>Math.abs(a.calories-caloriesTarget)-Math.abs(b.calories-caloriesTarget))[0];
-  if(!candidate)return [];
+  for(const allergy of allergies || []){if(!map[allergy])return {foods:[],provenance:{conditionsApplied:[],clinicalRulesEvaluated:0,excludedByConditions:0,unsupportedAllergies:true}};restrictions.push(map[allergy]);}
+
+  // Condition-aware filtering (F-R1 fix): the user's conditions must reach the
+  // engine. Only LIVE rules (APPROVED + activated, not retired/expired) may
+  // exclude foods — draft rules stay inert by design. When no live rules exist
+  // the suggestion is unchanged and the provenance says so honestly.
+  const conditionNames=[...new Set((conditions||[]).map(c=>String(c).trim()).filter(Boolean))];
+  const conditionRows=conditionNames.length
+    ? await db.healthCondition.findMany({where:{name:{in:conditionNames}},include:{conditionRules:{where:{reviewStatus:'APPROVED',activeAt:{not:null},retiredAt:null}}}})
+    : [];
+  const liveRules=[];
+  const unmappedConditions=conditionNames.filter(n=>!conditionRows.some(r=>r.name===n));
+  for(const c of conditionRows){for(const r of c.conditionRules){if(isRuleLive(r)&&r.target==='ingredient')liveRules.push({...r,conditionName:c.name});}}
+  const blockedAttrs=new Set(liveRules.filter(r=>r.action==='block').map(r=>r.attribute));
+  const warnAttrs=new Set(liveRules.filter(r=>r.action==='warn').map(r=>r.attribute));
+
+  let excludedByConditions=0;
+  const conditionNotes=[];
+  let eligible=recipes;
+  if(blockedAttrs.size||warnAttrs.size){
+    const ingIds=[...new Set(recipes.flatMap(r=>(r.ingredients||[]).map(i=>i.ingredientId).filter(Boolean)))];
+    const attrRows=ingIds.length?await db.ingredientAttribute.findMany({where:{ingredientId:{in:ingIds}}}):[];
+    const attrsByIng=new Map();
+    for(const a of attrRows){if(!attrsByIng.has(a.ingredientId))attrsByIng.set(a.ingredientId,new Set());attrsByIng.get(a.ingredientId).add(a.attribute);}
+    eligible=recipes.filter(r=>{
+      const hits=new Set(), warns=new Set();
+      for(const line of r.ingredients||[]){
+        const attrs=attrsByIng.get(line.ingredientId);if(!attrs)continue;
+        for(const a of attrs){if(blockedAttrs.has(a))hits.add(a);else if(warnAttrs.has(a))warns.add(a);}
+      }
+      if(hits.size){excludedByConditions++;return false;}
+      if(warns.size)conditionNotes.push({recipeId:r.id,warnAttributes:[...warns]});
+      return true;
+    });
+  }
+  const provenance={
+    conditionsApplied:conditionRows.map(c=>c.name),
+    unmappedConditions,
+    clinicalRulesEvaluated:liveRules.length,
+    blockedAttributes:[...blockedAttrs],
+    excludedByConditions,
+    conditionNotes,
+    insufficientData:conditionNames.length>0&&liveRules.length===0, // conditions present but no live rules — reported, not silently ignored
+  };
+  const candidate=eligible.filter(r=>recipeAllowed(r,[],restrictions)).sort((a,b)=>Math.abs(a.calories-caloriesTarget)-Math.abs(b.calories-caloriesTarget))[0];
+  if(!candidate)return {foods:[],provenance};
   const factor=Math.max(0.5,Math.min(2,caloriesTarget/candidate.calories));
   const meal=require('../weekly/weeklyDietGenerator').recipeToMeal(candidate,factor);
-  return [{name:meal.foodName,recipeId:candidate.id,portionG:meal.portionG,calories:meal.calories,proteinG:meal.proteinG,carbsG:meal.carbsG,fatG:meal.fatG,fiberG:meal.fiberG,nutritionSource:candidate.nutritionSource}];
+  return {foods:[{name:meal.foodName,recipeId:candidate.id,portionG:meal.portionG,calories:meal.calories,proteinG:meal.proteinG,carbsG:meal.carbsG,fatG:meal.fatG,fiberG:meal.fiberG,nutritionSource:candidate.nutritionSource}],provenance};
 }
 
 function generateReasoning(context, targets) {

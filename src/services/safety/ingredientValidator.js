@@ -2,6 +2,7 @@
 // Checks ingredients against a user's health conditions and returns violations.
 
 const { getPrisma } = require('../../lib/prisma');
+const { liveRuleWhere } = require('../healthOutcomes/clinicalRuleGovernance');
 
 /**
  * Validate a list of ingredients against a user's health conditions.
@@ -15,7 +16,7 @@ async function validateIngredients(userId, ingredients) {
   // Load user's active conditions.
   const userConditions = await prisma.userHealthCondition.findMany({
     where: { userId, active: true },
-    include: { condition: { include: { conditionRules: { where: { reviewStatus: 'APPROVED' } } } } },
+    include: { condition: { include: { conditionRules: { where: liveRuleWhere() } } } },
   });
 
   if (!userConditions.length) {

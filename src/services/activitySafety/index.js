@@ -18,7 +18,8 @@ const { loadSafetyContext } = require('./context');
 // Rules: only APPROVED rows fire for real users. includeDrafts is for
 // shadow-mode evaluation and tests — never the default.
 async function loadRules(prisma, { includeDrafts = false } = {}) {
-  const where = includeDrafts ? {} : { reviewStatus: 'APPROVED' };
+  const { liveRuleWhere } = require('../healthOutcomes/clinicalRuleGovernance');
+  const where = includeDrafts ? {} : liveRuleWhere();
   return prisma.activitySafetyRule.findMany({ where });
 }
 
