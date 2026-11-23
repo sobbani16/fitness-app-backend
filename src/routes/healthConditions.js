@@ -40,6 +40,17 @@ router.get('/catalog', async (req, res, next) => {
   try { res.json({ catalog: await R.catalog(getPrisma()), consentCopy: CONSENT_COPY }); } catch (e) { next(e); }
 });
 
+// GET /me/health-conditions/plan — the shared personalization resolution:
+// one coherent precedence-resolved plan over conditions + meds + allergies +
+// life-stage + rules. Status: RESOLVED | EDUCATION_ONLY | PERSONALIZATION_REQUIRED
+// | URGENT_ESCALATION. Never fabricates guidance when inputs are insufficient.
+router.get('/plan', async (req, res, next) => {
+  try {
+    const { resolvePlan } = require('../services/health/engine');
+    res.json({ plan: await resolvePlan(getPrisma(), uid(req), { purpose: String(req.query?.purpose || 'plan') }) });
+  } catch (e) { next(e); }
+});
+
 // POST /me/health-conditions — add a condition.
 // { slug | conditionId, source?, severity?, diagnosedAt?, notes?, consent: true }
 router.post('/', async (req, res, next) => {

@@ -277,6 +277,67 @@ describe('rule governance (F-C2)', () => {
   });
 });
 
+// ---------- multi-condition engine ----------
+describe('resolvePlan (Phase 7 engine)', () => {
+  const { resolvePlan } = require('../src/services/health/engine');
+  const enginePrisma = (extra = {}) => ({
+    ...mockPrisma,
+    user: { findUnique: jest.fn(async () => ({ id: 'ho-user', dateOfBirth: new Date('1990-01-01'), activityLevel: 'moderate', goalType: 'health' })) },
+    userActivityProfile: { findUnique: jest.fn(async () => null) },
+    userInjury: { findMany: jest.fn(async () => []) },
+    userSurgery: { findMany: jest.fn(async () => []) },
+    userActivityRestriction: { findMany: jest.fn(async () => []) },
+    userSymptomReport: { findMany: jest.fn(async ({ where } = {}) => extra.symptoms || []) },
+    userHealthCondition: mockPrisma.userHealthCondition,
+    userAllergy: { findMany: jest.fn(async () => extra.allergies || []) },
+    allergy: { findMany: jest.fn(async () => []) },
+    healthConditionNutrientRule: { findMany: jest.fn(async () => extra.nutrientRules || []) },
+    conditionRule: { findMany: jest.fn(async () => extra.conditionRules || []) },
+    activitySafetyRule: { findMany: jest.fn(async () => []) },
+    safetyAuditLog: { create: jest.fn(async ({ data }) => data) },
+    userClinicalReview: { create: jest.fn(async ({ data }) => data) },
+  });
+  test('no conditions → RESOLVED with empty condition list', async () => {
+    const plan = await resolvePlan(enginePrisma(), 'ho-user', { persist: false });
+    expect(plan.status).toBe('RESOLVED');
+    expect(plan.explainability.conditionsApplied).toEqual([]);
+  });
+  test('conditions without approved rules → EDUCATION_ONLY + missingData reports it', async () => {
+    store.conditions.push({ id: 'uc-x', userId: 'ho-user', conditionId: store.healthConditions[0].id, active: true });
+    const plan = await resolvePlan(enginePrisma(), 'ho-user', { persist: false });
+    expect(plan.status).toBe('EDUCATION_ONLY');
+    expect(plan.missingData.some(m => m.kind === 'no_approved_rules')).toBe(true);
+  });
+  test('urgent symptoms dominate — URGENT_ESCALATION', async () => {
+    const plan = await resolvePlan(enginePrisma({ symptoms: [{ id: 's1', severity: 'severe', reportedAt: new Date() }] }), 'ho-user', { persist: false });
+    expect(plan.status).toBe('URGENT_ESCALATION');
+  });
+  test('conflicting live rules → PERSONALIZATION_REQUIRED + review row', async () => {
+    store.conditions.push({ id: 'uc-x', userId: 'ho-user', conditionId: store.healthConditions[0].id, active: true });
+    const rules = [
+      { id: 'r1', healthConditionId: store.healthConditions[0].id, action: 'LIMIT', attribute: 'PROTEIN', reviewStatus: 'APPROVED', activeAt: new Date(), evidenceSourceId: 'e1' },
+      { id: 'r2', healthConditionId: store.healthConditions[0].id, action: 'PRIORITIZE', attribute: 'PROTEIN', reviewStatus: 'APPROVED', activeAt: new Date(), evidenceSourceId: 'e1' },
+    ];
+    let reviewCreated = null;
+    const p = enginePrisma({ nutrientRules: rules });
+    p.userClinicalReview = { create: jest.fn(async ({ data }) => { reviewCreated = data; return data; }) };
+    const plan = await resolvePlan(p, 'ho-user', { persist: false });
+    expect(plan.status).toBe('PERSONALIZATION_REQUIRED');
+    expect(reviewCreated?.reason).toBe('conflicting_conditions');
+  });
+  test('medication flags reach decisions; unclassified meds go to missingData', async () => {
+    store.medications.push({ id: 'um-1', userId: 'ho-user', nameText: 'insulin', medicationClass: 'insulin', active: true, lastConfirmedAt: new Date() });
+    const plan = await resolvePlan(enginePrisma(), 'ho-user', { persist: false });
+    expect(plan.decisions.some(d => d.kind === 'medication_flags')).toBe(true);
+  });
+  test('GET /me/health-conditions/plan returns the resolved plan', async () => {
+    const res = await request(app).get('/me/health-conditions/plan').set(auth(U));
+    expect(res.status).toBe(200);
+    expect(res.body.plan.policyVersion).toBe('health-engine/1.0.0');
+    expect(['RESOLVED', 'EDUCATION_ONLY', 'PERSONALIZATION_REQUIRED', 'URGENT_ESCALATION']).toContain(res.body.plan.status);
+  });
+});
+
 // ---------- F-R1 regression ----------
 describe('F-R1: conditions reach meal suggestions', () => {
   const { isRuleLive } = G;
