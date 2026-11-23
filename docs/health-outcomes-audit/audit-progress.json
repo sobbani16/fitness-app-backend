@@ -1,0 +1,51 @@
+{
+  "auditId": "HEALTH-OUTCOMES-AUDIT-2026-11-22",
+  "startedAt": "2026-11-22",
+  "lastCheckpoint": "2026-11-22T00:00:00Z",
+  "currentPhase": "PHASE_0_DISCOVERY",
+  "status": "IN_PROGRESS",
+  "repositories": {
+    "backend": {
+      "path": "/Users/sobbani/dev/fitness-app-backend",
+      "sha": "b75044abfd990c092413f930eec4e9163e75fbe2",
+      "branch": "feat/pose-coaching-impl (merged main)",
+      "dirty": false,
+      "node": "v20.20.2",
+      "database": "postgresql://localhost:5432/fitness_app (dev, read-only audit)"
+    },
+    "mobile": {
+      "path": "/Users/sobbani/dev/fitness-app-mobile",
+      "sha": "5cc183198d35a2e713d6b121945386ec958b5e02",
+      "dirty": false
+    }
+  },
+  "units": {
+    "AUD-00-WORKSPACE": {"status": "IN_PROGRESS", "description": "Audit workspace creation"},
+    "AUD-01-INVENTORY": {"status": "IN_PROGRESS", "description": "Repository inventory"},
+    "AUD-02-CAPABILITY": {"status": "NOT_STARTED", "description": "Capability matrix end-to-end traces"},
+    "AUD-03-CONDITIONS": {"status": "IN_PROGRESS", "description": "40-condition evidence matrix", "notes": "DB has 23 HealthCondition rows incl. allergies; ~14/40 target conditions present"},
+    "AUD-04-NUTRITION-DB": {"status": "IN_PROGRESS", "description": "Nutrition database audit"},
+    "AUD-05-RECIPE": {"status": "NOT_STARTED", "description": "Recipe safety audit"},
+    "AUD-06-EXERCISE": {"status": "NOT_STARTED", "description": "Exercise/activity audit"},
+    "AUD-07-CLINICAL-SAFETY": {"status": "NOT_STARTED", "description": "Clinical safety audit"},
+    "AUD-08-CONFLICTS": {"status": "NOT_STARTED", "description": "Multi-condition conflicts"},
+    "AUD-09-HEALTH-DATA": {"status": "NOT_STARTED", "description": "Health data/lab integration"},
+    "AUD-10-OUTCOMES": {"status": "NOT_STARTED", "description": "Outcomes and metrics"},
+    "AUD-11-SECURITY": {"status": "NOT_STARTED", "description": "Security/privacy/regulatory"},
+    "AUD-12-TESTS": {"status": "NOT_STARTED", "description": "Test coverage and gaps"},
+    "AUD-13-ARCH": {"status": "NOT_STARTED", "description": "Implementation architecture"},
+    "AUD-14-ROADMAP": {"status": "NOT_STARTED", "description": "Prioritized roadmap"},
+    "AUD-15-CRITICAL": {"status": "NOT_STARTED", "description": "Critical findings"},
+    "AUD-16-FINAL": {"status": "NOT_STARTED", "description": "Executive report"},
+    "AUD-17-EVIDENCE": {"status": "NOT_STARTED", "description": "Evidence source register"},
+    "AUD-18-DB-EVIDENCE": {"status": "IN_PROGRESS", "description": "Database query evidence"},
+    "AUD-19-GATES": {"status": "NOT_STARTED", "description": "Readiness gates"}
+  },
+  "lastCompletedAuditId": null,
+  "nextAction": "Continue DB audit (nutrient coverage, recipes, exercise safety), then code-path traces",
+  "unresolvedFindings": [
+    "23 HealthCondition rows vs 40 target conditions; allergies mixed into same table",
+    "All 34 ConditionRule rows are DRAFT; blanket attribute actions (HIGH_SUGAR block for T2D)",
+    "9 of 21 RuleEvidence rows are test fixtures"
+  ]
+}
