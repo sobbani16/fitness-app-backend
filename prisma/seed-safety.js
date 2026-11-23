@@ -172,7 +172,7 @@ const SUPPLEMENT_RULES = [
 const INGREDIENT_ATTRIBUTES = [
   // From existing seed data
   { fdcId: 'dummy-10', attributes: ['HIGH_FAT', 'NUT'] },            // Almonds
-  { fdcId: 'dummy-6', attributes: ['HIGH_PROTEIN', 'HIGH_MERCURY'] }, // Salmon (some types)
+  { fdcId: 'dummy-6', attributes: ['HIGH_PROTEIN'] }, // Salmon — FDA "Best Choices" low-mercury; HIGH_MERCURY removed (audit F-N)
   { fdcId: 'dummy-5', attributes: ['HIGH_PROTEIN', 'EGG'] },         // Eggs
   { fdcId: 'dummy-9', attributes: ['CONTAINS_GLUTEN'] },             // Oats (cross-contamination)
   { fdcId: 'dummy-4', attributes: ['HIGH_SUGAR', 'HIGH_GLYCEMIC'] }, // Banana

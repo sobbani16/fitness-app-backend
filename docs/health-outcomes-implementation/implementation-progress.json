@@ -1,0 +1,23 @@
+{
+  "implementationId": "HO-IMPL-2026-11-22",
+  "baseAudit": "HEALTH-OUTCOMES-AUDIT-2026-11-22",
+  "updatedAt": "2026-12-27",
+  "backendCommits": ["97c3ea3", "5a08b22"],
+  "mobileCommits": ["3fea6cc"],
+  "items": [
+    { "id": "P0-VERIFY", "scope": "repo state vs audit baseline", "status": "DONE", "result": "backend at audit commits +2 impl; mobile baseline +1 impl", "commit": "—" },
+    { "id": "P0-TRACKER", "scope": "implementation docs + progress", "status": "DONE", "commit": "pending-docs" },
+    { "id": "P2-COND-BE", "scope": "health-condition persistence API", "status": "DONE", "changedFiles": ["prisma/schema.prisma","prisma/migrations/20261227000000_health_outcomes_p0","src/routes/healthConditions.js","src/routes/healthConditionCatalog.js","src/services/healthOutcomes/conditionRegistry.js","scripts/seed-condition-registry.js","src/config/featureRegistry.js","src/routes/index.js"], "tests": "healthOutcomes.test.js (conditions lifecycle/idempotence/isolation) — pass", "commit": "97c3ea3", "rollback": "flag off + drop migration additions", "next": "clinical rule approval" },
+    { "id": "P2-COND-MOB", "scope": "HealthConditionsScreen + nav + flag", "status": "DONE", "changedFiles": ["src/api/healthConditions.ts","src/screens/HealthConditionsScreen.tsx","src/navigation/RootNavigator.tsx","src/config/featureKeys.ts","src/screens/SummaryScreen.tsx"], "tests": "tsc --noEmit, eslint — clean", "commit": "3fea6cc" },
+    { "id": "P3-MED", "scope": "medication model + safety framework + API + mobile", "status": "DONE", "changedFiles": ["prisma/schema.prisma","src/services/healthOutcomes/medicationCatalog.js","src/routes/medications.js","src/api/medications.ts","src/screens/MedicationsScreen.tsx"], "tests": "classification/unclassified/staleness/isolation/deactivation — pass", "commit": "97c3ea3 + 3fea6cc", "blockers": ["no licensed drug reference — class coverage limited to curated set"] },
+    { "id": "P4-MEAS", "scope": "clinical measurement model + API + mobile", "status": "DONE", "changedFiles": ["prisma/schema.prisma","src/services/healthOutcomes/measurementRegistry.js","src/routes/clinicalMeasurements.js","src/api/clinicalMeasurements.ts","src/screens/MeasurementsScreen.tsx"], "tests": "validation/provenance/correction/isolation — pass", "commit": "97c3ea3 + 3fea6cc", "blockers": ["device/lab import not implemented"] },
+    { "id": "P5-NUTR", "scope": "nutrition remediation", "status": "DONE", "changedFiles": ["src/services/safety/mealRecommendationService.js","src/services/safety/ingredientValidator.js","scripts/recipe-nutrition-audit.js","prisma/seed-safety.js"], "tests": "drift script before/after (16 drifted → 0), F-R1 regression test — pass", "commit": "97c3ea3 + pending", "result": "16 recipes repaired w/ provenance; salmon HIGH_MERCURY removed; 12 recipes blocked on unresolved ingredient lines" },
+    { "id": "P6-GOV", "scope": "clinical rule governance", "status": "DONE", "changedFiles": ["src/services/healthOutcomes/clinicalRuleGovernance.js","src/routes/clinicalRules.js","src/config/rbac.js","6 consumer files → liveRuleWhere"], "tests": "lifecycle/invalid transitions/live-gating — pass", "commit": "97c3ea3", "blockers": ["no qualified clinical reviewer — zero rules approved/activated"] },
+    { "id": "P7-ENGINE", "scope": "multi-condition resolver", "status": "DONE", "changedFiles": ["src/services/health/engine.js","src/routes/healthConditions.js","tests/healthOutcomes.test.js"], "tests": "6 engine tests — pass", "commit": "5a08b22" },
+    { "id": "P8-JOURNEY", "scope": "90-day outcome journeys", "status": "PARTIAL", "result": "measurement+provenance foundation only; journey orchestration deferred to P1", "blockers": ["clinical interpretation rules required"] },
+    { "id": "P10-PRIV", "scope": "deletion/export for new tables", "status": "DONE", "changedFiles": ["src/services/accountData.js","tests/integration/account.integration.js (shared classification)"], "tests": "new models classified; ~30 pre-existing stale models documented", "commit": "97c3ea3" },
+    { "id": "P11-TESTS", "scope": "full matrix", "status": "DONE", "result": "backend 5,989 pass (1 fixture-fixed), mobile tsc+eslint+8 flag tests clean, prisma validate pass" },
+    { "id": "P12-STAGE", "scope": "staging validation", "status": "BLOCKED", "blockers": ["no staging environment credentials"] },
+    { "id": "P14-REPORT", "scope": "final report", "status": "DONE", "commit": "pending-docs" }
+  ]
+}

@@ -144,15 +144,18 @@ describe('GET /meal-suggest', () => {
     const condition = await prisma.healthCondition.upsert({ where: { name: `${S} Diabetes test` }, update: {}, create: { name: `${S} Diabetes test` } });
     // APPROVED requires the full evidence trail (DB check constraint):
     // RuleEvidence + clinicalAction + reviewer identity/timestamp.
+    // Since the governance phase, approval alone is not enough — live rules
+    // also need activation (activeAt) under an unexpired window.
     const ev = await prisma.ruleEvidence.upsert({
       where: { code: `${S}-EV` },
       update: {},
       create: { code: `${S}-EV`, organization: 'Test Fixture', guidelineTitle: 'Fixture guideline', sourceUrl: 'https://example.org/fixture', lastReviewedAt: new Date(), evidenceNotes: 'Test fixture — not real evidence.' },
     });
+    const activated = { reviewStatus: 'APPROVED', clinicalAction: 'AVOID_IF_INDICATED', reviewedBy: 'fixture', reviewedAt: new Date(), evidenceSourceId: ev.id, activeAt: new Date(), activatedBy: 'fixture' };
     await prisma.conditionRule.upsert({
       where: { conditionId_attribute_target: { conditionId: condition.id, attribute: `${S}_HIGH_SUGAR`, target: 'ingredient' } },
-      update: { reviewStatus: 'APPROVED', clinicalAction: 'AVOID_IF_INDICATED', reviewedBy: 'fixture', reviewedAt: new Date(), evidenceSourceId: ev.id },
-      create: { conditionId: condition.id, attribute: `${S}_HIGH_SUGAR`, target: 'ingredient', action: 'block', reason: 'test block', reviewStatus: 'APPROVED', clinicalAction: 'AVOID_IF_INDICATED', reviewedBy: 'fixture', reviewedAt: new Date(), evidenceSourceId: ev.id },
+      update: activated,
+      create: { conditionId: condition.id, attribute: `${S}_HIGH_SUGAR`, target: 'ingredient', action: 'block', reason: 'test block', ...activated },
     });
     // Unreviewed rules must be inert: a DRAFT block on a second attribute
     // must NOT exclude anything.
