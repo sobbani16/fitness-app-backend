@@ -1,0 +1,53 @@
+name: security
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  secrets:
+    name: secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+  deps:
+    name: dependency audit (npm)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Fails on new high/critical vulns in production dependencies.
+      # Known-advisory allowlist is reviewed in docs/security-audit/.
+      - run: npm audit --omit=dev --audit-level=high
+
+  config-guards:
+    name: fail-closed config guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: dev-secret fallbacks must only appear inside requiredSecret() calls
+        run: |
+          # Any dev-secret literal outside a requiredSecret() call = raw fallback → fail.
+          ! grep -rn "dev-view-as-secret\|dev-video-secret\|dev-doc-secret\|dev-formcheck-secret" \
+            src/ --include='*.js' | grep -v "requiredSecret("
+          # The payment mock secret is dev-only and must stay behind the
+          # isProduction() gate inside payments/provider.js.
+          ! grep -rn "'mock-secret'\|\"mock-secret\"" src/ --include='*.js' | grep -v "services/payments/provider.js"
+      - name: payment webhook route has a dedicated rate limiter
+        run: grep -q "rateLimit" src/routes/paymentWebhooks.js
+      - name: provider binding check present
+        run: grep -q "verifyEventMatchesPurchase\|provider mismatch" src/services/trainerCommerceService.js
