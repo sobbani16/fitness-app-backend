@@ -100,9 +100,22 @@ Method column key: **inspect** = code reading · **service** = direct call into 
 
 **Correction to earlier expectation**: one boundary probe initially expected 25 g for a DOB that was actually age 51 on the run date; corrected inputs show age 50 → 25 g and age 51 → 21 g — the engine's `>50` cutoff is correct, not off-by-one.
 
-### F-4 — Macro score conflates unknown fiber with zero AND scores against the wrong target (needs fixing)
-`macroScoreService.calculateScore` sums `l.fiberG || 0` (line ~193) — a log with unmeasured fiber contributes `0` as if confirmed — then scores that sum against `goals.fiberTarget` (raw stored 30, not the resolved 31). On the synthetic day it produced `score:27, status:'low', tip:'24g below fiber target'` while the fiber engine on the same data reports confirmed 6.5 g + partial coverage + target 31. This is the same class of defect as NUTR-004-era zero-vs-zero conflation, on a scoring surface.
+### F-4 — Macro score conflates unknown/estimated fiber AND scores against the wrong target (needs fixing)
+`macroScoreService.calculateScore` sums `l.fiberG || 0` (line ~193) — a log with unmeasured fiber contributes `0` as if confirmed, and an estimate-sourced log contributes its value as if confirmed — then scores that sum against `goals.fiberTarget` (raw stored 30, not the resolved 31). On the 3-log synthetic day it produced `score:27, status:'low', tip:'24g below fiber target'`; with a 4th estimated log it reports `actual:11.5` while the fiber engine on the same data reports confirmed 6.5 g + estimated 5 g separately + unknown 1 + partial coverage + target 31. This is the same class of defect as the NUTR-004-era zero-vs-unknown conflation, on a scoring surface.
 *Smallest fix*: sum only `fiberStateOf(log)==='confirmed'` values (reuse `unknownsFor`/snapshot unknowns), attach a coverage marker to the breakdown, and resolve the fiber target via `resolveFiberTarget` — a read-path change, no schema or clinical-rule change. Any scoring change needs a data-quality validation step: recompute a fixture day with known/unknown/zero logs before and after and diff `breakdown.fiber`.
+
+## Retained deterministic validation (increment 3)
+
+The earlier ad-hoc script is now a retained artifact: **`tests/fiberValidation.test.js`** (21 checks, `npx jest tests/fiberValidation.test.js --runInBand`, exit 0). It exercises production code paths only — `ingredientNutrition.calculate`, `dailyFiber`, `resolveFiberTarget`, `getGoals`, `calculateScore` — against the disposable test DB with `n3v3`-scoped fixtures (deleted in `afterAll`; residue verified 0 across users/logs/servings/goals/recommendations). Age fixtures are computed relative to run time (`dob(years)`), eliminating the prior 50/51 fixture error.
+
+Scope of the verified claims — read the rows above with this split:
+- **Verified at service/unit level** (real code path + disposable DB): per-100g math, serving conversion, zero-vs-null-vs-estimated distinction **in the fiber engine path**, daily split/rounding, suggestion threshold, target boundaries, guard rails, F-1/F-4 defect reproduction.
+- **Verified at HTTP level in increment 1** (live server, test auth bypass, disposable DB): `/fiber/target`, `/fiber/daily`, `/food-logs`, `/macro-score/goals` responses.
+- **NOT verified**: device/app e2e; catalog fiber accuracy beyond probed rows; production-flag behavior (flags are dev/test-gated); any non-fiber engine path. The zero-vs-unknown guarantee does **not** extend to `macroScoreService` (F-4) — no blanket claim is made.
+
+New check coverage beyond the original 28: estimated-source log (`estimatedG=5`, excluded from confirmed), suggestion threshold at nominal-exact 4 g — **observed float edge**: `10.45−6.45 = 3.999…` → the nominal-at case behaves as "below" (no suggestions); strictly-above (4.01) fires. Documented boundary quirk, not a defect.
+
+**Defect tracking**: F-1/F-4 have no issue-tracker reference found in the repo — **routing unconfirmed**; they are recorded only here. `FIBER_RESTRICTION_PATTERNS` and all target rules remain **heuristics pending clinical decision #57** (needs_human clinical review) — no clinical authority is claimed.
 
 ## What remains
 
