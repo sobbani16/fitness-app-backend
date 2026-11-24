@@ -79,9 +79,36 @@ NODE_ENV=test AUTH_TEST_BYPASS=true \
 #    Cross-surface: GET /macro-score/goals → fiberTarget 30
 ```
 
+## Independent re-verification (increment 2)
+
+Method column key: **inspect** = code reading · **service** = direct call into the real calculation path on the disposable DB · **pure** = pure-function call, no DB · **live-API** = earlier HTTP run · **real-data** = existing catalog rows (USDA copies), not synthetic values.
+
+| Check | Method | Evidence |
+|---|---|---|
+| `fiberPer100g × grams/100` = 6.45 @150 g | service (`ingredientNutrition.calculate`, real-data ingredient `8f6a…f235`) | 6.45 exact |
+| Serving conversion | service (labeled `n3v` `IngredientServing` 30 g ×2 → 60 g) | 60 g, fiber 2.58 exact; fixture deleted after |
+| Zero vs null | service on real-data rows: `fiberPer100g=0`→`0`; `null`→`null` + `nutrientUnknowns['fiberG']` | distinguishes correctly |
+| Negative / NaN fiber, negative grams | pure (`scale`/`quantity`) | 400 "Invalid nutrient fiberG" / "Invalid quantity in grams" — rejected before write |
+| Daily split + rounding | service (`dailyFiber`, 3 synthetic logs on synthetic account) | confirmed 6.5, unknown 1, remaining 24.6, partial |
+| Suggestion threshold boundary | service — custom target 10 vs 11 (gap 3.55 vs 4.55, `GAP_SUGGESTION_THRESHOLD_G=4`) | 0 vs ≥1 suggestions, exact boundary |
+| Target formula/age/sex boundaries | pure (`resolveFiberTarget`) | 2200 kcal→31; custom 28; 18F→26; 19→formula; 50F→25, 51F→21 (`>50` cutoff verified both sides); pregnancy→28; clinician→stored |
+| Restriction trigger + boundary | pure | "IBD"/"Gastroparesis"→`restricted_reference` 14 g + reviewRequired; misspelled "gastroparisis"→**not caught** (falls through to formula) — concrete F-3 boundary |
+| `/macro-score/goals` fiber target | service (`getGoals`) | returns raw stored 30 vs engine 31 — F-1 confirmed below HTTP layer |
+| Macro-score fiber intake | service (`calculateScore` + inspect `macroScoreService.js:193`) | `acc.fiberG += l.fiberG \|\| 0` — NULL scored as measured 0; `breakdown.fiber={actual:6.5,target:30,score:27,status:'low',tip:'24g below fiber target…'}` — no coverage signal — **F-4** |
+| Mobile strip semantics | inspect `todaySummary.ts:6-9` + jest `todaySummary.test.ts`, `FiberCards.test.js` (23 pass) | `sumKnown`→null on any unknown → `—`; card shows confirmed+coverage |
+| Device e2e | — | **still not verified** — needs build+device against a flagged-on backend |
+
+**Correction to earlier expectation**: one boundary probe initially expected 25 g for a DOB that was actually age 51 on the run date; corrected inputs show age 50 → 25 g and age 51 → 21 g — the engine's `>50` cutoff is correct, not off-by-one.
+
+### F-4 — Macro score conflates unknown fiber with zero AND scores against the wrong target (needs fixing)
+`macroScoreService.calculateScore` sums `l.fiberG || 0` (line ~193) — a log with unmeasured fiber contributes `0` as if confirmed — then scores that sum against `goals.fiberTarget` (raw stored 30, not the resolved 31). On the synthetic day it produced `score:27, status:'low', tip:'24g below fiber target'` while the fiber engine on the same data reports confirmed 6.5 g + partial coverage + target 31. This is the same class of defect as NUTR-004-era zero-vs-zero conflation, on a scoring surface.
+*Smallest fix*: sum only `fiberStateOf(log)==='confirmed'` values (reuse `unknownsFor`/snapshot unknowns), attach a coverage marker to the breakdown, and resolve the fiber target via `resolveFiberTarget` — a read-path change, no schema or clinical-rule change. Any scoring change needs a data-quality validation step: recompute a fixture day with known/unknown/zero logs before and after and diff `breakdown.fiber`.
+
 ## What remains
 
 - **Device/e2e pass** — not performed; needs a matching build + device against a flagged-on backend.
 - F-1 fix decision + implementation (read-path resolution).
-- Clinical ratification of `FIBER_RESTRICTION_PATTERNS` (F-3).
+- F-4 fix (macro-score fiber conflation) — implementation tracked separately; any scoring change needs the data-quality validation step above.
+- Clinical ratification of `FIBER_RESTRICTION_PATTERNS` (F-3) — heuristic name-matching; any claim of clinical authority needs a human clinical review decision.
 - The 18-ingredient micro-profile coverage gap (pc-HUM-4 NUTR-001) means most catalog fiber values come from the flat `fiberPer100g` column, not verified nutrient profiles — a data-coverage limitation, not a logic bug.
+- Serving coverage in the disposable DB was thin (no `IngredientServing` rows on the test items) — serving conversion verified via a labeled fixture, not catalog data.
