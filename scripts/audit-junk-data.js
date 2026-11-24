@@ -62,6 +62,39 @@ async function sweep(table,finder,children){
     await p.ingredientNutritionProfile.deleteMany({where:{ingredientId:{in:ids}}});
     await p.ingredient.deleteMany({where:{id:{in:ids}}}).catch(e=>act('ingredient:impossible-blocked',ids.length,e.code||e.message));
   }
+  // 5b. RuleEvidence test residue — 'Test Fixture' org rows leak when a test
+  // teardown aborts mid-way (ms*-EV codes). Rows still referenced by a live
+  // ConditionRule (Restrict FK) are report-only — deleting them needs the
+  // referencing rule removed first, which is a governance decision.
+  const evResidue=await p.ruleEvidence.findMany({where:{organization:'Test Fixture'},select:{id:true,code:true}});
+  const evIds=evResidue.map(r=>r.id);
+  const evRefs=evIds.length?await p.conditionRule.findMany({where:{evidenceSourceId:{in:evIds}},select:{evidenceSourceId:true}}):[];
+  const referenced=new Set(evRefs.map(r=>r.evidenceSourceId));
+  const orphaned=evResidue.filter(r=>!referenced.has(r.id));
+  act('ruleEvidence:test-residue-delete',orphaned.map(r=>r.id),{codes:orphaned.map(r=>r.code),referencedSkipped:referenced.size});
+  if(apply&&orphaned.length)await p.ruleEvidence.deleteMany({where:{id:{in:orphaned.map(r=>r.id)}}}).catch(e=>act('ruleEvidence:delete-blocked',orphaned.length,e.code||e.message));
+  // 5c. test-fixture ingredients — `source='test-fixture'` is the explicit
+  // fixture marker (creators predate the ms* convention; no committed code
+  // currently writes it). Rows with user/catalog references are ambiguous —
+  // deleting them changes someone else's data, so they are report-only.
+  // Only unreferenced rows are safe to remove.
+  const fixIngs=await p.ingredient.findMany({where:{source:'test-fixture'},select:{id:true,name:true}});
+  const fixIds=fixIngs.map(i=>i.id);
+  const [fixUser,fixRec,fixLog,fixSrv,fixAttr,fixProf]=await Promise.all([
+    p.userIngredient.findMany({where:{ingredientId:{in:fixIds}},select:{ingredientId:true}}),
+    p.recipeIngredient.findMany({where:{ingredientId:{in:fixIds}},select:{ingredientId:true}}),
+    p.foodLog.findMany({where:{ingredientId:{in:fixIds}},select:{ingredientId:true}}),
+    p.ingredientServing.findMany({where:{ingredientId:{in:fixIds}},select:{ingredientId:true}}),
+    p.ingredientAttribute.findMany({where:{ingredientId:{in:fixIds}},select:{ingredientId:true}}),
+    p.ingredientNutritionProfile.findMany({where:{ingredientId:{in:fixIds}},select:{ingredientId:true}}),
+  ]);
+  const fixRefCount={};for(const r of [...fixUser,...fixRec,...fixLog,...fixSrv,...fixAttr,...fixProf])fixRefCount[r.ingredientId]=(fixRefCount[r.ingredientId]||0)+1;
+  const fixOrphan=fixIngs.filter(i=>!fixRefCount[i.id]);
+  const fixReferenced=fixIngs.filter(i=>fixRefCount[i.id]);
+  act('ingredient:test-fixture-delete',fixOrphan.map(i=>i.id),{names:fixOrphan.map(i=>i.name),referencedSkipped:fixReferenced.map(i=>`${i.name}(${fixRefCount[i.id]} refs)`)});
+  if(apply&&fixOrphan.length)await p.ingredient.deleteMany({where:{id:{in:fixOrphan.map(i=>i.id)}}}).catch(e=>act('ingredient:test-fixture-blocked',fixOrphan.length,e.code||e.message));
+  report.reportOnly.testFixtureReferenced=fixReferenced.map(i=>({id:i.id,name:i.name,refs:fixRefCount[i.id]}));
+
   // 6. Case-variant dup reference rows (e.g. peanut / Peanuts) — merge into
   // the lower-case-canonical survivor after repointing user links.
   for(const [table,link,linkField] of [['allergy','userAllergies','allergyId'],['healthCondition','userConditions','conditionId']]){

@@ -95,9 +95,14 @@ Units:
 
 ### NUTR-004 — Test-fixture pollution in shared reference tables
 - Area: catalog · Severity: medium · Type: data-only
-- Summary: 10 `Ingredient` rows `source='test-fixture'` (9× "BREAD") visible to searches; 9/21 `RuleEvidence` rows are `Test Fixture` org — pollutes the clinical evidence registry.
-- Evidence: prior audit F-N5; `ingredient.count` breakdown (10 test-fixture confirmed).
-- Suggested next step: quarantine/remove test fixtures from shared tables (data-only cleanup; move fixtures to a test DB or `archived` status).
+- Summary: 10 `Ingredient` rows `source='test-fixture'` (9× "BREAD" created in a ~70 ms burst on 2026-10-30, plus `humai-test-rice-ing`); 9/21 `RuleEvidence` rows are `Test Fixture` org with `ms<base36>-EV` codes from `tests/mealSuggest.test.js` runs on 2026-11-21.
+- Root cause (evidence rows): the `mealSuggest` `afterAll` ran its deletes sequentially — one throw (or an interrupted run) aborted every later step, and `ruleEvidence` cleanup ran last. All 9 residue rows are orphaned (0 referencing `ConditionRule`s).
+- Root cause (ingredients): `source='test-fixture'` is an explicit fixture marker, but no committed code currently writes it — the BREAD/rice rows predate the `ms*` run-prefix convention; creator is unidentifiable from committed history.
+- Evidence: read-only dev-DB query — fixture ingredients have live references (9 `UserIngredient` links, 1 `RecipeIngredient`, 1 `FoodLog`); evidence rows have none. `scripts/audit-junk-data.js` had `ms*`-name coverage but none for these classes.
+- **Recurrence prevention (done, worktree `humai/dev-03-pc-HUM-4-nutr004-fixtures`)**: `tests/mealSuggest.test.js` `afterAll` rewritten — every delete is an independent, failure-tolerant step; dependents delete before parents; `ruleEvidence` runs early; failures are logged not swallowed. `tests/mealSuggestResidue.test.js` (sorts after `mealSuggest.test.js`) asserts zero `ms*`/fixture rows — verified by two consecutive runs on the disposable `fitness_test` DB (15/15 pass, residue 0, control catalog ingredient + evidence + user link untouched).
+- **Demonstrated repair path (disposable DB only)**: `scripts/audit-junk-data.js` extended — deletes `organization='Test Fixture'` evidence only when unreferenced by any `ConditionRule` (id-scoped, not pattern), and `source='test-fixture'` ingredients only when unreferenced (all FK edges checked); referenced rows go to `reportOnly.testFixtureReferenced`. Dry-run + `--apply` on `fitness_test` deleted synthetic orphans and preserved referenced/controls.
+- **Outstanding shared-DB cleanup**: existing dev-DB residue was NOT modified — the 10 fixture ingredients carry live user/catalog references (deleting them changes real data → needs product owner decision on repoint or archive); the 9 orphaned evidence rows are unambiguous and could be removed by a future approved run of `audit-junk-data.js --apply` on the shared DB.
+- Suggested next step: (a) approve `audit-junk-data.js --apply` on shared DB for orphaned evidence; (b) decide repoint-vs-archive for referenced fixture ingredients with the data owner; (c) audit other DB-writing suites for non-resilient teardowns.
 
 ### NUTR-005 — `verificationLevel` flag doesn't reflect actual verification
 - Area: catalog · Severity: low-medium · Type: data-only
