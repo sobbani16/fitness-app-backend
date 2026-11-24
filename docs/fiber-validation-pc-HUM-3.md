@@ -176,3 +176,23 @@ Scenario (posted via `POST /food-logs` as the device user, payload shape per app
 Rendered copy matched the engine DTO verbatim (confirmed, estimated suffix, unknown-count sentence, gap suggestions, "food-first options" explanation). No restriction-review banner for this no-condition profile (control). Restriction/suggestion behavior observed remains heuristic implementation behavior pending clinical decision #57 — not clinically endorsed.
 
 Cleanup: 4 `n3v5-*` food logs deleted (0 `n3v*` residue); no `FiberDailyRecommendation` rows persisted by the session; backend process stopped; shared flags untouched.
+
+## Increment 6 — Add-meal UI calculation boundary (device, 2026-11-24)
+
+Same environment as increment 5 (backend @ `aeebb6d`+`48bacb9` on `:4000`/`fitness_app`, iPhone 17 Pro sim, dev client, Metro serving mobile @ `1e4cc27`, `fl-device-verify@syn.local`, flags via process env only). UI automation retained in `maestro/fiber-pchum3-addmeal.yaml`.
+
+**Client-echo contract (characterized, not a defect verdict):** `POST /food-logs` persists the client-sent `fiberG` into the column (`nutritionSnapshot.saved`) while the server computes `nutritionSnapshot.calculated`. Mismatch probe (isolated `n3v6-*` row): sent `fiberG:1.0` for lentils 150 g → server stored saved **1.0** vs calc **11.85**, marked `userEdited:true`/`loggedSource:'user-entered correction'` — disagreement is *flagged* but the client value wins and counts toward `confirmedG`. Small echo drift (UI display rounding 16.1 vs calc 16.05) is likewise silently accepted.
+
+| Case (UI-driven) | Expected | Server stored | Verdict |
+|---|---|---|---|
+| Brown lentils (dry), serving "1 tablespoon (12 g)" × **12.5** | 10.7×1.5 = 16.05 confirmed | `quantityG` 150, saved `fiberG` **16.1** (UI display rounding), calc 16.05, serving "1 tablespoon" ×12.5 | correct — serving path + quantity change recompute verified on screen (1→12.5 servings updated fiber 1.3→16.1) |
+| Milk, low-fat, "1 cup (246 g)" | 0 confirmed-zero | `fiberG` **0** saved=calc, serving "1 cup" | correct — measured zero stays a real 0 |
+| GLUCOSE TABLETS, GRAPE, "0.2 ONZ (4.5 g)" | fiber null → unknown | **never reached server** — `POST /food-logs 400 "Invalid serving"` | **defect F-5** |
+
+**F-5 (confirmed defect, new):** catalog ingredients whose servings are label-derived placeholders (`/ingredients/search` returns `{"id":"label-serving","label":"0.2 ONZ","grams":4.5,"estimated":true}`) cannot be logged via the UI. The app sends `servingId:"label-serving"`; `ingredientNutrition.calculate` matches only real `IngredientServing` rows → throws `400 "Invalid serving"`. The meal stays in the device outbox as a retryable sync issue — the user sees only "Saved on this device · Server sync runs when connected." Reproduced via isolated probe POST (same payload shape → identical 400). Consequence observed: glucose entry visible on device ("7 meals") while `/fiber/daily` showed `mealsLogged:3, completeness:"complete", unknownMeals:0` — an unknown-fiber entry silently invisible server-side. Smallest fix direction: resolve `label-serving` (or accept `selectedServing` label + grams) server-side, or make the client send weight units for placeholder servings. Affects all `label-serving` items, not just fiber-unknown foods.
+
+**Fiber field in the form:** explicit `0` rendered for measured-zero; blank + "Unknown if blank" for missing — the UI distinguishes zero from unknown correctly. Blank → client omits `fiber_g` → sync sends `fiberG:null` (correct contract); the glucose failure is the serving path, not fiber handling.
+
+**Coverage limits:** manual entry was exercised via API in increment 5 (estimated classification verified); the UI Manual tile path was not driven this run. Restriction-warning UI remains unobserved (no-condition profile). Serving-unit picker exercised via real catalog servings (12 g tbsp, 246 g cup, 4.5 g label); fractional serving counts verified (12.5×). Device local store retains this run's saved entries even after server-side cleanup (offline-first: server delete ≠ device forget; noted, not cleared — app data dir wasn't touched).
+
+**Cleanup:** 3 server rows deleted (lentils `…mszy6a`, milk `…c1vhni`, probe `n3v6-probe-mismatch`); `n3v6-probe-serving` was rejected → no row. Residue 0.
