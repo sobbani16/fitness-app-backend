@@ -39,7 +39,7 @@ bound the wrong endpoint. Fixed; clears all 25 pre-existing TS errors. Build gre
 
 | Advisory | Package | Resolution |
 |---|---|---|
-| GHSA-g3hv-75wg-m249 | minimatch | override `^11.0.1` — resolved |
+| GHSA-g3hv-75wg-m249 | minimatch | **RISK-ACCEPTED** — see below |
 | GHSA-w3rx/5p2g (CVE-2025-71330/29, high) + 8 more | image-size 1.2.1 | **RISK-ACCEPTED** — see below |
 | glob/xcode via @expo/* (moderate ×13) | expo toolchain | build-time only; resolved via Expo SDK upgrade track |
 
@@ -50,6 +50,23 @@ Exploitability: bundler-only DoS requiring a malicious image asset inside the
 repo — CI-controlled input, never shipped to devices. Resolution path: metro
 0.87 drops image-size entirely → resolves organically with the next Expo SDK /
 RN 0.87 upgrade (breaking, separate project). 673/673 tests + typecheck green.
+
+**minimatch risk acceptance (revised 2026-11-24):** the blanket `^11.0.1`
+override was REVERTED — it forced minimatch 11 onto `glob@7` consumers
+(RN codegen `generateSchemaInfos`, jest, rimraf) whose declared range is
+`^3.1.1`, breaking `glob.sync` → `pod install` Codegen crash
+(`TypeError: Cannot read properties of undefined (reading 'charAt')`,
+verified reproduced locally and on EAS build 3734c6c4). Advisory range
+7.0.0–11.0.0: `glob@7` chains now correctly resolve minimatch `3.1.5`
+(below range); residual `10.2.6` instances (glob@13, @expo/fingerprint,
+test-exclude) are bundler/SDK-tooling only — the globparts-amplification
+DoS needs attacker-controlled glob patterns, which these tools never
+receive. Also fixed in the same pass: `"expo": "$expo"` override pins the
+`peer expo:"*"` inside expo's bundled subtree to SDK 54 — npm had
+re-resolved it to expo@57, dragging expo-modules-core@57 +
+react-native-worklets@0.10.4 (RN ≥0.83) into the tree. Verified:
+`npm ci` → `.bin/expo` linked; `generate-codegen-artifacts` + `pod
+install` (110 pods) complete locally.
 
 ## Admin — RESOLVED (0 vulnerabilities)
 
@@ -64,5 +81,5 @@ minimatch). Build + typecheck green.
 |---|---|---|---|
 | backend | **0** | 2 moderate (docs-only, gated) | `node scripts/audit-gate.js` → 0 unexpected |
 | web | **0** | **0** | `npm audit` clean |
-| mobile | 1 (image-size, build-time, risk-accepted) | 14 | review record above |
+| mobile | 1 high (image-size) + minimatch chain — build-time, risk-accepted | 33 | review record above |
 | admin | **0** | **0** | `npm audit` clean |
