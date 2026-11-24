@@ -156,3 +156,23 @@ Read-only audit of the **dev catalog** (`fitness_app`, `Ingredient` table) — r
 - Clinical ratification of `FIBER_RESTRICTION_PATTERNS` (F-3) — heuristic name-matching; any claim of clinical authority needs a human clinical review decision.
 - The 18-ingredient micro-profile coverage gap (pc-HUM-4 NUTR-001) means most catalog fiber values come from the flat `fiberPer100g` column, not verified nutrient profiles — a data-coverage limitation, not a logic bug.
 - Serving coverage in the disposable DB was thin (no `IngredientServing` rows on the test items) — serving conversion verified via a labeled fixture, not catalog data.
+
+## Increment 5 — HTTP→rendered-app validation (device run, 2026-11-24)
+
+Environment: backend `humai/dev-03-pc-HUM-3-fiber-validation` @ `aeebb6d` run locally on `:4000` (NODE_ENV=development, `DATABASE_URL=fitness_app` dev DB, `FF_FIBER_INTELLIGENCE_ENABLED/FF_FIBER_DAILY_GOAL_ENABLED/FF_FIBER_MEAL_SEQUENCING_ENABLED/FF_SUPPLEMENTS=true` env overrides — local process only, no shared flag changes). Device: iPhone 17 Pro simulator (iOS 26.4, booted) with dev-client `com.sobbani.fitnessappmobile`; JS bundle served by Metro from the mobile checkout @ `1e4cc27` (worktree HEAD identical; serving checkout carried unrelated uncommitted weather-file edits — no fiber-file changes). Account: dedicated device-fixture user `fl-device-verify@syn.local` (macroGoal 2662 kcal / stored fiberTarget 30 / basis null; no conditions). Automation: `maestro/fiber-pchum3-verify.yaml` (mobile worktree, retained).
+
+Scenario (posted via `POST /food-logs` as the device user, payload shape per app contract — client-echoed `fiberG` is what persists; server math lands in `nutritionSnapshot.calculated`):
+
+| Case | Expected | Observed (API) | Observed (screen) | Verdict |
+|---|---|---|---|---|
+| Lentils cooked 7.9 g/100g × 150 g | 11.85 confirmed | `fiberG` 11.85 saved+calculated | — | correct |
+| Milk 1% 0 g/100g × 250 g | 0 confirmed-zero | `fiberG` 0 | — | correct |
+| Glucose tabs null × 30 g | null → unknown | `fiberG` null + `nutrientUnknowns:['fiberG']` | "1 logged item has no fiber data — actual intake may be higher." | correct |
+| Manual estimated entry 5 g | 5 estimated (excluded from confirmed) | engine `estimatedG` 5 | "~5 g estimated" | correct |
+| Mixed day | confirmed 11.9 / target 37 (14 g/1k kcal × 2662) / remaining 25.2 / partial | `/fiber/daily` exactly: 11.9 / 37 / 25.2 / `partial` / unknownMeals 1 | "11.9 g confirmed · ~5 g estimated", "Target 37 g · 25.2 g to go", "Close the gap with food" (remaining >4 g) | correct |
+| F-1 on screen | tile target ≠ card target | `/macro-score/goals` fiberTarget **30** vs `/fiber/target` **37** | macro tile "Target 30 g" directly above card "Target 37 g" — same frame (`docs/pc-HUM-3-evidence/*.png`) | **F-1 confirmed reaching the UI** |
+| F-4 on screen | conflated actual + wrong target | `/macro-score` `fiber.actual` **16.9** (11.85 + estimated 5 + null→0) vs `target` **30**, "13g below fiber target" | "Health score 44 · Provisional" tile reflects conflated score | **F-4 confirmed reaching the UI** |
+
+Rendered copy matched the engine DTO verbatim (confirmed, estimated suffix, unknown-count sentence, gap suggestions, "food-first options" explanation). No restriction-review banner for this no-condition profile (control). Restriction/suggestion behavior observed remains heuristic implementation behavior pending clinical decision #57 — not clinically endorsed.
+
+Cleanup: 4 `n3v5-*` food logs deleted (0 `n3v*` residue); no `FiberDailyRecommendation` rows persisted by the session; backend process stopped; shared flags untouched.
