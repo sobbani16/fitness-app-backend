@@ -136,10 +136,34 @@ correctness proof):**
 `suitable`) when equipment is required but unprovided — the F1 repro above
 supplies equipment so baseline vs token are compared at full information.
 
-## 6. Remaining for runtime/clinical verification
+## 6. Guidance inventory & provenance (increment 3 — all user-facing instruction sources)
+
+| Source | Count | Provenance / review status | Consumer & exposure path | Safety-constraint effect on presentation |
+|---|---|---|---|---|
+| Curated catalog `exerciseCatalog.js` | 27 exercises | authored in-repo, `CATALOG_VERSION` v1 | plans/picker via `personalPlans` + `workoutPlanner` | **constrained**: non-`suitable` excluded from plans; picker downgraded to `review` |
+| Big library `data/exercises.json` → `Exercise.instructions` | **876 rows**; 871 with instructions, **5 empty** | vendored `free-exercise-db` public dataset (`source:'free-exercise-db'` on every row; `exercise-metadata-patch.json` provenance-tracked overrides only). **No clinical/content review field exists** | `GET /exercises/library/search` + `/library/:id` + `/library/:id/alternatives` → mobile `MuscleExplorerScreen` (shows first 4 steps, line ~290) + `getLibraryAlternatives` | **none**: no `requireFeature`, no `safetyGate`, no suitability check on browse/detail/alternatives; `MuscleExplorer` Stack.Screen is ungated. A member whose record contraindicates a movement can read its instructions and see muscle-similar alternatives — browse is informational, but nothing marks it constrained (extends F6) |
+| Posture rule labels `posture.ts` | 12 labels across 7 exercises | in-repo, **no review field** | overlay flag + `assessment.message`; **also spoken via TTS fallback** (F4) | none — labels are cue text |
+| `COACHING_CUES` | 5 entries, all `review:'pending'` | internal placeholder per file header | banner iff `poseFormCoaching`; never spoken | cooldown + `safeToDisplay` + flag |
+| Curated-27 static how-to | **none in-app** — no instructions field | — | `LogExerciseScreen` offers only external YouTube "proper form" search | n/a — guidance is off-platform and unreviewed by definition |
+| form-check trainer feedback | per-request | trainer-authored, consented | `/form-checks/*` signed-URL flow | `clientSafetyNotice` on request creation |
+
+**Library scan results (876 rows, programmatic):** 0 duplicate names/IDs; instruction step counts 0–24, avg 4.3. Empty: `Iron Cross`, `One-Arm Kettlebell Swings`, `Push Press`, `Side Bridge`, `Side Jackknife`. Thin (<15-char steps, possible stub text): `Band Hip Adductions`, `Barbell Squat To A Bench`, `Body-Up`, `Clean`, `Close-Grip EZ-Bar Press`, `EZ-Bar Skullcrusher`, `On-Your-Back Quad Stretch` — `Clean` is a complex barbell lift with stub instructions; flag for content review. Equipment-text quirks (body-only/blank metadata but text names equipment — likely props or apparatus references, **review candidates not defects**): 9 rows incl. `Incline Push-Up *` variants ("machine" = smith surface), `Hamstring Stretch`/`Seated Calf Stretch` (band prop), `Inverted Row`, `Natural Glute Ham Raise`, `Close-Grip Push-Up off of a Dumbbell`, `One-Arm` entries. No name↔instruction mismatches demonstrable mechanically; no phase field exists in the dataset so "phase-inappropriate" is N/A for static text.
+
+## 7. Clinical-review packet (exact items requiring qualified human review before publication claims)
+
+1. **Rep-complete cue texts** — `squat.depth.shallow`, `squat.torso.lean`, `squat.asymmetry`, `squat.tempo.fast`, `view.unsuitable` (verbatim in `coachingLibrary.ts`). Exposure: banner under `poseFormCoaching` (currently off).
+2. **Posture labels (12)** — e.g. `'Sit deeper — aim for thighs near parallel'`, `'Chest up — keep your back straight'`, `'Neutral spine — chest up, hinge at the hips'`, `'Pull until your chin clears the bar'`, `'Press to full lockout overhead'`, `'"Keep a straight line — don't let hips sag"'` (verbatim in `posture.ts`). Exposure: overlay + **TTS fallback today (F4)** — these are spoken NOW when voice is on and status is `needs_correction`/`pass`; the pass-status message `'No issue detected in the movements this camera can assess.'` is also spoken.
+3. **Angle thresholds** — rep counters (12 configs: downBelow/upAbove per exercise in `repCounter.ts` e.g. squat 100/160° knee, pull-up 150/80° elbow inverted, glute-bridge 150/118° hip inverted); form rules (`DEPTH_MARGINAL_DEG 95`, `TORSO_LEAN_DEG 40`, `ASYMMETRY_DEG 25`, `TEMPO_FAST_MS 900`); posture ranges (e.g. squat depth 70–120° phase-gated `down`). Exposure: rep counts + corrections for 11 camera exercises; all `provisional`, none device-validated.
+4. **Suitability reason strings** — user-facing `'adapt'`/`'review'` copy in `exerciseSuitability.js` (e.g. "may not suit reported …"); F1 means `'back'`-token members see no such warning on trunk-load exercises.
+5. **Big-library instruction text** — unreviewed third-party content at ungated exposure; 5 empty + 7 thin + 9 equipment-quirk rows enumerated above.
+6. **F1 remediation decision** — `'back'` limitation handling (map to LIMITATION_BLOCKS vs route to blockedCategories) is a clinical-policy call on which trunk-loading movements a reported back issue should adapt vs exclude; **any implementation must ship with a test asserting `deriveLimitations(lower_back injury) → classify(deadlift) ≠ 'suitable'`** (contraindication excluded) and a test that an unknown/unmapped token cannot yield `suitable` silently.
+
+Cross-reference: F1–F6 (§4) — F1 confirmed new vs `activity-safety-rule-*` docs (zero token coverage) and E-1…E-6 (catalog-shape, different layer); ownership is this task until a remediation increment is scoped. HF-prefixed nutrition findings do not overlap.
+
+## 8. Remaining for runtime/clinical verification
 
 - On-device behavior of every 'provisional' capability (`validationStatus` ≠ validated for all — nothing claims device validation).
-- Cue text + angle thresholds (DEPTH_MARGINAL 95°, TORSO_LEAN 40°, ASYMMETRY 25°, tempo 900ms; posture ranges) require **qualified review** per `coachingLibrary.ts`'s own pending-review contract — this audit verified plumbing and direction, not clinical correctness.
+- Every cue text/angle threshold listed in §7 — qualified review required per `coachingLibrary.ts`'s own pending-review contract; this audit verified plumbing and direction, not clinical correctness.
 - Whether F1's `'back'` gap is offset clinically by prohibited-category recording practice — needs review of real restriction data.
+- Per-row human review of 871 instruction sets (mechanical scan found no demonstrable name↔text mismatch; semantic correctness unreviewed).
 - `formRules.ts` comment for `DEPTH_MARGINAL_DEG` describes the band backwards ("100° < min ≤ threshold" vs actual (95,100]) — cosmetic doc nit.
-- Big-library `instructions[]` text provenance/review status unverified this pass.
