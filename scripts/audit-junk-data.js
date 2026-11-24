@@ -2,9 +2,12 @@ require('dotenv').config({quiet:true});
 // Junk-data audit + cleanup. Dry-run by default; --apply writes.
 // --report <file> writes a JSON report (default junk-data-report.json).
 // Scope: test-residue `ms*` rows in Ingredient/Allergy/HealthCondition,
-// dummy-* fdcIds, impossible kcal/100g, case-variant dup reference rows.
+// dummy-* fdcIds, impossible kcal/100g, case-variant dup reference rows,
+// verified 'Test Fixture' RuleEvidence orphans (org + ms*-EV code + fixture
+// notes — all three required).
 // Report-only: normalizedName dupes, zero-kcal rows, @test.dev users,
-// `ms*` recipes — merging/deleting those needs product review.
+// `ms*` recipes, source='test-fixture' ingredients, unverified/referenced
+// 'Test Fixture' evidence — deleting those needs product/data-owner review.
 const fs=require('node:fs'),path=require('node:path');
 const {getPrisma}=require('../src/lib/prisma');
 const args=process.argv.slice(2),value=f=>{const i=args.indexOf(f);return i<0?null:args[i+1];};
@@ -62,22 +65,32 @@ async function sweep(table,finder,children){
     await p.ingredientNutritionProfile.deleteMany({where:{ingredientId:{in:ids}}});
     await p.ingredient.deleteMany({where:{id:{in:ids}}}).catch(e=>act('ingredient:impossible-blocked',ids.length,e.code||e.message));
   }
-  // 5b. RuleEvidence test residue — 'Test Fixture' org rows leak when a test
-  // teardown aborts mid-way (ms*-EV codes). Rows still referenced by a live
-  // ConditionRule (Restrict FK) are report-only — deleting them needs the
-  // referencing rule removed first, which is a governance decision.
-  const evResidue=await p.ruleEvidence.findMany({where:{organization:'Test Fixture'},select:{id:true,code:true}});
+  // 5b. RuleEvidence test residue — 'Test Fixture' org rows can leak when a
+  // test teardown aborts mid-way. Automatic deletion requires ALL THREE
+  // ownership signals — the org label alone is a display string, not proof:
+  //   1. organization === 'Test Fixture'
+  //   2. code matches the run-scoped ms<base36>-EV prefix a test generates
+  //   3. evidenceNotes contains the 'Test fixture' disclaimer the creator writes
+  // Any 'Test Fixture' row missing a signal has unverifiable ownership →
+  // report-only. Referenced rows (ConditionRule.evidenceSourceId, Restrict
+  // FK) are report-only too — removal is a governance decision.
+  const EV_OWNED=/^ms[a-z0-9]{5,}-EV$/i;
+  const evResidue=await p.ruleEvidence.findMany({where:{organization:'Test Fixture'},select:{id:true,code:true,evidenceNotes:true}});
   const evIds=evResidue.map(r=>r.id);
   const evRefs=evIds.length?await p.conditionRule.findMany({where:{evidenceSourceId:{in:evIds}},select:{evidenceSourceId:true}}):[];
   const referenced=new Set(evRefs.map(r=>r.evidenceSourceId));
-  const orphaned=evResidue.filter(r=>!referenced.has(r.id));
-  act('ruleEvidence:test-residue-delete',orphaned.map(r=>r.id),{codes:orphaned.map(r=>r.code),referencedSkipped:referenced.size});
+  const owned=r=>EV_OWNED.test(r.code)&&/test fixture/i.test(r.evidenceNotes||'');
+  const orphaned=evResidue.filter(r=>owned(r)&&!referenced.has(r.id));
+  act('ruleEvidence:test-residue-delete',orphaned.map(r=>r.id),{codes:orphaned.map(r=>r.code)});
   if(apply&&orphaned.length)await p.ruleEvidence.deleteMany({where:{id:{in:orphaned.map(r=>r.id)}}}).catch(e=>act('ruleEvidence:delete-blocked',orphaned.length,e.code||e.message));
-  // 5c. test-fixture ingredients — `source='test-fixture'` is the explicit
-  // fixture marker (creators predate the ms* convention; no committed code
-  // currently writes it). Rows with user/catalog references are ambiguous —
-  // deleting them changes someone else's data, so they are report-only.
-  // Only unreferenced rows are safe to remove.
+  report.reportOnly.testFixtureEvidenceUnverified=evResidue.filter(r=>!owned(r)).map(r=>({id:r.id,code:r.code,referenced:referenced.has(r.id)}));
+  report.reportOnly.testFixtureEvidenceReferenced=evResidue.filter(r=>referenced.has(r.id)).map(r=>({id:r.id,code:r.code}));
+  // 5c. test-fixture ingredients — REPORT-ONLY. `source='test-fixture'` marks
+  // intent, but no committed code writes it and the historical rows' creator
+  // is unknown — the marker cannot prove this row is test residue, and even
+  // an unreferenced row may be a legitimate catalog entry someone tagged.
+  // Absence of references is not ownership evidence; report refs so a data
+  // owner can decide per-row.
   const fixIngs=await p.ingredient.findMany({where:{source:'test-fixture'},select:{id:true,name:true}});
   const fixIds=fixIngs.map(i=>i.id);
   const [fixUser,fixRec,fixLog,fixSrv,fixAttr,fixProf]=await Promise.all([
@@ -89,11 +102,7 @@ async function sweep(table,finder,children){
     p.ingredientNutritionProfile.findMany({where:{ingredientId:{in:fixIds}},select:{ingredientId:true}}),
   ]);
   const fixRefCount={};for(const r of [...fixUser,...fixRec,...fixLog,...fixSrv,...fixAttr,...fixProf])fixRefCount[r.ingredientId]=(fixRefCount[r.ingredientId]||0)+1;
-  const fixOrphan=fixIngs.filter(i=>!fixRefCount[i.id]);
-  const fixReferenced=fixIngs.filter(i=>fixRefCount[i.id]);
-  act('ingredient:test-fixture-delete',fixOrphan.map(i=>i.id),{names:fixOrphan.map(i=>i.name),referencedSkipped:fixReferenced.map(i=>`${i.name}(${fixRefCount[i.id]} refs)`)});
-  if(apply&&fixOrphan.length)await p.ingredient.deleteMany({where:{id:{in:fixOrphan.map(i=>i.id)}}}).catch(e=>act('ingredient:test-fixture-blocked',fixOrphan.length,e.code||e.message));
-  report.reportOnly.testFixtureReferenced=fixReferenced.map(i=>({id:i.id,name:i.name,refs:fixRefCount[i.id]}));
+  report.reportOnly.testFixtureIngredients=fixIngs.map(i=>({id:i.id,name:i.name,refs:fixRefCount[i.id]||0}));
 
   // 6. Case-variant dup reference rows (e.g. peanut / Peanuts) — merge into
   // the lower-case-canonical survivor after repointing user links.

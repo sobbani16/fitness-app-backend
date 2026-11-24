@@ -38,9 +38,10 @@ beforeAll(async () => {
 afterAll(async () => {
   // Fixture cleanup — the shared dev DB keeps rows between runs otherwise.
   // Every step is independent and failure-tolerant: one failing delete must
-  // not strand the rest of this run's rows (previously the first throw
-  // aborted the whole teardown — that is how 'Test Fixture' RuleEvidence
-  // rows leaked into the shared database).
+  // not strand the rest of this run's rows. The original teardown ran every
+  // delete sequentially, so a single throw aborted all later steps — a
+  // plausible mechanism for the 'Test Fixture' RuleEvidence residue found in
+  // the shared database (NUTR-004).
   const failures = [];
   const step = async (name, fn) => { try { await fn(); } catch (e) { failures.push(`${name}: ${e.code || e.message}`); } };
 
