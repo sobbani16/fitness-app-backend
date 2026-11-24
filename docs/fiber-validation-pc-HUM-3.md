@@ -117,6 +117,37 @@ New check coverage beyond the original 28: estimated-source log (`estimatedG=5`,
 
 **Defect tracking**: F-1/F-4 have no issue-tracker reference found in the repo — **routing unconfirmed**; they are recorded only here. `FIBER_RESTRICTION_PATTERNS` and all target rules remain **heuristics pending clinical decision #57** (needs_human clinical review) — no clinical authority is claimed.
 
+## Catalog provenance audit (increment 4)
+
+Read-only audit of the **dev catalog** (`fitness_app`, `Ingredient` table) — real imported dataset, not synthetic. Retained artifact: **`scripts/audit-fiber-data.js`** (read-only by construction; `node scripts/audit-fiber-data.js`). Fixtures (`source='test-fixture'`/'test' or `ms*`-prefixed) are excluded from all counts and labeled separately — the 10 NUTR-004 fixture rows remain ambiguous-ownership residue, not catalog data.
+
+**Dataset**: 426 rows total → **416 catalog rows** audited (10 fixtures excluded). Provenance fields: `fdcId`, `sourceMetadata.nutrients[]` (full USDA nutrient array on 187 rows), `IngredientCatalog.sourceRecord` + `verificationLevel` + `importBatch` (228 rows), `IngredientServing.grams/estimated`.
+
+**Census (n=416)**: `fiberPer100g` null **20** (4.8%) · zero **89** · positive **307** · negative **0** · non-finite **0**. Sources (all 426): usda 178, humai-catalog 228, seed 10, test-fixture 10 (excluded) → audited catalog = usda 178 + humai-catalog 228 + seed 10 = 416.
+
+**Review flags** (flags only, never corrections): `fiberPer100g>100` — none; `fiber>carbs` — none; serving grams ≤0 or >2000 — none; `fiber>50` — **2**, both verified against their own provenance as genuine dense dry goods: Cinnamon powder 53 (import record 53, `GENERIC_COMPOSITION` — unverified level) and Spices, curry powder 53.2 (USDA nutrient 1079 = 53.2 exactly, fdcId 170924).
+
+**Sample evidence (12 rows, stratified; tolerance ±0.05 g/100g for documented ≤2dp import rounding)**:
+
+| Stored | Source value | Basis / ref | Name | Verdict |
+|---|---|---|---|---|
+| 0.2 | 0.2 | USDA 1079 G/100g · fdcId 2708958 FNDDS | Adobo, with rice | matches source |
+| 1.2 | 1.2 | USDA 1079 · fdcId 2706797 FNDDS | Almond chicken | matches source |
+| 10 | 10 | USDA 1079 · fdcId 590906 Branded | PANEER BUTTER MASALA | matches source |
+| 10.6 | 10.6 | USDA 1079 · fdcId 168911 SR Legacy | Spaghetti, spinach, dry | matches source |
+| 0 | 0 | USDA 1079 · fdcId 173417 SR Legacy | Cheese, cottage, lowfat | matches source |
+| 0 | 0 | USDA 1079 · fdcId 2705740 FNDDS | Cheese, paneer | matches source |
+| null | — | no provenance extractable | GLUCOSE | unverifiable |
+| 12.5 | 12.5 | import record · expansion-v1 | Almonds, raw | internally consistent |
+| 2.1 | 2.1 | import record · expansion-v1 | Amaranth leaves thotakura | internally consistent |
+| 0 | 0 | import record · expansion-v1 | Bacon, pan-fried | internally consistent |
+| 2.6 | — | `sourceMetadata:null`, no fdcId | Banana (seed) | unverifiable |
+| 1.8 | — | `sourceMetadata:null`, no fdcId | Brown rice, cooked (seed) | unverifiable |
+
+**Result**: 6/12 match embedded authoritative source records exactly; 3/12 internally consistent with their import record (source accuracy itself unverified — `GENERIC_COMPOSITION` level); 3/12 unverifiable (no provenance: 1 USDA null-fiber row, 2 seed rows). **0 confirmed discrepancies in the sample.**
+
+**Scope limits**: conclusions cover only the 416 catalog rows and this 12-row sample on this dev dataset — no claim on catalog-wide accuracy, production data, or fixture rows. Seed-source rows (10) carry no provenance → their fiber values are unverifiable by construction. Unit/serving-basis issues (mL-vs-g, serving coverage) belong to DEV-02/pc-HUM-5 scope — flagged here, not touched.
+
 ## What remains
 
 - **Device/e2e pass** — not performed; needs a matching build + device against a flagged-on backend.
