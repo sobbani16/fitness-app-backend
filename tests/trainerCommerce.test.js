@@ -149,30 +149,32 @@ describe('package CRUD authorization', () => {
   });
 });
 
+function mockCheckoutFlow(pkg, purchaseId = 'pur-1') {
+  const purchase = {
+    id: purchaseId, clientId: 'client-1', packageId: pkg.id, providerRef: 'mock_co_key-1',
+    provider: 'mock',
+    status: 'pending', amountCents: pkg.priceCents, currency: 'usd', package: pkg,
+  };
+  let existingCheckDone = false;
+  mockPrisma.trainerCoachingPackage.findUnique.mockResolvedValue(pkg);
+  mockPrisma.trainerPurchase.findUnique.mockImplementation(async ({ where, include }) => {
+    // createPurchase's idempotency probe is the only lookup without include.
+    if (where.providerRef === 'mock_co_key-1' && !include) {
+      if (!existingCheckDone) { existingCheckDone = true; return null; }
+      return purchase;
+    }
+    if (where.providerRef === 'mock_co_key-1' || where.id === purchaseId) return purchase;
+    return null;
+  });
+  mockPrisma.trainerPurchase.create.mockImplementation(async ({ data }) => ({ id: purchaseId, ...data }));
+  mockPrisma.trainerPurchase.update.mockImplementation(async ({ data }) => ({ id: purchaseId, ...data }));
+  mockPrisma.trainerPaymentTransaction.create.mockResolvedValue({});
+  mockPrisma.trainerEntitlement.create.mockImplementation(async ({ data }) => ({ id: 'ent-1', ...data }));
+  mockPrisma.trainerSubscription.create.mockImplementation(async ({ data }) => ({ id: 'sub-1', ...data }));
+}
+
 // ---------------------------------------------------------------------------
 describe('checkout -> webhook -> entitlement', () => {
-  function mockCheckoutFlow(pkg, purchaseId = 'pur-1') {
-    const purchase = {
-      id: purchaseId, clientId: 'client-1', packageId: pkg.id, providerRef: 'mock_co_key-1',
-      status: 'pending', amountCents: pkg.priceCents, currency: 'usd', package: pkg,
-    };
-    let existingCheckDone = false;
-    mockPrisma.trainerCoachingPackage.findUnique.mockResolvedValue(pkg);
-    mockPrisma.trainerPurchase.findUnique.mockImplementation(async ({ where, include }) => {
-      // createPurchase's idempotency probe is the only lookup without include.
-      if (where.providerRef === 'mock_co_key-1' && !include) {
-        if (!existingCheckDone) { existingCheckDone = true; return null; }
-        return purchase;
-      }
-      if (where.providerRef === 'mock_co_key-1' || where.id === purchaseId) return purchase;
-      return null;
-    });
-    mockPrisma.trainerPurchase.create.mockImplementation(async ({ data }) => ({ id: purchaseId, ...data }));
-    mockPrisma.trainerPurchase.update.mockImplementation(async ({ data }) => ({ id: purchaseId, ...data }));
-    mockPrisma.trainerPaymentTransaction.create.mockResolvedValue({});
-    mockPrisma.trainerEntitlement.create.mockImplementation(async ({ data }) => ({ id: 'ent-1', ...data }));
-    mockPrisma.trainerSubscription.create.mockImplementation(async ({ data }) => ({ id: 'sub-1', ...data }));
-  }
 
   it('checkout creates a pending purchase; webhook activates the entitlement', async () => {
     mockRoles('client-1', ['MEMBER']);
@@ -200,7 +202,7 @@ describe('checkout -> webhook -> entitlement', () => {
     mockRoles('client-1', ['MEMBER']);
     mockCheckoutFlow(SESSION_PACK);
     const { event, headers } = provider.issueEvent('payment.succeeded', {
-      id: 'evt-dup', purchaseId: 'pur-1', providerRef: 'mock_co_key-1', amountCents: 5000,
+      id: 'evt-dup', purchaseId: 'pur-1', providerRef: 'mock_co_key-1', amountCents: 5000, currency: 'usd',
     });
     expect((await postWebhook(event, headers['x-mock-signature'])).status).toBe(200);
     // Replay: providerEventId unique constraint hits -> duplicate ack.
@@ -216,7 +218,7 @@ describe('checkout -> webhook -> entitlement', () => {
     mockRoles('client-1', ['MEMBER']);
     mockCheckoutFlow(SUBSCRIPTION_PKG, 'pur-2');
     const { event, headers } = provider.issueEvent('payment.succeeded', {
-      id: 'evt-sub', purchaseId: 'pur-2', providerRef: 'mock_co_key-1', amountCents: 9900,
+      id: 'evt-sub', purchaseId: 'pur-2', providerRef: 'mock_co_key-1', amountCents: 9900, currency: 'usd',
     });
     const res = await postWebhook(event, headers['x-mock-signature']);
     expect(res.status).toBe(200);
@@ -233,7 +235,7 @@ describe('checkout -> webhook -> entitlement', () => {
     const oneTime = { ...SESSION_PACK, id: 'pkg-3', kind: 'one_time', sessionCount: null };
     mockCheckoutFlow(oneTime, 'pur-3');
     const { event, headers } = provider.issueEvent('payment.succeeded', {
-      id: 'evt-one', purchaseId: 'pur-3', providerRef: 'mock_co_key-1', amountCents: 5000,
+      id: 'evt-one', purchaseId: 'pur-3', providerRef: 'mock_co_key-1', amountCents: 5000, currency: 'usd',
     });
     await postWebhook(event, headers['x-mock-signature']);
     expect(mockPrisma.trainerEntitlement.create).toHaveBeenCalledWith({
@@ -270,6 +272,51 @@ describe('webhook verification', () => {
   it('rejects an unknown provider with 400', async () => {
     const res = await request(app).post('/webhooks/payments/stripe').send({ id: 'e', type: 'x' });
     expect(res.status).toBe(400);
+  });
+
+  it('rejects a signed payment.succeeded whose amount does not match the purchase', async () => {
+    mockRoles('client-1', ['MEMBER']);
+    mockCheckoutFlow(SESSION_PACK);
+    const { event, headers } = provider.issueEvent('payment.succeeded', {
+      id: 'evt-und', purchaseId: 'pur-1', providerRef: 'mock_co_key-1', amountCents: 1, currency: 'usd',
+    });
+    const res = await postWebhook(event, headers['x-mock-signature']);
+    expect(res.status).toBe(400);
+    expect(mockPrisma.trainerEntitlement.create).not.toHaveBeenCalled();
+    expect(mockPrisma.trainerPurchase.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects a signed payment.succeeded whose currency does not match the purchase', async () => {
+    mockRoles('client-1', ['MEMBER']);
+    mockCheckoutFlow(SESSION_PACK);
+    const { event, headers } = provider.issueEvent('payment.succeeded', {
+      id: 'evt-cur', purchaseId: 'pur-1', providerRef: 'mock_co_key-1', amountCents: 5000, currency: 'inr',
+    });
+    const res = await postWebhook(event, headers['x-mock-signature']);
+    expect(res.status).toBe(400);
+    expect(mockPrisma.trainerEntitlement.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a signed payment.succeeded missing amount/currency', async () => {
+    mockRoles('client-1', ['MEMBER']);
+    mockCheckoutFlow(SESSION_PACK);
+    const { event, headers } = provider.issueEvent('payment.succeeded', {
+      id: 'evt-none', purchaseId: 'pur-1', providerRef: 'mock_co_key-1',
+    });
+    const res = await postWebhook(event, headers['x-mock-signature']);
+    expect(res.status).toBe(400);
+    expect(mockPrisma.trainerEntitlement.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a signed refund exceeding the purchase total', async () => {
+    mockRoles('client-1', ['MEMBER']);
+    mockCheckoutFlow(SESSION_PACK);
+    const { event, headers } = provider.issueEvent('payment.refunded', {
+      id: 'evt-rfx', purchaseId: 'pur-1', providerRef: 'mock_co_key-1', amountCents: 999999, currency: 'usd',
+    });
+    const res = await postWebhook(event, headers['x-mock-signature']);
+    expect(res.status).toBe(400);
+    expect(mockPrisma.trainerRefund.create).not.toHaveBeenCalled();
   });
 });
 

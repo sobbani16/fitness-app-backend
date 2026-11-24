@@ -8,8 +8,10 @@ const { classify } = require('../services/exerciseSuitability');
 const { EXERCISES } = require('../services/exerciseCatalog');
 const { safetyGate, exerciseCategories } = require('../services/activitySafety/gate');
 
+// Identity comes from the authenticated session only (authenticate rewrites
+// x-user-id). Never accept a body-supplied userId as the caller's identity.
 function getUserId(req) {
-  return (req.headers['x-user-id'] || req.body?.userId || '').toString().trim();
+  return (req.userId || req.headers['x-user-id'] || '').toString().trim();
 }
 
 // Server-side restriction profile — recorded injuries/restrictions always

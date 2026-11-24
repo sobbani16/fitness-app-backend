@@ -255,6 +255,28 @@ async function markRefunded(tx, purchase, amountCents, reason) {
   });
 }
 
+/**
+ * A signed webhook still must not grant value the purchase never authorized.
+ * Success events carry the provider-confirmed amount/currency and both must
+ * match the purchase record exactly; anything else fails loudly (400) so a
+ * tampered or mis-wired integration cannot silently activate entitlements.
+ */
+function verifyEventMatchesPurchase(event, purchase) {
+  if (event.type === 'payment.succeeded') {
+    if (!Number.isInteger(event.amountCents) || event.amountCents !== purchase.amountCents) {
+      throw httpError(400, 'Payment amount does not match the purchase.');
+    }
+    if (event.currency !== purchase.currency) {
+      throw httpError(400, 'Payment currency does not match the purchase.');
+    }
+  }
+  if (event.type === 'payment.refunded' && event.amountCents !== undefined) {
+    if (!Number.isInteger(event.amountCents) || event.amountCents < 1 || event.amountCents > purchase.amountCents) {
+      throw httpError(400, 'Refund amount is outside the purchase total.');
+    }
+  }
+}
+
 async function applyEvent(tx, purchase, event) {
   switch (event.type) {
     case 'payment.succeeded':
@@ -304,6 +326,10 @@ async function handleWebhookEvent(providerName, headers, rawBody) {
       : null;
   // Unknown purchase: ack so the provider stops retrying; nothing to apply.
   if (!purchase) return { received: true, ignored: 'unknown_purchase' };
+  // A purchase is bound to the provider that created it — an event arriving
+  // on a different provider's route cannot transition it.
+  if (purchase.provider !== provider.name) throw httpError(400, 'Purchase was not created by this provider.');
+  verifyEventMatchesPurchase(event, purchase);
 
   return coachingTransaction(async (tx) => {
     try {

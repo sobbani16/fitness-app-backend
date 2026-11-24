@@ -4,8 +4,9 @@ const { buildPrefill } = require('../services/exerciseService');
 // Singleton store for the process. Tests can reset via `store.reset()`.
 const store = process.env.NODE_ENV === 'test' && process.env.AUTH_TEST_BYPASS === 'true' ? createExerciseSessionStore() : require('../models/persistentExerciseStore');
 
+// Identity comes from the authenticated session only — never a body userId.
 function getUserId(req) {
-  return (req.userId || req.headers['x-user-id'] || req.body?.userId || '').toString().trim();
+  return (req.userId || req.headers['x-user-id'] || '').toString().trim();
 }
 
 function requireUser(req, res) {
