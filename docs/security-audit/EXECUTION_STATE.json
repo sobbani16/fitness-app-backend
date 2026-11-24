@@ -1,25 +1,34 @@
 {
-  "audit_name": "Humai Master Security Audit",
-  "schema_version": 1,
-  "started_at": "2026-11-23T00:00:00Z",
-  "last_checkpoint_at": "2026-11-23T00:00:00Z",
-  "current_phase": "PHASE_0_INVENTORY",
-  "current_task": "Route/middleware/payment/secret inventory",
-  "last_completed_task": "Repo discovery + core middleware + payments read",
-  "repos": {
-    "fitness-app-backend": {"branch": "feat/pose-coaching-impl", "sha": "a6e22a5a135f976c27cdc0ad66c9f7f404ed32bf", "uncommitted": "none"},
-    "fitness-app-mobile": {"branch": "main", "sha": "3fea6cc1795ea0729c37e4c6abde3d5a3b739f6a", "uncommitted": "docs/audits/rep-benchmark.json (pre-existing, preserved)"},
-    "fitness-app-web": {"branch": "main", "sha": "777d5eb8c8e653f1ef217eb3f9ba472fa8cb8849", "uncommitted": "none"},
-    "fitness-app-admin": {"branch": "main", "sha": "e7540b3068215d3f773990e444af58bab568f248", "uncommitted": "none"}
+  "branch": "security/master-audit-remediation",
+  "base_sha": "a6e22a5a135f976c27cdc0ad66c9f7f404ed32bf",
+  "commits": ["4a55a99", "1685a5a"],
+  "phases": {
+    "phase0_inventory": "complete — 541 routes, data-flow, secrets, authz matrix",
+    "phase1_sec001_014": "complete — all 14 categories reviewed; findings below",
+    "phase2_sec015_028": "complete — AI, uploads, payments, feature flags, health-data",
+    "phase3_remediation": "complete — payments fail-closed, capability secrets, webhook integrity, identity fallbacks",
+    "phase4_regression_tests": "complete — tests/securityHardening.test.js (10), trainerCommerce +4",
+    "phase5_ci_gates": "complete — .github/workflows/security.yml (gitleaks, npm audit, config guards)",
+    "phase6_full_regression": "backend 6003/6003 pass; mobile/web/admin env-scan done",
+    "phase7_second_pass": "complete — post-fix sweep, no raw dev-secret fallbacks remain",
+    "phase8_report": "complete — see FINAL_REPORT.md"
   },
-  "prior_audit": {"path": "~/dev/audit/humai-independent-review", "scope": "nutrition/health correctness; SECURITY_PRIVACY.md not started", "note": "findings treated as leads only — independently verified before use"},
-  "findings": [],
-  "files_inspected": ["src/app.js","src/middleware/authenticate.js","src/middleware/rbac.js","src/routes/paymentWebhooks.js","src/services/payments/provider.js","src/services/trainerCommerceService.js","src/routes/index.js"],
-  "files_modified": [],
-  "tests_executed": 0,
-  "tests_passed": 0,
-  "tests_failed": 0,
-  "blocked_tasks": [],
-  "next_exact_action": "Read remaining middleware (validateInput, requireFeature, requireVerifiedEmail, ensureUser, requestContext, weeklyOwnership), auth routes, admin route file; build ROUTE_INVENTORY.md",
-  "safety_boundaries": "No production DB/API access. No real emails/payments/notifications. Synthetic data only. No destructive git ops."
+  "test_results": {
+    "trainerCommerce": "23/23", "securityHardening": "10/10",
+    "formChecks+viewAs+personalPlans+menuAnalysis": "40/40",
+    "full_backend_suite": "156 suites, 6003 tests, 0 failures"
+  },
+  "dependency_audit": {
+    "backend": "7 (3 mod, 4 high) — prisma/effect+deepmerge-ts, swagger-jsdoc glob/minimatch; needs prisma@7 major",
+    "mobile": "17 (16 mod, 1 high) — image-size via @expo/fingerprint/minimatch",
+    "web": "5 (1 mod, 4 high) — playwright, postcss, zod<4.6.6, next",
+    "admin": "0"
+  },
+  "secrets": {
+    "backend_env": "untracked (good); real keys present — rotate after deploy of this branch (secrets now mandatory)",
+    "mobile_env": "untracked on security/master-audit — was committed (EXPO_PUBLIC_API_URL only, no creds)",
+    "admin_env": "untracked on security/master-audit — was committed (VITE_API_URL only, no creds)",
+    "new_required_env_prod": ["PAYMENTS_WEBHOOK_SECRET", "DOC_URL_SECRET", "VIDEO_TOKEN_SECRET", "FORM_CHECK_URL_SECRET", "VIEW_AS_SECRET (or AUTH_LINK_SECRET)"]
+  },
+  "launch_recommendation": "NO-GO until: prod env secrets provisioned, dependency majors resolved, mobile/web/admin PRs merged, real payment provider configured"
 }
