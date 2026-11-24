@@ -1,0 +1,107 @@
+# Weather Comparison — Observed Results (pc-HUM-8)
+
+_Audit-only run. No recommendation logic, rules, thresholds, migrations, or
+deployed config changed. Companion doc: `WEATHER_RECOMMENDATIONS_INVENTORY.md`._
+
+## Method
+
+- Runner: `docs/weather/compare-weather.js` → `node docs/weather/compare-weather.js`
+- Fixed inputs: clock `2026-11-24T14:00:00Z`; synthetic healthy-adult context
+  (`{conditions:[], injuries:[], symptoms:[], surgeries:[], restrictions:[], preferences:{}}`);
+  candidate `outdoor_walk` + `indoor_walk` control; `rules: []` (structural
+  engine only, matching `activitySafety.envMatrix.test.js` convention); balance
+  `{surplus:-50}` → v1 base "Close to target".
+- Only the observation varies. All fixtures are complete and fresh unless the
+  case is `stale`/`missing`. Units: temp/apparent °C, AQI us_aqi, precip mm,
+  wind km/h, WMO weather codes.
+- Three real entry points exercised per case (no provider calls):
+  - **v1 (legacy)** — `weatherService.deriveCondition` →
+    `recommendationEngine.recommendFromBalance`. Intermediate result: the API
+    response fields `location`/`weatherAdjusted` (what `/recommendations`
+    returns — narration framing aside, no further gating exists downstream).
+  - **v2 eval** — `activitySafety.evaluate(ctx, activity, env, {rules})`
+    decision + reasons (per-candidate verdict).
+  - **v2 recommend** — `activitySafety.recommend(ctx, env, {rules})`
+    `disposition`+`suggestion` — the producer-facing final recommendation.
+
+## Results (vs 20 °C clear-sky baseline)
+
+| case | obs | v1 condition → location (adj?) | outdoor_walk | indoor_walk | recommend() suggestion |
+|---|---|---|---|---|---|
+| baseline | 20C, code 1, AQI 30, 0mm | pleasant → either (false) | ALLOW | ALLOW | outdoor_walk (ALLOW) |
+| rain | 20C, code 61, AQI 30, 2mm | rainy → either (false) | ALLOW | ALLOW | outdoor_walk (ALLOW) |
+| heat | app 42C, code 1, AQI 30 | hot → either (false) | DEFER_OUTDOOR | ALLOW | indoor_walk (ALLOW) |
+| cold | app −20C | pleasant → either (false) | DEFER_OUTDOOR | ALLOW | indoor_walk (ALLOW) |
+| aqi | 20C, AQI 160, code 1 | pleasant → either (false) | DEFER_OUTDOOR | ALLOW | indoor_walk (ALLOW) |
+| thunder | 20C, code 95 | rainy → either (false) | DEFER_OUTDOOR | ALLOW | indoor_walk (ALLOW) |
+| stale | 3h old | pleasant → either (false) | INSUFFICIENT_DATA | ALLOW | indoor_walk (ALLOW) |
+| missing | unavailable | — → n/a | INSUFFICIENT_DATA | ALLOW | indoor_walk (ALLOW) |
+| edge-40.4 | app 40.4C | hot → either (false) | MODIFY | ALLOW | indoor_walk (ALLOW) |
+| edge-40.5 | app 40.5C | hot → either (false) | DEFER_OUTDOOR | ALLOW | indoor_walk (ALLOW) |
+| edge-40.6 | app 40.6C | hot → either (false) | DEFER_OUTDOOR | ALLOW | indoor_walk (ALLOW) |
+
+Representative reasons: heat → "Heat index in the NWS danger range — outdoor
+exertion deferred."; AQI 160 → "AQI 160 (unhealthy) — outdoor exertion deferred
+per EPA guidance."; stale → "Weather data is stale — cannot verify current
+conditions. No outdoor-safety claim is made."
+
+## Confirmed findings
+
+**F1 — v1 `applyWeather` is inert (dead code).** Minimal repro: any input —
+every `pickBase`/`noLogsYet` base returns `type ∈ {log|review|maintain|eat_regular}`
+and `location:'either'`, so `applyWeather`'s only mutations
+(`outdoor→indoor`, `either→outdoor` when `type==='workout'`) can never fire.
+Observed: `weatherAdjusted=false` in all 11 cases. Supporting contract:
+`recommendationEngine.js` lines 104–114 + base catalog lines 34–94; the
+honesty comment at lines 28–30 says callers must not claim weather was applied
+unless `weatherAdjusted` — which is now never. Path: `/recommendations`,
+`/summary`. Classification: **unresolved policy question** — is the v1 weather
+input meant to do anything? If kept, clients cannot rely on it.
+
+**F2 — v1 has no hazard semantics; buckets can contradict v2.** Minimal repro:
+obs `{tempC:-20, apparentTempC:-20, code:1, aqi:160}` → v1 `condition:'pleasant'`
+(safe-sounding) while v2 `DEFER_OUTDOOR` (cold_danger + aqi_unhealthy).
+Similarly thunderstorm (code 95) → v1 `'rainy'`, indistinguishable from drizzle.
+Supporting contract: `weatherService.deriveCondition` (precip/temp only — no
+AQI, UV, wind, alerts, feels-like) vs `environment.js detectHazards`.
+Path: any client consuming `/weather.condition` for advisory UX (mobile
+`weatherContext.ts` does). Classification: **confirmed inconsistency**
+(latent — v1 narration is display text; the safety engine is the gate, so no
+unsafe suggestion is actually emitted today, but the two vocabularies disagree
+on the same observation).
+
+**F3 — boundary cutoff behaves as configured.** `apparentTempC` 40.4 → MODIFY
+(heat_extreme_caution), 40.5 → DEFER_OUTDOOR (heat_danger, `>= 40.5`), 40.6 →
+DEFER_OUTDOOR. Matches `environment.js` lines 49–52 exactly. Classification:
+**correct behavior** (documents the discontinuity — a 0.1 °C change flips
+defer vs modify; no hysteresis by design).
+
+**F4 — fail-closed paths verified.** Provider outage (`available:false`) and
+3h-stale obs → `INSUFFICIENT_DATA` on outdoor candidates only; indoor stays
+ALLOW; `recommend()` still yields `indoor_walk` rather than nothing. Rain
+(2mm, WMO 61) correctly stays ALLOW (below 5mm `heavy_precip`). Classification:
+**correctly filtered suggestions**, consistent with `environment.js` contract.
+
+## Unverified / out of scope
+
+- `safetyGate`-without-env behavior in producers (personalPlans, chat,
+  trainerCopilot, etc.) — audited statically in the inventory doc; not
+  exercised here because it requires a DB-backed context (all callers pass
+  `env=null`, so outdoor candidates get INSUFFICIENT_DATA inside gate context
+  — flagged as an integration question, not confirmed as a defect).
+- `EnvironmentalObservation` persistence path — unused; evaluations can't be
+  tied back to a stored observation.
+- Alert-text hazards (severe_alert, thunderstorm-via-text) and India/US
+  provider branches — fixtures covered codes; alert payloads not swept.
+- `aqi_very_unhealthy`/`smoke` keys — unreachable by `detectHazards` (noted in
+  inventory); confirmed by absence in this matrix but not separately probed.
+- Profile-sensitive band tightening (AQI 101 USG, heat 28/35 with flags) —
+  fixed-context matrix only; sensitive-profile sweep is future work.
+- Mobile `weatherContext.ts` client-side thresholds vs engine — display-only;
+  not run (backend audit).
+
+## Tests run
+
+`npx jest tests/activitySafety.envMatrix.test.js tests/environmentService.test.js
+tests/weatherService.test.js tests/recommendationEngine.test.js
+tests/summaryService.test.js --runInBand` → **51/51 passed**.
