@@ -85,6 +85,57 @@ Verifier: render test — picker/camera button for an exercise `classify`→`rev
 
 `formRules.test.ts` (10): view gating, depth marginal-band, asymmetry, tempo, cue-library integrity ("every cue referenced by a rule exists"). `repCounter.test.ts` (18): FSM hysteresis/debounce/flicker. `realEngine.test.ts` (28): status machine, pause/resume, low-confidence. `exerciseSuitability.test.js` (15): review for `recent-injury`, seated-only exclusion, determinism — **no `'back'` limitation case (F1)**. `posture.test.ts` (12). `formChecks.test.js`, `poseCoaching.test.js`: consent/ownership paths.
 
+## 5b. Validation addendum (increment 2 — reproduced checks)
+
+**Source revisions inspected:** backend `466657e` + audit `1844368`; mobile `5cc1831` (detached).
+
+**F1 reproduced end-to-end** (dependency-free `node -e`, backend worktree):
+```
+classify('deadlift', {equipment:[all], limitations:[]})      → suitable
+classify('deadlift', {equipment:[all], limitations:['back']}) → suitable   ← token ignored
+classify('deadlift', {equipment:[all], limitations:['hip']})  → adapt      ← live-token contrast
+classify('barbell-row'|'squat', {…, limitations:['back']})   → suitable
+deriveLimitations({injuries:[{bodyPart:'lower_back'}]})      → {limitations:['back'], blockedCategories:[], reviewRequired:false}
+deriveLimitations({restrictions:[{status:'active',severity:'modify',categories:['trunk_load']}]})
+                                                             → {limitations:['back'], blockedCategories:[]}
+```
+So a recorded lower-back injury (no prohibitedCategories) or a clinician
+'modify' trunk restriction yields a token nothing consumes → deadlift, squat,
+barbell-row all remain `suitable`. Only `severity:'prohibited'` (blockedCategories)
+or tokens present in `LIMITATION_BLOCKS` actually constrain. **New finding — no
+prior doc owns it**: `activity-safety-rule-by-rule-validation.md` and
+`activity-safety-rule-audit.json` have zero `'back'`/limitation-token coverage;
+`exercise-library-safety-quality.md` E-1/E-2 are catalog-shape gaps, not this
+code path. HF-prefixed findings in `docs/nutrition-intelligence/` are
+nutrition-scoped — no overlap, no duplicate ownership.
+
+**F2 re-verified:** `grep -rn "suspendTracking" src/` → writes only
+(formRules.ts:250,265 + types.ts:37 declaration); zero consumers.
+
+**F4 line refs:** `PoseCameraScreen.tsx` ~lines 128–146 — `speakableCoaching`
+requires `coachingCue?.review === 'reviewed'`; the TTS fallback speaks
+`posture?.message` whenever status is `pass`/`needs_correction`, and
+`needs_correction` message = the rule's `label` (unreviewed cue text with no
+review field). Screen comment claims "never unreviewed text" — posture labels
+are outside that guarantee.
+
+**F5 re-verified:** `grep -n "phase:" posture.ts` → only lines 111, 123 (the
+two squat rules). `posture.test.ts` (12 tests) never passes the `phase`
+parameter — phase gating itself is untested.
+
+**Test runs (existing facilities, all green — regression baseline, not
+correctness proof):**
+- mobile `npx jest formRules.test.ts posture.test.ts exerciseRegistry.test.ts` → **29/29 pass**
+- backend `npx jest tests/exerciseSuitability.test.js tests/formChecks.test.js tests/poseCoaching.test.js` → **31/31 pass**
+- Not run: `realEngine.test.ts`, `repCounter.test.ts`, `repBenchmark.test.ts`
+  (not needed to confirm these findings); full suites avoided by design.
+- Blocked: nothing. TS-side findings verified by source + existing tests;
+  no new test files added in this read-only increment.
+
+**Coverage-limit correction to §2:** `classify` returns `needs-info` (not
+`suitable`) when equipment is required but unprovided — the F1 repro above
+supplies equipment so baseline vs token are compared at full information.
+
 ## 6. Remaining for runtime/clinical verification
 
 - On-device behavior of every 'provisional' capability (`validationStatus` ≠ validated for all — nothing claims device validation).
