@@ -27,9 +27,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # Fails on new high/critical vulns in production dependencies.
-      # Known-advisory allowlist is reviewed in docs/security-audit/.
-      - run: npm audit --omit=dev --audit-level=high
+      # Fails on unreviewed high/critical production advisories; the allowlist
+      # (docs/security-audit/known-advisories.json) requires id+reason+date.
+      - run: node scripts/audit-gate.js
 
   config-guards:
     name: fail-closed config guards
@@ -51,3 +51,19 @@ jobs:
         run: grep -q "rateLimit" src/routes/paymentWebhooks.js
       - name: provider binding check present
         run: grep -q "verifyEventMatchesPurchase\|provider mismatch" src/services/trainerCommerceService.js
+      - name: disabled-commerce webhook gate present
+        run: grep -q "commerce_disabled" src/services/trainerCommerceService.js
+
+  behavioral:
+    name: production-config behavioral tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # Proves (not greps) that prod config rejects unsafe defaults: mock
+      # provider refused, predictable secrets rejected, missing secrets throw.
+      - run: npm ci
+      - run: npx jest tests/securityHardening.test.js --runInBand

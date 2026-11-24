@@ -1,0 +1,21 @@
+{
+  "description": "Allowlist for the CI audit gate. Every entry must carry the advisory source id, a remediation reason, and a review date. An id that no longer appears in npm audit output is simply unused.",
+  "advisories": [
+    {
+      "id": 1145093,
+      "package": "deepmerge-ts",
+      "ghsa": "GHSA-ggr8-5vv4-36mx",
+      "path": "prisma -> @prisma/config -> effect/deepmerge-ts",
+      "reason": "Transitive of prisma@5 toolchain — reachable only by the Prisma CLI/config loader on schema files, not by user-controlled runtime input. Fix requires prisma@7 major migration (tracked as DEP-001).",
+      "reviewed": "2026-02-16"
+    },
+    {
+      "id": 1248071,
+      "package": "effect",
+      "ghsa": "GHSA-7589-6fvf-x4pw",
+      "path": "prisma -> @prisma/config -> effect",
+      "reason": "Transitive of prisma@5 — ReDoS requires hostile Schema.TemplateLiteral input to the prisma CLI toolchain; not runtime reachable. Fix requires prisma@7 (DEP-001).",
+      "reviewed": "2026-02-16"
+    }
+  ]
+}
