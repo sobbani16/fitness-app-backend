@@ -11,7 +11,7 @@ const mockPrisma = {
   trainerProfile: { findUnique: jest.fn() },
   trainerClient: { findUnique: jest.fn() },
   trainerCoachingPackage: { create: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
-  trainerPurchase: { create: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
+  trainerPurchase: { create: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn(), updateMany: jest.fn() },
   trainerPaymentTransaction: { create: jest.fn() },
   trainerEntitlement: { create: jest.fn(), findMany: jest.fn(), updateMany: jest.fn() },
   trainerSubscription: { create: jest.fn(), updateMany: jest.fn() },
@@ -65,6 +65,9 @@ beforeEach(() => {
       : null;
   });
   mockPrisma.auditLog.create.mockResolvedValue({});
+  // Atomic claims default to a successful transition; tests that exercise the
+  // losing side mock count:0 explicitly.
+  mockPrisma.trainerPurchase.updateMany.mockResolvedValue({ count: 1 });
   flags.resetCache();
 });
 
@@ -192,7 +195,7 @@ describe('checkout -> webhook -> entitlement', () => {
     const res = await postWebhook(event, headers['x-mock-signature']);
     expect(res.status).toBe(200);
     expect(res.body.processed).toBe(true);
-    expect(mockPrisma.trainerPurchase.update).toHaveBeenCalledWith({ where: { id: 'pur-1' }, data: { status: 'paid' } });
+    expect(mockPrisma.trainerPurchase.updateMany).toHaveBeenCalledWith({ where: { id: 'pur-1', status: { not: 'paid' } }, data: { status: 'paid' } });
     expect(mockPrisma.trainerEntitlement.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ kind: 'session_pack', remainingSessions: 5, clientId: 'client-1', trainerId: 'tp-1', status: 'active' }),
     });
@@ -321,6 +324,41 @@ describe('webhook verification', () => {
 });
 
 // ---------------------------------------------------------------------------
+describe('webhook concurrency + idempotency ownership', () => {
+  it('a second payment.succeeded losing the atomic claim grants nothing', async () => {
+    // Concurrent events with DIFFERENT providerEventIds: the loser sees
+    // updateMany count 0 and must not create a second entitlement.
+    mockCheckoutFlow(SESSION_PACK);
+    const { event, headers } = provider.issueEvent('payment.succeeded', {
+      id: 'evt-loser', purchaseId: 'pur-1', providerRef: 'mock_co_key-1', amountCents: 5000, currency: 'usd',
+    });
+    mockPrisma.trainerPurchase.updateMany.mockResolvedValueOnce({ count: 0 });
+    const res = await postWebhook(event, headers['x-mock-signature']);
+    expect(res.status).toBe(200);
+    expect(mockPrisma.trainerEntitlement.create).not.toHaveBeenCalled();
+  });
+
+  it('idempotent checkout returns the row only to its owner', async () => {
+    mockRoles('client-2', ['MEMBER']);
+    // Attacker IS an active client of the same trainer — the relation gate
+    // passes, so the ownership check on replay is what must stop the leak.
+    mockPrisma.trainerClient.findUnique.mockImplementation(async ({ where }) => {
+      const k = where && where.trainerId_clientId;
+      return k && k.trainerId === 'tp-1' && k.clientId === 'client-2'
+        ? { id: 'rel-2', trainerId: 'tp-1', clientId: 'client-2', status: 'active' }
+        : null;
+    });
+    mockPrisma.trainerCoachingPackage.findUnique.mockResolvedValue(SESSION_PACK);
+    mockPrisma.trainerPurchase.findUnique.mockResolvedValue({
+      id: 'pur-9', clientId: 'victim-1', packageId: 'pkg-1', provider: 'mock',
+      providerRef: 'mock_co_key-1', status: 'pending', amountCents: 5000, currency: 'usd',
+    });
+    const res = await request(app).post('/me/purchases/checkout').set('x-user-id', 'client-2')
+      .send({ packageId: 'pkg-1', idempotencyKey: 'key-1' });
+    expect(res.status).toBe(409);
+  });
+});
+
 describe('refund', () => {
   it('trainer refund marks purchase refunded and revokes entitlements', async () => {
     mockRoles('trainer-1', ['TRAINER']);

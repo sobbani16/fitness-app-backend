@@ -427,7 +427,12 @@ router.post('/log', async (req, res) => {
     const idem = idempotencyKey ? String(idempotencyKey).slice(0, 120) : null;
     if (idem) {
       const existing = await prisma.supplementLog.findUnique({ where: { idempotencyKey: idem } }).catch(() => null);
-      if (existing) return res.status(200).json({ ...existing, idempotent: true });
+      // Replay returns the row ONLY to its owner — a guessed key must not leak
+      // another user's log (same rule as commerce checkout idempotency).
+      if (existing) {
+        if (existing.userId !== userId) return res.status(409).json({ error: 'Idempotency key is already in use.' });
+        return res.status(200).json({ ...existing, idempotent: true });
+      }
     }
 
     const log = await prisma.supplementLog.create({

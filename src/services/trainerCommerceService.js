@@ -158,9 +158,14 @@ async function createPurchase(clientId, { packageId, idempotencyKey }) {
   const provider = getProvider();
   const providerRef = provider.checkoutRef({ idempotencyKey, purchaseId: `${clientId}:${packageId}` });
 
-  // Idempotent replay: the key already produced a purchase — return it as-is.
+  // Idempotent replay: the key already produced a purchase — return it, but
+  // ONLY to its owner. providerRef is derived from the client-supplied key, so
+  // another user squatting/guessing the key must not receive the record.
   const existing = await prisma.trainerPurchase.findUnique({ where: { providerRef } });
-  if (existing) return { purchase: existing, checkout: { providerRef, reused: true } };
+  if (existing) {
+    if (existing.clientId !== clientId) throw httpError(409, 'Idempotency key is already in use.');
+    return { purchase: existing, checkout: { providerRef, reused: true } };
+  }
 
   const checkout = await provider.createCheckout({
     purchaseId: randomUUID(), // hints ref generation when no key is present
@@ -199,7 +204,10 @@ async function createPurchase(clientId, { packageId, idempotencyKey }) {
     if (err.code === 'P2002') {
       // Concurrent checkout with the same key — the first request won.
       const won = await prisma.trainerPurchase.findUnique({ where: { providerRef } });
-      if (won) return { purchase: won, checkout: { providerRef, reused: true } };
+      if (won) {
+        if (won.clientId !== clientId) throw httpError(409, 'Idempotency key is already in use.');
+        return { purchase: won, checkout: { providerRef, reused: true } };
+      }
     }
     throw err;
   }
@@ -280,13 +288,18 @@ function verifyEventMatchesPurchase(event, purchase) {
 
 async function applyEvent(tx, purchase, event) {
   switch (event.type) {
-    case 'payment.succeeded':
-      // Replay-safe: only first success activates.
-      if (purchase.status !== 'paid') {
-        await tx.trainerPurchase.update({ where: { id: purchase.id }, data: { status: 'paid' } });
-        await activateEntitlement(tx, purchase);
-      }
+    case 'payment.succeeded': {
+      // Atomic claim: only the tx that flips status -> 'paid' creates the
+      // entitlement. Two concurrent events with different providerEventIds
+      // cannot double-grant — the loser sees updateMany count 0. The purchase
+      // row was read outside the tx, so its status is stale by design.
+      const claimed = await tx.trainerPurchase.updateMany({
+        where: { id: purchase.id, status: { not: 'paid' } },
+        data: { status: 'paid' },
+      });
+      if (claimed.count === 1) await activateEntitlement(tx, purchase);
       break;
+    }
     case 'payment.failed':
       if (purchase.status === 'pending') {
         await tx.trainerPurchase.update({ where: { id: purchase.id }, data: { status: 'failed' } });
@@ -372,9 +385,25 @@ async function refundPurchase(trainerUserId, purchaseId, { amountCents, reason }
     throw httpError(400, 'amountCents must be a positive integer up to the purchase amount.');
   }
 
+  // Claim the refund atomically BEFORE the external call: only one caller can
+  // flip paid -> refund_pending, so concurrent refunds cannot both reach the
+  // provider. The status read above is an early check; this is the real guard.
+  const claimed = await prisma.trainerPurchase.updateMany({
+    where: { id: purchaseId, status: 'paid' },
+    data: { status: 'refund_pending' },
+  });
+  if (claimed.count === 0) throw httpError(409, 'A refund is already in progress or completed.');
+
   // External effect — provider confirms BEFORE we record anything. Never inside a tx.
   const provider = getProvider(purchase.provider);
-  const result = await provider.refund(purchase.providerRef, amount);
+  let result;
+  try {
+    result = await provider.refund(purchase.providerRef, amount);
+  } catch (err) {
+    // Provider rejected the refund — release the claim so the purchase stays refundable.
+    await prisma.trainerPurchase.updateMany({ where: { id: purchaseId, status: 'refund_pending' }, data: { status: 'paid' } });
+    throw err;
+  }
 
   return coachingTransaction(async (tx) => {
     await tx.trainerPaymentTransaction.create({

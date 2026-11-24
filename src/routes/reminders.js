@@ -237,7 +237,7 @@ router.get('/diagnostics', async (req, res) => {
       last24h: Object.fromEntries(counts.map(c => [c.status, c._count])),
       recent: instances,
     });
-  } catch (error) { fail(res, error); }
+  } catch (error) { res.status(error.status || 500).json({ error: 'Diagnostics unavailable.' }); }
 });
 
 // GET /reminders/inbox — recent inbox notifications (reminder-prefixed only).
