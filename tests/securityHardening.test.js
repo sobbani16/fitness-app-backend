@@ -72,7 +72,7 @@ describe('requiredSecret', () => {
     expect(requiredSecret('VIEW_AS_SECRET', 'dev-x')).toBe('dev-x');
   });
 
-  it('prefers the dedicated env var, then AUTH_LINK_SECRET', () => {
+  it('prefers the dedicated env var; derives per-purpose key from a master secret', () => {
     process.env.NODE_ENV = 'test';
     process.env.VIEW_AS_SECRET = 'a'.repeat(64);
     jest.resetModules();
@@ -80,7 +80,20 @@ describe('requiredSecret', () => {
     expect(requiredSecret('VIEW_AS_SECRET', 'dev-x')).toBe('a'.repeat(64));
     delete process.env.VIEW_AS_SECRET;
     process.env.AUTH_LINK_SECRET = 'b'.repeat(64);
-    expect(requiredSecret('VIEW_AS_SECRET', 'dev-x')).toBe('b'.repeat(64));
+    const derived = requiredSecret('VIEW_AS_SECRET', 'dev-x');
+    // Domain separation: derived, never the raw master, and purpose-bound.
+    expect(derived).not.toBe('b'.repeat(64));
+    expect(derived).toMatch(/^[a-f0-9]{64}$/);
+    expect(derived).not.toBe(requiredSecret('DOC_URL_SECRET', 'dev-x'));
+    expect(derived).toBe(requiredSecret('VIEW_AS_SECRET', 'dev-x')); // deterministic
+  });
+
+  it('rejects a predictable secret explicitly set in production', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.VIEW_AS_SECRET = 'mock-secret';
+    jest.resetModules();
+    const { requiredSecret } = require('../src/lib/env');
+    expect(() => requiredSecret('VIEW_AS_SECRET', 'dev-x')).toThrow(/predictable/);
   });
 });
 

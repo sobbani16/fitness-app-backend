@@ -360,4 +360,20 @@ describe('feature flag off', () => {
       expect(res.body.error.code).toBe('FEATURE_DISABLED');
     }
   });
+
+  it('a signed webhook grants nothing while commerce is disabled', async () => {
+    // Fail-closed: even a correctly-signed event for an existing purchase
+    // cannot transition it or create entitlements when the flag is off.
+    setFlag('trainer_paid_coaching_enabled', 'false');
+    mockCheckoutFlow(SESSION_PACK);
+    const { event, headers } = provider.issueEvent('payment.succeeded', {
+      id: 'evt-disabled', purchaseId: 'pur-1', providerRef: 'mock_co_key-1', amountCents: 5000, currency: 'usd',
+    });
+    const res = await postWebhook(event, headers['x-mock-signature']);
+    expect(res.status).toBe(200);
+    expect(res.body.ignored).toBe('commerce_disabled');
+    expect(mockPrisma.trainerPurchase.update).not.toHaveBeenCalled();
+    expect(mockPrisma.trainerEntitlement.create).not.toHaveBeenCalled();
+    expect(mockPrisma.trainerPaymentTransaction.create).not.toHaveBeenCalled();
+  });
 });

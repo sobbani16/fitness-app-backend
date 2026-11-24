@@ -11,6 +11,7 @@ const { httpError } = require('../lib/errors');
 const { requireApprovedTrainer, requireActiveRelation } = require('./trainerAccess');
 const { getProvider } = require('./payments/provider');
 const { coachingTransaction } = require('./coachingTransaction');
+const flags = require('./featureFlags/service');
 
 const PACKAGE_KINDS = ['subscription', 'one_time', 'session_pack'];
 const SUBSCRIPTION_INTERVALS = ['month', 'year'];
@@ -329,6 +330,12 @@ async function handleWebhookEvent(providerName, headers, rawBody) {
   // A purchase is bound to the provider that created it — an event arriving
   // on a different provider's route cannot transition it.
   if (purchase.provider !== provider.name) throw httpError(400, 'Purchase was not created by this provider.');
+  // Disabled commerce is fail-closed: a valid signature must not create
+  // entitlements while paid coaching is off. Ack so the provider stops
+  // retrying; nothing is recorded or applied.
+  if (!(await flags.isEnabled('trainer_paid_coaching_enabled', purchase.clientId))) {
+    return { received: true, ignored: 'commerce_disabled' };
+  }
   verifyEventMatchesPurchase(event, purchase);
 
   return coachingTransaction(async (tx) => {

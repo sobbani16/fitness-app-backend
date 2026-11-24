@@ -9,3 +9,4 @@ var/uploads/
 *.bak
 var/test-reports/
 /app.json
+.env.generated
