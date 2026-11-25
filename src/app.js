@@ -32,6 +32,7 @@ if (process.env.ENABLE_API_DOCS === 'true') require('./swagger').setupSwagger(ap
 if (process.env.NODE_ENV === 'test' && process.env.AUTH_TEST_BYPASS === 'true') app.use(require('./middleware/ensureUser').ensureUser);
 app.use(require('./middleware/validateInput'));
 app.use('/me/progress', require('./routes/progress'));
+app.use('/leo', require('./routes/leo'));
 app.use('/me/profile', require('./routes/profile'));
 // myPurchases is mounted in routes/index.js AFTER the other /me mounts —
 // its router-level paid-coaching flag must not shadow /me/roles, plans, etc.
