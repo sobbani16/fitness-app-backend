@@ -73,6 +73,12 @@ describe('poseCoaching.createSession', () => {
     await expect(svc.createSession('u1', { ...BASE, startedAt: 'junk' })).rejects.toMatchObject({ status: 400 });
   });
 
+  test('rejects invalid endedAt with 400 instead of persisting an invalid date', async () => {
+    fakeDb([]);
+    await expect(svc.createSession('u1', { ...BASE, endedAt: 'junk' })).rejects.toMatchObject({ status: 400 });
+    await expect(svc.createSession('u1', { ...BASE, endedAt: 'not-a-date' })).rejects.toMatchObject({ status: 400 });
+  });
+
   test('sanitizes diagnostics bounds and unknown enums', async () => {
     fakeDb([]);
     const r = await svc.createSession('u1', {
@@ -114,6 +120,11 @@ describe('poseCoaching ownership + finalize', () => {
     await expect(svc.finalizeSession('u1', 'cs1', { confirmedReps: 2.5 })).rejects.toMatchObject({ status: 400 });
     await expect(svc.finalizeSession('u1', 'cs1', {})).rejects.toMatchObject({ status: 400 });
     await expect(svc.finalizeSession('u2', 'cs1', { confirmedReps: 1 })).rejects.toMatchObject({ status: 404 });
+  });
+
+  test('finalize rejects an invalid endedAt', async () => {
+    fakeDb();
+    await expect(svc.finalizeSession('u1', 'cs1', { endedAt: 'junk' })).rejects.toMatchObject({ status: 400 });
   });
 
   test('delete removes the record (owner only)', async () => {

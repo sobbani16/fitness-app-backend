@@ -14,6 +14,15 @@ const MAX_OBSERVATIONS = 200;
 
 const err = (status, message) => Object.assign(new Error(message), { status });
 
+// Optional date field — absent/null → null; present-but-invalid → 400.
+// Persisting an Invalid Date object crashes the prisma write as a 500.
+function optionalDate(value, field) {
+  if (value === undefined || value === null) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) throw err(400, `valid ${field} is required`);
+  return d;
+}
+
 function sanitizeDiagnostics(list) {
   if (!Array.isArray(list)) return null;
   return list.slice(0, MAX_DIAGNOSTIC_REPS).map((d) => ({
@@ -51,7 +60,7 @@ async function createSession(userId, body) {
       userId,
       exerciseId,
       startedAt,
-      endedAt: body.endedAt ? new Date(body.endedAt) : null,
+      endedAt: optionalDate(body.endedAt, 'endedAt'),
       devicePlatform: String(body.devicePlatform || '').slice(0, 16) || null,
       appBuild: String(body.appBuild || '').slice(0, 80) || null,
       modelVersion: String(body.modelVersion || '').slice(0, 80) || null,
@@ -106,7 +115,7 @@ async function finalizeSession(userId, id, body) {
       ...(typeof body.corrections?.note === 'string' ? { note: body.corrections.note.slice(0, 200) } : {}),
     };
   }
-  if (body.endedAt) data.endedAt = new Date(body.endedAt);
+  if (body.endedAt !== undefined) data.endedAt = optionalDate(body.endedAt, 'endedAt');
   if (!Object.keys(data).length) throw err(400, 'Nothing to update');
   return getPrisma().coachingSession.update({ where: { id: s.id }, data });
 }
