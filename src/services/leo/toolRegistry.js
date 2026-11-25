@@ -71,7 +71,17 @@ async function execute(name, args = {}, ctx = {}, { version = '1' } = {}) {
     tool.handler({ ...args }, { userId: ctx.userId, sessionId: ctx.sessionId }),
     new Promise((_, reject) => setTimeout(() => reject(httpError(504, 'tool_timeout')), tool.timeoutMs)),
   ]);
+  // post-mutation hooks: mutations (sensitive/destructive) can invalidate
+  // dependent state — hook failures never fail the tool call itself
+  if (REQUIRES_CONFIRMATION.has(tool.category)) {
+    for (const hook of mutationHooks) {
+      try { await hook({ tool: name, userId: ctx.userId, sessionId: ctx.sessionId, result }); } catch {}
+    }
+  }
   return { tool: `${name}@${version}`, status: 'ok', result };
 }
 
-module.exports = { register, get, list, execute, CATEGORIES, REQUIRES_CONFIRMATION };
+const mutationHooks = [];
+function registerMutationHook(fn) { if (typeof fn === 'function') mutationHooks.push(fn); }
+
+module.exports = { register, get, list, execute, registerMutationHook, CATEGORIES, REQUIRES_CONFIRMATION };

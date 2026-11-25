@@ -64,3 +64,12 @@ function ensureRegistered() {
 }
 
 module.exports = { ensureRegistered };
+
+// session-lifecycle invalidation: closing or purging a session invalidates
+// its pending confirmations — an approval given in a session context must
+// not be executable after that context is gone.
+require('./toolRegistry').registerMutationHook(async ({ tool, sessionId }) => {
+  if (tool === 'session.close' || tool === 'session.purge') {
+    await require('./confirmations').invalidateSession(sessionId).catch(() => null);
+  }
+});

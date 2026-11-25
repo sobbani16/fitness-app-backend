@@ -37,4 +37,16 @@ async function consume(userId, sessionId, confirmationId, toolName, args, db = g
   return { consumed: true, confirmationId: row.id };
 }
 
-module.exports = { issue, consume, argsHash, canon };
+// Post-mutation invalidation: when a session closes or is purged, its pending
+// confirmations must never execute — the user approved an action in the
+// context of a session that no longer exists. Invalidation expires rows in
+// place (audit trail preserved; consume() then correctly reports 410).
+async function invalidateSession(sessionId, db = getPrisma()) {
+  const r = await db.leoConfirmation.updateMany({
+    where: { sessionId: String(sessionId || ''), consumedAt: null },
+    data: { expiresAt: new Date(0) },
+  }).catch(() => ({ count: 0 }));
+  return { invalidated: r.count };
+}
+
+module.exports = { issue, consume, invalidateSession, argsHash, canon };
