@@ -29,7 +29,8 @@ jest.mock('../src/lib/prisma', () => ({
     $transaction: async (ops) => Promise.all(ops),
   }),
 }));
-jest.mock('../src/services/auditService', () => ({ log: async () => ({}) }));
+const auditCalls = [];
+jest.mock('../src/services/auditService', () => ({ log: async (entry) => { auditCalls.push(entry); return {}; } }));
 
 const loadApp = () => {
   const router = require('../src/routes/safetyFixtures');
@@ -42,7 +43,7 @@ const loadApp = () => {
 const app = loadApp();
 const as = (id) => (id ? { 'x-user-id': id } : {});
 
-beforeEach(() => { mockStore.email = 'qa@staging.test'; mockStore.privileged = true; mockStore.created = []; });
+beforeEach(() => { mockStore.email = 'qa@staging.test'; mockStore.privileged = true; mockStore.created = []; auditCalls.length = 0; });
 
 describe('boot and flag guards', () => {
   it('throws at require time under production env', () => {
@@ -108,5 +109,24 @@ describe('rate limiting', () => {
     // A different caller is unaffected.
     const other = await request(app).post('/test-fixtures/safety-state').set(as('rl-other')).send({});
     expect(other.status).toBe(200);
+  });
+});
+
+describe('audit evidence + cleanup (§6.3)', () => {
+  it('fixture writes are audit-logged with actor, action and scope', async () => {
+    await request(app).post('/test-fixtures/safety-state').set(as('qa-1')).send({ conditions: ['asthma'] });
+    const hit = auditCalls.find(c => c.action === 'fixture.safety_state');
+    expect(hit).toBeTruthy();
+    expect(hit.actorId).toBe('qa-1');
+    expect(hit.entityType).toBe('SyntheticFixture');
+  });
+
+  it('DELETE resets caller fixture state and audit-logs the reset', async () => {
+    await request(app).post('/test-fixtures/safety-state').set(as('qa-1')).send({ conditions: ['asthma'] });
+    const r = await request(app).delete('/test-fixtures/safety-state').set(as('qa-1'));
+    expect([200, 204]).toContain(r.status);
+    const hit = auditCalls.find(c => c.action === 'fixture.safety_state_reset');
+    expect(hit).toBeTruthy();
+    expect(hit.actorId).toBe('qa-1');
   });
 });
