@@ -315,6 +315,9 @@ model CoachingSession {
 
   userId String
 
+  // Client-generated idempotency key — retried POSTs return the existing row.
+  clientRef String?
+
   exerciseId String
 
   startedAt DateTime
@@ -348,6 +351,7 @@ model CoachingSession {
 
   @@index([userId, exerciseId])
   @@index([userId, startedAt])
+  @@unique([userId, clientRef])
 }
 
 model Recipe {

@@ -45,13 +45,30 @@ async function createSession(userId, body) {
   if (!exerciseId || exerciseId.length > 80) throw err(400, 'exerciseId is required (≤80 chars)');
   const startedAt = body.startedAt ? new Date(body.startedAt) : null;
   if (!startedAt || Number.isNaN(startedAt.getTime())) throw err(400, 'valid startedAt is required');
+  let endedAt = null;
+  if (body.endedAt != null) {
+    endedAt = new Date(body.endedAt);
+    if (Number.isNaN(endedAt.getTime())) throw err(400, 'endedAt must be a valid date');
+    if (endedAt < startedAt) throw err(400, 'endedAt must not precede startedAt');
+  }
+  const clientRef = typeof body.clientRef === 'string' && /^[\w:.-]{8,80}$/.test(body.clientRef) ? body.clientRef : null;
+
+  // Idempotent create: a retried POST with the same clientRef returns the
+  // existing row instead of duplicating the session.
+  if (clientRef) {
+    const existing = await getPrisma().coachingSession.findUnique({
+      where: { userId_clientRef: { userId, clientRef } },
+    }).catch(() => null);
+    if (existing) return { stored: true, session: existing, idempotent: true };
+  }
 
   const session = await getPrisma().coachingSession.create({
     data: {
       userId,
+      clientRef,
       exerciseId,
       startedAt,
-      endedAt: body.endedAt ? new Date(body.endedAt) : null,
+      endedAt,
       devicePlatform: String(body.devicePlatform || '').slice(0, 16) || null,
       appBuild: String(body.appBuild || '').slice(0, 80) || null,
       modelVersion: String(body.modelVersion || '').slice(0, 80) || null,
@@ -63,6 +80,16 @@ async function createSession(userId, body) {
       limitations: String(body.limitations || '').slice(0, 400) || null,
       consentToStore: true,
     },
+  }).catch(async (e) => {
+    // Concurrent retried create: the unique (userId, clientRef) constraint
+    // makes the loser re-read the winner's row instead of duplicating.
+    if (e?.code === 'P2002' && clientRef) {
+      const existing = await getPrisma().coachingSession.findUnique({
+        where: { userId_clientRef: { userId, clientRef } },
+      }).catch(() => null);
+      if (existing) return existing;
+    }
+    throw e;
   });
   return { stored: true, session };
 }

@@ -16,7 +16,9 @@ function fakeDb(sessions = [SESSION]) {
       create: jest.fn(async ({ data }) => ({ id: 'cs-new', createdAt: new Date(), updatedAt: new Date(), ...data })),
       findMany: jest.fn(async ({ where } = {}) =>
         store.filter((s) => (!where?.userId || s.userId === where.userId) && (!where?.exerciseId || s.exerciseId === where.exerciseId))),
-      findUnique: jest.fn(async ({ where }) => store.find((s) => s.id === where.id) || null),
+      findUnique: jest.fn(async ({ where }) =>
+        store.find((s) => s.id === where.id
+          || (where.userId_clientRef && s.userId === where.userId_clientRef.userId && s.clientRef === where.userId_clientRef.clientRef)) || null),
       update: jest.fn(async ({ where, data }) => {
         const i = store.findIndex((s) => s.id === where.id);
         store[i] = { ...store[i], ...data };
@@ -145,5 +147,31 @@ describe('isPoseDiagnosticsTester', () => {
       userRole: { findMany: jest.fn(async () => [{ role: { name: 'MEMBER' } }]) },
     });
     expect(await isPoseDiagnosticsTester('member-user')).toBe(false);
+  });
+});
+
+describe('idempotent create + endedAt validation (DEV5)', () => {
+  const base = { exerciseId: 'squat', startedAt: '2026-11-25T10:00:00Z', consentToStore: true };
+
+  test('retried POST with same clientRef returns the existing row, not a duplicate', async () => {
+    fakeDb([{ ...SESSION, clientRef: 'cr-abc-123' }]);
+    const r = await svc.createSession('u1', { ...base, clientRef: 'cr-abc-123' });
+    expect(r.idempotent).toBe(true);
+    expect(r.session.id).toBe('cs1');
+  });
+
+  test('valid clientRef is stored; malformed clientRef is ignored', async () => {
+    fakeDb(); const create = getPrisma().coachingSession.create;
+    let r = await svc.createSession('u1', { ...base, clientRef: 'cr-abc-123' });
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ clientRef: 'cr-abc-123' }) }));
+    r = await svc.createSession('u1', { ...base, clientRef: 'x' }); // too short → ignored, not a 400
+    expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ clientRef: null }) }));
+  });
+
+  test.each([
+    [{ endedAt: 'not-a-date' }, /valid date/],
+    [{ endedAt: '2026-11-25T09:00:00Z' }, /must not precede/],
+  ])('bad endedAt rejected: %j', async (body, re) => {
+    await expect(svc.createSession('u1', { ...base, ...body })).rejects.toMatchObject({ status: 400, message: expect.stringMatching(re) });
   });
 });
