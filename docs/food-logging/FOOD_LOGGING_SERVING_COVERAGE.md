@@ -58,3 +58,7 @@ Quality fixes during expansion: branded `householdServingFullText` path now pass
 | water | Volume-based; grams suffice |
 
 Gate re-check: coverage **83.3% ≥ 60%** → PASS. Verified conversions 422. Unresolved 38 (16.7%).
+
+## 2026-11-25 — coverage gate retained as reproducible check
+
+`scripts/check-serving-coverage.js` (new, read-only) recomputes the release gate: coverage ≥60% of usable catalog, all serving rows grams>0, no pure weight/volume-unit labels, all rows carry `sourceRecord`. Re-run on dev `fitness_app`: **83.3% (190/228), 422 rows, 0 violations — PASS**. Against the empty `fitness_test` it correctly exits 1 (gate fails closed). Remaining gap is the documented 38-item unresolved queue (16.7%) — human source verification required per item; barcode coverage remains a separate FAIL gate (0 BarcodeProduct rows, product decision pending).
