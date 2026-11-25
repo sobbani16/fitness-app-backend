@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "training-config",
+  "type": "object",
+  "required": ["configVersion", "exerciseId", "datasetVersion", "seed", "architecture", "hyperparameters"],
+  "properties": {
+    "configVersion": { "type": "string" },
+    "exerciseId": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "datasetVersion": { "type": "string" },
+    "seed": { "type": "integer", "minimum": 0 },
+    "architecture": { "enum": ["deterministic_baseline", "tcn", "transformer_encoder", "lstm", "gcn"] },
+    "hyperparameters": {
+      "type": "object",
+      "properties": {
+        "epochs": { "type": "integer", minimum: 1, maximum: 1000 },
+        "learningRate": { "type": "number", exclusiveMinimum: 0 },
+        "batchSize": { "type": "integer", minimum: 1 },
+        "windowFrames": { "type": "integer", minimum: 8 },
+        "angleNoiseAugmentDeg": { "type": "number", minimum: 0, maximum: 15 }
+      },
+      "required": ["epochs", "learningRate", "batchSize", "windowFrames"]
+    },
+    "export": {
+      "type": "object",
+      "properties": {
+        "format": { "enum": ["onnx", "coreml", "tflite"] },
+        "quantization": { "enum": ["none", "fp16", "int8"] }
+      }
+    }
+  },
+  "additionalProperties": false
+}
