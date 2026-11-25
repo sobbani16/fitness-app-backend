@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-25T16:19:28.163Z",
+  "generatedAt": "2026-11-25T16:19:39.429Z",
   "generator": "scripts/generate-api-contract-inventory.js",
   "classification": {
     "stable": "public client contract — breaking changes need a deprecation window",
@@ -2998,5 +2998,28 @@
       "path": "/workout-plans",
       "surface": "stable"
     }
-  ]
+  ],
+  "knownDuplicates": [
+    "DELETE /me/:id",
+    "GET /admin/users",
+    "GET /health",
+    "GET /health/ready",
+    "GET /health/version",
+    "GET /me",
+    "GET /me/:assignmentId",
+    "GET /super-admin",
+    "GET /trainer",
+    "GET /trainer/:id",
+    "PATCH /me/:id",
+    "PATCH /trainer/:id",
+    "POST /me",
+    "POST /me/:assignmentId/feedback",
+    "POST /me/:assignmentId/respond",
+    "POST /trainer",
+    "POST /trainer/:id/assign",
+    "POST /trainer/:id/publish",
+    "POST /trainer/:id/revise",
+    "PUT /me"
+  ],
+  "notes": "Duplicate method+path registrations are documented debt (aggregate+direct mount overlap); the invariant test regression-guards this set."
 }

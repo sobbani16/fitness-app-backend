@@ -71,6 +71,13 @@ const inventory = {
   routes: rows,
 };
 
+// duplicate method+path registrations = shadowed routes (first registration
+// wins). Computed by the generator so regeneration never drops the record.
+const counts = {};
+for (const r of rows) { const k = `${r.method} ${r.path}`; counts[k] = (counts[k] || 0) + 1; }
+inventory.knownDuplicates = Object.keys(counts).filter((k) => counts[k] > 1).sort();
+inventory.notes = 'Duplicate method+path registrations are documented debt (aggregate+direct mount overlap); the invariant test regression-guards this set.';
+
 if (process.argv.includes('--write')) {
   fs.mkdirSync(path.join(__dirname, '..', 'docs'), { recursive: true });
   fs.writeFileSync(path.join(__dirname, '..', 'docs', 'api-contract-inventory.json'), JSON.stringify(inventory, null, 2) + '\n');
