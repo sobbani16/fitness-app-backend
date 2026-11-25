@@ -349,7 +349,17 @@ router.patch('/symptoms/:id', requireFeature('activity_safety_engine'), safetyWr
     if (b.context !== undefined) data.context = ['at_rest', 'during_activity', 'after_activity', 'unspecified'].includes(b.context) ? b.context : 'unspecified';
     if (b.persistence !== undefined) data.persistence = ['resolving', 'persistent', 'worsening'].includes(b.persistence) ? b.persistence : null;
     if (!Object.keys(data).length) return res.status(400).json({ error: 'no editable fields provided' });
-    const row = await prisma.userSymptomReport.updateMany({ where: { id: req.params.id, userId: uid(req) }, data });
+    // optimistic concurrency: clients may pass the version they read; a stale
+    // write then matches nothing and surfaces 409 instead of silently
+    // clobbering a concurrent update (§4/§8 concurrent-write guard).
+    const expectedV = num(b.version);
+    const where = { id: req.params.id, userId: uid(req) };
+    if (expectedV !== null) { where.version = expectedV; data.version = { increment: 1 }; }
+    const row = await prisma.userSymptomReport.updateMany({ where, data });
+    if (!row.count && expectedV !== null) {
+      const current = await prisma.userSymptomReport.findFirst({ where: { id: req.params.id, userId: uid(req) }, select: { version: true } });
+      if (current) return res.status(409).json({ error: 'stale_version', detail: 'Record changed since you read it — re-fetch and retry.', currentVersion: current.version });
+    }
     if (!row.count) return res.status(404).json({ error: 'not_found' });
     await invalidateSafetyAdvice(prisma, uid(req), 'symptom_updated').catch(() => null);
     res.json({ updated: true });
@@ -406,7 +416,7 @@ router.patch('/injuries/:id', requireFeature('activity_safety_engine'), safetyWr
     const prisma = getPrisma();
     const b = body(req);
     const keys = Object.keys(b);
-    const unsupported = keys.filter(k => !INJURY_EDITABLE.has(k));
+    const unsupported = keys.filter(k => k !== 'version' && !INJURY_EDITABLE.has(k));
     if (unsupported.length) return res.status(400).json({ error: 'unsupported_fields', unsupported, editable: [...INJURY_EDITABLE] });
 
     const bad = (field, detail) => res.status(400).json({ error: 'invalid_field', field, detail });
@@ -463,7 +473,14 @@ router.patch('/injuries/:id', requireFeature('activity_safety_engine'), safetyWr
       if (locked.length) return res.status(409).json({ error: 'clinician_fields_locked', locked, detail: 'These restriction fields were recorded from clinician guidance and cannot be changed by self-report. Ask your clinician for an updated note.' });
     }
 
-    const row = await prisma.userInjury.updateMany({ where: { id: req.params.id, userId: uid(req) }, data });
+    const expectedV = num(b.version);
+    const where = { id: req.params.id, userId: uid(req) };
+    if (expectedV !== null) { where.version = expectedV; data.version = { increment: 1 }; }
+    const row = await prisma.userInjury.updateMany({ where, data });
+    if (!row.count && expectedV !== null) {
+      const current = await prisma.userInjury.findFirst({ where: { id: req.params.id, userId: uid(req) }, select: { version: true } });
+      if (current) return res.status(409).json({ error: 'stale_version', detail: 'Record changed since you read it — re-fetch and retry.', currentVersion: current.version });
+    }
     if (!row.count) return res.status(404).json({ error: 'not_found' });
     await invalidateSafetyAdvice(prisma, uid(req), 'injury_updated').catch(() => null);
     res.json({ updated: true });
