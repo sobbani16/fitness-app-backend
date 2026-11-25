@@ -39,16 +39,21 @@ router.put('/', async (req, res, next) => {
     const names = [...next_.keys.map(k => A.STORED_NAME[k]), ...next_.custom];
     const prisma = getPrisma();
     const before = await A.loadUserAllergies(prisma, req.userId);
-    await prisma.$transaction(async (tx) => {
+    // One atomic transaction: allergy writes AND plan revalidation commit or
+    // roll back together — a failed revalidation can never leave a stale
+    // "clear" allergyCheck mark on plans under the new allergy profile.
+    // All calls inside are DB-only (no external calls under the lock).
+    const { saved, revalidation } = await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${req.userId} FOR UPDATE`;
       const rows = [];
       for (const name of names) rows.push(await tx.allergy.upsert({ where: { name }, update: {}, create: { name } }));
       await tx.userAllergy.deleteMany({ where: { userId: req.userId } });
       if (rows.length) await tx.userAllergy.createMany({ data: rows.map(r => ({ userId: req.userId, allergyId: r.id })) });
+      const savedNow = await A.loadUserAllergies(tx, req.userId);
+      const rv = await revalidateActivePlans(tx, req.userId, savedNow);
+      return { saved: savedNow, revalidation: rv };
     });
-    const saved = await A.loadUserAllergies(prisma, req.userId);
     const changed = JSON.stringify(before) !== JSON.stringify(saved);
-    const revalidation = await revalidateActivePlans(prisma, req.userId, saved);
     res.json({ ...view(saved), changed, revalidation });
   } catch (e) { next(e); }
 });
