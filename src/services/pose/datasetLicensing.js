@@ -2,7 +2,7 @@
 // A dataset may only enter the training pipeline when the registry verdict
 // is 'approved' or 'approved_with_conditions'; restricted entries need an
 // explicit counsel review flag flips; prohibited entries are hard-blocked.
-const registry = require('../../pose/datasets/licensing-registry.json');
+const registry = require('../../../pose/datasets/licensing-registry.json');
 
 function lookup(datasetId) {
   return registry.datasets.find((d) => d.id === datasetId) || null;
