@@ -2572,6 +2572,10 @@ model TrainerBooking {
   meetingLink   String?
   clientNote    String?
   trainerNote   String?
+  // Entitlement consumed by this booking (null = no paid consumption).
+  // Restored once if the booking is canceled/declined before completion.
+  entitlementId String?
+  entitlement   TrainerEntitlement? @relation(fields: [entitlementId], references: [id])
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
@@ -2655,6 +2659,8 @@ model TrainerEntitlement {
   remainingSessions Int?
   expiresAt         DateTime?
   status            String           @default("active") // active | exhausted | expired | revoked
+
+  bookings          TrainerBooking[]
 
   @@index([clientId, status])
   @@index([trainerId])
