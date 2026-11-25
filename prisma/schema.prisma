@@ -54,6 +54,7 @@ model User {
   goalHistories      GoalHistory[]
   workoutSessions  WorkoutSession[]
   coachingSessions CoachingSession[]
+  leoConfirmations  LeoConfirmation[]
   energyRecords    HealthEnergyRecord[]
   workoutPlans     UserWorkoutPlan[]
   groceryItems     GroceryItem[]
@@ -4461,4 +4462,21 @@ model UserClinicalReview {
   updatedAt DateTime @updatedAt
 
   @@index([userId, status])
+}
+
+// Leo voice-assistant confirmations — a granted confirmation binds to
+// (user, session, exact tool+args hash) and expires; consumed once.
+model LeoConfirmation {
+  id         String    @id @default(uuid())
+  userId     String
+  sessionId  String
+  toolName   String
+  argsHash   String // sha256 of canonicalized args — the confirmation covers EXACTLY this call
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sessionId])
 }
