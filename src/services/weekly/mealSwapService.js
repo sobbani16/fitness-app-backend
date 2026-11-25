@@ -165,13 +165,25 @@ async function rebalanceDay(planId, dayOfWeek, userId, filters) {
     include: { ingredients: true },
   });
 
+  // rebalance is an automatic server-side write — there is no user in the
+  // loop to acknowledge, so allergen-conflicting AND composition-unknown
+  // recipes are both ineligible as replacements (stricter than manual swap,
+  // which can 409+ack). Keeping the meal's current recipe introduces no new
+  // hazard, so the fallback is exempt.
+  const assess = userId ? await allergenAssessor(prisma, userId, allRecipes) : null;
+  const allergyEligible = (r) => {
+    if (!assess) return true;
+    const v = assess(r);
+    return !v || (v.status !== 'conflict' && v.status !== 'unknown');
+  };
+
   const usedIds = new Set(lockedMeals.map((m) => m.recipeId));
   const dayProtein = new Set();
 
   for (const meal of unlockedMeals) {
     const candidates = allRecipes
       .filter((r) => r.mealType === meal.mealType && r.id !== meal.recipeId && !usedIds.has(r.id))
-      .filter((r) => isAllowed(r, filters.disliked, filters.restrictions, filters.preferences))
+      .filter((r) => allergyEligible(r) && isAllowed(r, filters.disliked, filters.restrictions, filters.preferences))
       .map((r) => {
         const protein = proteinInName(r.recipeName);
         const score =

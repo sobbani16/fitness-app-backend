@@ -4,7 +4,7 @@
 // and performed no allergen assessment at all.
 jest.mock('../src/lib/prisma', () => ({ getPrisma: () => mockDb }));
 jest.mock('../src/services/weekly/planningPolicy', () => ({ recipeAllowed: () => true }));
-const { getAlternatives, swapMeal } = require('../src/services/weekly/mealSwapService');
+const { getAlternatives, swapMeal, rebalanceDay } = require('../src/services/weekly/mealSwapService');
 
 const OWNER = 'owner-1';
 const meal = (over = {}) => ({
@@ -85,5 +85,24 @@ describe('allergy recheck on substitution', () => {
     mockDb = buildDb({ mealRow: meal(), recipes: [recipe('r2', 'peanut sauce')], allergies: [] });
     await swapMeal('m1', 'r2', OWNER);
     expect(mockDb.weeklyMeal.update).toHaveBeenCalled();
+  });
+});
+
+describe('rebalanceDay allergy enforcement (automatic writes, no user to acknowledge)', () => {
+  it('never installs an allergen-conflicting recipe even when it scores best', async () => {
+    const peanutRecipe = recipe('rp', 'peanut', { calories: 2000 });
+    const cleanRecipe = recipe('rc', 'rice', { calories: 100 });
+    mockDb = buildDb({ mealRow: meal(), recipes: [peanutRecipe, cleanRecipe], allergies: ['peanut'] });
+    await rebalanceDay('p1', 1, OWNER, { skipMealId: 'nope', disliked: [], restrictions: [], preferences: [] });
+    const calls = mockDb.weeklyMeal.update.mock.calls;
+    expect(calls.length).toBe(1);
+    expect(calls[0][0].data.recipeId).toBe('rc');
+  });
+
+  it('excludes composition-unknown recipes, falling back rather than installing one', async () => {
+    const unknownRecipe = recipe('ru', null, { calories: 2000 });
+    mockDb = buildDb({ mealRow: meal(), recipes: [unknownRecipe], allergies: ['peanut'] });
+    await rebalanceDay('p1', 1, OWNER, { skipMealId: 'nope', disliked: [], restrictions: [], preferences: [] });
+    for (const c of mockDb.weeklyMeal.update.mock.calls) expect(c[0].data.recipeId).not.toBe('ru');
   });
 });
