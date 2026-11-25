@@ -26,7 +26,9 @@
     "nutrients:import": "node scripts/import-nutrients.js",
     "nutrients:fetch": "node scripts/fetch-nutrient-sources.js",
     "nutrients:populate": "node scripts/populate-nutrients.js",
-    "conditions:import": "node scripts/import-condition-rules.js"
+    "conditions:import": "node scripts/import-condition-rules.js",
+    "contract:emit": "node scripts/emit-api-contract.js",
+    "contract:check": "node scripts/emit-api-contract.js --check"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
