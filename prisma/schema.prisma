@@ -4462,3 +4462,47 @@ model UserClinicalReview {
 
   @@index([userId, status])
 }
+
+// pc-HUM-110 sections 20+32: versioned model registry with controlled
+// rollout. Status machine: registered -> candidate -> approved -> active;
+// active -> rolled_back; anything -> retired. Nothing is ever auto-promoted
+// or deleted — rollback targets keep full history.
+model MlModel {
+  id                 String   @id @default(uuid())
+  name               String
+  version            String
+  architecture       String   // deterministic_baseline | tcn | lstm_gru | hybrid
+  datasetVersion     String
+  configHash         String   // reproducibility fingerprint: config+seeds+code sha
+  seed               Int
+  supportedExercises String[] // e.g. [squat, push_up, ...]
+  capabilities       Json     // per-exercise { observations: [], enabled: bool }
+  evalResults        Json?    // independent eval: per-exercise P/R, count MAE, calibration...
+  limitations        String[] @default([])
+  checksum           String   // artifact sha256
+  runtimeCompat      String   // e.g. onnxruntime-mobile>=1.17, litert>=1.0
+  status             String   @default("registered")
+  approvalRef        String?  // independent evaluation reference — required before active
+  rollbackTargetId   String?
+  createdAt          DateTime @default(now())
+  promotedAt         DateTime?
+
+  rollouts MlRolloutEvent[]
+
+  @@unique([name, version])
+  @@index([status])
+}
+
+model MlRolloutEvent {
+  id        String   @id @default(uuid())
+  modelId   String
+  fromState String
+  toState   String
+  reason    String
+  actor     String
+  createdAt DateTime @default(now())
+
+  model MlModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@index([modelId, createdAt])
+}
