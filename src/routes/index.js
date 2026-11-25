@@ -118,6 +118,10 @@ router.use('/trainer/schedule', trainerSchedule);
 // notifications before myBookings: its router-level requireFeature would shadow them.
 router.use('/me/notifications', notifications);
 router.use('/me/allergies', require('./allergies'));
+router.use('/me/health-conditions', require('./healthConditions'));
+router.use('/me/medications', require('./medications'));
+router.use('/me/clinical-measurements', require('./clinicalMeasurements'));
+router.use('/health-conditions', require('./healthConditionCatalog'));
 router.use('/me', myBookings);
 // Paid-coaching gated router LAST under /me — only entitlements/purchases hit it.
 router.use('/me', myPurchases);
@@ -128,6 +132,7 @@ router.use('/communication', communication);
 router.use('/academy', academy.router);
 router.use('/editorial', editorial.router);
 router.use('/super-admin/ingredient-evidence', require('./adminEvidence'));
+router.use('/super-admin/clinical-rules', require('./clinicalRules'));
 router.use('/super-admin/nutrition-profiles', require('./nutritionReview'));
 router.use('/super-admin', editorial.router); // same perms: SUPER_ADMIN_PANEL + scoped perms gate every route
 

@@ -213,9 +213,10 @@ router.post('/reports', requireFeature('group_messaging_enabled'), identifyUser,
 const docs = express.Router();
 docs.use(requireFeature('trainer_documents_enabled'), identifyUser);
 
+const { requiredSecret } = require('../lib/env');
 const UPLOAD_DIR = process.env.DOCUMENT_STORAGE_DIR || path.join(process.cwd(), 'var', 'uploads');
 const MAX_DOC_BYTES = Number(process.env.DOCUMENT_MAX_BYTES || 10 * 1024 * 1024);
-const DOC_URL_SECRET = process.env.AUTH_LINK_SECRET || 'dev-doc-secret';
+const DOC_URL_SECRET = requiredSecret('DOC_URL_SECRET', 'dev-doc-secret');
 const CATEGORIES = ['nutrition', 'workout', 'meal_plan', 'exercise', 'progress', 'education'];
 const docStorage = require('../lib/docStorage');
 const DOC_SCAN_CMD = process.env.DOC_SCAN_CMD || ''; // e.g. 'clamdscan --fdpass'
@@ -411,7 +412,7 @@ docs.get('/:id/file', async (req, res) => {
 const video = express.Router();
 video.use(requireFeature('video_sessions_enabled'), identifyUser);
 
-const VIDEO_TOKEN_SECRET = process.env.AUTH_LINK_SECRET || 'dev-video-secret';
+const VIDEO_TOKEN_SECRET = requiredSecret('VIDEO_TOKEN_SECRET', 'dev-video-secret');
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';

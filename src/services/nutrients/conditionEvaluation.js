@@ -1,4 +1,5 @@
 const {Prisma}=require('@prisma/client');
+const {liveRuleWhere,isRuleLive}=require('../healthOutcomes/clinicalRuleGovernance');
 const {normalizeAmount}=require('../nutrientImport');
 const ACTIONS=['LIMIT','MONITOR','PRIORITIZE','AVOID_IF_INDICATED'];
 const SCOPES=['GENERAL','CONDITION','LAB_DEPENDENT','MEDICATION','CLINICIAN'];
@@ -13,7 +14,7 @@ function evaluate({conditions=[],profile,servingGrams,context={},clinicianLimits
  const serving=decimal(servingGrams), findings=[];
  for(const rule of [...nutrientRules,...ingredientRules]) {
   const conditionId=rule.healthConditionId||rule.conditionId;
-  if(!ids.has(conditionId)||rule.reviewStatus!=='APPROVED')continue;
+  if(!ids.has(conditionId)||!isRuleLive(rule))continue;
   const ingredientRule=!rule.nutrient;
   const action=ingredientRule?rule.clinicalAction:rule.action;
   const result={ruleId:rule.id,ruleCode:rule.code||rule.ruleCode,version:rule.version,condition:rule.healthCondition||rule.condition||{id:conditionId},matchedNutrient:rule.nutrient||null,matchedIngredient:ingredientRule?{id:profile?.ingredientId,attribute:rule.attribute}:null,action,severity:rule.severity||rule.clinicalSeverity,explanation:rule.rationale||rule.reason,evidence:rule.evidence||null,actualQuantity:null,threshold:null,clinicianInstruction:null,personalizationRequirements:[],status:'GUIDANCE',comparison:null};
@@ -71,8 +72,8 @@ async function evaluateForConditions(prisma,{conditions,profileId,...input}) {
  const ids=conditions.filter(c=>c.active!==false).map(c=>c.conditionId||c.id);
  const [profile,nutrientRules,ingredientRules]=await Promise.all([
   prisma.ingredientNutritionProfile.findUnique({where:{id:profileId},include:{nutrients:true,ingredient:{include:{attributes:true}}}}),
-  prisma.healthConditionNutrientRule.findMany({where:{healthConditionId:{in:ids},reviewStatus:'APPROVED'},include:{nutrient:true,evidence:true,healthCondition:true}}),
-  prisma.conditionRule.findMany({where:{conditionId:{in:ids},target:'clinical_ingredient',reviewStatus:'APPROVED'},include:{evidence:true,condition:true}}),
+  prisma.healthConditionNutrientRule.findMany({where:{healthConditionId:{in:ids},...liveRuleWhere()},include:{nutrient:true,evidence:true,healthCondition:true}}),
+  prisma.conditionRule.findMany({where:{conditionId:{in:ids},target:'clinical_ingredient',...liveRuleWhere()},include:{evidence:true,condition:true}}),
  ]);
  return evaluate({...input,conditions,profile,nutrientRules,ingredientRules});
 }

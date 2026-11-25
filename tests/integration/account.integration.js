@@ -79,7 +79,9 @@ test('all schema models are explicitly classified for deletion/export review', (
     'knowledgeFAQ', 'contentCorrection', 'trainerCoachingPackage', 'trainerAvailability', 'trainerSessionType',
     'trainerSchedulingPreference', 'trainerCertification', 'trainerDocument', 'coachingGroup', 'trainerEntitlement'];
   const shared = ['ruleEvidence','healthConditionNutrientRule','nutrient','ingredientNutritionProfile','ingredientNutrient','ingredientImport','ingredientServing','ingredientCatalog','healthCondition','allergy','supplement','ingredient','ingredientAttribute','supplementAttribute','conditionRule','supplementRule','role','permission','rolePermission',
-    'exercise', 'exerciseMuscle', 'researchSource', 'knowledgeArticle', 'membershipModule', 'membershipPackage', 'trainerPromotion', 'barcodeProduct', 'ingredientEvidenceProfile'];
+    'exercise', 'exerciseMuscle', 'researchSource', 'knowledgeArticle', 'membershipModule', 'membershipPackage', 'trainerPromotion', 'barcodeProduct', 'ingredientEvidenceProfile',
+    // Shared catalog + clinical governance audit (system records, not per-user rows).
+    'medication', 'clinicalRuleEvent'];
   expect(models.map(m => modelName(m.name)).filter(m => ![...OWNED,...special,...children,...shared].includes(m))).toEqual([]);
 });
 test('requires session, current password, explicit deletion confirmation; unverified users retain privacy access', async () => {

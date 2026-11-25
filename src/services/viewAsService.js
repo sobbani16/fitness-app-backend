@@ -4,8 +4,9 @@
 // mutations while a view-as token is active.
 const crypto = require('crypto');
 const { getPrisma } = require('../lib/prisma');
+const { requiredSecret } = require('../lib/env');
 
-const SECRET = process.env.VIEW_AS_SECRET || process.env.AUTH_LINK_SECRET || 'dev-view-as-secret';
+const SECRET = requiredSecret('VIEW_AS_SECRET', 'dev-view-as-secret');
 const TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 const sign = (payload) => crypto.createHmac('sha256', SECRET).update(payload).digest('base64url');
@@ -19,7 +20,8 @@ function issueViewAsToken({ adminId, userId, role }) {
 function verifyViewAsToken(token) {
   const err = Object.assign(new Error('View-as token invalid or expired.'), { status: 403 });
   const [payload, sig] = (token || '').split('.');
-  if (!payload || !sig || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(sign(payload)))) throw err;
+  const expected = sign(payload || '');
+  if (!payload || !sig || sig.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) throw err;
   let claims;
   try { claims = JSON.parse(Buffer.from(payload, 'base64url').toString()); } catch { throw err; }
   if (!claims || claims.v !== 1 || !claims.aid || claims.exp < Date.now()) throw err;

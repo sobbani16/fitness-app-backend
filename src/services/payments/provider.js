@@ -19,12 +19,20 @@
 
 const { createHmac, createHash, timingSafeEqual } = require('node:crypto');
 const { httpError } = require('../../lib/errors');
+const { isProduction } = require('../../lib/env');
 
 const SIGNATURE_HEADERS = ['x-mock-signature', 'x-payment-signature'];
 const CHECKOUT_TTL_MS = 30 * 60 * 1000;
 
 function webhookSecret() {
-  return process.env.PAYMENTS_WEBHOOK_SECRET || 'mock-secret';
+  const secret = process.env.PAYMENTS_WEBHOOK_SECRET;
+  if (secret) return secret;
+  if (isProduction()) {
+    // Fail closed: a predictable signing secret lets anyone forge webhook
+    // events that grant paid entitlements.
+    throw httpError(503, 'Payment webhook secret is not configured.');
+  }
+  return 'mock-secret';
 }
 
 /**
@@ -104,9 +112,16 @@ class MockProvider {
 
 const providers = { mock: () => new MockProvider() };
 
-/** Factory: PAYMENTS_PROVIDER env (default 'mock'); routes may pass :provider. */
+/**
+ * Factory: PAYMENTS_PROVIDER env (default 'mock'); routes may pass :provider.
+ * In production the mock provider is unreachable — a deterministic provider
+ * must never be selectable via the public webhook path or env omission.
+ */
 function getProvider(name) {
   const wanted = (name || process.env.PAYMENTS_PROVIDER || 'mock').toLowerCase();
+  if (wanted === 'mock' && isProduction()) {
+    throw httpError(403, 'The mock payment provider is disabled in production.');
+  }
   const factory = providers[wanted];
   if (!factory) throw httpError(400, `Unsupported payment provider: ${wanted}`);
   return factory();
