@@ -51,6 +51,23 @@ const CASES = [
   { id: 'edge-40.4',  label: 'Boundary: apparent 40.4C (below)',   env: mkEnv({ tempC: 40.4, apparentTempC: 40.4 }) },
   { id: 'edge-40.5',  label: 'Boundary: apparent 40.5C (at)',      env: mkEnv({ tempC: 40.5, apparentTempC: 40.5 }) },
   { id: 'edge-40.6',  label: 'Boundary: apparent 40.6C (above)',   env: mkEnv({ tempC: 40.6, apparentTempC: 40.6 }) },
+  // ── Sensitive-profile band tightening (incr: profile sweep) ──
+  // Same observation, only ctx differs. Flags merge via ctx.flags/conditions/
+  // pregnancyStatus/ageYears → buildFlags (engine.js:375-379).
+  { id: 'sens-aqi110-well',  label: 'AQI 110, healthy control',               env: mkEnv({ aqi: { value: 110, source: 'fixture' } }) },
+  { id: 'sens-aqi110-asthma',label: 'AQI 110, asthma flag',                   env: mkEnv({ aqi: { value: 110, source: 'fixture' } }), ctx: { flags: new Set(['asthma']) } },
+  { id: 'sens-aqi110-age65', label: 'AQI 110, ageYears 66',                   env: mkEnv({ aqi: { value: 110, source: 'fixture' } }), ctx: { ageYears: 66 } },
+  { id: 'sens-heat34-well',  label: 'Apparent 34C, healthy control',          env: mkEnv({ tempC: 34, apparentTempC: 34 }) },
+  { id: 'sens-heat355-well', label: 'Apparent 35.5C, healthy control',        env: mkEnv({ tempC: 35.5, apparentTempC: 35.5 }) },
+  { id: 'sens-heat355-preg', label: 'Apparent 35.5C, pregnancy',              env: mkEnv({ tempC: 35.5, apparentTempC: 35.5 }), ctx: { pregnancyStatus: 'pregnant' } },
+  { id: 'sens-heat29-well',  label: 'Apparent 29C, healthy control',          env: mkEnv({ tempC: 29, apparentTempC: 29 }) },
+  { id: 'sens-heat29-ms',    label: 'Apparent 29C, ms condition',             env: mkEnv({ tempC: 29, apparentTempC: 29 }), ctx: { conditions: ['ms'] } },
+  { id: 'sens-cold10-well',  label: 'Apparent -10C calm, healthy control',    env: mkEnv({ tempC: -10, apparentTempC: -10 }) },
+  { id: 'sens-cold10-asthma',label: 'Apparent -10C calm, asthma flag',        env: mkEnv({ tempC: -10, apparentTempC: -10 }), ctx: { flags: new Set(['asthma']) } },
+  // ── Alert-text hazards (no weather code needed) ──
+  { id: 'alert-severe',   label: 'Severe alert text (Winter Storm Warning)',  env: mkEnv({ alerts: [{ event: 'Winter Storm Warning', severity: 'severe' }] }) },
+  { id: 'alert-thunder',  label: 'Alert text mentions thunder, code 1',       env: mkEnv({ alerts: [{ event: 'Thunderstorm outlook', severity: 'moderate' }] }) },
+  { id: 'alert-watch',    label: 'Minor advisory only (Frost Advisory)',      env: mkEnv({ alerts: [{ event: 'Frost Advisory', severity: 'minor' }] }) },
 ];
 
 function v1(env) {
@@ -60,23 +77,24 @@ function v1(env) {
   return { condition, location: r.location, weatherAdjusted: r.weatherAdjusted, type: r.type };
 }
 
-function v2Eval(env, activity) {
-  const r = safety.evaluate(CTX, activity, env, { rules: RULES, now: NOW });
+function v2Eval(env, activity, ctx = CTX) {
+  const r = safety.evaluate(ctx, activity, env, { rules: RULES, now: NOW });
   return { decision: r.decision, reasons: r.reasons, betterTime: r.betterTime };
 }
 
-function v2Rec(env) {
-  const rec = safety.recommend(CTX, env, { rules: RULES, now: NOW });
+function v2Rec(env, ctx = CTX) {
+  const rec = safety.recommend(ctx, env, { rules: RULES, now: NOW });
   return { disposition: rec.disposition, suggestion: rec.suggestion && rec.suggestion.activityId, decision: rec.suggestion && rec.suggestion.decision, betterTime: rec.suggestion && rec.suggestion.betterTime };
 }
 
 const rows = [];
 for (const c of CASES) {
   const env = typeof c.env === 'function' ? c.env() : c.env;
+  const ctx = { ...CTX, ...(c.ctx || {}) };
   const a = v1(env);
-  const bo = v2Eval(env, ACT_OUT);
-  const bi = v2Eval(env, ACT_IN);
-  const cr = v2Rec(env);
+  const bo = v2Eval(env, ACT_OUT, ctx);
+  const bi = v2Eval(env, ACT_IN, ctx);
+  const cr = v2Rec(env, ctx);
   rows.push({ case: c.id, label: c.label, v1: a, outdoor: bo, indoor: bi, recommend: cr });
 }
 

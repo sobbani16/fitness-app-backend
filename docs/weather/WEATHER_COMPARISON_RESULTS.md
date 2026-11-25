@@ -82,6 +82,29 @@ ALLOW; `recommend()` still yields `indoor_walk` rather than nothing. Rain
 (2mm, WMO 61) correctly stays ALLOW (below 5mm `heavy_precip`). Classification:
 **correctly filtered suggestions**, consistent with `environment.js` contract.
 
+## Sensitive-profile & alert sweep (increment 3 — same harness, ctx varies only)
+
+Profile flags arrive via four real input shapes — `ctx.flags:Set`, `ctx.conditions`,
+`ctx.pregnancyStatus`, `ctx.ageYears` (merged by `buildFlags`, engine.js:375-379).
+Identical observation per pair; only ctx differs.
+
+| case | obs | healthy | flagged | basis |
+|---|---|---|---|---|
+| AQI 110 | 20C clear | ALLOW | **MODIFY** (asthma flag, age 66) | AQI_USG ≥101 only when aqiSensitive |
+| apparent 35.5C | clear | MODIFY (≥32) | **DEFER_OUTDOOR** (pregnancy) | HEAT_SENSITIVE_DANGER ≥35 |
+| apparent 29C | clear | ALLOW | **MODIFY** (ms condition) | HEAT_CAUTION ≥28 only when heatSensitive |
+| apparent −10C calm | clear | ALLOW | **MODIFY** (asthma flag) | COLD_CAUTION via coldSensitive |
+| alert: 'Winter Storm Warning' | 20C clear | DEFER_OUTDOOR | — | SEVERE_ALERT via `/warning\|severe\|…/` on alertText |
+| alert: 'Thunderstorm outlook' | 20C code 1 | DEFER_OUTDOOR | — | THUNDERSTORM via `/thunder\|lightning/` |
+| alert: 'Frost Advisory' minor | 20C clear | ALLOW | — | advisory text matches no severe regex — watch-vs-warning granularity |
+
+Verified: all four flag input shapes produce identical tightening; indoor
+control stays ALLOW in every case; `recommend()` substitutes indoor_walk;
+v1 `deriveCondition` maps ALL of the above to 'pleasant'/'hot' — the bucket
+vocabulary cannot represent any of them (extends F2). Alert-text hazards are
+reachable only when providers populate `env.alerts`; `alertsAvailable:false`
+downgrades to INSUFFICIENT_DATA rather than silently clearing (environment.js:161).
+
 ## Unverified / out of scope
 
 - `safetyGate`-without-env behavior in producers (personalPlans, chat,
@@ -91,12 +114,13 @@ ALLOW; `recommend()` still yields `indoor_walk` rather than nothing. Rain
   — flagged as an integration question, not confirmed as a defect).
 - `EnvironmentalObservation` persistence path — unused; evaluations can't be
   tied back to a stored observation.
-- Alert-text hazards (severe_alert, thunderstorm-via-text) and India/US
-  provider branches — fixtures covered codes; alert payloads not swept.
+- India/US provider payload branches — fixtures covered WMO codes and alert
+  text; provider normalization (IMD vs NWS shapes) not swept.
 - `aqi_very_unhealthy`/`smoke` keys — unreachable by `detectHazards` (noted in
   inventory); confirmed by absence in this matrix but not separately probed.
-- Profile-sensitive band tightening (AQI 101 USG, heat 28/35 with flags) —
-  fixed-context matrix only; sensitive-profile sweep is future work.
+- Sensitive-profile × hazard cross-product beyond the sampled bands (e.g.
+  heat_sensitivity med-flag pair, wheelchair + storm) — the flag merge is
+  verified; full combinatorial sweep not run.
 - Mobile `weatherContext.ts` client-side thresholds vs engine — display-only;
   not run (backend audit).
 
