@@ -44,6 +44,8 @@ jobs:
       - run: npm ci
       - name: Prisma schema validate
         run: npx prisma validate
+      - name: API contract manifest in sync
+        run: npm run contract:check
       - name: Prisma generate + migrate deploy (test DB)
         run: npx prisma generate && npx prisma migrate deploy
       - name: Seed RBAC roles (tests expect ADMIN etc.)
