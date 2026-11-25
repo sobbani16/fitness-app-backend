@@ -100,6 +100,18 @@ router.post('/transcribe', voiceEnabled, wrap(async (req, res) => {
   res.json({ transcript: out.text || '' });
 }));
 
+// POST /voice/speak — text → mp3 for Leo's spoken replies. Gated + quota'd
+// via aiProvider.synthesizeSpeech; ≤600 chars; audio is streamed, never
+// persisted. On-device TTS (expo-speech) remains the default — this is for
+// surfaces that want the same voice everywhere.
+router.post('/speak', voiceEnabled, wrap(async (req, res) => {
+  const { text } = req.body || {};
+  if (typeof text !== 'string' || !text.trim()) throw httpError(400, 'text required');
+  if (text.length > 600) throw httpError(413, 'Text too long — keep spoken replies under 600 characters.');
+  const mp3 = await require('../services/aiProvider').synthesizeSpeech(text.trim(), uid(req));
+  res.set({ 'Content-Type': 'audio/mpeg', 'Cache-Control': 'no-store' }).send(mp3);
+}));
+
 // AI fallback for segments the deterministic parser can't classify. The model
 // proposes candidate fields only — everything is re-validated and resolved
 // server-side; it can never emit an ID or execute anything.
@@ -203,6 +215,41 @@ router.post('/interpret', voiceEnabled, wrap(async (req, res) => {
     if (fiberVoice && isFiberQuestion(seg) && (a.intent === 'UNKNOWN_INTENT' || (a.intent === 'LOG_FOOD' && interrogative))) {
       a.intent = 'ASK_FIBER'; a.status = 'ready'; a.missing = [];
       continue;
+    }
+  }
+  // Server-side context fill — "change that to 12" / "same weight, 8 more"
+  // must work for clients that don't ship ctx {lastSetId,lastExercise,
+  // lastWeight}. Resolve the user's most recent set once, lazily; execute
+  // re-verifies ownership regardless of what interpret proposes.
+  const needsCtx = parsed.actions.some(a =>
+    (a.intent === 'UPDATE_EXERCISE_SET' && !ctx.lastSetId && !a.entities.setId) ||
+    (a.intent === 'LOG_EXERCISE_SET' && ((a.missing || []).includes('exercise') || (a.missing || []).includes('weight'))));
+  if (needsCtx) {
+    const latest = await prisma.workoutSession.findFirst({
+      where: { userId: uid(req) }, orderBy: { startedAt: 'desc' },
+      include: { exerciseSets: { orderBy: { setNumber: 'desc' }, take: 1 } },
+    });
+    const lastSet = latest?.exerciseSets?.[0] || null;
+    for (const a of parsed.actions) {
+      if (a.intent === 'UPDATE_EXERCISE_SET' && !ctx.lastSetId && !a.entities.setId && lastSet) {
+        a.entities.setId = lastSet.id;
+        a.missing = (a.missing || []).filter(x => x !== 'set');
+        if (a.entities.reps != null) a.status = 'ready';
+        a.resolvedFrom = 'latest_session';
+      }
+      if (a.intent === 'LOG_EXERCISE_SET' && lastSet) {
+        if (!a.entities.exerciseName && (a.missing || []).includes('exercise')) {
+          a.entities.exerciseName = lastSet.exerciseName;
+          a.missing = a.missing.filter(x => x !== 'exercise');
+          a.resolvedFrom = 'latest_session';
+        }
+        if (a.entities.weight == null && (a.missing || []).includes('weight') && lastSet.weightLbs != null) {
+          a.entities.weight = lastSet.weightLbs;
+          a.entities.weightUnit = 'lbs'; // stored value is already lbs
+          a.missing = a.missing.filter(x => x !== 'weight');
+        }
+        if (!(a.missing || []).length && a.status === 'needs_review') a.status = 'ready';
+      }
     }
   }
   for (const a of parsed.actions) {
