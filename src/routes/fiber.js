@@ -7,6 +7,7 @@ const { httpError } = require('../lib/errors');
 const { requireFeature } = require('../middleware/requireFeature');
 const { resolveZone, dayKey, dayRangeUtc } = require('../services/localDay');
 const { resolveFiberTarget } = require('../services/fiber/targets');
+const { resolveFiberTargetForUser } = require('../services/fiber/targetForUser');
 const { dailyFiber, fiberStateOf } = require('../services/fiber/dailyEngine');
 const { sequenceMeal } = require('../services/fiber/sequencing');
 const { evaluateFiberSupplement, confirmCheck } = require('../services/fiber/supplementCheck');
@@ -27,15 +28,7 @@ router.get('/target', requireFeature('fiber_daily_goal_enabled'), async (req, re
   try {
     const userId = uid(req);
     const prisma = getPrisma();
-    const [user, macroGoal, conditions] = await Promise.all([
-      prisma.user.findUnique({ where: { id: userId }, select: { dateOfBirth: true, gender: true } }),
-      prisma.macroGoal.findUnique({ where: { userId } }),
-      prisma.userHealthCondition.findMany({ where: { userId, active: true }, include: { condition: { select: { name: true } } } }),
-    ]);
-    res.json(resolveFiberTarget({
-      dateOfBirth: user?.dateOfBirth, gender: user?.gender, macroGoal,
-      conditionNames: conditions.map((c) => c.condition?.name).filter(Boolean),
-    }));
+    res.json(await resolveFiberTargetForUser(prisma, userId));
   } catch (e) { next(e); }
 });
 
@@ -94,33 +87,33 @@ router.get('/trend', requireFeature('fiber_daily_goal_enabled'), async (req, res
     const today = dayKey(new Date(), tz);
     // The resolved target is user-level (not per-day), so one resolution
     // serves the whole window; past-day targets are not versioned yet.
-    const [user, macroGoal, conditions] = await Promise.all([
-      prisma.user.findUnique({ where: { id: userId }, select: { dateOfBirth: true, gender: true } }),
-      prisma.macroGoal.findUnique({ where: { userId } }),
-      prisma.userHealthCondition.findMany({ where: { userId, active: true }, include: { condition: { select: { name: true } } } }),
-    ]);
-    const target = resolveFiberTarget({
-      dateOfBirth: user?.dateOfBirth, gender: user?.gender, macroGoal,
-      conditionNames: conditions.map((c) => c.condition?.name).filter(Boolean),
+    const target = await resolveFiberTargetForUser(prisma, userId);
+    const dayList = [];
+    for (let i = days - 1; i >= 0; i--) dayList.push(new Date(Date.parse(`${today}T00:00:00Z`) - i * 86400000).toISOString().slice(0, 10));
+    // One bounded-range query for the whole window, grouped in memory — the
+    // previous per-day loop ran up to `days` sequential queries.
+    const first = dayRangeUtc(dayList[0], tz);
+    const last = dayRangeUtc(dayList[dayList.length - 1], tz);
+    const logs = await prisma.foodLog.findMany({
+      where: { userId, loggedAt: { gte: first.startUtc, lt: last.endUtc } },
+      select: { fiberG: true, loggedAt: true, nutritionSnapshot: true },
     });
-    const out = [];
-    for (let i = days - 1; i >= 0; i--) {
-      const day = new Date(Date.parse(`${today}T00:00:00Z`) - i * 86400000).toISOString().slice(0, 10);
-      const { startUtc, endUtc } = dayRangeUtc(day, tz);
-      // eslint-disable-next-line no-await-in-loop
-      const logs = await prisma.foodLog.findMany({
-        where: { userId, loggedAt: { gte: startUtc, lt: endUtc } },
-        select: { fiberG: true, nutritionSnapshot: true },
-      });
-      let confirmed = 0, unknown = 0;
-      for (const l of logs) {
-        const st = fiberStateOf(l);
-        if (st === 'confirmed') confirmed += l.fiberG;
-        else if (st === 'unknown') unknown += 1;
-      }
-      out.push({ date: day, confirmedG: Math.round(confirmed * 10) / 10, targetG: target.targetG, unknownMeals: unknown, mealsLogged: logs.length });
+    const byDay = new Map(dayList.map((d) => [d, { confirmed: 0, unknown: 0, meals: 0 }]));
+    for (const l of logs) {
+      const bucket = byDay.get(dayKey(l.loggedAt, tz));
+      if (!bucket) continue;
+      bucket.meals += 1;
+      const st = fiberStateOf(l);
+      if (st === 'confirmed') bucket.confirmed += l.fiberG;
+      else if (st === 'unknown') bucket.unknown += 1;
     }
-    res.json({ days: out, timezone: tz });
+    res.json({
+      days: dayList.map((day) => {
+        const b = byDay.get(day);
+        return { date: day, confirmedG: Math.round(b.confirmed * 10) / 10, targetG: target.targetG, unknownMeals: b.unknown, mealsLogged: b.meals };
+      }),
+      timezone: tz,
+    });
   } catch (e) { next(e); }
 });
 
