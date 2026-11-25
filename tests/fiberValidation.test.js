@@ -153,17 +153,17 @@ describe('target resolution boundaries (heuristics — clinical decision #57 pen
   });
 });
 
-describe('known defects — CHARACTERIZATION (reproduces current output; green ≠ product pass)', () => {
-  test('F-1: /macro-score/goals serves stored 30 while engine resolves 31', async () => {
+describe('fixed defects — regression guards', () => {
+  test('F-1 FIXED: /macro-score/goals resolves the same target as the fiber engine', async () => {
     const goals = await getGoals(U); // production read path behind GET /macro-score/goals
-    expect(goals.fiberTarget).toBe(30); // defect: raw legacy default, unresolved
-    // Expected-correct value would be 31 (formula_adult on 2200 kcal).
+    expect(goals.fiberTarget).toBe(31); // formula_adult on 2200 kcal — was raw stored 30
+    expect(goals.fiberTargetBasis).toBe('formula_adult');
   });
-  test('F-4: macro score conflates unknown (null→0) and estimated into intake, scored vs stored target', async () => {
+  test('F-4 (still open): macro score conflates unknown (null→0) and estimated into intake, now scored vs resolved target', async () => {
     const score = await calculateScore(U, DAY);
     // Logs sum 6.45 + 0 + null→0 + 5(estimated) = 11.45 → displayed as complete intake.
     expect(score.breakdown.fiber.actual).toBe(11.5);
-    expect(score.breakdown.fiber.target).toBe(30); // unresolved stored default — same defect as F-1
+    expect(score.breakdown.fiber.target).toBe(31); // resolved target — the remaining defect is the conflation
     // Engine on the same day: confirmed 6.5, estimated 5 separately, unknown 1, partial coverage, target 31.
   });
 });

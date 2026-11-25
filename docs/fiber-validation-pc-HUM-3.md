@@ -34,12 +34,12 @@ Validation only — no catalog values, clinical rules, thresholds, or schemas we
 | 8 | Persisted audit row | recompute-on-read wins; hash tracks inputs | `FiberDailyRecommendation` updated to `targetG=31` after the condition swap — latest state, not stale | DB read | **correct** |
 | 9 | Mobile daily total strip (`todaySummary.sumKnown`) | mixed known+unknown day | `summary.fiber=null` → strip renders `—`, not a misleading partial sum; `mealsWithMissingNutrition` flag set | `src/util/todaySummary.ts` | **correct** — conservative; see discrepancy F-2 |
 | 10 | Mobile fiber card | engine payload | renders `6.5 g confirmed`, `Target 31 g`, unknown-meals note; supplements/estimated separate | `FiberProgressCard.tsx` inspection + `FiberCards.test.js` | **correct** |
-| 11 | Same-screen target disagreement | one fiber target | macro strip reads `goals.fiberTarget` = **stored 30**; fiber card reads engine **31** | `GET /macro-score/goals` → `fiberTarget:30` vs `GET /fiber/target` → `31` | **needs fixing** (F-1) |
+| 11 | Same-screen target disagreement | one fiber target | macro strip reads `goals.fiberTarget` = **stored 30**; fiber card reads engine **31** | `GET /macro-score/goals` → `fiberTarget:30` vs `GET /fiber/target` → `31` | **FIXED 2026-11-25 (pc-HUM-61)** — `getGoals`/`updateGoals` now resolve via `resolveFiberTarget`; goals returns engine value + `fiberTargetBasis`/`fiberReviewRequired` |
 | 12 | Live device e2e (app ↔ backend) | — | not run — no device/build | — | **not verified** |
 
 ## Findings
 
-**F-1 — Two surfaces disagree on the daily fiber target (needs fixing).**
+**F-1 — Two surfaces disagree on the daily fiber target — FIXED (pc-HUM-61).** `macroScoreService.getGoals`/`updateGoals` now route `fiberTarget` through `resolveFiberTarget` (same user/conditions/macroGoal inputs as `/fiber/target`), exposing `fiberTargetBasis` + `fiberReviewRequired`. Verified live on dev: goals 37 = engine 37 (stored 30 untouched). The scoring path (`calculateScore` → `getGoals`) now uses the resolved target too. Remaining piece of the old F-1/F-4 cluster is the intake conflation (F-4), unchanged.
 `/macro-score/goals` returns the stored `MacroGoal.fiberTarget` (legacy default **30**, basis `null`) while `/fiber/target` resolves **31** (`formula_adult`, 14 g/1,000 kcal × 2200 kcal). On the same Dashboard, the macro strip shows target 30 and `FiberProgressCard` shows 31. Any client surface reading `goals.fiberTarget` silently disagrees with the engine. A `null` `fiberTargetBasis` means "never explicitly set" (`PUT /macro-score/goals` marks user edits `custom`), so the stored 30 is not user intent.
 *Smallest fix*: in the `GET /macro-score/goals` read path, when `fiberTargetBasis` is null (or `'default'`), resolve `fiberTarget` via `resolveFiberTarget` before responding — or have the Dashboard strip consume `/fiber/target`. Stored value untouched; read-path only.
 
@@ -151,7 +151,7 @@ Read-only audit of the **dev catalog** (`fitness_app`, `Ingredient` table) — r
 ## What remains
 
 - **Device/e2e pass** — not performed; needs a matching build + device against a flagged-on backend.
-- F-1 fix decision + implementation (read-path resolution).
+- ~~F-1 fix decision + implementation~~ — done under pc-HUM-61 (read-path resolution; F-4 conflation still open).
 - F-4 fix (macro-score fiber conflation) — implementation tracked separately; any scoring change needs the data-quality validation step above.
 - Clinical ratification of `FIBER_RESTRICTION_PATTERNS` (F-3) — heuristic name-matching; any claim of clinical authority needs a human clinical review decision.
 - The 18-ingredient micro-profile coverage gap (pc-HUM-4 NUTR-001) means most catalog fiber values come from the flat `fiberPer100g` column, not verified nutrient profiles — a data-coverage limitation, not a logic bug.

@@ -103,22 +103,32 @@ router.get('/trend', requireFeature('fiber_daily_goal_enabled'), async (req, res
       dateOfBirth: user?.dateOfBirth, gender: user?.gender, macroGoal,
       conditionNames: conditions.map((c) => c.condition?.name).filter(Boolean),
     });
+    // One window query, then bucket in memory — the per-day loop issued up to
+    // 30 sequential foodLog queries on every request.
+    const oldest = new Date(Date.parse(`${today}T00:00:00Z`) - (days - 1) * 86400000).toISOString().slice(0, 10);
+    const { startUtc: windowStart } = dayRangeUtc(oldest, tz);
+    const { endUtc: windowEnd } = dayRangeUtc(today, tz);
+    const logs = await prisma.foodLog.findMany({
+      where: { userId, loggedAt: { gte: windowStart, lt: windowEnd } },
+      select: { loggedAt: true, fiberG: true, nutritionSnapshot: true },
+    });
+    const byDay = new Map();
+    for (const l of logs) {
+      const dk = dayKey(l.loggedAt, tz);
+      if (!byDay.has(dk)) byDay.set(dk, []);
+      byDay.get(dk).push(l);
+    }
     const out = [];
     for (let i = days - 1; i >= 0; i--) {
       const day = new Date(Date.parse(`${today}T00:00:00Z`) - i * 86400000).toISOString().slice(0, 10);
-      const { startUtc, endUtc } = dayRangeUtc(day, tz);
-      // eslint-disable-next-line no-await-in-loop
-      const logs = await prisma.foodLog.findMany({
-        where: { userId, loggedAt: { gte: startUtc, lt: endUtc } },
-        select: { fiberG: true, nutritionSnapshot: true },
-      });
+      const dayLogs = byDay.get(day) || [];
       let confirmed = 0, unknown = 0;
-      for (const l of logs) {
+      for (const l of dayLogs) {
         const st = fiberStateOf(l);
         if (st === 'confirmed') confirmed += l.fiberG;
         else if (st === 'unknown') unknown += 1;
       }
-      out.push({ date: day, confirmedG: Math.round(confirmed * 10) / 10, targetG: target.targetG, unknownMeals: unknown, mealsLogged: logs.length });
+      out.push({ date: day, confirmedG: Math.round(confirmed * 10) / 10, targetG: target.targetG, unknownMeals: unknown, mealsLogged: dayLogs.length });
     }
     res.json({ days: out, timezone: tz });
   } catch (e) { next(e); }
