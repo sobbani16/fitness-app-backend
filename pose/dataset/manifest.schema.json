@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "pose-dataset-manifest-v1",
+  "title": "Pose dataset manifest — splits, provenance, retention",
+  "type": "object",
+  "required": ["schemaVersion", "datasetVersion", "generatedAt", "subjects", "splits", "provenance", "retention"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "datasetVersion": { "type": "string", "minLength": 1, "maxLength": 40 },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "subjects": {
+      "type": "array", "minItems": 1,
+      "items": { "type": "string", "minLength": 4, "maxLength": 80 },
+      "description": "all subject pseudonyms in the dataset — splits must partition this set disjointly (enforced by the validator)"
+    },
+    "splits": {
+      "type": "object",
+      "required": ["train", "validation", "test"],
+      "additionalProperties": false,
+      "properties": {
+        "train": { "type": "array", "items": { "type": "string" } },
+        "validation": { "type": "array", "items": { "type": "string" } },
+        "test": { "type": "array", "items": { "type": "string" } },
+        "policy": { "const": "participant_disjoint" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["sources"],
+      "additionalProperties": false,
+      "properties": {
+        "sources": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["sourceId", "kind", "sha256"],
+            "additionalProperties": false,
+            "properties": {
+              "sourceId": { "type": "string", "maxLength": 120 },
+              "kind": { "enum": ["in_house_capture", "licensed_dataset", "subject_contributed", "public_domain"] },
+              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "consentRecordRef": { "type": "string", "maxLength": 120 }
+            }
+          }
+        }
+      }
+    },
+    "retention": {
+      "type": "object",
+      "required": ["rawAccess", "deletionProcedure"],
+      "additionalProperties": false,
+      "properties": {
+        "rawAccess": { "enum": ["restricted_role", "annotator_only", "denied"] },
+        "deletionProcedure": { "type": "string", "maxLength": 2000, "description": "how revocation/deletion cascades to raw footage, annotations, and derived artifacts" },
+        "retentionUntil": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}
