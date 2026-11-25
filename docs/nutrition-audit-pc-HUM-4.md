@@ -199,3 +199,19 @@ Units:
 2. Why `isSystem=true` on all 258 recipes (flag semantics vs SYSTEM reviewStatus).
 3. Whether `Recipe.calories`/`portionG`/`finishedYieldG` stay consistent after future recipe edits (no DB trigger; computed at write time).
 4. Mobile `labelPortion` 'package' unit: `packageServings` free-text has no server-side validation.
+
+## Iteration 2 — Open-question resolutions + new finding (2026-11-25)
+
+**OQ-1 — Importer behavior on IU-unit USDA records (answered):** `sources.fromUsda` calls `normalizeAmount(amount, unitName, master.unit)` inside the nutrient loop; `normalizeAmount` accepts only g/mg/mcg and kcal↔kJ, so a USDA record carrying `unitName:'IU'` (real vitamin-D records do) **throws `Unsupported unit conversion: IU -> mcg` — the entire import record is rejected**, not the single nutrient. Verified with a synthetic envelope: a record with parseable kcal + one IU nutrient throws identically to an IU-only record. Fail-loud, no silent store; blast radius confirmed small (18 profiles). The "drop vs crash" question is resolved: **crash (record-reject)** — which also means any USDA record whose *any* mapped nutrient arrives in IU is wholly unimportable until conversion handling lands (ties to NUTR-010's product decision).
+
+**OQ-2 — Why `isSystem=true` on all 258 recipes (answered + escalated to finding):** `recipeImport.js` hardcodes `isSystem:true` on every import; cross-tab: `isSystem:true`×{RESEARCH_DRAFT 230, SYSTEM 28}. The column now means "catalog (non-user) recipe", not "curated". Enforcement consequence is real — see NUTR-019.
+
+### NUTR-019 — `reviewStatus` not enforced on recipe read/suggest paths
+- Area: catalog/safety gating · Severity: medium · Type: code-logic
+- Summary: visibility gates `OR:[{isSystem:true},{creatorId:userId}]` in `GET /recipes/:id/intelligence` (recipes.js:7), `recipeService.searchRecipes` (~97) + `getRecipeNutrition` (~109), `mealSuggestion.candidates` (~117), and `nutritionRecommendation` (~33) carry **no `reviewStatus` predicate**. Only mutation routes (recipes.js:195,245) exclude `REJECTED`. Net effect: all 230 `RESEARCH_DRAFT` (unverified import) recipes are served in search, nutrition, intelligence and meal-suggestion surfaces as if system-curated; any recipe set `REJECTED` remains fetchable by id, searchable, and suggestible.
+- Evidence: code refs above; `SELECT isSystem,reviewStatus,count(*) → {t,RESEARCH_DRAFT:230},{t,SYSTEM:28}`; `REJECTED` rows currently **0** (exposure is live for the 230 drafts; the REJECTED leak is latent).
+- Suggested next step: decide intended read-gate (`reviewStatus IN ('SYSTEM','VERIFIED')` on all catalog reads, or per-surface draft labeling); add a regression test asserting REJECTED/DRAFT visibility rules per endpoint.
+
+## Remaining open questions (unchanged)
+3. `Recipe.calories`/`portionG`/`finishedYieldG` consistency after edits (computed at write, no trigger) — unverified drift risk.
+4. Mobile `labelPortion` 'package' free-text — no server validation.
