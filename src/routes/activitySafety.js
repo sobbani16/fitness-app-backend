@@ -12,8 +12,22 @@ const safety = require('../services/activitySafety');
 const { fetchEnvironment, markStale } = require('../services/environmentService');
 const { SYMPTOMS_URGENT, ACTIVITY_CATEGORIES } = require('../services/activitySafety/constants');
 const { invalidateSafetyAdvice } = require('../services/activitySafety/recommendationSafety');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
+
+// Injury/symptom writes are the abuse + churn vector: burst reports could
+// invalidate safety advice repeatedly or spam injury records. 30/min/user —
+// tighter than the global apiLimiter, same pattern as conversations sends.
+const safetyWriteLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: Number(process.env.SAFETY_WRITE_RATE_LIMIT || 30),
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator: (req) => req.userId || req.headers['x-user-id'] || ipKeyGenerator(req.ip),
+  skip: () => process.env.NODE_ENV === 'test',
+});
 
 const router = express.Router();
+router.__safetyWriteLimiter = safetyWriteLimiter;
 
 const body = req => (req.body && typeof req.body === 'object' ? req.body : {});
 const num = v => { const n = Number(v); return Number.isFinite(n) ? n : null; };
@@ -125,7 +139,7 @@ function emergencyCopy(region) {
 // POST /activity-safety/symptoms {symptoms:[codes], severity?, context?, notes?, region?}
 // Capture a self-reported symptom. Urgent codes return escalation guidance —
 // deterministic templates, no diagnosis.
-router.post('/symptoms', requireFeature('activity_safety_engine'), async (req, res) => {
+router.post('/symptoms', requireFeature('activity_safety_engine'), safetyWriteLimiter, async (req, res) => {
   try {
     const prisma = getPrisma();
     const b = body(req);
@@ -161,7 +175,7 @@ router.post('/symptoms', requireFeature('activity_safety_engine'), async (req, r
 
 // POST /activity-safety/injuries — self-reported injury; engine sees it on the
 // next evaluation automatically (inputsStamp changes → cached evals invalid).
-router.post('/injuries', requireFeature('activity_safety_engine'), async (req, res) => {
+router.post('/injuries', requireFeature('activity_safety_engine'), safetyWriteLimiter, async (req, res) => {
   try {
     const prisma = getPrisma();
     const b = body(req);
@@ -283,7 +297,7 @@ router.get('/profile', requireFeature('activity_safety_engine'), async (req, res
 // DELETE endpoints — retention hygiene (P-1). User-scoped only; self-reported
 // rows hard-delete. Clinician-documented restrictions soft-delete to
 // 'superseded' so the restriction audit trail survives user removal.
-router.delete('/injuries/:id', requireFeature('activity_safety_engine'), async (req, res) => {
+router.delete('/injuries/:id', requireFeature('activity_safety_engine'), safetyWriteLimiter, async (req, res) => {
   try {
     const prisma = getPrisma();
     const row = await prisma.userInjury.deleteMany({ where: { id: req.params.id, userId: uid(req) } });
@@ -308,7 +322,7 @@ router.get('/symptoms', requireFeature('activity_safety_engine'), async (req, re
   } catch (err) { res.status(500).json({ error: 'symptom_list_failed', detail: err.message }); }
 });
 
-router.delete('/symptoms/:id', requireFeature('activity_safety_engine'), async (req, res) => {
+router.delete('/symptoms/:id', requireFeature('activity_safety_engine'), safetyWriteLimiter, async (req, res) => {
   try {
     const prisma = getPrisma();
     const row = await prisma.userSymptomReport.deleteMany({ where: { id: req.params.id, userId: uid(req) } });
@@ -321,7 +335,7 @@ router.delete('/symptoms/:id', requireFeature('activity_safety_engine'), async (
 // PATCH /activity-safety/symptoms/:id — owner-scoped correction of an existing
 // report (severity, context, persistence, notes, or symptom codes). Immutable:
 // reportedAt + userId. Edits re-trigger safety-advice invalidation.
-router.patch('/symptoms/:id', requireFeature('activity_safety_engine'), async (req, res) => {
+router.patch('/symptoms/:id', requireFeature('activity_safety_engine'), safetyWriteLimiter, async (req, res) => {
   try {
     const prisma = getPrisma();
     const b = body(req);
@@ -387,7 +401,7 @@ const WB_RESTRICTIONS = new Set(['non_weight_bearing','partial','as_tolerated','
 const INJURY_EDITABLE = new Set(['status','type','laterality','painLevel','weightBearingRestriction','rangeOfMotionRestriction','prohibitedCategories','rehabInstructions','notes','expectedReassessmentAt']);
 const CLINICIAN_LOCKED = new Set(['weightBearingRestriction','rangeOfMotionRestriction','prohibitedCategories','clearanceRecordedAt','clearanceNote']);
 
-router.patch('/injuries/:id', requireFeature('activity_safety_engine'), async (req, res) => {
+router.patch('/injuries/:id', requireFeature('activity_safety_engine'), safetyWriteLimiter, async (req, res) => {
   try {
     const prisma = getPrisma();
     const b = body(req);

@@ -44,6 +44,22 @@ beforeEach(() => {
   GATED_KEYS.forEach(k => setFlag(k, 'true'));
 });
 
+describe('safety-write rate limiter coverage', () => {
+  const stack = require('../src/routes/activitySafety').stack.filter(l => l.route);
+  const layers = (m, p) => stack.find(l => l.route.path === p && l.route.methods[m])?.route.stack.length;
+  it.each([
+    ['post', '/symptoms'], ['post', '/injuries'], ['patch', '/injuries/:id'],
+    ['patch', '/symptoms/:id'], ['delete', '/injuries/:id'], ['delete', '/symptoms/:id'],
+  ])('%s %s mounts the write limiter', (m, p) => {
+    expect(layers(m, p)).toBe(3); // requireFeature + safetyWriteLimiter + handler
+  });
+  it.each([
+    ['get', '/injuries'], ['get', '/symptoms'], ['get', '/recommendation'], ['get', '/profile'],
+  ])('%s %s has no write limiter', (m, p) => {
+    expect(layers(m, p)).toBe(2);
+  });
+});
+
 describe('flag gating', () => {
   test('disabled engine → 403 FEATURE_DISABLED on all activity-safety routes', async () => {
     setFlag('activity_safety_engine', 'false');
