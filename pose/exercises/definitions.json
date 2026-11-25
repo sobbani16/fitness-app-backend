@@ -1,0 +1,129 @@
+{
+  "version": "1.0.0",
+  "spec": "HUM-100 P4 — machine-readable exercise definitions consumed by the deterministic baseline, dataset annotation schema, and runtime coaching. Landmark names follow the BlazePose-33 vocabulary.",
+  "exercises": [
+    {
+      "id": "squat",
+      "displayName": "Squat",
+      "primaryLandmarks": ["left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle", "left_shoulder", "right_shoulder"],
+      "trackedAngles": [
+        { "joint": "knee", "landmarks": ["hip", "knee", "ankle"], "standingRange": [160, 180], "bottomRange": [70, 110] },
+        { "joint": "hip", "landmarks": ["shoulder", "hip", "knee"], "standingRange": [160, 180], "bottomRange": [60, 110] }
+      ],
+      "phases": [
+        { "name": "standing", "entry": "knee angle within standingRange" },
+        { "name": "descent", "entry": "knee angle decreasing through 140" },
+        { "name": "bottom", "entry": "knee angle within bottomRange" },
+        { "name": "ascent", "entry": "knee angle increasing from bottom" }
+      ],
+      "repCriteria": { "requiresPhases": ["standing", "descent", "bottom", "ascent"], "minBottomAngleKnee": 110, "returnToStanding": true },
+      "coachingCues": [
+        { "fault": "knee_valgus", "detector": "knee x-position collapses medial to ankle during descent/ascent", "cue": "Push your knees out over your toes", "severity": "high" },
+        { "fault": "shallow_depth", "detector": "rep ends without knee reaching bottomRange", "cue": "Sink lower — hips below knees", "severity": "medium" },
+        { "fault": "forward_lean", "detector": "hip angle exceeds bottomRange upper bound +25 at bottom", "cue": "Keep your chest up", "severity": "medium" },
+        { "fault": "heel_lift", "detector": "ankle y rises during descent", "cue": "Keep your heels planted", "severity": "low" }
+      ]
+    },
+    {
+      "id": "push_up",
+      "displayName": "Push-Up",
+      "primaryLandmarks": ["left_shoulder", "right_shoulder", "left_elbow", "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_ankle", "right_ankle"],
+      "trackedAngles": [
+        { "joint": "elbow", "landmarks": ["shoulder", "elbow", "wrist"], "standingRange": [150, 180], "bottomRange": [70, 100] },
+        { "joint": "hip_line", "landmarks": ["shoulder", "hip", "ankle"], "standingRange": [165, 180], "bottomRange": [165, 180] }
+      ],
+      "phases": [
+        { "name": "plank_top", "entry": "elbow angle within standingRange" },
+        { "name": "descent", "entry": "elbow angle decreasing through 130" },
+        { "name": "bottom", "entry": "elbow angle within bottomRange" },
+        { "name": "ascent", "entry": "elbow angle increasing from bottom" }
+      ],
+      "repCriteria": { "requiresPhases": ["plank_top", "descent", "bottom", "ascent"], "minBottomAngleKnee": null, "returnToStanding": true },
+      "coachingCues": [
+        { "fault": "hip_sag", "detector": "hip_line angle drops below 160 at any point", "cue": "Brace your core — straight line head to heels", "severity": "high" },
+        { "fault": "partial_depth", "detector": "rep ends without elbow reaching bottomRange", "cue": "Lower your chest closer to the floor", "severity": "medium" },
+        { "fault": "elbow_flare", "detector": "elbow-to-torso angle exceeds 70 degrees", "cue": "Tuck your elbows to about 45 degrees", "severity": "medium" }
+      ]
+    },
+    {
+      "id": "lunge",
+      "displayName": "Lunge",
+      "primaryLandmarks": ["left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle", "left_shoulder", "right_shoulder"],
+      "trackedAngles": [
+        { "joint": "front_knee", "landmarks": ["hip", "knee", "ankle"], "standingRange": [160, 180], "bottomRange": [80, 110] },
+        { "joint": "rear_knee", "landmarks": ["hip", "knee", "ankle"], "standingRange": [160, 180], "bottomRange": [90, 130] }
+      ],
+      "phases": [
+        { "name": "standing", "entry": "both knee angles within standingRange" },
+        { "name": "descent", "entry": "front knee angle decreasing through 140" },
+        { "name": "bottom", "entry": "front knee within bottomRange" },
+        { "name": "ascent", "entry": "front knee angle increasing from bottom" }
+      ],
+      "repCriteria": { "requiresPhases": ["standing", "descent", "bottom", "ascent"], "minBottomAngleKnee": 110, "returnToStanding": true },
+      "coachingCues": [
+        { "fault": "knee_past_toe", "detector": "front knee x-position advances beyond front ankle by >15% of shin length", "cue": "Keep your front knee stacked over your ankle", "severity": "high" },
+        { "fault": "torso_lean", "detector": "shoulder-hip vertical alignment deviates >20 degrees", "cue": "Stay tall through your torso", "severity": "medium" },
+        { "fault": "shallow_step", "detector": "rep ends without front knee reaching bottomRange", "cue": "Step deeper into the lunge", "severity": "low" }
+      ]
+    },
+    {
+      "id": "deadlift_hinge",
+      "displayName": "Deadlift / Hip Hinge",
+      "primaryLandmarks": ["left_shoulder", "right_shoulder", "left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle", "left_wrist", "right_wrist"],
+      "trackedAngles": [
+        { "joint": "hip", "landmarks": ["shoulder", "hip", "knee"], "standingRange": [165, 180], "bottomRange": [60, 110] },
+        { "joint": "knee", "landmarks": ["hip", "knee", "ankle"], "standingRange": [160, 180], "bottomRange": [140, 175] }
+      ],
+      "phases": [
+        { "name": "standing", "entry": "hip angle within standingRange" },
+        { "name": "hinge_down", "entry": "hip angle decreasing through 140 with knee angle stable" },
+        { "name": "bottom", "entry": "hip angle within bottomRange" },
+        { "name": "lockout", "entry": "hip angle increasing toward standing" }
+      ],
+      "repCriteria": { "requiresPhases": ["standing", "hinge_down", "bottom", "lockout"], "minBottomAngleKnee": null, "returnToStanding": true },
+      "coachingCues": [
+        { "fault": "spinal_flexion", "detector": "shoulder-hip-knee path curvature exceeds neutral tolerance during hinge", "cue": "Flatten your back — hinge, don't round", "severity": "high" },
+        { "fault": "squatting_the_hinge", "detector": "knee angle leaves bottomRange lower bound during descent", "cue": "Soft knees, push hips back", "severity": "medium" },
+        { "fault": "partial_lockout", "detector": "rep ends before hip returns to standingRange", "cue": "Squeeze your glutes to full stand", "severity": "low" }
+      ]
+    },
+    {
+      "id": "plank",
+      "displayName": "Plank (timed hold)",
+      "primaryLandmarks": ["left_shoulder", "right_shoulder", "left_hip", "right_hip", "left_ankle", "right_ankle", "left_elbow", "right_elbow"],
+      "trackedAngles": [
+        { "joint": "hip_line", "landmarks": ["shoulder", "hip", "ankle"], "standingRange": [165, 180], "bottomRange": [165, 180] }
+      ],
+      "phases": [
+        { "name": "hold", "entry": "hip_line angle within standingRange sustained" },
+        { "name": "broken", "entry": "hip_line angle outside 155-185 for >500ms" }
+      ],
+      "repCriteria": { "timed": true, "requiresPhases": ["hold"], "minBottomAngleKnee": null, "returnToStanding": false },
+      "coachingCues": [
+        { "fault": "hip_sag", "detector": "hip_line angle below 160", "cue": "Lift your hips — straight line", "severity": "high" },
+        { "fault": "hip_pike", "detector": "hip_line angle above 185 sustained", "cue": "Lower your hips slightly", "severity": "low" }
+      ]
+    },
+    {
+      "id": "overhead_press",
+      "displayName": "Overhead Press",
+      "primaryLandmarks": ["left_shoulder", "right_shoulder", "left_elbow", "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip"],
+      "trackedAngles": [
+        { "joint": "elbow", "landmarks": ["shoulder", "elbow", "wrist"], "standingRange": [70, 100], "bottomRange": [160, 180] },
+        { "joint": "shoulder", "landmarks": ["elbow", "shoulder", "hip"], "standingRange": [20, 60], "bottomRange": [150, 180] }
+      ],
+      "phases": [
+        { "name": "rack", "entry": "elbow angle within standingRange, wrist near shoulder height" },
+        { "name": "press_up", "entry": "elbow angle increasing" },
+        { "name": "lockout", "entry": "elbow within bottomRange overhead" },
+        { "name": "lowering", "entry": "elbow angle decreasing" }
+      ],
+      "repCriteria": { "requiresPhases": ["rack", "press_up", "lockout", "lowering"], "minBottomAngleKnee": null, "returnToStanding": true },
+      "coachingCues": [
+        { "fault": "lumbar_hyperextension", "detector": "hip_line angle exceeds 190 during press", "cue": "Brace your core, ribs down", "severity": "high" },
+        { "fault": "partial_lockout", "detector": "rep ends without elbow reaching lockout range", "cue": "Press fully overhead", "severity": "medium" },
+        { "fault": "forward_head", "detector": "ear landmark deviates forward of shoulder midline during press", "cue": "Pull your head back as the bar passes", "severity": "low" }
+      ]
+    }
+  ]
+}
