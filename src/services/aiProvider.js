@@ -12,6 +12,18 @@ const featureDisabled = () => Object.assign(httpError(403, 'This feature is temp
 // Startup validation — reports presence only, never the secret.
 if (!process.env.OPENAI_API_KEY?.trim()) console.warn('[ai] OPENAI_API_KEY not set; AI features will return 503.');
 
+// Cost-tiered model selection (owner directive 2026-11-25): deterministic code
+// paths stay model-free; 'trivial' covers lightweight classification/routing,
+// 'standard' is the default for intent/entity/ordinary response work, 'complex'
+// is reserved for genuinely hard multi-intent/planning calls. Env vars override
+// for eval runs; per-call model+tier+tokens are logged for cost accounting.
+const MODEL_TIERS = {
+  trivial: process.env.OPENAI_MODEL_TRIVIAL || 'gpt-5.4-nano',
+  standard: process.env.OPENAI_MODEL || 'gpt-5.4-mini',
+  complex: process.env.OPENAI_MODEL_COMPLEX || 'gpt-6.1-sol',
+};
+const resolveModel = tier => MODEL_TIERS[tier] || MODEL_TIERS.standard;
+
 // Per-user daily call quota + token accounting (in-process; move to Redis/DB
 // if multi-instance). Key never leaves this module.
 const usage = new Map(); // `${userId}:${yyyymmdd}` -> { calls, tokens }
@@ -59,7 +71,7 @@ async function askJSON(name, properties, instructions, text, imageDataUrl, userI
   let result;
   try {
     result = await client.responses.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini', store: false, instructions,
+      model: resolveModel(options.tier), store: false, instructions,
       input: [{ role: 'user', content }], max_output_tokens: maxOutputTokens,
       text: { format: { type: 'json_schema', name, strict: true, schema: { type: 'object', additionalProperties: false, properties, required: Object.keys(properties) } } },
     });
@@ -69,6 +81,7 @@ async function askJSON(name, properties, instructions, text, imageDataUrl, userI
     throw httpError(502, 'AI service could not complete this request. Please retry or enter values manually.');
   }
   recordUsage(quotaKey, result, reservedTokens);
+  console.info('[ai] call', { model: resolveModel(options.tier), tier: options.tier || 'standard', tokens: result?.usage?.total_tokens ?? null });
   if (result.output?.some(item => item.content?.some(part => part.type === 'refusal'))) throw httpError(422, 'This input could not be analyzed. Try another photo or use food search.');
   try {
     if (result.status !== 'completed' || !result.output_text) throw new Error('Incomplete response');
@@ -77,4 +90,4 @@ async function askJSON(name, properties, instructions, text, imageDataUrl, userI
     throw httpError(502, 'AI service returned an incomplete estimate. Please retry or enter values manually.');
   }
 }
-module.exports = { askJSON, aiEnabled, aiUsage };
+module.exports = { askJSON, aiEnabled, aiUsage, resolveModel, MODEL_TIERS };

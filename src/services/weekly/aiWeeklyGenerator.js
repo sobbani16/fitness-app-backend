@@ -191,7 +191,7 @@ async function requestPlan(ctx, extraNote = '') {
       },
     },
   };
-  const raw = await askJSON('weekly_meal_plan', properties, INSTRUCTIONS, buildPrompt(ctx) + extraNote, null, ctx.userId, { maxOutputTokens: 6000 });
+  const raw = await askJSON('weekly_meal_plan', properties, INSTRUCTIONS, buildPrompt(ctx) + extraNote, null, ctx.userId, { maxOutputTokens: 6000, tier: 'complex' });
   return Array.isArray(raw?.days) ? raw.days : null;
 }
 

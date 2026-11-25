@@ -98,7 +98,7 @@ If a value cannot be determined, use null, never zero. Do not infer serving mass
 ${ocrText}`;
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: require('./aiProvider').resolveModel('standard'),
     messages: [{ role: 'user', content: prompt }],
     temperature: 0,
     response_format: { type: 'json_object' },

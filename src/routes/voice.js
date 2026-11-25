@@ -172,7 +172,8 @@ async function aiFillUnknown(actions, ctx, userId) {
   try {
     const segs = unknownIdx.map(i => actions[i].segment);
     const out = await askJSON('voice_intents', INTENT_SCHEMA, INTENT_INSTRUCTIONS,
-      segs.map((s, i) => `${i + 1}. ${s}`).join('\n'), undefined, userId, { maxOutputTokens: 1200 });
+      segs.map((s, i) => `${i + 1}. ${s}`).join('\n'), undefined, userId,
+      { maxOutputTokens: 1200, tier: unknownIdx.length > 1 ? 'complex' : 'standard' });
     (out?.actions || []).slice(0, unknownIdx.length).forEach((raw, i) => {
       if (raw && typeof raw === 'object') actions[unknownIdx[i]] = aiAction(raw, actions[unknownIdx[i]].segment, ctx);
     });
