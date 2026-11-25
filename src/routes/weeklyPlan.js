@@ -217,10 +217,10 @@ router.get('/meals/:mealId/alternatives', async (req, res) => {
   try {
     const userId = getUserId(req);
     if (!userId) return res.status(400).json({ error: 'x-user-id required' });
-    const alternatives = await getAlternatives(req.params.mealId);
+    const alternatives = await getAlternatives(req.params.mealId, userId);
     res.json({ alternatives });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(err.status || 400).json({ error: err.message, ...(err.code ? { code: err.code, details: err.details } : {}) });
   }
 });
 
@@ -231,10 +231,10 @@ router.post('/meals/:mealId/swap', async (req, res) => {
     if (!userId) return res.status(400).json({ error: 'x-user-id required' });
     const { recipeId } = req.body || {};
     if (!recipeId) return res.status(400).json({ error: 'recipeId required' });
-    const meal = await swapMeal(req.params.mealId, recipeId);
+    const meal = await swapMeal(req.params.mealId, recipeId, userId, { acknowledgeUnknownAllergens: !!req.body.acknowledgeUnknownAllergens });
     res.json({ meal });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(err.status || 400).json({ error: err.message, ...(err.code ? { code: err.code, details: err.details } : {}) });
   }
 });
 

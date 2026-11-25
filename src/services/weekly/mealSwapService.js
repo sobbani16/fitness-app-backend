@@ -1,4 +1,17 @@
 const { getPrisma } = require('../../lib/prisma');
+const { httpError } = require('../../lib/errors');
+const A = require('../allergens');
+
+// Build an allergen assessor bound to the owner. A recipe swapped into a
+// plan must face the same allergy policy as generation and confirmDay —
+// conflicts are never offered; unknown composition is surfaced, not hidden.
+async function allergenAssessor(prisma, userId, recipes) {
+  const user = await A.loadUserAllergies(prisma, userId);
+  if (!user.keys.length && !user.custom.length) return () => null;
+  const ids = [...new Set(recipes.flatMap((r) => (r.ingredients || []).map((i) => i.ingredientId)))];
+  const info = await A.ingredientAllergenInfo(prisma, ids);
+  return (recipe) => A.assess(A.recipeItem(recipe, info), user);
+}
 
 const CALORIE_WINDOW = 50;
 const PROTEIN_SOURCES = ['chicken', 'salmon', 'turkey', 'beef', 'shrimp', 'tuna', 'egg', 'fish', 'lentil'];
@@ -23,13 +36,14 @@ function proteinInName(name) {
   return PROTEIN_SOURCES.find((p) => name.toLowerCase().includes(p));
 }
 
-async function getAlternatives(weeklyMealId) {
+async function getAlternatives(weeklyMealId, userId) {
   const prisma = getPrisma();
   const meal = await prisma.weeklyMeal.findUnique({
     where: { id: weeklyMealId },
     include: { plan: true, recipe: { include: { ingredients: true } } },
   });
   if (!meal) throw new Error('Meal not found.');
+  if (meal.plan.userId !== userId) throw httpError(404, 'Meal not found.');
 
   const { disliked, liked, restrictions, preferences } = await loadUserFilters(meal.plan.userId);
 
@@ -38,12 +52,20 @@ async function getAlternatives(weeklyMealId) {
     include: { ingredients: true },
   });
 
+  const assess = await allergenAssessor(prisma, meal.plan.userId, allAlternatives);
   const scored = allAlternatives
-    .filter((r) => r.id !== meal.recipeId && isAllowed(r, disliked, restrictions, preferences))
+    .filter((r) => {
+      if (r.id === meal.recipeId) return false;
+      if (!isAllowed(r, disliked, restrictions, preferences)) return false;
+      // Allergy-conflicting recipes are never offered as substitutes.
+      const v = assess(r);
+      return !v || v.status !== 'conflict';
+    })
     .map((r) => {
       const calDiff = Math.abs(r.calories - meal.calories);
       const isLiked = liked.some((f) => r.recipeName.toLowerCase().includes(f)) ? 1 : 0;
-      return { ...r, calDiff, isLiked };
+      const v = assess(r);
+      return { ...r, calDiff, isLiked, allergyStatus: v?.status || 'not_applicable' };
     })
     .filter((r) => r.calDiff <= CALORIE_WINDOW)
     .sort((a, b) => {
@@ -54,13 +76,14 @@ async function getAlternatives(weeklyMealId) {
   return scored;
 }
 
-async function swapMeal(weeklyMealId, newRecipeId) {
+async function swapMeal(weeklyMealId, newRecipeId, userId, { acknowledgeUnknownAllergens = false } = {}) {
   const prisma = getPrisma();
   const meal = await prisma.weeklyMeal.findUnique({
     where: { id: weeklyMealId },
     include: { plan: true, recipe: { include: { ingredients: true } } },
   });
   if (!meal) throw new Error('Meal not found.');
+  if (meal.plan.userId !== userId) throw httpError(404, 'Meal not found.');
   if (meal.confirmedByUser) throw new Error('This day is confirmed. Contact your trainer to change it.');
 
   const newRecipe = await prisma.recipe.findUnique({
@@ -72,6 +95,16 @@ async function swapMeal(weeklyMealId, newRecipeId) {
 
   const { disliked, restrictions, preferences } = await loadUserFilters(meal.plan.userId);
   if (!isAllowed(newRecipe, disliked, restrictions, preferences)) throw new Error('Recipe conflicts with preferences or restrictions.');
+
+  // Substitution recheck: same verdicts as confirmDay — conflict never swaps
+  // in; unknown composition requires the same explicit acknowledgment.
+  const verdict = (await allergenAssessor(prisma, meal.plan.userId, [newRecipe]))(newRecipe);
+  if (verdict?.status === 'conflict') {
+    throw Object.assign(httpError(409, 'Recipe conflicts with your recorded allergies.'), { code: 'ALLERGY_CONFLICT', details: { conflicts: verdict.conflicts } });
+  }
+  if (verdict?.status === 'unknown' && !acknowledgeUnknownAllergens) {
+    throw Object.assign(httpError(409, 'Recipe composition is unknown — swapping requires explicit acknowledgment.'), { code: 'ALLERGY_COMPOSITION_UNKNOWN', details: { unknowns: verdict.unknown } });
+  }
 
   // Update this meal with the new recipe
   await prisma.weeklyMeal.update({
