@@ -377,11 +377,14 @@ router.delete('/feedback/:id', requireFeature('activity_safety_engine'), async (
 // ignored so clients can't believe a safety-relevant change took effect when
 // it didn't. Clinician-documented restriction fields are locked for self-edits:
 // overriding them requires a clinician-documented update flow, not a PATCH.
+// clearanceRecordedAt/clearanceNote are clinician-attested — a self-report
+// PATCH must never write them at all (Resolve ≠ clearance), so they are
+// excluded from INJURY_EDITABLE, not merely locked on clinician rows.
 const INJURY_TYPES = new Set(['sprain','fracture','strain','tendinopathy','dislocation','contusion','post_surgical','undiagnosed_pain','other']);
 const INJURY_STATUSES = new Set(['current','recovering','resolved']);
 const INJURY_LATERALITY = new Set(['left','right','bilateral','na']);
 const WB_RESTRICTIONS = new Set(['non_weight_bearing','partial','as_tolerated','full']);
-const INJURY_EDITABLE = new Set(['status','type','laterality','painLevel','weightBearingRestriction','rangeOfMotionRestriction','prohibitedCategories','rehabInstructions','notes','expectedReassessmentAt','clearanceRecordedAt','clearanceNote']);
+const INJURY_EDITABLE = new Set(['status','type','laterality','painLevel','weightBearingRestriction','rangeOfMotionRestriction','prohibitedCategories','rehabInstructions','notes','expectedReassessmentAt']);
 const CLINICIAN_LOCKED = new Set(['weightBearingRestriction','rangeOfMotionRestriction','prohibitedCategories','clearanceRecordedAt','clearanceNote']);
 
 router.patch('/injuries/:id', requireFeature('activity_safety_engine'), async (req, res) => {
@@ -436,13 +439,6 @@ router.patch('/injuries/:id', requireFeature('activity_safety_engine'), async (r
       const d = b.expectedReassessmentAt === null ? null : new Date(b.expectedReassessmentAt);
       if (b.expectedReassessmentAt !== null && Number.isNaN(d.getTime())) return bad('expectedReassessmentAt', 'must be an ISO date or null');
       data.expectedReassessmentAt = d;
-    }
-    if (b.clearanceRecordedAt !== undefined || b.clearanceNote !== undefined) {
-      if (!b.clearanceRecordedAt || !b.clearanceNote) return bad('clearance', 'clearanceRecordedAt and clearanceNote must be provided together');
-      const d = new Date(b.clearanceRecordedAt);
-      if (Number.isNaN(d.getTime())) return bad('clearanceRecordedAt', 'must be an ISO date');
-      data.clearanceRecordedAt = d;
-      data.clearanceNote = String(b.clearanceNote).slice(0, 500);
     }
     if (!Object.keys(data).length) return res.status(400).json({ error: 'no_editable_fields', editable: [...INJURY_EDITABLE] });
 
