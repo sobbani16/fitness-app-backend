@@ -1,0 +1,154 @@
+[
+  {
+    "id": "wp-knee-contraindicated-dropped",
+    "target": "workoutPlan",
+    "clinical": true,
+    "expect": "pass",
+    "description": "Provider prescribes squat under a knee limitation; sanitize must drop it (contraindicated exercises excluded).",
+    "input": {
+      "prefs": { "goal": "strength", "experience": "beginner", "equipment": ["bodyweight", "floor"], "limitations": ["knee"], "preferredDays": ["mon"] },
+      "safety": { "limitations": ["knee"] }
+    },
+    "providerResponse": {
+      "summary": "day 1",
+      "days": [{ "weekday": "mon", "focus": "lower", "exercises": [
+        { "exerciseId": "squat", "sets": 3, "reps": "10", "restSec": 60, "why": "quad strength" },
+        { "exerciseId": "push-up", "sets": 3, "reps": "10", "restSec": 60, "why": "push base" }
+      ] }]
+    },
+    "assert": ["allExerciseIdsInCatalog", "noContraindicatedExercises", "removalWarned"]
+  },
+  {
+    "id": "wp-back-token-known-gap",
+    "target": "workoutPlan",
+    "clinical": true,
+    "expect": "known_gap",
+    "description": "pc-HUM-7 F1: 'back' limitation token is dead in exerciseSuitability — deadlift stays 'suitable' and survives sanitize. Documents the confirmed gap; flips to pass only after a clinical-policy fix + constraint test.",
+    "input": {
+      "prefs": { "goal": "strength", "experience": "intermediate", "equipment": ["barbell"], "limitations": ["back"], "preferredDays": ["mon"] },
+      "safety": { "limitations": ["back"] }
+    },
+    "providerResponse": {
+      "summary": "hinge day",
+      "days": [{ "weekday": "mon", "focus": "hinge", "exercises": [
+        { "exerciseId": "deadlift", "sets": 3, "reps": "8", "restSec": 120, "why": "posterior chain" },
+        { "exerciseId": "plank", "sets": 2, "reps": "30", "restSec": 60, "why": "bracing" }
+      ] }]
+    },
+    "assert": ["exerciseAbsent:deadlift"]
+  },
+  {
+    "id": "wp-hallucinated-id-dropped",
+    "target": "workoutPlan",
+    "clinical": false,
+    "expect": "pass",
+    "description": "Provider invents an exercise ID; sanitize must drop non-catalog IDs and warn.",
+    "input": {
+      "prefs": { "goal": "strength", "experience": "beginner", "equipment": ["bodyweight"], "preferredDays": ["tue"] },
+      "safety": {}
+    },
+    "providerResponse": {
+      "days": [{ "weekday": "tue", "exercises": [
+        { "exerciseId": "dragon-squat", "sets": 3, "reps": "10", "restSec": 60, "why": "invented" },
+        { "exerciseId": "push-up", "sets": 2, "reps": "8", "restSec": 60, "why": "base" }
+      ] }]
+    },
+    "assert": ["allExerciseIdsInCatalog", "removalWarned"]
+  },
+  {
+    "id": "wp-schema-strict",
+    "target": "workoutPlan",
+    "clinical": false,
+    "expect": "pass",
+    "description": "The workout_plan provider schema stays strict-mode compatible (additionalProperties=false, required==props at every level).",
+    "input": { "prefs": { "equipment": ["bodyweight"], "preferredDays": ["wed"] }, "safety": {} },
+    "providerResponse": { "days": [{ "weekday": "wed", "exercises": [{ "exerciseId": "push-up", "sets": 2, "reps": "10", "restSec": 60, "why": "x" }] }] },
+    "assert": ["schemaStrict"]
+  },
+  {
+    "id": "nr-live-rule-blocks",
+    "target": "nutritionSuggest",
+    "clinical": true,
+    "expect": "pass",
+    "description": "An ACTIVATED BLOCK rule (APPROVED + activeAt) must fire — positive control for rule gating.",
+    "input": { "opts": { "allowAi": false } },
+    "prisma": {
+      "foodLog": [], "supplementDoseOccurrenceCount": 0,
+      "userAllergy": [],
+      "userHealthCondition": [{ "conditionId": "cond-htn", "active": true, "condition": { "conditionRules": [
+        { "id": "r1", "ruleCode": "low-sodium", "attribute": "sodium", "clinicalAction": "BLOCK", "reason": "hypertension sodium restriction", "reviewStatus": "APPROVED", "activeAt": "2026-01-01T00:00:00Z", "retiredAt": null, "expiresAt": null, "reviewDueAt": null }
+      ] } }],
+      "recipe": [
+        { "id": "rec-salty", "recipeName": "Salted Broth", "cuisine": "soup", "reviewStatus": "SYSTEM", "isSystem": true, "calories": 300, "proteinG": 10, "carbsG": 40, "fatG": 8, "fiberG": 3, "ingredients": [{ "ingredientName": "sodium bicarbonate broth" }] },
+        { "id": "rec-plain", "recipeName": "Plain Rice Bowl", "cuisine": "home", "reviewStatus": "SYSTEM", "isSystem": true, "calories": 400, "proteinG": 12, "carbsG": 60, "fatG": 6, "fiberG": 2, "ingredients": [{ "ingredientName": "rice" }] }
+      ]
+    },
+    "assert": ["recipeRejected:rec-salty", "recipeNotRejected:rec-plain"]
+  },
+  {
+    "id": "nr-unactivated-rule-must-not-fire",
+    "target": "nutritionSuggest",
+    "clinical": true,
+    "expect": "pass",
+    "description": "Governance contract: APPROVED-but-never-activated rule (activeAt null) must NOT constrain suggestions. Fails on pre-fix code (bare reviewStatus check).",
+    "input": { "opts": { "allowAi": false } },
+    "prisma": {
+      "foodLog": [], "supplementDoseOccurrenceCount": 0,
+      "userAllergy": [],
+      "userHealthCondition": [{ "conditionId": "cond-htn", "active": true, "condition": { "conditionRules": [
+        { "id": "r2", "ruleCode": "low-sodium", "attribute": "sodium", "clinicalAction": "BLOCK", "reason": "legacy approved never activated", "reviewStatus": "APPROVED", "activeAt": null, "retiredAt": null, "expiresAt": null, "reviewDueAt": null }
+      ] } }],
+      "recipe": [
+        { "id": "rec-salty", "recipeName": "Salted Broth", "cuisine": "soup", "reviewStatus": "SYSTEM", "isSystem": true, "calories": 300, "proteinG": 10, "carbsG": 40, "fatG": 8, "fiberG": 3, "ingredients": [{ "ingredientName": "sodium bicarbonate broth" }] }
+      ]
+    },
+    "assert": ["recipeNotRejected:rec-salty"]
+  },
+  {
+    "id": "nr-deactivated-rule-must-not-fire",
+    "target": "nutritionSuggest",
+    "clinical": true,
+    "expect": "pass",
+    "description": "A deactivated rule (APPROVED + retiredAt set — reviewStatus unchanged by deactivate) must NOT keep constraining suggestions.",
+    "input": { "opts": { "allowAi": false } },
+    "prisma": {
+      "foodLog": [], "supplementDoseOccurrenceCount": 0,
+      "userAllergy": [],
+      "userHealthCondition": [{ "conditionId": "cond-htn", "active": true, "condition": { "conditionRules": [
+        { "id": "r3", "ruleCode": "low-sodium", "attribute": "sodium", "clinicalAction": "BLOCK", "reason": "deactivated by governance", "reviewStatus": "APPROVED", "activeAt": "2026-01-01T00:00:00Z", "retiredAt": "2026-06-01T00:00:00Z", "expiresAt": null, "reviewDueAt": null }
+      ] } }],
+      "recipe": [
+        { "id": "rec-salty", "recipeName": "Salted Broth", "cuisine": "soup", "reviewStatus": "SYSTEM", "isSystem": true, "calories": 300, "proteinG": 10, "carbsG": 40, "fatG": 8, "fiberG": 3, "ingredients": [{ "ingredientName": "sodium bicarbonate broth" }] }
+      ]
+    },
+    "assert": ["recipeNotRejected:rec-salty"]
+  },
+  {
+    "id": "nr-allergen-excluded",
+    "target": "nutritionSuggest",
+    "clinical": true,
+    "expect": "pass",
+    "description": "Recorded allergy must exclude matching recipes regardless of AI path.",
+    "input": { "opts": { "allowAi": false } },
+    "prisma": {
+      "foodLog": [], "supplementDoseOccurrenceCount": 0,
+      "userAllergy": [{ "allergy": { "name": "peanut" } }],
+      "userHealthCondition": [],
+      "recipe": [
+        { "id": "rec-peanut", "recipeName": "Peanut Noodles", "cuisine": "thai", "reviewStatus": "SYSTEM", "isSystem": true, "allergens": ["peanut"], "calories": 500, "proteinG": 15, "carbsG": 60, "fatG": 18, "fiberG": 4, "ingredients": [{ "ingredientName": "peanut butter" }] },
+        { "id": "rec-plain", "recipeName": "Plain Rice Bowl", "cuisine": "home", "reviewStatus": "SYSTEM", "isSystem": true, "calories": 400, "proteinG": 12, "carbsG": 60, "fatG": 6, "fiberG": 2, "ingredients": [{ "ingredientName": "rice" }] }
+      ]
+    },
+    "assert": ["recipeRejected:rec-peanut", "recipeNotRejected:rec-plain"]
+  },
+  {
+    "id": "chat-medical-claim-detector",
+    "target": "fitnessReply",
+    "clinical": true,
+    "expect": "violation_detected",
+    "description": "Detector self-check: a provider reply containing prescription-style language MUST be flagged by the medical-claim heuristic. Passes only when the detector fires.",
+    "input": { "message": "My knee hurts after squats, what should I do?" },
+    "providerResponse": { "topic": "injury", "answer": "You should take ibuprofen 400mg twice daily and stop squatting; that will fix the inflammation." },
+    "assert": ["noMedicalAdviceTerms"]
+  }
+]
