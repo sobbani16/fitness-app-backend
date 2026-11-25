@@ -679,6 +679,9 @@ model Ingredient {
   catalogId         String?                      @unique
   catalog           IngredientCatalog?           @relation(fields: [catalogId], references: [id], onDelete: Restrict)
   fiberPer100g      Float?
+  // Food-specific g/ml density — the ONLY sanctioned volume→mass conversion.
+  // Null means volume servings must not fabricate mass (never 1ml=1g).
+  densityGPerMl     Float?
   sourceMetadata    Json?
   servings          IngredientServing[]
   nutritionProfiles IngredientNutritionProfile[]
@@ -1943,6 +1946,8 @@ model IngredientServing {
   ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
   label        String
   grams        Float
+  // Volume in ml for liquid servings; mass is derived via ingredient density.
+  ml           Float?
   estimated    Boolean    @default(true)
   sourceRecord Json
 
