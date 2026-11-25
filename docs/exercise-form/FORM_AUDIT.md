@@ -127,8 +127,7 @@ parameter — phase gating itself is untested.
 correctness proof):**
 - mobile `npx jest formRules.test.ts posture.test.ts exerciseRegistry.test.ts` → **29/29 pass**
 - backend `npx jest tests/exerciseSuitability.test.js tests/formChecks.test.js tests/poseCoaching.test.js` → **31/31 pass**
-- Not run: `realEngine.test.ts`, `repCounter.test.ts`, `repBenchmark.test.ts`
-  (not needed to confirm these findings); full suites avoided by design.
+- mobile full detection suite `npx jest src/detection/__tests__/` → **111/111 pass** (7 suites incl. `realEngine`, `repCounter`, `repBenchmark`, `mockEngine` — matrix now complete)
 - Blocked: nothing. TS-side findings verified by source + existing tests;
   no new test files added in this read-only increment.
 
