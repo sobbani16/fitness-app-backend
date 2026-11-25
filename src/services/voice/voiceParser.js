@@ -113,6 +113,45 @@ function parseSegment(seg, ctx = {}) {
     return { intent: 'LOG_WATER', entities: { amountMl, estimated: ['cup', 'cups', 'glass', 'glasses'].includes(unit) }, missing: qty ? [] : ['amountMl'], segment: seg, status: qty ? 'ready' : 'needs_review' };
   }
 
+  // GROCERY — "add milk and eggs to my grocery list". Must precede FOOD/exercise
+  // branches: 'add' is a shared trigger word. Mass units become amountG;
+  // countable phrasing keeps a count unitLabel and never fabricates grams.
+  if (/\b(?:grocery|shopping)\s*list\b/.test(t) && /add|put|need|buy|get|pick/.test(t)) {
+    const before = seg.slice(0, seg.toLowerCase().search(/\b(?:grocery|shopping)\s*list\b/));
+    const cleaned = before.replace(/\b(?:to|on)\s+(?:my\s+|the\s+)?$/i, '')
+      .replace(/^(please\s+)?(add|put|need|buy|get|pick\s+up)\s*/i, '').trim();
+    const items = cleaned.split(/,\s*(?:and\s+)?|\s+and\s+/).map(raw => {
+      const s = raw.replace(/^(a|an|some|the)\s+/i, '').trim(); if (!s) return null;
+      const kg = s.match(/(\d+(?:\.\d+)?)\s*(?:kgs?|kilos?|kilograms?)\s+(?:of\s+)?(.+)/i);
+      if (kg) return { name: kg[2].trim(), amountG: Math.round(+kg[1] * 1000), unitLabel: null };
+      const g = s.match(/(\d+(?:\.\d+)?)\s*(?:g|grams?)\s+(?:of\s+)?(.+)/i);
+      if (g) return { name: g[2].trim(), amountG: +g[1], unitLabel: null };
+      const c = s.match(/(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:(packs?|boxes?|bottles?|cans?|bags?|cartons?|dozen)\s+(?:of\s+)?)?(.+)/i);
+      if (c) return { name: c[3].trim(), amountG: null, unitLabel: `${num(c[1]) ?? c[1]} ${c[2] ? c[2].toLowerCase().replace(/s$/, '') : 'pcs'}` };
+      return { name: s, amountG: null, unitLabel: null };
+    }).filter(Boolean);
+    if (items.length) return { intent: 'ADD_GROCERY', entities: { items }, missing: [], segment: seg, status: 'ready' };
+    return { intent: 'ADD_GROCERY', entities: { items: [] }, missing: ['items'], segment: seg, status: 'needs_review' };
+  }
+
+  // RECIPE — "log the palak paneer recipe for dinner". Requires the word
+  // 'recipe' so ordinary food phrasing stays on LOG_FOOD.
+  if (/\brecipe\b/.test(t) && /log|add|record|ate|had|eat/.test(t)) {
+    const mealType = (t.match(/breakfast|lunch|dinner|snack/) || [])[0] || 'meal';
+    const servingsM = t.match(/(\d+|one|two|three|four|five|six)\s+servings?\s+(?:of\s+)?/);
+    const name = seg.replace(/^(please\s+)?(log|add|record|i\s+ate|i\s+had|i\s+eat)\s*/i, '')
+      .replace(/\b(for|as)\s+(breakfast|lunch|dinner|snack)\b.*$/i, '')
+      .replace(/\b\d+\s+servings?\s+(?:of\s+)?/i, '')
+      .replace(/\b(one|two|three|four|five|six)\s+servings?\s+(?:of\s+)?/i, '')
+      .replace(/\brecipes?\b/ig, '').replace(/^(a|an|some|the)\s+/i, '').trim();
+    return {
+      intent: 'LOG_RECIPE',
+      entities: { recipeName: name || null, servings: servingsM ? num(servingsM[1]) : 1, mealType },
+      // Always needs_review until interpret resolves a catalog/own recipe match.
+      missing: name ? [] : ['recipeName'], segment: seg, status: 'needs_review',
+    };
+  }
+
   // SUPPLEMENT taken
   m = t.match(/^mark\s+(?:my\s+)?(.+?)\s*(?:supplement|vitamin|pill|capsule)s?\s+(?:as\s+)?taken/) || t.match(/^took\s+(?:my\s+)?(.+?)\s*(?:supplement|vitamin)s?/);
   if (m) return { intent: 'MARK_SUPPLEMENT_TAKEN', entities: { name: m[1]?.trim() || null }, missing: m[1] ? [] : ['name'], segment: seg, status: 'ready' };

@@ -68,6 +68,10 @@ const applyUndo = async (prisma, cmd) => {
     });
     if (e.kind === 'userInjury') await prisma.userInjury.deleteMany({ where: { id: e.id, userId: cmd.userId } });
     if (e.kind === 'symptomReport') await prisma.userSymptomReport.deleteMany({ where: { id: e.id, userId: cmd.userId } });
+    if (e.kind === 'groceryItem') await prisma.groceryItem.deleteMany({ where: { id: e.id, userId: cmd.userId } });
+    if (e.kind === 'groceryItemMerge') await prisma.groceryItem.updateMany({
+      where: { id: e.id, userId: cmd.userId }, data: { amountG: e.prev.amountG, sourceRecipeId: e.prev.sourceRecipeId },
+    });
   }
 };
 
@@ -226,6 +230,21 @@ router.post('/interpret', voiceEnabled, wrap(async (req, res) => {
       }
       if (a.entities.items.length && a.entities.items.every(i => i.status !== 'needs_review')) { a.status = 'ready'; a.missing = (a.missing || []).filter(m => m !== 'grams'); }
     }
+    if (a.intent === 'LOG_RECIPE' && a.entities.recipeName) {
+      // System recipes or the caller's own — never another user's, never REJECTED.
+      const recipes = await prisma.recipe.findMany({
+        where: {
+          recipeName: { contains: a.entities.recipeName, mode: 'insensitive' },
+          OR: [{ isSystem: true }, { creatorId: uid(req) }],
+          reviewStatus: { not: 'REJECTED' },
+        },
+        select: { id: true, recipeName: true, servings: true, portionG: true, reviewStatus: true },
+        take: 5,
+      });
+      a.matches = recipes.map(r => ({ id: r.id, name: r.recipeName }));
+      if (recipes.length === 1 && recipes[0].portionG) { a.entities.recipeId = recipes[0].id; a.status = 'ready'; }
+      else a.status = 'needs_review';
+    }
     if (a.intent === 'MARK_SUPPLEMENT_TAKEN') {
       const links = await prisma.userSupplement.findMany({
         where: { userId: uid(req), supplement: a.entities.name ? { name: { contains: a.entities.name, mode: 'insensitive' } } : {} },
@@ -338,6 +357,56 @@ router.post('/commands/execute', wrap(async (req, res) => {
           created.push({ kind: 'foodLog', id: saved.id });
           results.push({ intent: a.intent, status: 'saved', detail: `${gramsUsed}g ${ing.name} → ${a.entities.mealType || 'meal'}` });
         }
+        break;
+      }
+      case 'ADD_GROCERY': {
+        const items = (a.entities.items || []).slice(0, 50).map(i => ({
+          name: String(i.name || '').slice(0, 200),
+          amountG: i.amountG != null && Number.isFinite(Number(i.amountG)) ? Number(i.amountG) : null,
+          unitLabel: typeof i.unitLabel === 'string' ? i.unitLabel : null,
+        }));
+        const { items: saved, merges } = await require('../services/groceryService').addItems(userId, items, prisma);
+        for (const row of saved) {
+          const merged = merges.find(mm => mm.id === row.id);
+          created.push(merged
+            ? { kind: 'groceryItemMerge', id: row.id, prev: merged.prev }
+            : { kind: 'groceryItem', id: row.id });
+        }
+        results.push({ intent: a.intent, status: 'saved', detail: `${saved.length} item(s) on your grocery list` });
+        break;
+      }
+      case 'LOG_RECIPE': {
+        // recipeId from interpret is re-verified: own or system, never REJECTED,
+        // and must carry a known cooked yield so serving weight is honest.
+        const recipe = await prisma.recipe.findFirst({
+          where: {
+            id: String(a.entities.recipeId || ''),
+            OR: [{ isSystem: true }, { creatorId: userId }],
+            reviewStatus: { not: 'REJECTED' },
+          },
+        });
+        const servings = Math.min(20, Math.max(1, Number(a.entities.servings) || 1));
+        if (!recipe) { results.push({ intent: a.intent, status: 'skipped', reason: 'recipe not found or not yours' }); break; }
+        if (!Number.isFinite(recipe.portionG) || recipe.portionG <= 0 || recipe.servings < 1) {
+          results.push({ intent: a.intent, status: 'skipped', reason: `${recipe.recipeName}: serving weight unknown` }); break;
+        }
+        const grams = Math.round((recipe.portionG / recipe.servings) * servings * 100) / 100;
+        const per = k => (recipe[k] == null ? null : Math.round((recipe[k] / recipe.servings) * servings * 100) / 100);
+        const nutrition = { calories: per('calories'), proteinG: per('proteinG'), carbsG: per('carbsG'), fatG: per('fatG'), fiberG: per('fiberG') };
+        const saved = await prisma.foodLog.create({ data: {
+          id: `voice-${commandId}-recipe-${created.length}`, userId, foodName: recipe.recipeName.slice(0, 300),
+          quantityG: grams, calories: nutrition.calories ?? 0, proteinG: nutrition.proteinG ?? 0,
+          carbsG: nutrition.carbsG ?? 0, fatG: nutrition.fatG ?? 0, fiberG: nutrition.fiberG,
+          mealType: String(a.entities.mealType || 'meal').slice(0, 30),
+          nutritionSnapshot: {
+            loggedSource: 'voice-recipe', recipeId: recipe.id, reviewStatus: recipe.reviewStatus,
+            grams, servings, servingGrams: recipe.portionG / recipe.servings,
+            calculated: nutrition,
+            nutrientUnknowns: require('../services/nutrientCompleteness').computeUnknowns(nutrition),
+          },
+        } });
+        created.push({ kind: 'foodLog', id: saved.id });
+        results.push({ intent: a.intent, status: 'saved', detail: `${servings} serving(s) ${recipe.recipeName} → ${a.entities.mealType || 'meal'}` });
         break;
       }
       case 'MARK_SUPPLEMENT_TAKEN': {
