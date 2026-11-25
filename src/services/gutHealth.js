@@ -2,8 +2,7 @@
 // No microbiome score, no causal claims (correlation ≠ trigger), restrictive
 // diets are never auto-initiated.
 const { getPrisma } = require('../lib/prisma');
-
-const FIBER_TARGET_G = 30;
+const { resolveFiberTargetForUser } = require('./fiber/targetForUser');
 const LOOKBACK_DAYS = 14;
 const SYMPTOMS = ['bloating', 'gas', 'constipation', 'diarrhea', 'reflux', 'abdominal', 'stool_frequency'];
 const TOLERANCE_KINDS = ['suspected', 'intolerance', 'dislike', 'exclusion']; // 'allergy' lives in Allergy — never here
@@ -11,7 +10,7 @@ const TOLERANCE_KINDS = ['suspected', 'intolerance', 'dislike', 'exclusion']; //
 async function getGutHealthSummary(userId) {
   const prisma = getPrisma();
   const since = new Date(Date.now() - LOOKBACK_DAYS * 86400000);
-  const [logs, symptoms, tolerances] = await Promise.all([
+  const [logs, symptoms, tolerances, fiberResolution] = await Promise.all([
     prisma.foodLog.findMany({
       where: { userId, loggedAt: { gte: since } },
       select: { fiberG: true, ingredientId: true, loggedAt: true },
@@ -25,6 +24,7 @@ async function getGutHealthSummary(userId) {
       where: { userId }, select: { foodName: true, kind: true, note: true },
       orderBy: { createdAt: 'desc' }, take: 100,
     }).catch(() => []),
+    resolveFiberTargetForUser(prisma, userId).catch(() => null),
   ]);
 
   const days = new Set(logs.map(l => l.loggedAt.toISOString().slice(0, 10)));
@@ -39,8 +39,9 @@ async function getGutHealthSummary(userId) {
     .map(([symptom, count]) => ({ symptom, count }));
 
   const signals = [];
-  if (logs.length >= 5 && fiberAvg < FIBER_TARGET_G * 0.6) {
-    signals.push({ key: 'low_fiber', detail: `Avg ${fiberAvg.toFixed(0)}g fiber/day vs ${FIBER_TARGET_G}g guide` });
+  const fiberTargetG = fiberResolution?.targetG ?? 30;
+  if (logs.length >= 5 && fiberAvg < fiberTargetG * 0.6) {
+    signals.push({ key: 'low_fiber', detail: `Avg ${fiberAvg.toFixed(0)}g fiber/day vs ${fiberTargetG}g target` });
   }
   if (plants.size > 0 && plants.size < 10 && dayCount >= 5) {
     signals.push({ key: 'narrow_variety', detail: `${plants.size} distinct plant foods logged in ${LOOKBACK_DAYS} days` });
@@ -49,7 +50,7 @@ async function getGutHealthSummary(userId) {
   return {
     version: 'gut-health-v1',
     lookbackDays: LOOKBACK_DAYS,
-    fiber: { avgPerDayG: logs.length ? Number(fiberAvg.toFixed(1)) : null, targetG: FIBER_TARGET_G, daysLogged: dayCount },
+    fiber: { avgPerDayG: logs.length ? Number(fiberAvg.toFixed(1)) : null, targetG: fiberTargetG, daysLogged: dayCount },
     plantVariety: { distinctIngredients: plants.size, guide: '30+ plants/week is associated with gut diversity in research' },
     symptoms: { total: symptoms.length, top: topSymptoms },
     tolerances: tolerances.map(t => ({ foodName: t.foodName, kind: t.kind, note: t.note })),

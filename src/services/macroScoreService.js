@@ -11,6 +11,7 @@
 // Overall score = weighted average (protein 35%, carbs 25%, fat 20%, fiber 20%).
 
 const { getPrisma } = require('../lib/prisma');
+const { resolveFiberTargetForUser } = require('./fiber/targetForUser');
 
 const WEIGHTS = { protein: 0.35, carbs: 0.25, fat: 0.20, fiber: 0.20 };
 
@@ -119,7 +120,11 @@ async function getGoals(userId) {
   // race into a unique-constraint failure.
   if (!goals) goals = await prisma.macroGoal.upsert({ where: { userId }, update: {}, create: { userId, ...DEFAULT_GOALS } });
   const { waterMlTarget, waterMlTargetBasis } = await deriveWaterTarget(userId, goals);
-  return { ...goals, waterMlTarget, waterMlTargetBasis };
+  // Canonical fiber target: every surface reports the resolved personalized
+  // target (single source: services/fiber/targetForUser) so scoring, goals
+  // display, and /fiber/target can never disagree on the same user.
+  const fiber = await resolveFiberTargetForUser(prisma, userId).catch(() => null);
+  return { ...goals, waterMlTarget, waterMlTargetBasis, fiberTarget: fiber?.targetG ?? goals.fiberTarget, fiberTargetBasis: fiber?.basis ?? goals.fiberTargetBasis };
 }
 
 // Water target basis: 'custom' = user-set, 'history' = derived from the user's

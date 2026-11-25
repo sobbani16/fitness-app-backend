@@ -9,6 +9,7 @@
 //   - Observational only — no thresholds beyond documented engineering bands;
 //     reviewed bounds (rapid-loss kg/week) arrive as caller parameters.
 const { getPrisma } = require('../lib/prisma');
+const { resolveFiberTargetForUser } = require('./fiber/targetForUser');
 const { normalizeGoal } = require('./calorieEngine');
 
 const DAY_MS = 86400000;
@@ -51,7 +52,7 @@ async function getTrends(userId, { tz = 'UTC', days = 14, rapidLossBoundKgPerWee
   const start = new Date(end.getTime() - (daysN - 1) * DAY_MS);
   const q = async (p) => { try { return await p; } catch { return null; } };
 
-  const [meals, weights, sessions, steps, macroGoal, goalHist, profile] = await Promise.all([
+  const [meals, weights, sessions, steps, macroGoal, goalHist, profile, fiberTarget] = await Promise.all([
     q(prisma.foodLog.findMany({ where: { userId, loggedAt: { gte: start, lt: new Date(end.getTime() + DAY_MS) } }, select: { loggedAt: true, calories: true, proteinG: true, carbsG: true, fatG: true, fiberG: true } })),
     q(prisma.weightEntry.findMany({ where: { userId, recordedAt: { gte: start } }, orderBy: { recordedAt: 'asc' }, select: { recordedAt: true, weightKg: true } })),
     q(prisma.workoutSession.findMany({ where: { userId, startedAt: { gte: start }, finishedAt: { not: null } }, select: { startedAt: true, workoutType: true, durationMinutes: true, source: true } })),
@@ -59,6 +60,7 @@ async function getTrends(userId, { tz = 'UTC', days = 14, rapidLossBoundKgPerWee
     q(prisma.macroGoal.findUnique({ where: { userId } })),
     q(prisma.goalHistory.findMany({ where: { userId }, orderBy: { startedAt: 'asc' }, select: { goal: true, startedAt: true, endedAt: true, targetsSnapshot: true } })),
     q(prisma.user.findUnique({ where: { id: userId }, select: { goalType: true } })),
+    q(resolveFiberTargetForUser(prisma, userId)),
   ]);
 
   // Local-day bucketing — dates are assigned in the viewer's timezone.
@@ -105,7 +107,7 @@ async function getTrends(userId, { tz = 'UTC', days = 14, rapidLossBoundKgPerWee
     state: 'ok',
     avgProteinG: round1(avg((b) => b.proteinG)), avgCarbsG: round1(avg((b) => b.carbsG)),
     avgFatG: round1(avg((b) => b.fatG)), avgFiberG: round1(avg((b) => b.fiberG)),
-    targets: macroGoal ? { proteinG: macroGoal.proteinTarget ?? null, carbsG: macroGoal.carbsTarget ?? null, fatG: macroGoal.fatTarget ?? null, fiberG: macroGoal.fiberTarget ?? null } : null,
+    targets: macroGoal ? { proteinG: macroGoal.proteinTarget ?? null, carbsG: macroGoal.carbsTarget ?? null, fatG: macroGoal.fatTarget ?? null, fiberG: fiberTarget?.targetG ?? macroGoal.fiberTarget ?? null } : null,
     provenance: 'food_log_sums_over_logged_days_only',
   };
 
@@ -197,8 +199,8 @@ async function getTrends(userId, { tz = 'UTC', days = 14, rapidLossBoundKgPerWee
       }
     }
   }
-  if (macros.state === 'ok' && macroGoal?.fiberTarget && macros.avgFiberG != null && macros.avgFiberG < macroGoal.fiberTarget * 0.7) {
-    observations.push({ key: 'fiber_below_target', goal: currentGoal, observation: `Recorded fiber averaged ${macros.avgFiberG}g vs a ${macroGoal.fiberTarget}g reference target — some logged foods may lack fiber data.`, periodDays: daysN, coveragePct: coverage.foodCoveragePct, confidence: 'low', nextStep: 'Verify whether fiber is actually low or just unlogged/unrecorded.' });
+  if (macros.state === 'ok' && (fiberTarget?.targetG ?? macroGoal?.fiberTarget) && macros.avgFiberG != null && macros.avgFiberG < (fiberTarget?.targetG ?? macroGoal.fiberTarget) * 0.7) {
+    observations.push({ key: 'fiber_below_target', goal: currentGoal, observation: `Recorded fiber averaged ${macros.avgFiberG}g vs a ${fiberTarget?.targetG ?? macroGoal.fiberTarget}g reference target — some logged foods may lack fiber data.`, periodDays: daysN, coveragePct: coverage.foodCoveragePct, confidence: 'low', nextStep: 'Verify whether fiber is actually low or just unlogged/unrecorded.' });
   }
 
   const sufficient = coverage.foodLoggedDays >= 3 || coverage.weightEntries >= 3 || coverage.workoutSessions >= 2 || coverage.stepDays >= 3;

@@ -50,7 +50,7 @@ async function computeDay(userId, { tz, dayKeyStr, now = new Date(), persist = t
     prisma.sleepLog.findMany({ where: { userId, sleepEnd: { gte: nightStart, lte: nightEnd } }, select: { hoursSlept: true, source: true } }).catch(() => []),
     prisma.habitCompletion.findMany({ where: { habit: { userId }, day: dk }, select: { outcome: true, habitId: true } }).catch(() => []),
     prisma.reminderCategorySetting.findMany({ where: { userId, category: { startsWith: 'meal:' }, enabled: true }, select: { category: true, times: true } }).catch(() => null),
-    prisma.macroGoal.findUnique({ where: { userId }, select: { caloriesTarget: true, proteinTarget: true, fiberTarget: true, waterMlTarget: true } }).catch(() => null),
+    prisma.macroGoal.findUnique({ where: { userId }, select: { caloriesTarget: true, proteinTarget: true, waterMlTarget: true } }).catch(() => null),
     prisma.userPlanningPreferences.findUnique({ where: { userId }, select: { restDays: true } }).catch(() => null),
   ]).catch(() => [[], { _sum: {} }, null, [], [], [], null, null, null]);
 
