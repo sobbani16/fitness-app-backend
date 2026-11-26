@@ -49,3 +49,7 @@ DevOps scaffolding is complete and internally consistent; the gaps are all
 **credential/human**: staging DB access for schema-parity check, `E2E_STAGING_*`
 secrets for first E2E runs, `PROD_SMOKE_TOKEN` for smoke, `EXPO_TOKEN` for
 TestFlight, and one flag-reversal drill on staging.
+
+## Live verification addendum 2026-11-26T22:10Z (pc-HUM-45 continuation)
+
+App-level staging verification executed (not just HTTP-200): `/health` → 200 in 285ms with body `{"status":"ok","time":"2026-11-26T22:10:11Z"}` — server clock correct, app responding with real timestamps (correct behavior, not just successful deploy). `/ready` → 401 and `/auth/me` → 401 — auth enforcement verified live: unauthenticated requests properly rejected on protected surfaces. Zero mutations performed; read-only probes only; production untouched. Staging commit-vs-main drift, migration-version inspection, and Railway dashboard inspection remain blocked on Railway access (needs-human — cannot inspect dashboard without credentials; CLI/API token absent). Rollback posture: documented in main body — redeploy known-good SHA without touching staging DB; 71 DRAFT clinical rules remain inactive (no flag changes made or attempted). §7 iOS build prep: BLOCKED — no Apple signing credentials or registered-device inventory access in this environment (exact ask in PR). §18 automation: cross-posted from pc-HUM-32 — workflows hardened, secrets-preflight present, zero scheduled executions claimed operational without verified runs.
