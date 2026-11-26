@@ -155,3 +155,13 @@ Designated isolated database per TEST_DATABASE_ISOLATION_REPORT.md guards: loopb
 2. Point `TEST_DATABASE_URL` at a loopback test-named database with migrations applied (`prisma migrate deploy` against it).
 3. `npx --no-install jest tests/asyncScenarios.test.js tests/asyncScenarios.api.test.js --runInBand` → expect 17/17.
 4. For the three seed-dependent suites, populate `Role` rows first (gap documented above).
+
+## UPDATE 2026-11-26b — isolated regression baseline fully restored (#49/#73/#80/#84)
+
+The seed-fixture gap from the section above is closed — purely by seeding the disposable target, no script or guard changes:
+
+1. `DATABASE_URL=<loopback fitness_test_dev04> node prisma/seed-rbac.js` → roles + 78 role-permission mappings seeded (probe before: 0 role rows).
+2. `DATABASE_URL=<same> node scripts/seed-modules.js` → 10 modules, 6 packages (1 active) — covers the `NUTRITION` module key the entitlement-grant test needs.
+3. `npx --no-install jest tests/academy.test.js tests/e2eTrainerJourney.test.js tests/trainerNutrition.test.js --runInBand` → **3/3 suites, 43/43 tests pass** (was 0/43 pre-seed; the one intermediate failure was HTTP 400 `Unknown module` until step 2).
+4. Full suite `npx --no-install jest tests --runInBand` → **157 passed / 2 skipped of 159 suites; 6075 passed / 4 skipped / 48 todo / 0 failed of 6127 tests** — identical signature to the CI_RELIABILITY_ADDENDUM clean baseline. Both symptom suites inside: HTTP 201, persisted records, urgent/non-urgent dispositions, suppression — all pass.
+5. Gated integration suites (skip by design under the default run): `tests/integration/platformE2E.test.js` + `tests/integration/retentionSweep.test.js` executed separately with `DATABASE_URL` bound to the verified loopback `fitness_auth_readiness` target per their `SAFE_DB` guards → **2/2 suites, 4/4 tests pass** for real. Source SHA `59e45a4` (+this doc commit).
