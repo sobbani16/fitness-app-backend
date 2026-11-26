@@ -184,7 +184,7 @@ describe('loadConstraints', () => {
     expect(prisma.userHealthCondition.findMany).toHaveBeenCalledWith(expect.objectContaining({
       include: expect.objectContaining({
         condition: expect.objectContaining({
-          include: expect.objectContaining({ conditionRules: expect.objectContaining({ where: { reviewStatus: 'APPROVED' } }) }),
+          include: expect.objectContaining({ conditionRules: expect.objectContaining({ where: expect.objectContaining({ reviewStatus: 'APPROVED', activeAt: { not: null }, retiredAt: null }) }) }),
         }),
       }),
     }));

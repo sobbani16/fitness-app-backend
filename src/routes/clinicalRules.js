@@ -18,6 +18,8 @@ const REVIEWER = requirePermission('CLINICAL_RULE_REVIEW', 'CLINICAL_RULE_APPROV
 const ACTIVATOR = requirePermission('CLINICAL_RULE_ACTIVATE');
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const actor = (req) => req.userId || req.user?.id;
+// actorRole is the verified role set populated by requirePermission — never
+// req.body-supplied; the immutable event must record who actually acted.
 const TABLE_KEYS = Object.keys(G.TABLES);
 
 // GET /super-admin/clinical-rules?table=&status=&q=
@@ -61,19 +63,19 @@ router.post('/:table/:id/transition', REVIEWER, wrap(async (req, res) => {
   if (action === 'approve' && !(req.userPermissions || []).includes('CLINICAL_RULE_APPROVE')) {
     throw httpError(403, 'CLINICAL_RULE_APPROVE permission required to approve clinical rules.');
   }
-  const { rule, event } = await G.transition(getPrisma(), { tableKey: req.params.table, ruleId: req.params.id, action, actorId: actor(req), actorRole: req.body?.actorRole || null, notes: req.body?.notes, reviewDueAt: req.body?.reviewDueAt });
+  const { rule, event } = await G.transition(getPrisma(), { tableKey: req.params.table, ruleId: req.params.id, action, actorId: actor(req), actorRole: (req.userRoles || []).join(','), notes: req.body?.notes, reviewDueAt: req.body?.reviewDueAt });
   res.json({ rule, event });
 }));
 
 // POST /super-admin/clinical-rules/:table/:id/activate { expiresAt?, reviewDueAt?, notes? }
 router.post('/:table/:id/activate', ACTIVATOR, wrap(async (req, res) => {
-  const { rule, event } = await G.activate(getPrisma(), { tableKey: req.params.table, ruleId: req.params.id, actorId: actor(req), actorRole: req.body?.actorRole || null, notes: req.body?.notes, expiresAt: req.body?.expiresAt, reviewDueAt: req.body?.reviewDueAt });
+  const { rule, event } = await G.activate(getPrisma(), { tableKey: req.params.table, ruleId: req.params.id, actorId: actor(req), actorRole: (req.userRoles || []).join(','), notes: req.body?.notes, expiresAt: req.body?.expiresAt, reviewDueAt: req.body?.reviewDueAt });
   res.json({ rule, event });
 }));
 
 // POST /super-admin/clinical-rules/:table/:id/deactivate { notes } — immediate stop.
 router.post('/:table/:id/deactivate', ACTIVATOR, wrap(async (req, res) => {
-  const { rule, event } = await G.deactivateNow(getPrisma(), { tableKey: req.params.table, ruleId: req.params.id, actorId: actor(req), actorRole: req.body?.actorRole || null, notes: req.body?.notes });
+  const { rule, event } = await G.deactivateNow(getPrisma(), { tableKey: req.params.table, ruleId: req.params.id, actorId: actor(req), actorRole: (req.userRoles || []).join(','), notes: req.body?.notes });
   res.json({ rule, event });
 }));
 
