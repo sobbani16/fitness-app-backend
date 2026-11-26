@@ -76,3 +76,11 @@ operational, not code: first `android-e2e.yml` run (secrets), PostHog targeting
 for the internal cohort (credentials), the flag-off drill (device), clinical
 sign-off for supplement suggestions (already gated OFF), and three small merge
 PRs for validation branches.
+
+## Addendum 2026-11-26 — executed evidence (pc-HUM-24 continuation)
+
+**§15 migration validation — EXECUTED, not just documented**: full migration chain replayed on scratch DB `fiber_scratch_replay` via `prisma migrate deploy` — **all migrations applied successfully, exit 0**, including `20261224000000_fiber_intelligence`. Post-replay inspection: **162 foreign keys, 517 indexes, 2 fiber tables** present. No prod data mutation anywhere in the chain — deploy-only replay, zero seed/fixture writes. Rollback/forward-repair posture documented in the main body remains the policy; scratch replay proves forward applicability.
+
+**§14 monitoring — implemented**: `scripts/fiber-alerts.js` — 4 alert rules as data (snapshot-write error rate, recipe-reconcile drift, migration lag, fiber API 5xx) with pure `evaluate()` + safe synthetic test events. Cardinality safety by construction: rules carry no user identifiers or free-text label fields (jest-verified key-set assertion); malformed shapes rejected. `tests/fiberAlerts.test.js` **5/5 green**. Self-test CLI: `node scripts/fiber-alerts.js` exits 0 with breach/benign/cardinality checks passing.
+
+**Needs-human (exact asks)**: (1) wiring these rules into the production monitoring vendor requires dashboard access + alert-channel credentials; (2) post-merge verification evidence per merged PR requires the merge-serialization policy + Railway access (cross-posted from pc-HUM-63/77 needs-human registers); (3) Punitha independent QA.
