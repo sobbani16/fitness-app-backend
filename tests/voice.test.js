@@ -223,4 +223,40 @@ describe('/voice/speak', () => {
     expect(res.headers['content-type']).toContain('audio/mpeg');
     expect(synthesizeSpeech).toHaveBeenCalledWith('Nice work — 10 reps logged.', U);
   });
+
+
+  it('execute orders mutations before read/summary actions regardless of input order', async () => {
+    // "tell remaining fiber, log 500 ml water" — the read arrives first in input
+    // order but must execute AFTER the mutation so answers reflect the write.
+    askJSON.mockResolvedValue(null);
+    const interp = await request(app).post('/voice/interpret').set(H).send({ transcript: 'add 500 ml water' });
+    const waterAction = interp.body.actions.find(a => a.intent === 'LOG_WATER');
+    const commandId = 'ordertest' + Math.random().toString(36).slice(2, 10);
+    const r = await request(app).post('/voice/commands/execute').set(H).send({
+      commandId, transcript: 'test',
+      actions: [
+        { intent: 'ASK_FIBER', entities: {}, segment: 'how much fiber', status: 'ready' },
+        { ...waterAction, status: 'ready' },
+      ],
+    });
+    expect([200, 201]).toContain(r.status);
+    const intents = r.body.result.map(x => x.intent);
+    expect(intents.indexOf('LOG_WATER')).toBeLessThan(intents.indexOf('ASK_FIBER'));
+  });
+
+  it('budget: interpret refuses with 429 after the per-user rate budget is exhausted', async () => {
+    askJSON.mockResolvedValue(null);
+    const prev = process.env.VOICE_INTERpret_BUDGET_PER_MIN;
+    process.env.VOICE_INTERPRET_BUDGET_PER_MIN = '2';
+    try {
+      let lastStatus = 0;
+      for (let i = 0; i < 4; i++) {
+        const r = await request(app).post('/voice/interpret').set(H).send({ transcript: 'add 100 ml water', budgetProbe: i + '-' + Date.now() });
+        lastStatus = r.status;
+      }
+      expect(lastStatus).toBe(429);
+    } finally {
+      if (prev == null) delete process.env.VOICE_INTERPRET_BUDGET_PER_MIN; else process.env.VOICE_INTERPRET_BUDGET_PER_MIN = prev;
+    }
+  });
 });

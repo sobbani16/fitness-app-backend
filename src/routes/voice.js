@@ -195,7 +195,21 @@ async function aiFillUnknown(actions, ctx, userId) {
 // POST /voice/interpret — transcript → proposed actions (+ server-side
 // entity matches for confirmation). context: { lastExercise, lastWeight,
 // lastSetId, weightUnit } — never trusted, only used to fill references.
+// Per-user voice budget: sliding-window rate cap (env-tunable, fail-closed to a
+// conservative default). In-memory is correct for the single-process deploy; the
+// cap exists to bound cost per the owner cost directive, not as security infra.
+const VOICE_WINDOW_MS = 60e3;
+const voiceBudgetHits = new Map(); // userId -> timestamps[]
+function voiceBudgetOk(userId, envKey, dflt) {
+  const cap = Math.max(1, parseInt(process.env[envKey] || String(dflt), 10) || dflt);
+  const now = Date.now();
+  const arr = (voiceBudgetHits.get(userId) || []).filter(t => now - t < VOICE_WINDOW_MS);
+  if (arr.length >= cap) { voiceBudgetHits.set(userId, arr); return false; }
+  arr.push(now); voiceBudgetHits.set(userId, arr); return true;
+}
+
 router.post('/interpret', voiceEnabled, wrap(async (req, res) => {
+  if (!voiceBudgetOk(uid(req) || 'anon', 'VOICE_INTERPRET_BUDGET_PER_MIN', 30)) throw httpError(429, 'Voice budget exhausted — try again in a minute.');
   const { transcript, context } = req.body || {};
   if (typeof transcript !== 'string' || !transcript.trim()) throw httpError(400, 'transcript required');
   const prisma = getPrisma();
@@ -290,6 +304,7 @@ router.post('/interpret', voiceEnabled, wrap(async (req, res) => {
 // Idempotent on commandId. Executes via existing models only; nothing here
 // trusts an ID that wasn't re-verified server-side.
 router.post('/commands/execute', wrap(async (req, res) => {
+  if (!voiceBudgetOk(uid(req) || 'anon', 'VOICE_EXECUTE_BUDGET_PER_MIN', 20)) throw httpError(429, 'Voice budget exhausted — try again in a minute.');
   const userId = uid(req);
   const { commandId, transcript, actions } = req.body || {};
   if (!userId) throw httpError(401, 'Sign in required.');
@@ -304,7 +319,17 @@ router.post('/commands/execute', wrap(async (req, res) => {
   }
 
   const created = []; const results = [];
-  for (const a of actions) {
+  // Multi-intent orchestration order (LEO spec): mutations execute before
+  // reads/summaries/recommendations so spoken answers reflect the just-written
+  // state ("log X, tell remaining protein" — the answer must include X).
+  // Stable sort: relative order within each class is preserved.
+  const QUERY_INTENTS = new Set(['ASK_FIBER', 'SHOW_MOOD_TRENDS']);
+  const ordered = [...actions].sort((x, y) => {
+    const qx = QUERY_INTENTS.has(x.intent) ? 1 : 0;
+    const qy = QUERY_INTENTS.has(y.intent) ? 1 : 0;
+    return qx - qy;
+  });
+  for (const a of ordered) {
     if (a.status !== 'ready') { results.push({ intent: a.intent, status: 'skipped', reason: 'needs_review' }); continue; }
     switch (a.intent) {
       case 'LOG_WATER': {
