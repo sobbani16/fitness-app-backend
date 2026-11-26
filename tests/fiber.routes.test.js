@@ -15,7 +15,7 @@ jest.mock('../src/lib/prisma', () => ({
     userHealthCondition: { findMany: async () => mockStore.conditions },
     userAllergy: { findMany: async () => mockStore.allergies },
     foodPreference: { findMany: async () => mockStore.foodPrefs },
-    foodLog: { findMany: async () => mockStore.foodLogs, findFirst: async ({ where }) => mockStore.foodLogs.find((l) => l.id === where.id && l.userId === where.userId) || null },
+    foodLog: { findMany: async () => { mockStore.foodLogFindManyCalls = (mockStore.foodLogFindManyCalls || 0) + 1; return mockStore.foodLogs; }, findFirst: async ({ where }) => mockStore.foodLogs.find((l) => l.id === where.id && l.userId === where.userId) || null },
     userRole: { findFirst: async ({ where }) => (mockStore.roles || []).some((r) => where.role.name.in.includes(r)) ? { id: 'r1' } : null },
     supplementLog: { findMany: async () => mockStore.suppLogs },
     weeklyNutritionPlan: { findFirst: async () => null },
@@ -140,5 +140,19 @@ describe('response contracts', () => {
     expect(res.body.days.length).toBe(3);
     expect(res.body.days[0]).toHaveProperty('targetG', 28);
     expect(res.body.days[0]).toHaveProperty('unknownMeals');
+  });
+  it('GET /fiber/trend issues ONE foodLog query for the whole window (HUM-P6-016)', async () => {
+    const yesterday = new Date(Date.now() - 86400000);
+    mockStore.foodLogs = [
+      { id: 't1', foodName: 'Oats', mealType: 'breakfast', fiberG: 4, nutritionSnapshot: null, loggedAt: yesterday },
+    ];
+    mockStore.foodLogFindManyCalls = 0;
+    const res = await request(app).get('/fiber/trend?days=7').set('x-user-id', USER);
+    expect(res.status).toBe(200);
+    expect(mockStore.foodLogFindManyCalls).toBe(1); // was: one sequential query per day
+    expect(res.body.days).toHaveLength(7);
+    const hit = res.body.days.find((d) => d.confirmedG === 4);
+    expect(hit).toBeTruthy();
+    expect(hit.mealsLogged).toBe(1);
   });
 });
