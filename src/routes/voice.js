@@ -4,7 +4,7 @@ const safety = require('../services/activitySafety');
 const { SYMPTOMS_URGENT, BODY_REGIONS } = require('../services/activitySafety/constants');
 const flags = require('../services/featureFlags/service');
 const { parseTranscript } = require('../services/voice/voiceParser');
-const { aiEnabled, askJSON } = require('../services/aiProvider');
+const { aiEnabled, askJSON, transcribeAudio } = require('../services/aiProvider');
 const ingredientNutrition = require('../services/ingredientNutrition');
 const httpError = require('../lib/errors').httpError;
 
@@ -93,15 +93,9 @@ router.post('/transcribe', voiceEnabled, wrap(async (req, res) => {
   const { audio } = req.body || {};
   if (typeof audio !== 'string' || !audio.length) throw httpError(400, 'audio (base64) required');
   if (audio.length > 4_000_000) throw httpError(413, 'Audio too large — keep clips under ~30 seconds.');
-  if (!aiEnabled() || !process.env.OPENAI_API_KEY?.trim()) throw httpError(503, 'Voice transcription is not configured.');
-  const { OpenAI } = require('openai');
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const buf = Buffer.from(audio, 'base64');
-  const file = new (require('buffer').File)([buf], 'clip.m4a', { type: 'audio/m4a' });
-  const out = await client.audio.transcriptions.create({
-    file, model: process.env.VOICE_TRANSCRIBE_MODEL || 'gpt-4o-mini-transcribe',
-  });
-  res.json({ transcript: out.text || '' });
+  const { transcript } = await transcribeAudio(buf, { format: 'm4a', userId: uid(req) });
+  res.json({ transcript });
 }));
 
 // AI fallback for segments the deterministic parser can't classify. The model
