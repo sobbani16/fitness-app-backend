@@ -99,6 +99,8 @@ const matrix = {
   notes: [
     'UNMATCHED_BACKEND_MISSING = mobile client calls a path absent from the backend inventory — integration break or inventory blind spot.',
     'Backend routes with no mobile consumer are not listed: web/admin/internal surfaces exist.',
+    'FINDING 2026-11-26: POST /recipes/match (mobile foods.ts matchRecipesByIngredients) is absent from backend — the handler lives at POST /foods/match (in-file comment mislabels it /recipes/match). LATENT not live: no mobile screen imports the function (v2 /recipes/match-ingredients via cooking.ts is the live path). Recommend mobile-owner cleanup of the dead export.',
+    'Generator defect fixed 2026-11-26: mount extraction truncated multi-segment mounts (/me/allergies to /me), corrupting inventory rows and inflating knownDuplicates (artifact entries collapsed to the 3 real GET /health* double-mounts). Inventory regenerated.',
     'Response-shape compat is verified per-endpoint by contract tests (e.g. fiberMobileContract) — this matrix covers method+path existence.',
   ],
 };
