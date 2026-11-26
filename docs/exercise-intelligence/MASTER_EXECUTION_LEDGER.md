@@ -32,6 +32,36 @@ presented as real-world validation.
   HTTP surface admin-gated; mobile runtime consumes manifest with baseline
   fallback.
 
+### Manifest metadata preflight (2026-11-26, HUM-100-K)
+
+- Contract: `src/services/pose/datasetManifestPreflight.js` — every dataset
+  manifest must pass preflight before any training run consumes it (spec
+  §15/§18/§42 ML quality gates). Two layers: structural metadata, then
+  source licensing (structure must be sound before sources are evaluated).
+- Structural gates: schema shape + expected dataset version match, unique
+  subject ids, train/validation/test forming a NONEMPTY, DISJOINT,
+  EXHAUSTIVE partition of declared subjects (duplicates, unknown subjects,
+  and omitted subjects each rejected distinctly), unique source ids, valid
+  lowercase sha256 digests, valid source kinds, retention contract present.
+- Licensing gates: because the v1 manifest does not attribute sources to
+  individual splits, EVERY declared source must be explicitly suitable and
+  allowed for BOTH training and evaluation via the licensing registry —
+  unknown (default-prohibited), restricted, prohibited, and smoke-only
+  (synthetic-fixtures) sources are each rejected with distinct codes.
+- Diagnostic hygiene: rejections use stable error codes only — subject
+  pseudonyms and storage references never appear in output (regression-
+  tested).
+- Evidence: `tests/poseDatasetManifestPreflight.test.js` 16/16 — valid
+  partition accepted; 9 structural rejection cases; 5 licensing rejection
+  cases; hygiene sweep. Licensing + training-pipeline regression suites
+  green alongside.
+- Still outstanding under K before any real training run: recording-session
+  integrity checks (per-clip sha256 verification against manifests), consent
+  record cross-validation against the P3 platform consent ledger, artifact
+  checksum verification at export time, and the §20 acceptance evaluation on
+  real held-out data — all blocked on needs_human decision #97 (footage +
+  compute).
+
 ### Outstanding real-world validation (BLOCKED)
 
 - Real consented footage for the 5+1 target exercises (multi-view,
