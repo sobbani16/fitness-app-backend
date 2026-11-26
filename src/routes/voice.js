@@ -185,6 +185,10 @@ async function aiFillUnknown(actions, ctx, userId) {
 router.post('/interpret', voiceEnabled, wrap(async (req, res) => {
   const { transcript, context } = req.body || {};
   if (typeof transcript !== 'string' || !transcript.trim()) throw httpError(400, 'transcript required');
+  // pc-HUM-95: transcripts are untrusted input — reject injection-shaped text
+  // before any parse or model call, regardless of downstream model behavior.
+  const { scanTranscript } = require('../services/voice/injectionGuard');
+  if (scanTranscript(transcript).rejected) throw httpError(422, 'This request cannot be processed as a voice command.');
   const prisma = getPrisma();
   const ctx = context || {};
   const parsed = parseTranscript(transcript, ctx);
