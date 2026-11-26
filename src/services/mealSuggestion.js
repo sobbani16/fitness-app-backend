@@ -19,6 +19,7 @@
 // not clinical advice — unknown ingredient lists can't be proven safe.
 
 const { getUserEnergySummary } = require('./energySummary');
+const { liveRuleWhere } = require('./healthOutcomes/clinicalRuleGovernance');
 
 const OCCASION_WINDOWS = [
   { occasion: 'breakfast', from: 5, to: 10.5 },
@@ -114,6 +115,7 @@ async function getMealSuggestions(prisma, userId, { occasion, limit = 5, now = n
     prisma.recipe.findMany({
       where: {
         OR: [{ isSystem: true }, { creatorId: userId }],
+        reviewStatus: { not: 'REJECTED' },
         calories: { not: null },
       },
       include: { ingredients: { select: { ingredientName: true } } },
@@ -121,7 +123,7 @@ async function getMealSuggestions(prisma, userId, { occasion, limit = 5, now = n
     }),
     prisma.userHealthCondition.findMany({
       where: { userId, active: true },
-      include: { condition: { include: { conditionRules: { where: { reviewStatus: 'APPROVED' } } } } },
+      include: { condition: { include: { conditionRules: { where: liveRuleWhere() } } } },
     }).catch(() => []),
     prisma.ingredient.findMany({ include: { attributes: true } }).catch(() => []),
   ]);

@@ -146,7 +146,7 @@ async function safetyGate(prisma, userId, { now = new Date(), env = null, rules 
       ctx.preferences = { ...(ctx.preferences || {}), restRequested: true };
     }
     const ruleRows = rules ?? await Promise.resolve()
-      .then(() => db.activitySafetyRule.findMany({ where: { reviewStatus: 'APPROVED' } }))
+      .then(() => db.activitySafetyRule.findMany({ where: require('../healthOutcomes/clinicalRuleGovernance').liveRuleWhere() }))
       .catch(() => []);
     const results = listActivities().map(a => evaluateActivity({ context: normalizeContext(ctx), activity: a, env, rules: ruleRows, now }));
     const urgent = results.find(r => r.decision === 'URGENT_ESCALATION');

@@ -11,6 +11,7 @@ const { httpError } = require('../lib/errors');
 const { requireApprovedTrainer, requireActiveRelation } = require('./trainerAccess');
 const { getProvider } = require('./payments/provider');
 const { coachingTransaction } = require('./coachingTransaction');
+const flags = require('./featureFlags/service');
 
 const PACKAGE_KINDS = ['subscription', 'one_time', 'session_pack'];
 const SUBSCRIPTION_INTERVALS = ['month', 'year'];
@@ -157,9 +158,14 @@ async function createPurchase(clientId, { packageId, idempotencyKey }) {
   const provider = getProvider();
   const providerRef = provider.checkoutRef({ idempotencyKey, purchaseId: `${clientId}:${packageId}` });
 
-  // Idempotent replay: the key already produced a purchase — return it as-is.
+  // Idempotent replay: the key already produced a purchase — return it, but
+  // ONLY to its owner. providerRef is derived from the client-supplied key, so
+  // another user squatting/guessing the key must not receive the record.
   const existing = await prisma.trainerPurchase.findUnique({ where: { providerRef } });
-  if (existing) return { purchase: existing, checkout: { providerRef, reused: true } };
+  if (existing) {
+    if (existing.clientId !== clientId) throw httpError(409, 'Idempotency key is already in use.');
+    return { purchase: existing, checkout: { providerRef, reused: true } };
+  }
 
   const checkout = await provider.createCheckout({
     purchaseId: randomUUID(), // hints ref generation when no key is present
@@ -198,7 +204,10 @@ async function createPurchase(clientId, { packageId, idempotencyKey }) {
     if (err.code === 'P2002') {
       // Concurrent checkout with the same key — the first request won.
       const won = await prisma.trainerPurchase.findUnique({ where: { providerRef } });
-      if (won) return { purchase: won, checkout: { providerRef, reused: true } };
+      if (won) {
+        if (won.clientId !== clientId) throw httpError(409, 'Idempotency key is already in use.');
+        return { purchase: won, checkout: { providerRef, reused: true } };
+      }
     }
     throw err;
   }
@@ -242,6 +251,14 @@ async function markRefunded(tx, purchase, amountCents, reason) {
   if (purchase.status !== 'refunded') {
     await tx.trainerPurchase.update({ where: { id: purchase.id }, data: { status: 'refunded' } });
   }
+  // Cumulative bound inside the transaction: distinct refund events (provider
+  // retries, partial-refund sequences) must never total more than captured.
+  // Re-checked under the tx umbrella so concurrent refund events serialize.
+  const prior = await tx.trainerRefund.aggregate({ where: { purchaseId: purchase.id }, _sum: { amountCents: true } });
+  const already = prior._sum.amountCents || 0;
+  if (already + amountCents > purchase.amountCents) {
+    throw httpError(400, 'Cumulative refunds would exceed the captured amount.');
+  }
   await tx.trainerRefund.create({
     data: { purchaseId: purchase.id, amountCents, reason: reason || 'provider_refund', status: 'processed' },
   });
@@ -255,15 +272,45 @@ async function markRefunded(tx, purchase, amountCents, reason) {
   });
 }
 
+/**
+ * A signed webhook still must not grant value the purchase never authorized.
+ * Success events carry the provider-confirmed amount/currency and both must
+ * match the purchase record exactly; anything else fails loudly (400) so a
+ * tampered or mis-wired integration cannot silently activate entitlements.
+ */
+function verifyEventMatchesPurchase(event, purchase) {
+  if (event.type === 'payment.succeeded') {
+    if (!Number.isInteger(event.amountCents) || event.amountCents !== purchase.amountCents) {
+      throw httpError(400, 'Payment amount does not match the purchase.');
+    }
+    if (event.currency !== purchase.currency) {
+      throw httpError(400, 'Payment currency does not match the purchase.');
+    }
+  }
+  if (event.type === 'payment.refunded' && event.amountCents !== undefined) {
+    if (!Number.isInteger(event.amountCents) || event.amountCents < 1 || event.amountCents > purchase.amountCents) {
+      throw httpError(400, 'Refund amount is outside the purchase total.');
+    }
+  }
+}
+
 async function applyEvent(tx, purchase, event) {
   switch (event.type) {
-    case 'payment.succeeded':
-      // Replay-safe: only first success activates.
-      if (purchase.status !== 'paid') {
-        await tx.trainerPurchase.update({ where: { id: purchase.id }, data: { status: 'paid' } });
-        await activateEntitlement(tx, purchase);
-      }
+    case 'payment.succeeded': {
+      // Atomic claim: only the tx that flips status -> 'paid' creates the
+      // entitlement. Two concurrent events with different providerEventIds
+      // cannot double-grant — the loser sees updateMany count 0. The purchase
+      // row was read outside the tx, so its status is stale by design.
+      const claimed = await tx.trainerPurchase.updateMany({
+        // 'refunded'/'refund_pending' are terminal for activation: an
+        // out-of-order payment.succeededed arriving after a refund must
+        // never re-create usable value on money that was returned.
+        where: { id: purchase.id, status: { notIn: ['paid', 'refunded', 'refund_pending'] } },
+        data: { status: 'paid' },
+      });
+      if (claimed.count === 1) await activateEntitlement(tx, purchase);
       break;
+    }
     case 'payment.failed':
       if (purchase.status === 'pending') {
         await tx.trainerPurchase.update({ where: { id: purchase.id }, data: { status: 'failed' } });
@@ -304,6 +351,16 @@ async function handleWebhookEvent(providerName, headers, rawBody) {
       : null;
   // Unknown purchase: ack so the provider stops retrying; nothing to apply.
   if (!purchase) return { received: true, ignored: 'unknown_purchase' };
+  // A purchase is bound to the provider that created it — an event arriving
+  // on a different provider's route cannot transition it.
+  if (purchase.provider !== provider.name) throw httpError(400, 'Purchase was not created by this provider.');
+  // Disabled commerce is fail-closed: a valid signature must not create
+  // entitlements while paid coaching is off. Ack so the provider stops
+  // retrying; nothing is recorded or applied.
+  if (!(await flags.isEnabled('trainer_paid_coaching_enabled', purchase.clientId))) {
+    return { received: true, ignored: 'commerce_disabled' };
+  }
+  verifyEventMatchesPurchase(event, purchase);
 
   return coachingTransaction(async (tx) => {
     try {
@@ -339,9 +396,25 @@ async function refundPurchase(trainerUserId, purchaseId, { amountCents, reason }
     throw httpError(400, 'amountCents must be a positive integer up to the purchase amount.');
   }
 
+  // Claim the refund atomically BEFORE the external call: only one caller can
+  // flip paid -> refund_pending, so concurrent refunds cannot both reach the
+  // provider. The status read above is an early check; this is the real guard.
+  const claimed = await prisma.trainerPurchase.updateMany({
+    where: { id: purchaseId, status: 'paid' },
+    data: { status: 'refund_pending' },
+  });
+  if (claimed.count === 0) throw httpError(409, 'A refund is already in progress or completed.');
+
   // External effect — provider confirms BEFORE we record anything. Never inside a tx.
   const provider = getProvider(purchase.provider);
-  const result = await provider.refund(purchase.providerRef, amount);
+  let result;
+  try {
+    result = await provider.refund(purchase.providerRef, amount);
+  } catch (err) {
+    // Provider rejected the refund — release the claim so the purchase stays refundable.
+    await prisma.trainerPurchase.updateMany({ where: { id: purchaseId, status: 'refund_pending' }, data: { status: 'paid' } });
+    throw err;
+  }
 
   return coachingTransaction(async (tx) => {
     await tx.trainerPaymentTransaction.create({

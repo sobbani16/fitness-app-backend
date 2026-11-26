@@ -68,6 +68,12 @@ const PERMISSIONS = [
   { name: 'ACADEMY_PUBLISH', description: 'Approve, schedule, publish, and withdraw academy content.' },
   { name: 'MANAGE_REVIEWERS', description: 'Invite, assign, and manage reviewer profiles.' },
 
+  // Clinical rule governance — approval requires the clinical reviewer role;
+  // activation is a separate operation (approver ≠ activator, service-enforced).
+  { name: 'CLINICAL_RULE_REVIEW', description: 'Submit, review, reject or retire clinical rules.' },
+  { name: 'CLINICAL_RULE_APPROVE', description: 'Approve clinical rule content (qualified reviewer only).' },
+  { name: 'CLINICAL_RULE_ACTIVATE', description: 'Activate/deactivate approved rules — never the same actor as approver.' },
+
   // Modular memberships
   { name: 'MANAGE_ENTITLEMENTS', description: 'Configure modules, packages, and member grants.' },
   { name: 'SUPER_ADMIN_PANEL', description: 'Access the /super-admin control center.' },
@@ -106,10 +112,11 @@ const ROLE_PERMISSIONS = {
     'MANAGE_BILLING_SETTINGS',
     'ACADEMY_AUTHOR', 'ACADEMY_REVIEW', 'ACADEMY_CLINICAL_REVIEW', 'ACADEMY_PUBLISH',
     'MANAGE_REVIEWERS', 'MANAGE_ENTITLEMENTS', 'SUPER_ADMIN_PANEL',
+    'CLINICAL_RULE_REVIEW', 'CLINICAL_RULE_ACTIVATE',
   ],
   CONTENT_AUTHOR: ['VIEW_OWN_PROFILE', 'ACADEMY_AUTHOR'],
   CONTENT_REVIEWER: ['VIEW_OWN_PROFILE', 'ACADEMY_REVIEW'],
-  CLINICAL_REVIEWER: ['VIEW_OWN_PROFILE', 'ACADEMY_REVIEW', 'ACADEMY_CLINICAL_REVIEW'],
+  CLINICAL_REVIEWER: ['VIEW_OWN_PROFILE', 'ACADEMY_REVIEW', 'ACADEMY_CLINICAL_REVIEW', 'CLINICAL_RULE_REVIEW', 'CLINICAL_RULE_APPROVE'],
   EDITOR: ['VIEW_OWN_PROFILE', 'ACADEMY_AUTHOR', 'ACADEMY_REVIEW', 'ACADEMY_PUBLISH', 'MANAGE_REVIEWERS'],
 };
 

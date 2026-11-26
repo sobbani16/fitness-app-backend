@@ -7,11 +7,12 @@ const crypto = require('node:crypto');
 const { getPrisma } = require('../lib/prisma');
 const { httpError } = require('../lib/errors');
 const docStorage = require('../lib/docStorage');
+const { requiredSecret } = require('../lib/env');
 const { requireApprovedTrainer, requireRelationParticipant } = require('./trainerAccess');
 const { safetyGate } = require('./activitySafety/gate');
 
 const MAX_VIDEO_BYTES = Number(process.env.FORM_CHECK_MAX_BYTES || 150 * 1024 * 1024);
-const URL_SECRET = process.env.FORM_CHECK_URL_SECRET || process.env.AUTH_LINK_SECRET || 'dev-formcheck-secret';
+const URL_SECRET = requiredSecret('FORM_CHECK_URL_SECRET', 'dev-formcheck-secret');
 const URL_TTL_MS = 5 * 60_000;
 
 const safeName = n => String(n || 'form-check.mp4').replace(/[^\w.\-]/g, '_').slice(-120);

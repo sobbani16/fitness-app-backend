@@ -28,7 +28,7 @@ const MIN_COMPONENT_FIBER_G = 2;
 const MIN_FIBER_PER_100G = 1.5;
 
 // Dishes whose components can't realistically be eaten in sequence.
-const MIXED_DISH_RE = /\b(biryani|khichdi|kichdi|pulao|pilaf|fried rice|pizza|sandwich|burger|wrap|quesadilla|burrito|pasta|lasagna|noodle|ramen|pad thai|chow mein|hakka|poha|upma|pongal|bisibelebath|bisi bele bath|risotto|paella|casserole|stew|curry rice|dal chawal|rajma chawal|chole chawal|paratha|thali|dosa|idli|uttapam|salad bowl|poke|grain bowl|buddha bowl|smoothie|shake|juice|soup|khichdi|tahdig|momos?|dumpling|spring roll|samosa chaat|chaat|frankie|kathi roll|shawarma|tacos?|enchilada|fajita|omelette|scrambled|pancake|waffle|cereal|muesli|granola|porridge|khichra|haleem|shepherd'?s pie|pot pie|mac and cheese|macaroni|maggi|khow suey|thukpa|manchurian|chilli (chicken|paneer)|fried chicken curry|coleslaw)\b/i;
+const MIXED_DISH_RE = /\b(biryani|khichdi|kichdi|pulao|pilaf|fried rice|pizza|sandwich|burger|wrap|quesadilla|burrito|pasta|lasagna|noodle|ramen|pad thai|chow mein|hakka|poha|upma|pongal|bisibelebath|bisi bele bath|risotto|paella|casserole|stew|curry rice|dal chawal|rajma chawal|chole chawal|paratha|thali|uttapam|salad bowl|poke|grain bowl|buddha bowl|smoothie|shake|juice|soup|khichdi|tahdig|momos?|dumpling|spring roll|samosa chaat|chaat|frankie|kathi roll|shawarma|tacos?|enchilada|fajita|omelette|scrambled|pancake|waffle|cereal|muesli|granola|porridge|khichra|haleem|shepherd'?s pie|pot pie|mac and cheese|macaroni|maggi|khow suey|thukpa|manchurian|chilli (chicken|paneer)|fried chicken curry|coleslaw)\b/i;
 
 // Starch-dominant carb names — the "last" bucket. Refined vs whole grain both
 // land here; fiber content doesn't make rice "first" even when brown.
@@ -66,8 +66,16 @@ function roleFor(component, ing) {
 
   // Name signals outrank nutrient-derived hints — an apple's fiber must never
   // win the "non-starchy vegetable first" slot just because it is low-kcal.
-  if (NON_STARCHY_VEG_RE.test(name)) return 'non_starchy_veg';
-  if (cats.has('legumes_soy') || /\b(dal|lentil|chickpea|chana|rajma|bean|lobia|chole|sprout|moong|masoor|urad|toor|arhar)\b/i.test(name)) return 'legume';
+  // Mixed-signal dishes (aloo gobi, aloo palak) carry both starch and veg
+  // words: the FIRST signal wins — Indian dish names conventionally lead with
+  // the dominant ingredient, so a starch-led name never earns the fiber-first
+  // slot while "cauliflower rice" (veg-led) keeps it.
+  const vegM = NON_STARCHY_VEG_RE.exec(name);
+  if (vegM) {
+    const starchM = STARCH_RE.exec(name);
+    if (!starchM || vegM.index <= starchM.index) return 'non_starchy_veg';
+  }
+  if (cats.has('legumes_soy') || /\b(dal|lentil|chickpea|chana|rajma|bean|lobia|chole|sprout|moong|masoor|urad|toor|arhar|sambar)\b/i.test(name)) return 'legume';
   if (NUT_SEED_RE.test(name) || cats.has('nuts_seeds')) return 'nuts_seeds';
   if (FRUIT_RE.test(name)) return 'fruit';
   if (DAIRY_RE.test(name) || cats.has('dairy_paneer_cream')) return 'dairy';
@@ -97,7 +105,7 @@ async function sequenceMeal(items, ctx = {}) {
   ];
 
   if (!Array.isArray(items) || !items.length) {
-    return { version: SEQUENCE_VERSION, separable: false, reason: 'no_components', order: [], hasMeaningfulFiber: false, suggestedAddition: null, explanation: ['No meal components to order.'], disclaimers, evidence: evidence() };
+    return { version: SEQUENCE_VERSION, separable: false, sequencingApplicable: false, reason: 'no_components', order: [], hasMeaningfulFiber: false, suggestedAddition: null, explanation: ['No meal components to order.'], disclaimers, evidence: evidence() };
   }
 
   // Resolve every component to its ingredient profile (per-100g).
@@ -205,9 +213,17 @@ async function sequenceMeal(items, ctx = {}) {
     explanation.push(`Consider adding a fiber-rich side such as ${suggestedAddition.food} (${suggestedAddition.serving}, ~${suggestedAddition.approxFiberG} g fiber) — start with it, then protein, then most of your starch.`);
   }
 
+  // sequencingApplicable: machine-readable suppression signal for clients —
+  // ordering isolated single-food entries is vacuous (nothing to order), so
+  // clients must not render the order UI for them. The food-first addition
+  // suggestion remains available independently of ordering.
+  const sequencingApplicable = order.length >= 2;
+  if (!sequencingApplicable) explanation.push('Only one separable component — there is nothing to order here.');
+
   return {
     version: SEQUENCE_VERSION,
     separable: true,
+    sequencingApplicable,
     reason: anyMixed ? 'partial_mixed' : 'component_meal',
     order,
     hasMeaningfulFiber,
@@ -219,7 +235,7 @@ async function sequenceMeal(items, ctx = {}) {
 }
 
 function done(comps, separable, reason, msg, disclaimers) {
-  return { version: SEQUENCE_VERSION, separable, reason, order: comps.map((c, i) => ({ rank: i + 1, component: c.name, role: c.role, roleLabel: ROLE_LABEL[c.role], fiberG: c.fiberG, knownFiber: c.fiberPer100g != null })), hasMeaningfulFiber: comps.some((c) => (c.fiberG ?? 0) >= MIN_COMPONENT_FIBER_G), suggestedAddition: null, explanation: [msg], disclaimers, evidence: evidence() };
+  return { version: SEQUENCE_VERSION, separable, sequencingApplicable: false, reason, order: comps.map((c, i) => ({ rank: i + 1, component: c.name, role: c.role, roleLabel: ROLE_LABEL[c.role], fiberG: c.fiberG, knownFiber: c.fiberPer100g != null })), hasMeaningfulFiber: comps.some((c) => (c.fiberG ?? 0) >= MIN_COMPONENT_FIBER_G), suggestedAddition: null, explanation: [msg], disclaimers, evidence: evidence() };
 }
 
 function evidence() {

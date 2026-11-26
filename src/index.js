@@ -2,6 +2,10 @@ require('dotenv').config();
 const { getPrisma } = require('./lib/prisma');
 async function start() {
   if (process.env.NODE_ENV === 'production' && process.env.AUTH_TEST_BYPASS) throw new Error('Test authentication bypass cannot be configured in production.');
+  const { validateConfig, isProduction } = require('./lib/env');
+  const config = validateConfig();
+  for (const warning of config.warnings) console.warn(`[config] ${warning}`);
+  if (!config.ok && isProduction()) throw new Error(`Missing required configuration: ${config.missing.join(', ')}`);
   require('./services/authLifecycle').validateConfig();
   await getPrisma().$connect();
   if (process.env.NODE_ENV === 'production') await require('./services/deploymentReadiness').assertDeploymentReady(getPrisma());

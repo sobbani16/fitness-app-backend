@@ -11,7 +11,7 @@ const mockPrisma = {
   trainerProfile: { findUnique: jest.fn() },
   trainerClient: { findUnique: jest.fn() },
   trainerCoachingPackage: { create: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
-  trainerPurchase: { create: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
+  trainerPurchase: { create: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn(), updateMany: jest.fn() },
   trainerPaymentTransaction: { create: jest.fn() },
   trainerEntitlement: { create: jest.fn(), findMany: jest.fn(), updateMany: jest.fn() },
   trainerSubscription: { create: jest.fn(), updateMany: jest.fn() },
@@ -65,6 +65,9 @@ beforeEach(() => {
       : null;
   });
   mockPrisma.auditLog.create.mockResolvedValue({});
+  // Atomic claims default to a successful transition; tests that exercise the
+  // losing side mock count:0 explicitly.
+  mockPrisma.trainerPurchase.updateMany.mockResolvedValue({ count: 1 });
   flags.resetCache();
 });
 
@@ -149,30 +152,32 @@ describe('package CRUD authorization', () => {
   });
 });
 
+function mockCheckoutFlow(pkg, purchaseId = 'pur-1') {
+  const purchase = {
+    id: purchaseId, clientId: 'client-1', packageId: pkg.id, providerRef: 'mock_co_key-1',
+    provider: 'mock',
+    status: 'pending', amountCents: pkg.priceCents, currency: 'usd', package: pkg,
+  };
+  let existingCheckDone = false;
+  mockPrisma.trainerCoachingPackage.findUnique.mockResolvedValue(pkg);
+  mockPrisma.trainerPurchase.findUnique.mockImplementation(async ({ where, include }) => {
+    // createPurchase's idempotency probe is the only lookup without include.
+    if (where.providerRef === 'mock_co_key-1' && !include) {
+      if (!existingCheckDone) { existingCheckDone = true; return null; }
+      return purchase;
+    }
+    if (where.providerRef === 'mock_co_key-1' || where.id === purchaseId) return purchase;
+    return null;
+  });
+  mockPrisma.trainerPurchase.create.mockImplementation(async ({ data }) => ({ id: purchaseId, ...data }));
+  mockPrisma.trainerPurchase.update.mockImplementation(async ({ data }) => ({ id: purchaseId, ...data }));
+  mockPrisma.trainerPaymentTransaction.create.mockResolvedValue({});
+  mockPrisma.trainerEntitlement.create.mockImplementation(async ({ data }) => ({ id: 'ent-1', ...data }));
+  mockPrisma.trainerSubscription.create.mockImplementation(async ({ data }) => ({ id: 'sub-1', ...data }));
+}
+
 // ---------------------------------------------------------------------------
 describe('checkout -> webhook -> entitlement', () => {
-  function mockCheckoutFlow(pkg, purchaseId = 'pur-1') {
-    const purchase = {
-      id: purchaseId, clientId: 'client-1', packageId: pkg.id, providerRef: 'mock_co_key-1',
-      status: 'pending', amountCents: pkg.priceCents, currency: 'usd', package: pkg,
-    };
-    let existingCheckDone = false;
-    mockPrisma.trainerCoachingPackage.findUnique.mockResolvedValue(pkg);
-    mockPrisma.trainerPurchase.findUnique.mockImplementation(async ({ where, include }) => {
-      // createPurchase's idempotency probe is the only lookup without include.
-      if (where.providerRef === 'mock_co_key-1' && !include) {
-        if (!existingCheckDone) { existingCheckDone = true; return null; }
-        return purchase;
-      }
-      if (where.providerRef === 'mock_co_key-1' || where.id === purchaseId) return purchase;
-      return null;
-    });
-    mockPrisma.trainerPurchase.create.mockImplementation(async ({ data }) => ({ id: purchaseId, ...data }));
-    mockPrisma.trainerPurchase.update.mockImplementation(async ({ data }) => ({ id: purchaseId, ...data }));
-    mockPrisma.trainerPaymentTransaction.create.mockResolvedValue({});
-    mockPrisma.trainerEntitlement.create.mockImplementation(async ({ data }) => ({ id: 'ent-1', ...data }));
-    mockPrisma.trainerSubscription.create.mockImplementation(async ({ data }) => ({ id: 'sub-1', ...data }));
-  }
 
   it('checkout creates a pending purchase; webhook activates the entitlement', async () => {
     mockRoles('client-1', ['MEMBER']);
@@ -190,7 +195,7 @@ describe('checkout -> webhook -> entitlement', () => {
     const res = await postWebhook(event, headers['x-mock-signature']);
     expect(res.status).toBe(200);
     expect(res.body.processed).toBe(true);
-    expect(mockPrisma.trainerPurchase.update).toHaveBeenCalledWith({ where: { id: 'pur-1' }, data: { status: 'paid' } });
+    expect(mockPrisma.trainerPurchase.updateMany).toHaveBeenCalledWith({ where: { id: 'pur-1', status: { notIn: ['paid', 'refunded', 'refund_pending'] } }, data: { status: 'paid' } });
     expect(mockPrisma.trainerEntitlement.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ kind: 'session_pack', remainingSessions: 5, clientId: 'client-1', trainerId: 'tp-1', status: 'active' }),
     });
@@ -200,7 +205,7 @@ describe('checkout -> webhook -> entitlement', () => {
     mockRoles('client-1', ['MEMBER']);
     mockCheckoutFlow(SESSION_PACK);
     const { event, headers } = provider.issueEvent('payment.succeeded', {
-      id: 'evt-dup', purchaseId: 'pur-1', providerRef: 'mock_co_key-1', amountCents: 5000,
+      id: 'evt-dup', purchaseId: 'pur-1', providerRef: 'mock_co_key-1', amountCents: 5000, currency: 'usd',
     });
     expect((await postWebhook(event, headers['x-mock-signature'])).status).toBe(200);
     // Replay: providerEventId unique constraint hits -> duplicate ack.
@@ -216,7 +221,7 @@ describe('checkout -> webhook -> entitlement', () => {
     mockRoles('client-1', ['MEMBER']);
     mockCheckoutFlow(SUBSCRIPTION_PKG, 'pur-2');
     const { event, headers } = provider.issueEvent('payment.succeeded', {
-      id: 'evt-sub', purchaseId: 'pur-2', providerRef: 'mock_co_key-1', amountCents: 9900,
+      id: 'evt-sub', purchaseId: 'pur-2', providerRef: 'mock_co_key-1', amountCents: 9900, currency: 'usd',
     });
     const res = await postWebhook(event, headers['x-mock-signature']);
     expect(res.status).toBe(200);
@@ -233,7 +238,7 @@ describe('checkout -> webhook -> entitlement', () => {
     const oneTime = { ...SESSION_PACK, id: 'pkg-3', kind: 'one_time', sessionCount: null };
     mockCheckoutFlow(oneTime, 'pur-3');
     const { event, headers } = provider.issueEvent('payment.succeeded', {
-      id: 'evt-one', purchaseId: 'pur-3', providerRef: 'mock_co_key-1', amountCents: 5000,
+      id: 'evt-one', purchaseId: 'pur-3', providerRef: 'mock_co_key-1', amountCents: 5000, currency: 'usd',
     });
     await postWebhook(event, headers['x-mock-signature']);
     expect(mockPrisma.trainerEntitlement.create).toHaveBeenCalledWith({
@@ -271,9 +276,89 @@ describe('webhook verification', () => {
     const res = await request(app).post('/webhooks/payments/stripe').send({ id: 'e', type: 'x' });
     expect(res.status).toBe(400);
   });
+
+  it('rejects a signed payment.succeeded whose amount does not match the purchase', async () => {
+    mockRoles('client-1', ['MEMBER']);
+    mockCheckoutFlow(SESSION_PACK);
+    const { event, headers } = provider.issueEvent('payment.succeeded', {
+      id: 'evt-und', purchaseId: 'pur-1', providerRef: 'mock_co_key-1', amountCents: 1, currency: 'usd',
+    });
+    const res = await postWebhook(event, headers['x-mock-signature']);
+    expect(res.status).toBe(400);
+    expect(mockPrisma.trainerEntitlement.create).not.toHaveBeenCalled();
+    expect(mockPrisma.trainerPurchase.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects a signed payment.succeeded whose currency does not match the purchase', async () => {
+    mockRoles('client-1', ['MEMBER']);
+    mockCheckoutFlow(SESSION_PACK);
+    const { event, headers } = provider.issueEvent('payment.succeeded', {
+      id: 'evt-cur', purchaseId: 'pur-1', providerRef: 'mock_co_key-1', amountCents: 5000, currency: 'inr',
+    });
+    const res = await postWebhook(event, headers['x-mock-signature']);
+    expect(res.status).toBe(400);
+    expect(mockPrisma.trainerEntitlement.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a signed payment.succeeded missing amount/currency', async () => {
+    mockRoles('client-1', ['MEMBER']);
+    mockCheckoutFlow(SESSION_PACK);
+    const { event, headers } = provider.issueEvent('payment.succeeded', {
+      id: 'evt-none', purchaseId: 'pur-1', providerRef: 'mock_co_key-1',
+    });
+    const res = await postWebhook(event, headers['x-mock-signature']);
+    expect(res.status).toBe(400);
+    expect(mockPrisma.trainerEntitlement.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a signed refund exceeding the purchase total', async () => {
+    mockRoles('client-1', ['MEMBER']);
+    mockCheckoutFlow(SESSION_PACK);
+    const { event, headers } = provider.issueEvent('payment.refunded', {
+      id: 'evt-rfx', purchaseId: 'pur-1', providerRef: 'mock_co_key-1', amountCents: 999999, currency: 'usd',
+    });
+    const res = await postWebhook(event, headers['x-mock-signature']);
+    expect(res.status).toBe(400);
+    expect(mockPrisma.trainerRefund.create).not.toHaveBeenCalled();
+  });
 });
 
 // ---------------------------------------------------------------------------
+describe('webhook concurrency + idempotency ownership', () => {
+  it('a second payment.succeeded losing the atomic claim grants nothing', async () => {
+    // Concurrent events with DIFFERENT providerEventIds: the loser sees
+    // updateMany count 0 and must not create a second entitlement.
+    mockCheckoutFlow(SESSION_PACK);
+    const { event, headers } = provider.issueEvent('payment.succeeded', {
+      id: 'evt-loser', purchaseId: 'pur-1', providerRef: 'mock_co_key-1', amountCents: 5000, currency: 'usd',
+    });
+    mockPrisma.trainerPurchase.updateMany.mockResolvedValueOnce({ count: 0 });
+    const res = await postWebhook(event, headers['x-mock-signature']);
+    expect(res.status).toBe(200);
+    expect(mockPrisma.trainerEntitlement.create).not.toHaveBeenCalled();
+  });
+
+  it('idempotent checkout returns the row only to its owner', async () => {
+    mockRoles('client-2', ['MEMBER']);
+    // Attacker IS an active client of the same trainer — the relation gate
+    // passes, so the ownership check on replay is what must stop the leak.
+    mockPrisma.trainerClient.findUnique.mockImplementation(async ({ where }) => {
+      const k = where && where.trainerId_clientId;
+      return k && k.trainerId === 'tp-1' && k.clientId === 'client-2'
+        ? { id: 'rel-2', trainerId: 'tp-1', clientId: 'client-2', status: 'active' }
+        : null;
+    });
+    mockPrisma.trainerCoachingPackage.findUnique.mockResolvedValue(SESSION_PACK);
+    mockPrisma.trainerPurchase.findUnique.mockResolvedValue({
+      id: 'pur-9', clientId: 'victim-1', packageId: 'pkg-1', provider: 'mock',
+      providerRef: 'mock_co_key-1', status: 'pending', amountCents: 5000, currency: 'usd',
+    });
+    const res = await request(app).post('/me/purchases/checkout').set('x-user-id', 'client-2')
+      .send({ packageId: 'pkg-1', idempotencyKey: 'key-1' });
+    expect(res.status).toBe(409);
+  });
+});
+
 describe('refund', () => {
   it('trainer refund marks purchase refunded and revokes entitlements', async () => {
     mockRoles('trainer-1', ['TRAINER']);
@@ -312,5 +397,21 @@ describe('feature flag off', () => {
       expect(res.status).toBe(403);
       expect(res.body.error.code).toBe('FEATURE_DISABLED');
     }
+  });
+
+  it('a signed webhook grants nothing while commerce is disabled', async () => {
+    // Fail-closed: even a correctly-signed event for an existing purchase
+    // cannot transition it or create entitlements when the flag is off.
+    setFlag('trainer_paid_coaching_enabled', 'false');
+    mockCheckoutFlow(SESSION_PACK);
+    const { event, headers } = provider.issueEvent('payment.succeeded', {
+      id: 'evt-disabled', purchaseId: 'pur-1', providerRef: 'mock_co_key-1', amountCents: 5000, currency: 'usd',
+    });
+    const res = await postWebhook(event, headers['x-mock-signature']);
+    expect(res.status).toBe(200);
+    expect(res.body.ignored).toBe('commerce_disabled');
+    expect(mockPrisma.trainerPurchase.update).not.toHaveBeenCalled();
+    expect(mockPrisma.trainerEntitlement.create).not.toHaveBeenCalled();
+    expect(mockPrisma.trainerPaymentTransaction.create).not.toHaveBeenCalled();
   });
 });

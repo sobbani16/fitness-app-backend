@@ -11,6 +11,7 @@
 // Each component produces: score (0-100) + contributors + insights.
 
 const { getPrisma } = require('../lib/prisma');
+const { liveRuleWhere } = require('./healthOutcomes/clinicalRuleGovernance');
 const { scoreMacro } = require('./macroScoreService');
 const { dayRangeUtc, resolveZone } = require('./localDay');
 const { BY_KEY } = require('./nutrientCatalog');
@@ -146,7 +147,7 @@ async function scoreMacroAdherence(userId, dateStr, prisma, tz) {
 async function scoreConditionCompliance(userId, dateStr, prisma, tz) {
   const userConditions = await prisma.userHealthCondition.findMany({
     where: { userId, active: true },
-    include: { condition: { include: { conditionRules: { where: { reviewStatus: 'APPROVED' } } } } },
+    include: { condition: { include: { conditionRules: { where: liveRuleWhere() } } } },
   });
 
   // No recorded conditions is unknown, not a perfect score.

@@ -1,6 +1,7 @@
 const {createHash}=require('node:crypto');
 const {Prisma}=require('@prisma/client');
 const {getPrisma}=require('../../lib/prisma');
+const {liveRuleWhere,isRuleLive}=require('../healthOutcomes/clinicalRuleGovernance');
 const {NUTRIENTS}=require('../nutrientMaster');
 const {evaluate}=require('./conditionEvaluation');
 const VERSION='food-intelligence/4.0.0';
@@ -13,8 +14,8 @@ async function contextFor(userId,db) {
  const conditions=await db.userHealthCondition.findMany({where:{userId,active:true},include:{condition:true}});
  const ids=conditions.map(c=>c.conditionId);
  const [nutrientRules,ingredientRules,masters]=await Promise.all([
-  db.healthConditionNutrientRule.findMany({where:{healthConditionId:{in:ids},reviewStatus:'APPROVED'},include:{nutrient:true,evidence:true,healthCondition:true}}),
-  db.conditionRule.findMany({where:{conditionId:{in:ids},target:'clinical_ingredient',reviewStatus:'APPROVED'},include:{evidence:true,condition:true}}),
+  db.healthConditionNutrientRule.findMany({where:{healthConditionId:{in:ids},...liveRuleWhere()},include:{nutrient:true,evidence:true,healthCondition:true}}),
+  db.conditionRule.findMany({where:{conditionId:{in:ids},target:'clinical_ingredient',...liveRuleWhere()},include:{evidence:true,condition:true}}),
   db.nutrient.findMany(),
  ]);
  return {conditions,nutrientRules,ingredientRules,masters};

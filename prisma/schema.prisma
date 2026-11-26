@@ -94,6 +94,23 @@ model HealthCondition {
 
   description String?
 
+  // Stable machine key (e.g. 'type_2_diabetes') — the registry + engine map on
+  // this, not the display name. Unique so catalog lookups can't drift.
+  slug String? @unique
+
+  // Registry grouping (metabolic|cardiovascular|digestive|musculoskeletal|
+  // sleep_mental_respiratory|kidney_reproductive|allergy|life_stage|other).
+  category String?
+
+  // evidence-based | education_only | supervised_only — mirrors audit doc 03.
+  evidenceClass String?
+
+  // Patient-facing education copy; never a clinical claim.
+  educationSummary String?
+
+  // Registry metadata (staging axis, icdHint, aliases) — keeps the row lean.
+  registryMeta Json?
+
   userConditions  UserHealthCondition[]
   conditionRules  ConditionRule[]
   supplementRules SupplementRule[]
@@ -111,9 +128,23 @@ model UserHealthCondition {
 
   active Boolean @default(true)
 
+  // 'self_report' | 'clinician_reported' — a self-reported condition is never
+  // treated as a confirmed diagnosis downstream.
+  source String @default("self_report")
+
+  diagnosedAt      DateTime?
+  consentedAt      DateTime?
+  lastConfirmedAt  DateTime?
+  notes            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   user User @relation(fields: [userId], references: [id])
 
   condition HealthCondition @relation(fields: [conditionId], references: [id])
+
+  @@index([userId, active])
 }
 
 model Allergy {
@@ -746,6 +777,14 @@ model ConditionRule {
   version                 Int                  @default(1)
   reviewedBy              String?
   reviewedAt              DateTime?
+
+  // Activation lifecycle — approval and activation are separate operations.
+  // Consumers fire only on APPROVED + activeAt set + not retired/expired.
+  activeAt    DateTime?
+  activatedBy String?
+  retiredAt   DateTime?
+  expiresAt   DateTime?
+  reviewDueAt DateTime?
 
   createdAt DateTime @default(now())
 
@@ -2006,8 +2045,11 @@ enum NutrientRuleSeverity {
 
 enum ClinicalRuleReview {
   DRAFT
+  IN_REVIEW
   REVIEWED
   APPROVED
+  REJECTED
+  RETIRED
 }
 
 enum NutrientThresholdBasis {
@@ -2054,6 +2096,13 @@ model HealthConditionNutrientRule {
   version                 Int                    @default(1)
   reviewedBy              String?
   reviewedAt              DateTime?
+
+  activeAt    DateTime?
+  activatedBy String?
+  retiredAt   DateTime?
+  expiresAt   DateTime?
+  reviewDueAt DateTime?
+
   createdAt               DateTime               @default(now())
   updatedAt               DateTime               @updatedAt
 
@@ -4206,6 +4255,11 @@ model ActivitySafetyRule {
   reviewedAt   DateTime?
   reviewDueAt  DateTime?
 
+  activeAt    DateTime?
+  activatedBy String?
+  retiredAt   DateTime?
+  expiresAt   DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -4273,4 +4327,138 @@ model ActivitySafetyFeedback {
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
+}
+
+// ============================================================================
+// HEALTH OUTCOMES P0 — condition persistence, medications, clinical
+// measurements, rule governance (HO-IMPL-2026-11-22; additive only)
+// ============================================================================
+
+// Medication catalog-lite: deterministic identity rows only. RxNorm identifiers
+// are stored when known — never invented; unmatched names stay name-only and
+// are NOT treated as interchangeable with similarly named entries.
+model Medication {
+  id             String  @id @default(uuid())
+  name           String  // display name as curated/entered
+  normalizedName String  @unique // lowercase trimmed match key
+  rxcui          String? // RxNorm CUI when verified — nullable, never guessed
+  medicationClass String? // e.g. 'insulin','sulfonylurea','ace_inhibitor' — coarse safety class only
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  userMedications UserMedication[]
+}
+
+// A user's medication entry — recommendation-safety input, NOT a prescription
+// record. `active=false` rows stop influencing safety context immediately.
+model UserMedication {
+  id     String @id @default(uuid())
+  userId String
+
+  medicationId String?
+  medication   Medication? @relation(fields: [medicationId], references: [id], onDelete: SetNull)
+
+  // Free-text name when no catalog match — preserved verbatim; never mapped to
+  // a different drug without explicit user/admin action.
+  nameText  String
+  doseText  String? // user-entered, verbatim ("one pill in the morning")
+  doseValue Float?
+  doseUnit  String?
+  schedule  Json?   // optional {times:[], frequency} — informational only
+
+  medicationClass String? // snapshot of catalog class at save time (auditable)
+
+  startDate       DateTime?
+  endDate         DateTime?
+  active          Boolean  @default(true)
+  source          String   @default("user_entry") // user_entry|clinician_entered|imported
+  lastConfirmedAt DateTime?
+  consentedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, active])
+  @@index([medicationId])
+}
+
+// Clinical/lab measurement — distinct from HealthMeasurement (wearables):
+// supports structured values (BP dual), provenance, verification, corrections.
+// Never used alone to diagnose; disease-specific interpretation requires
+// clinician confirmation (documented in route-level policy).
+model ClinicalMeasurement {
+  id     String @id @default(uuid())
+  userId String
+
+  metric String // hba1c|fasting_glucose|ldl|hdl|triglycerides|total_cholesterol|
+                // bp_systolic|bp_diastolic|waist_cm|egfr|alt|ast|uric_acid|tsh|
+                // creatinine|phq9|gad7|isi|psqi|weight_kg (labs/clinical only —
+                // wearable metrics stay in HealthMeasurement)
+  value          Float?
+  valueSecondary Float? // diastolic for BP pairs; otherwise unused
+  unit           String // stored as entered; normalized value in meta.normalized
+
+  measuredAt DateTime
+  source     String @default("user_entry") // user_entry|device|lab_report|clinician
+  method     String? // home_cuff|lab_draw|self_report|clinical_exam
+  quality    String @default("unverified") // unverified|self_reported|device_measured|lab_confirmed|clinician_verified
+  // Correction chain: a corrected row supersedes correctionOfId; history kept.
+  correctionOfId String?
+
+  verifiedAt DateTime?
+  verifiedBy String?   // clinician reviewer id — never self-set by client
+
+  meta Json @default("{}") // {refRange,labName,method detail,originalUnit,normalized}
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, metric, measuredAt])
+}
+
+// Clinical rule governance audit — every lifecycle transition is recorded.
+// Separate from operational AuditLog: clinical provenance must survive audit
+// retention windows and is exportable for regulatory review.
+model ClinicalRuleEvent {
+  id String @id @default(uuid())
+
+  ruleTable String // 'ConditionRule'|'HealthConditionNutrientRule'|'ActivitySafetyRule'
+  ruleId    String
+  ruleCode  String?
+
+  fromStatus String
+  toStatus   String // mirrors ClinicalRuleReview + 'ACTIVATED'|'RETIRED' events
+  action     String // submit|review|approve|reject|activate|retire|supersede|expire
+
+  actorId    String
+  actorRole  String? // reviewer qualification/role snapshot — NOT self-declared authority
+  notes      String?
+  diff       Json?   // field-level change summary
+
+  createdAt DateTime @default(now())
+
+  @@index([ruleTable, ruleId])
+  @@index([actorId])
+}
+
+// Patient-level clinical escalation queue — user recommendations that need
+// clinician input (PERSONALIZATION_REQUIRED outcomes, disease-specific
+// interpretation requests). Rule-level review stays on ClinicalRuleEvent.
+model UserClinicalReview {
+  id     String @id @default(uuid())
+  userId String
+
+  reason  String // e.g. 'personalization_required','measurement_interpretation','conflicting_conditions'
+  status  String @default("open") // open|in_review|resolved|dismissed
+  context Json    @default("{}") // rule ids, condition ids, measurement ids — no free-text PHI beyond need
+
+  requestedAt  DateTime @default(now())
+  resolvedAt   DateTime?
+  resolvedBy   String?
+  resolution   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
 }

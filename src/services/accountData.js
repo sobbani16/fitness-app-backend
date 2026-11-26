@@ -21,6 +21,7 @@ const OWNED = [
   'emotionalCheckIn', 'userMindPreferences', 'mindExerciseCompletion',
   'wearableDevice', 'healthDataSource', 'healthMeasurement', 'healthMetricSummary',
   'barcodeFavorite', 'productCorrection', 'dailyProgressDay',
+  'userMedication', 'clinicalMeasurement', 'userClinicalReview',
 ];
 const INCLUDES = {
   workoutSession: { exerciseSets: true },
