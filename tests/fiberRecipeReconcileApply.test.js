@@ -65,6 +65,7 @@ beforeAll(async () => {
 
   const lentils = await mkIngredient(`${P} lentils cooked`, 4.0);
   const bread = await mkIngredient(`${P} bread`, 6.0);
+  ids.breadIng = bread.id;
   // valid SYSTEM target: lines 200g×4 + 50g×6 = 8+3 = 11g / 2 servings → 5.5; stored 1.0 (drifted)
   ids.sys = await mkRecipe(`${P} lentil soup`, {
     isSystem: true, fiberG: 1.0, servings: 2,
@@ -99,8 +100,8 @@ afterAll(async () => {
 
 const fiberOf = async (id) => (await p.recipe.findUnique({ where: { id }, select: { fiberG: true } })).fiberG;
 const validEntry = async (row, before) => {
-  const { perServing } = await rec.computeRecipe(p, row);
-  return { id: row.id, recipeName: row.recipeName, expectedBefore: before, computedAfter: rec.round1(perServing) };
+  const { perServing, inputs } = await rec.computeRecipe(p, row);
+  return { id: row.id, recipeName: row.recipeName, expectedBefore: before, computedAfter: rec.round1(perServing), inputs };
 };
 
 describe('discovery — exact match only, no substring selection', () => {
@@ -260,6 +261,130 @@ describe('script apply via CLI child process (disposable test DB)', () => {
     const r = runCli([]);
     expect(r.status).toBe(0);
     expect(r.out).toMatch(/DRY RUN — no writes/);
+  }, 90000);
+});
+
+
+describe('defect #29 — writes bound to reviewed inputs', () => {
+  test('old-format plan without input evidence is structurally rejected — fresh review required', () => {
+    const legacy = [{ id: 'x', recipeName: 'a', expectedBefore: 1, computedAfter: 2 }];
+    const errs = rec.validatePlanShape(legacy);
+    expect(errs.join()).toMatch(/missing input evidence/);
+    expect(errs.join()).toMatch(/fresh review/);
+  });
+
+  test('ingredient nutrient change between plan and apply → invalid, zero writes', async () => {
+    const entry = await validEntry(ids.sys2, 0.5);
+    const classified1 = await rec.classifyPlan(p, [entry]);
+    expect(classified1[0].verdict).toBe('ready');
+    // mutate the linked ingredient AFTER review
+    await p.ingredient.update({ where: { id: ids.breadIng }, data: { fiberPer100g: 8.0 } });
+    try {
+      const classified2 = await rec.classifyPlan(p, [entry]);
+      expect(classified2[0].verdict).toBe('invalid');
+      expect(classified2[0].reason).toMatch(/nutrient value/);
+    } finally {
+      await p.ingredient.update({ where: { id: ids.breadIng }, data: { fiberPer100g: 6.0 } });
+    }
+  });
+
+  test('quantity change between classification and applyClassified → rollback, zero writes anywhere', async () => {
+    // batch of two valid rows; mutate a line amountG of the SECOND after classification
+    const e1 = await validEntry(ids.sys, await fiberOf(ids.sys.id));
+    const e2 = await validEntry(ids.sys2, 0.5);
+    // fiberG of sys may already equal computedAfter from earlier tests — normalize first
+    await p.recipe.update({ where: { id: ids.sys.id }, data: { fiberG: 1.0 } });
+    await p.recipe.update({ where: { id: ids.sys2.id }, data: { fiberG: 0.5 } });
+    const classified = await rec.classifyPlan(p, [await validEntry(ids.sys, 1.0), await validEntry(ids.sys2, 0.5)]);
+    expect(classified.every((c) => c.verdict === 'ready')).toBe(true);
+    const line = await p.recipeIngredient.findFirst({ where: { recipeId: ids.sys2.id } });
+    await p.recipeIngredient.update({ where: { id: line.id }, data: { amountG: 999 } });
+    try {
+      await expect(rec.applyClassified(p, classified, () => {})).rejects.toThrow(/quantity|stale inputs/);
+      expect(await fiberOf(ids.sys.id)).toBe(1.0); // first row rolled back too — atomicity
+      expect(await fiberOf(ids.sys2.id)).toBe(0.5);
+    } finally {
+      await p.recipeIngredient.update({ where: { id: line.id }, data: { amountG: 100 } });
+    }
+  });
+
+  test('preparation evidence change (dry-basis rename) → invalid stale inputs', async () => {
+    const entry = await validEntry(ids.sys2, 0.5);
+    await p.ingredient.update({ where: { id: ids.breadIng }, data: { name: `${P} bread, dry` } });
+    try {
+      const classified = await rec.classifyPlan(p, [entry]);
+      expect(classified[0].verdict).toBe('invalid');
+      expect(classified[0].reason).toMatch(/stale inputs/);
+    } finally {
+      await p.ingredient.update({ where: { id: ids.breadIng }, data: { name: `${P} bread` } });
+    }
+  });
+
+  test('servings change → invalid stale inputs (serving/yield evidence bound)', async () => {
+    const entry = await validEntry(ids.sys2, 0.5);
+    await p.recipe.update({ where: { id: ids.sys2.id }, data: { servings: 4 } });
+    try {
+      const classified = await rec.classifyPlan(p, [entry]);
+      expect(classified[0].verdict).toBe('invalid');
+      expect(classified[0].reason).toMatch(/servings/);
+    } finally {
+      await p.recipe.update({ where: { id: ids.sys2.id }, data: { servings: 1 } });
+    }
+  });
+
+  test('changed inputs with the SAME rounded result are still stale — binding is to inputs, not output coincidence', async () => {
+    const entry = await validEntry(ids.sys2, 0.5);
+    // 100g × 6.0/100 = 6.0 vs 100g × 6.04/100 = 6.04 → both round to 6.0 per serving
+    await p.ingredient.update({ where: { id: ids.breadIng }, data: { fiberPer100g: 6.04 } });
+    try {
+      const classified = await rec.classifyPlan(p, [entry]);
+      expect(classified[0].verdict).toBe('invalid');
+      expect(classified[0].reason).toMatch(/nutrient value/);
+    } finally {
+      await p.ingredient.update({ where: { id: ids.breadIng }, data: { fiberPer100g: 6.0 } });
+    }
+  });
+
+  test('line membership change (line removed) → invalid stale inputs', async () => {
+    const entry = await validEntry(ids.sys2, 0.5);
+    const line = await p.recipeIngredient.findFirst({ where: { recipeId: ids.sys2.id } });
+    await p.recipeIngredient.delete({ where: { id: line.id } });
+    try {
+      const classified = await rec.classifyPlan(p, [entry]);
+      expect(classified[0].verdict).toBe('invalid');
+    } finally {
+      await p.recipeIngredient.create({ data: { id: line.id, recipeId: ids.sys2.id, ingredientName: line.ingredientName, amountG: line.amountG, ingredientId: line.ingredientId } });
+    }
+  });
+
+  test('CLI end-to-end: evidence-bound plan applies and APPLIED lines carry read-back verification', async () => {
+    await p.recipe.update({ where: { id: ids.sys2.id }, data: { fiberG: 0.5, servings: 1 } });
+    const plan = planFile([await validEntry(ids.sys2, 0.5)]);
+    const r = runCli(['--apply', '--plan', plan]);
+    try {
+      expect(r.status).toBe(0);
+      expect(r.out).toMatch(/APPLIED .*\(verified\)/);
+      expect(await fiberOf(ids.sys2.id)).toBe(6);
+    } finally {
+      await p.recipe.update({ where: { id: ids.sys2.id }, data: { fiberG: 0.5 } });
+      fs.unlinkSync(plan);
+    }
+  }, 90000);
+
+  test('CLI end-to-end: plan generated before an ingredient change is rejected with zero writes', async () => {
+    const entry = await validEntry(ids.sys2, 0.5);
+    const plan = planFile([entry]);
+    await p.ingredient.update({ where: { id: ids.breadIng }, data: { fiberPer100g: 7.5 } });
+    try {
+      const r = runCli(['--apply', '--plan', plan]);
+      expect(r.status).toBe(3);
+      expect(r.out).toMatch(/stale inputs/);
+      expect(r.out).toMatch(/ZERO writes/);
+      expect(await fiberOf(ids.sys2.id)).toBe(0.5);
+    } finally {
+      await p.ingredient.update({ where: { id: ids.breadIng }, data: { fiberPer100g: 6.0 } });
+      fs.unlinkSync(plan);
+    }
   }, 90000);
 });
 

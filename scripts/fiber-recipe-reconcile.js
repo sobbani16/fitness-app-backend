@@ -14,10 +14,14 @@
 //   - Pre-write validation rejects duplicate, missing, ambiguous, stale, or
 //     non-SYSTEM targets. ANY invalid target aborts the whole run with zero
 //     writes — a partially applied review is worse than none.
-//   - Inside the transaction every row is re-validated (SYSTEM identity,
-//     exact name, expected prior fiberG) and written with a conditional
-//     compare-and-set UPDATE — a row changed between validation and write
-//     rolls the transaction back instead of being overwritten.
+//   - Every plan entry binds the review to deterministic input evidence:
+//     exact ingredient IDs and line membership, nutrient values and basis,
+//     quantities, preparation evidence, and serving/yield inputs. Plans
+//     lacking this evidence are rejected — regenerate for a fresh review.
+//   - Inside one serializable transaction every input is re-read and
+//     recomputed and must match the reviewed evidence exactly; the write is
+//     a conditional compare-and-set UPDATE. Any drift rolls the batch back.
+//   - APPLIED is emitted only after commit + post-commit read-back verification.
 //   - Rows with unresolved ingredient lines are HELD, never written.
 //   - Re-applying an already-applied plan is a successful no-op.
 //   - Never run against a shared/production database without the catalog
@@ -38,30 +42,81 @@ const TARGETS = [
   'Overnight oats',
 ];
 
-async function computeRecipe(p, recipe) {
+// Line resolution shared by computation and evidence binding. Returns one
+// entry per RecipeIngredient row — including unresolved ones, because line
+// membership itself is reviewed evidence.
+async function resolveLines(p, recipe) {
   const lines = await p.recipeIngredient.findMany({
     where: { recipeId: recipe.id },
-    select: { ingredientName: true, amountG: true, ingredientId: true },
+    select: { id: true, ingredientName: true, amountG: true, ingredientId: true },
+    orderBy: { id: 'asc' },
   });
+  const out = [];
+  for (const l of lines) {
+    const ing = l.ingredientId
+      ? await p.ingredient.findUnique({ where: { id: l.ingredientId }, select: { name: true, fiberPer100g: true } })
+      : null;
+    // Dry-basis catalog rows must not be multiplied into a cooked recipe
+    // portion — 150 g of dry lentils is not the 150 g of lentils in a soup.
+    const dryBasis = ing ? /\(dry\)|\bdry\b|uncooked/i.test(ing.name) : false;
+    out.push({
+      lineId: l.id,
+      ingredientId: l.ingredientId || null,
+      ingredientName: l.ingredientName,
+      amountG: Number(l.amountG) || 0,
+      resolvedName: ing?.name || null,
+      fiberPer100g: ing?.fiberPer100g ?? null,
+      dryBasis,
+    });
+  }
+  return out;
+}
+
+// Deterministic evidence fingerprint of every input the computation depends
+// on: exact ingredient ids + membership, nutrient values and basis,
+// quantities, preparation evidence (resolved name + dry-basis flag), and the
+// serving/yield inputs. A plan binds the review to this fingerprint — any
+// change to any input is stale, even when the rounded result coincides.
+function inputsEvidence(resolvedLines, servings) {
+  return {
+    servings,
+    lines: resolvedLines.map((l) => ({
+      lineId: l.lineId, ingredientId: l.ingredientId, ingredientName: l.ingredientName,
+      amountG: l.amountG, fiberPer100g: l.fiberPer100g, dryBasis: l.dryBasis, resolvedName: l.resolvedName,
+    })),
+  };
+}
+
+function inputsMatch(evidence, live) {
+  if (!evidence || !live) return 'missing evidence';
+  if (evidence.servings !== live.servings) return `servings ${live.servings} ≠ reviewed ${evidence.servings}`;
+  if (evidence.lines.length !== live.lines.length) return `line count ${live.lines.length} ≠ reviewed ${evidence.lines.length}`;
+  for (let i = 0; i < evidence.lines.length; i++) {
+    const e = evidence.lines[i], l = live.lines[i];
+    if (e.lineId !== l.lineId) return `line membership changed at position ${i}`;
+    if (e.ingredientId !== l.ingredientId) return `line ${e.ingredientName}: linked ingredient changed`;
+    if (e.amountG !== l.amountG) return `line ${e.ingredientName}: quantity ${l.amountG} ≠ reviewed ${e.amountG}`;
+    if (e.fiberPer100g !== l.fiberPer100g) return `line ${e.ingredientName}: nutrient value ${l.fiberPer100g} ≠ reviewed ${e.fiberPer100g}`;
+    if (e.dryBasis !== l.dryBasis) return `line ${e.ingredientName}: preparation basis changed`;
+    if (e.resolvedName !== l.resolvedName) return `line ${e.ingredientName}: preparation evidence (resolved name) changed`;
+  }
+  return null;
+}
+
+async function computeRecipe(p, recipe) {
+  const resolvedLines = await resolveLines(p, recipe);
   let total = 0;
   const parts = [];
   const unresolved = [];
-  for (const l of lines) {
-    if (!l.ingredientId) { unresolved.push(l.ingredientName); continue; }
-    const ing = await p.ingredient.findUnique({ where: { id: l.ingredientId }, select: { name: true, fiberPer100g: true } });
-    if (!ing || ing.fiberPer100g == null) { unresolved.push(l.ingredientName); continue; }
-    // Dry-basis catalog rows must not be multiplied into a cooked recipe
-    // portion — 150 g of dry lentils is not the 150 g of lentils in a soup.
-    // Flag them as unresolved so the recipe is held for catalog review rather
-    // than silently overstated.
-    const dryBasis = /\(dry\)|\bdry\b|uncooked/i.test(ing.name);
-    const g = dryBasis ? 0 : (Number(l.amountG) || 0) * ing.fiberPer100g / 100;
+  for (const l of resolvedLines) {
+    if (!l.ingredientId || l.fiberPer100g == null) { unresolved.push(l.ingredientName); continue; }
+    const g = l.dryBasis ? 0 : l.amountG * l.fiberPer100g / 100;
     total += g;
-    if (dryBasis) unresolved.push(`${l.ingredientName} (dry-basis catalog row "${ing.name}" — cooked basis needed)`);
-    else parts.push(`${l.ingredientName}: ${l.amountG}g × ${ing.fiberPer100g}/100g = ${g.toFixed(2)}g`);
+    if (l.dryBasis) unresolved.push(`${l.ingredientName} (dry-basis catalog row "${l.resolvedName}" — cooked basis needed)`);
+    else parts.push(`${l.ingredientName}: ${l.amountG}g × ${l.fiberPer100g}/100g = ${g.toFixed(2)}g`);
   }
   const servings = recipe.servings || 1;
-  return { perServing: total / servings, parts, unresolved };
+  return { perServing: total / servings, parts, unresolved, inputs: inputsEvidence(resolvedLines, servings) };
 }
 
 const round1 = (v) => Math.round(v * 10) / 10;
@@ -87,7 +142,7 @@ async function discoverTargets(p, names) {
 // row is not eligible (non-SYSTEM or unresolved lines) — held rows are never
 // silently written into a plan.
 async function planEntryFor(p, row) {
-  const { perServing, parts, unresolved } = await computeRecipe(p, row);
+  const { perServing, parts, unresolved, inputs } = await computeRecipe(p, row);
   const after = round1(perServing);
   return {
     id: row.id,
@@ -96,6 +151,7 @@ async function planEntryFor(p, row) {
     reviewStatus: row.reviewStatus,
     expectedBefore: row.fiberG,
     computedAfter: after,
+    inputs,
     unresolved,
     parts,
     eligible: row.isSystem === true && unresolved.length === 0,
@@ -115,6 +171,12 @@ function validatePlanShape(plan) {
     if (typeof e.recipeName !== 'string' || !e.recipeName) errors.push(`${at}: missing recipeName`);
     if (!(typeof e.expectedBefore === 'number' || e.expectedBefore === null)) errors.push(`${at}: expectedBefore must be a number or null`);
     if (typeof e.computedAfter !== 'number') errors.push(`${at}: computedAfter must be a number`);
+    const inp = e.inputs;
+    if (!inp || typeof inp !== 'object' || typeof inp.servings !== 'number' || !Array.isArray(inp.lines)
+        || inp.lines.some((l) => !l || typeof l.lineId !== 'string' || typeof l.amountG !== 'number'
+          || !('ingredientId' in l) || !('fiberPer100g' in l) || typeof l.dryBasis !== 'boolean' || !('resolvedName' in l))) {
+      errors.push(`${at}: missing input evidence (ingredient ids/membership, nutrient values, quantities, preparation, servings) — regenerate the plan with --write-plan for a fresh review`);
+    }
   });
   return errors;
 }
@@ -138,7 +200,15 @@ async function classifyPlan(p, plan) {
       continue;
     }
     if (row.isSystem !== true) { classified.push({ e, verdict: 'invalid', reason: 'non-SYSTEM recipe — personal/owned rows are never written' }); continue; }
-    const { perServing, unresolved } = await computeRecipe(p, row);
+    const { perServing, unresolved, inputs: liveInputs } = await computeRecipe(p, row);
+    // Drift detection precedes computability: when reviewed inputs changed,
+    // "stale inputs" is the precise verdict regardless of whether the row is
+    // still computable — held is reserved for unchanged-but-uncomputable rows.
+    const drift = inputsMatch(e.inputs, liveInputs);
+    if (drift) {
+      classified.push({ e, row, verdict: 'invalid', reason: `stale inputs — ${drift} (reviewed evidence no longer matches; fresh review required)` });
+      continue;
+    }
     if (unresolved.length) { classified.push({ e, row, verdict: 'held', reason: `unresolved lines: ${unresolved.join(', ')}` }); continue; }
     const after = round1(perServing);
     if (after !== e.computedAfter) {
@@ -152,21 +222,42 @@ async function classifyPlan(p, plan) {
   return classified;
 }
 
-// Apply a validated classification inside one transaction. Each write is a
-// conditional compare-and-set: the UPDATE only matches while the row still
-// carries the exact reviewed prior value, SYSTEM identity and exact name —
-// any concurrent change makes count≠1 and rolls everything back.
+// Apply a validated classification inside one SERIALIZABLE transaction.
+// Every input the review was bound to is re-read and recomputed inside the
+// transaction — ingredient ids and membership, nutrient values and basis,
+// quantities, preparation evidence, servings — and must match the reviewed
+// evidence exactly before any write. Under PostgreSQL serializable isolation
+// a concurrent committed change to any read input aborts the transaction,
+// so a reviewed input cannot change unnoticed before commit. The write
+// itself remains a conditional compare-and-set on the exact reviewed prior
+// value + SYSTEM identity + exact name. APPLIED is reported only after the
+// transaction commits AND a fresh read-back verifies the persisted value.
 async function applyClassified(p, classified, log) {
   const ready = classified.filter((c) => c.verdict === 'ready');
-  const applied = [];
+  const written = [];
+  const txOpts = { isolationLevel: 'Serializable', maxWait: 10000, timeout: 20000 };
   await p.$transaction(async (tx) => {
     for (const c of ready) {
       const current = await tx.recipe.findUnique({
         where: { id: c.e.id },
-        select: { fiberG: true, isSystem: true, recipeName: true },
+        select: { id: true, fiberG: true, isSystem: true, recipeName: true, servings: true },
       });
       if (!current || current.isSystem !== true || current.recipeName !== c.e.recipeName || current.fiberG !== c.e.expectedBefore) {
         throw new Error(`concurrent-change guard: ${c.e.recipeName} no longer matches the reviewed plan inside the transaction — rolling back`);
+      }
+      // Re-read and recompute the inputs inside the transaction — a change
+      // between classification and commit is caught here even if the recipe
+      // row itself is untouched.
+      const { perServing, unresolved, inputs: liveInputs } = await computeRecipe(tx, current);
+      if (unresolved.length) {
+        throw new Error(`${c.e.recipeName}: unresolved lines appeared inside the transaction — rolling back`);
+      }
+      const drift = inputsMatch(c.e.inputs, liveInputs);
+      if (drift) {
+        throw new Error(`${c.e.recipeName}: stale inputs inside the transaction — ${drift} — rolling back`);
+      }
+      if (round1(perServing) !== c.after) {
+        throw new Error(`${c.e.recipeName}: recomputed ${round1(perServing)} ≠ reviewed ${c.after} inside the transaction — rolling back`);
       }
       const res = await tx.recipe.updateMany({
         where: { id: c.e.id, fiberG: c.e.expectedBefore, isSystem: true, recipeName: c.e.recipeName },
@@ -175,10 +266,20 @@ async function applyClassified(p, classified, log) {
       if (res.count !== 1) {
         throw new Error(`conditional write matched ${res.count} rows for ${c.e.recipeName} — rolling back`);
       }
-      applied.push({ id: c.e.id, name: c.e.recipeName, before: c.e.expectedBefore, after: c.after });
-      log(`APPLIED ${c.e.recipeName}: ${c.e.expectedBefore} → ${c.after}`);
+      written.push({ id: c.e.id, name: c.e.recipeName, before: c.e.expectedBefore, after: c.after });
     }
-  });
+  }, txOpts);
+  // Post-commit read-back verification — APPLIED is emitted only for rows
+  // whose persisted value is confirmed by a fresh read.
+  const applied = [];
+  for (const w of written) {
+    const check = await p.recipe.findUnique({ where: { id: w.id }, select: { fiberG: true } });
+    if (!check || check.fiberG !== w.after) {
+      throw new Error(`post-commit verification failed for ${w.name}: persisted ${check?.fiberG} ≠ expected ${w.after}`);
+    }
+    applied.push(w);
+    log(`APPLIED ${w.name}: ${w.before} → ${w.after} (verified)`);
+  }
   return applied;
 }
 
@@ -256,6 +357,7 @@ async function main() {
     const plan = candidates.map((c) => ({
       id: c.id, recipeName: c.recipeName,
       expectedBefore: c.expectedBefore, computedAfter: c.computedAfter,
+      inputs: c.inputs,
     }));
     require('fs').writeFileSync(writePlanPath, JSON.stringify(plan, null, 2) + '\n');
     console.log(`\nCandidate plan written to ${writePlanPath} (${plan.length} entries) — review every row before applying.`);
@@ -268,4 +370,4 @@ if (require.main === module) {
   main().catch((e) => { console.error(e.message || e); process.exit(1); });
 }
 
-module.exports = { TARGETS, computeRecipe, discoverTargets, planEntryFor, validatePlanShape, classifyPlan, applyClassified, round1 };
+module.exports = { TARGETS, computeRecipe, resolveLines, inputsEvidence, inputsMatch, discoverTargets, planEntryFor, validatePlanShape, classifyPlan, applyClassified, round1 };
