@@ -97,7 +97,7 @@ async function sequenceMeal(items, ctx = {}) {
   ];
 
   if (!Array.isArray(items) || !items.length) {
-    return { version: SEQUENCE_VERSION, separable: false, reason: 'no_components', order: [], hasMeaningfulFiber: false, suggestedAddition: null, explanation: ['No meal components to order.'], disclaimers, evidence: evidence() };
+    return { version: SEQUENCE_VERSION, separable: false, sequencingApplicable: false, reason: 'no_components', order: [], hasMeaningfulFiber: false, suggestedAddition: null, explanation: ['No meal components to order.'], disclaimers, evidence: evidence() };
   }
 
   // Resolve every component to its ingredient profile (per-100g).
@@ -205,9 +205,17 @@ async function sequenceMeal(items, ctx = {}) {
     explanation.push(`Consider adding a fiber-rich side such as ${suggestedAddition.food} (${suggestedAddition.serving}, ~${suggestedAddition.approxFiberG} g fiber) — start with it, then protein, then most of your starch.`);
   }
 
+  // sequencingApplicable: machine-readable suppression signal for clients —
+  // ordering isolated single-food entries is vacuous (nothing to order), so
+  // clients must not render the order UI for them. The food-first addition
+  // suggestion remains available independently of ordering.
+  const sequencingApplicable = order.length >= 2;
+  if (!sequencingApplicable) explanation.push('Only one separable component — there is nothing to order here.');
+
   return {
     version: SEQUENCE_VERSION,
     separable: true,
+    sequencingApplicable,
     reason: anyMixed ? 'partial_mixed' : 'component_meal',
     order,
     hasMeaningfulFiber,
@@ -219,7 +227,7 @@ async function sequenceMeal(items, ctx = {}) {
 }
 
 function done(comps, separable, reason, msg, disclaimers) {
-  return { version: SEQUENCE_VERSION, separable, reason, order: comps.map((c, i) => ({ rank: i + 1, component: c.name, role: c.role, roleLabel: ROLE_LABEL[c.role], fiberG: c.fiberG, knownFiber: c.fiberPer100g != null })), hasMeaningfulFiber: comps.some((c) => (c.fiberG ?? 0) >= MIN_COMPONENT_FIBER_G), suggestedAddition: null, explanation: [msg], disclaimers, evidence: evidence() };
+  return { version: SEQUENCE_VERSION, separable, sequencingApplicable: false, reason, order: comps.map((c, i) => ({ rank: i + 1, component: c.name, role: c.role, roleLabel: ROLE_LABEL[c.role], fiberG: c.fiberG, knownFiber: c.fiberPer100g != null })), hasMeaningfulFiber: comps.some((c) => (c.fiberG ?? 0) >= MIN_COMPONENT_FIBER_G), suggestedAddition: null, explanation: [msg], disclaimers, evidence: evidence() };
 }
 
 function evidence() {
