@@ -112,7 +112,7 @@ async function generateDraft(userId, prefs = {}, safety = {}) {
     equipment: prefs.equipment, days: prefs.preferredDays, sessionMinutes: prefs.sessionMinutes,
     intensity: prefs.intensity, liked: prefs.likedExercises, limitations: prefs.limitations,
   })}\nAllowed exercise IDs: ${catalogText}`;
-  const raw = await askJSON('workout_plan', SCHEMA, INSTRUCTIONS, text, null, userId);
+  const raw = await askJSON('workout_plan', SCHEMA, INSTRUCTIONS, text, null, userId, { tier: 'complex' });
   const { plan, warnings } = sanitizePlan(raw, allowed, prefs);
   if (safety.reviewRequired) warnings.push('A documented restriction or surgery is awaiting professional review — confirm clearance before relying on this draft.');
   return {

@@ -100,6 +100,18 @@ router.post('/transcribe', voiceEnabled, wrap(async (req, res) => {
   res.json({ transcript: out.text || '' });
 }));
 
+// POST /voice/speak — text → mp3 for Leo's spoken replies. Gated + quota'd
+// via aiProvider.synthesizeSpeech; ≤600 chars; audio is streamed, never
+// persisted. On-device TTS (expo-speech) remains the default — this is for
+// surfaces that want the same voice everywhere.
+router.post('/speak', voiceEnabled, wrap(async (req, res) => {
+  const { text } = req.body || {};
+  if (typeof text !== 'string' || !text.trim()) throw httpError(400, 'text required');
+  if (text.length > 600) throw httpError(413, 'Text too long — keep spoken replies under 600 characters.');
+  const mp3 = await require('../services/aiProvider').synthesizeSpeech(text.trim(), uid(req));
+  res.set({ 'Content-Type': 'audio/mpeg', 'Cache-Control': 'no-store' }).send(mp3);
+}));
+
 // AI fallback for segments the deterministic parser can't classify. The model
 // proposes candidate fields only — everything is re-validated and resolved
 // server-side; it can never emit an ID or execute anything.
@@ -172,7 +184,8 @@ async function aiFillUnknown(actions, ctx, userId) {
   try {
     const segs = unknownIdx.map(i => actions[i].segment);
     const out = await askJSON('voice_intents', INTENT_SCHEMA, INTENT_INSTRUCTIONS,
-      segs.map((s, i) => `${i + 1}. ${s}`).join('\n'), undefined, userId, { maxOutputTokens: 1200 });
+      segs.map((s, i) => `${i + 1}. ${s}`).join('\n'), undefined, userId,
+      { maxOutputTokens: 1200, tier: unknownIdx.length > 1 ? 'complex' : 'standard' });
     (out?.actions || []).slice(0, unknownIdx.length).forEach((raw, i) => {
       if (raw && typeof raw === 'object') actions[unknownIdx[i]] = aiAction(raw, actions[unknownIdx[i]].segment, ctx);
     });
@@ -182,7 +195,21 @@ async function aiFillUnknown(actions, ctx, userId) {
 // POST /voice/interpret — transcript → proposed actions (+ server-side
 // entity matches for confirmation). context: { lastExercise, lastWeight,
 // lastSetId, weightUnit } — never trusted, only used to fill references.
+// Per-user voice budget: sliding-window rate cap (env-tunable, fail-closed to a
+// conservative default). In-memory is correct for the single-process deploy; the
+// cap exists to bound cost per the owner cost directive, not as security infra.
+const VOICE_WINDOW_MS = 60e3;
+const voiceBudgetHits = new Map(); // userId -> timestamps[]
+function voiceBudgetOk(userId, envKey, dflt) {
+  const cap = Math.max(1, parseInt(process.env[envKey] || String(dflt), 10) || dflt);
+  const now = Date.now();
+  const arr = (voiceBudgetHits.get(userId) || []).filter(t => now - t < VOICE_WINDOW_MS);
+  if (arr.length >= cap) { voiceBudgetHits.set(userId, arr); return false; }
+  arr.push(now); voiceBudgetHits.set(userId, arr); return true;
+}
+
 router.post('/interpret', voiceEnabled, wrap(async (req, res) => {
+  if (!voiceBudgetOk(uid(req) || 'anon', 'VOICE_INTERPRET_BUDGET_PER_MIN', 30)) throw httpError(429, 'Voice budget exhausted — try again in a minute.');
   const { transcript, context } = req.body || {};
   if (typeof transcript !== 'string' || !transcript.trim()) throw httpError(400, 'transcript required');
   const prisma = getPrisma();
@@ -202,6 +229,41 @@ router.post('/interpret', voiceEnabled, wrap(async (req, res) => {
     if (fiberVoice && isFiberQuestion(seg) && (a.intent === 'UNKNOWN_INTENT' || (a.intent === 'LOG_FOOD' && interrogative))) {
       a.intent = 'ASK_FIBER'; a.status = 'ready'; a.missing = [];
       continue;
+    }
+  }
+  // Server-side context fill — "change that to 12" / "same weight, 8 more"
+  // must work for clients that don't ship ctx {lastSetId,lastExercise,
+  // lastWeight}. Resolve the user's most recent set once, lazily; execute
+  // re-verifies ownership regardless of what interpret proposes.
+  const needsCtx = parsed.actions.some(a =>
+    (a.intent === 'UPDATE_EXERCISE_SET' && !ctx.lastSetId && !a.entities.setId) ||
+    (a.intent === 'LOG_EXERCISE_SET' && ((a.missing || []).includes('exercise') || (a.missing || []).includes('weight'))));
+  if (needsCtx) {
+    const latest = await prisma.workoutSession.findFirst({
+      where: { userId: uid(req) }, orderBy: { startedAt: 'desc' },
+      include: { exerciseSets: { orderBy: { setNumber: 'desc' }, take: 1 } },
+    });
+    const lastSet = latest?.exerciseSets?.[0] || null;
+    for (const a of parsed.actions) {
+      if (a.intent === 'UPDATE_EXERCISE_SET' && !ctx.lastSetId && !a.entities.setId && lastSet) {
+        a.entities.setId = lastSet.id;
+        a.missing = (a.missing || []).filter(x => x !== 'set');
+        if (a.entities.reps != null) a.status = 'ready';
+        a.resolvedFrom = 'latest_session';
+      }
+      if (a.intent === 'LOG_EXERCISE_SET' && lastSet) {
+        if (!a.entities.exerciseName && (a.missing || []).includes('exercise')) {
+          a.entities.exerciseName = lastSet.exerciseName;
+          a.missing = a.missing.filter(x => x !== 'exercise');
+          a.resolvedFrom = 'latest_session';
+        }
+        if (a.entities.weight == null && (a.missing || []).includes('weight') && lastSet.weightLbs != null) {
+          a.entities.weight = lastSet.weightLbs;
+          a.entities.weightUnit = 'lbs'; // stored value is already lbs
+          a.missing = a.missing.filter(x => x !== 'weight');
+        }
+        if (!(a.missing || []).length && a.status === 'needs_review') a.status = 'ready';
+      }
     }
   }
   for (const a of parsed.actions) {
@@ -242,6 +304,7 @@ router.post('/interpret', voiceEnabled, wrap(async (req, res) => {
 // Idempotent on commandId. Executes via existing models only; nothing here
 // trusts an ID that wasn't re-verified server-side.
 router.post('/commands/execute', wrap(async (req, res) => {
+  if (!voiceBudgetOk(uid(req) || 'anon', 'VOICE_EXECUTE_BUDGET_PER_MIN', 20)) throw httpError(429, 'Voice budget exhausted — try again in a minute.');
   const userId = uid(req);
   const { commandId, transcript, actions } = req.body || {};
   if (!userId) throw httpError(401, 'Sign in required.');
@@ -256,7 +319,17 @@ router.post('/commands/execute', wrap(async (req, res) => {
   }
 
   const created = []; const results = [];
-  for (const a of actions) {
+  // Multi-intent orchestration order (LEO spec): mutations execute before
+  // reads/summaries/recommendations so spoken answers reflect the just-written
+  // state ("log X, tell remaining protein" — the answer must include X).
+  // Stable sort: relative order within each class is preserved.
+  const QUERY_INTENTS = new Set(['ASK_FIBER', 'SHOW_MOOD_TRENDS']);
+  const ordered = [...actions].sort((x, y) => {
+    const qx = QUERY_INTENTS.has(x.intent) ? 1 : 0;
+    const qy = QUERY_INTENTS.has(y.intent) ? 1 : 0;
+    return qx - qy;
+  });
+  for (const a of ordered) {
     if (a.status !== 'ready') { results.push({ intent: a.intent, status: 'skipped', reason: 'needs_review' }); continue; }
     switch (a.intent) {
       case 'LOG_WATER': {

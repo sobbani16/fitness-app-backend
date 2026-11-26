@@ -12,6 +12,18 @@ const featureDisabled = () => Object.assign(httpError(403, 'This feature is temp
 // Startup validation — reports presence only, never the secret.
 if (!process.env.OPENAI_API_KEY?.trim()) console.warn('[ai] OPENAI_API_KEY not set; AI features will return 503.');
 
+// Cost-tiered model selection (owner directive 2026-11-25): deterministic code
+// paths stay model-free; 'trivial' covers lightweight classification/routing,
+// 'standard' is the default for intent/entity/ordinary response work, 'complex'
+// is reserved for genuinely hard multi-intent/planning calls. Env vars override
+// for eval runs; per-call model+tier+tokens are logged for cost accounting.
+const MODEL_TIERS = {
+  trivial: process.env.OPENAI_MODEL_TRIVIAL || 'gpt-5.4-nano',
+  standard: process.env.OPENAI_MODEL || 'gpt-5.4-mini',
+  complex: process.env.OPENAI_MODEL_COMPLEX || 'gpt-6.1-sol',
+};
+const resolveModel = tier => MODEL_TIERS[tier] || MODEL_TIERS.standard;
+
 // Per-user daily call quota + token accounting (in-process; move to Redis/DB
 // if multi-instance). Key never leaves this module.
 const usage = new Map(); // `${userId}:${yyyymmdd}` -> { calls, tokens }
@@ -19,7 +31,7 @@ const DAILY_CALL_CAP = Number(process.env.AI_USER_DAILY_CALL_CAP || 20);
 const DAILY_TOKEN_CAP = Number(process.env.AI_USER_DAILY_TOKEN_CAP || 50000);
 const today = () => new Date().toISOString().slice(0, 10).replace(/-/g, '');
 
-function checkQuota(userId, estimatedTokens = 3000) {
+function checkQuota(userId, estimatedTokens = 3000, feature = 'ai') {
   const key = `${userId || 'anon'}:${today()}`;
   const u = usage.get(key) || { calls: 0, tokens: 0 };
   if (u.calls >= DAILY_CALL_CAP || u.tokens + estimatedTokens > DAILY_TOKEN_CAP) {
@@ -27,20 +39,24 @@ function checkQuota(userId, estimatedTokens = 3000) {
   }
   // Reserve synchronously before the network await. Failures still consume an
   // attempt and its token reservation, preventing parallel/retry quota bypass.
-  usage.set(key, { calls: u.calls + 1, tokens: u.tokens + estimatedTokens });
+  const features = { ...u.features };
+  features[feature] = { calls: (features[feature]?.calls || 0) + 1, tokens: (features[feature]?.tokens || 0) + estimatedTokens };
+  usage.set(key, { calls: u.calls + 1, tokens: u.tokens + estimatedTokens, features });
   for (const oldKey of usage.keys()) if (!oldKey.endsWith(`:${today()}`)) usage.delete(oldKey);
   return key;
 }
 
-function recordUsage(key, result, reservedTokens) {
-  const u = usage.get(key) || { calls: 0, tokens: 0 };
-  if (Number.isFinite(result?.usage?.total_tokens)) u.tokens += result.usage.total_tokens - reservedTokens;
+function recordUsage(key, result, reservedTokens, feature) {
+  const u = usage.get(key) || { calls: 0, tokens: 0, features: {} };
+  const delta = Number.isFinite(result?.usage?.total_tokens) ? result.usage.total_tokens - reservedTokens : 0;
+  u.tokens += delta;
+  if (feature && u.features[feature]) u.features[feature].tokens += delta;
   usage.set(key, u);
 }
 
 function aiUsage(userId) {
   const u = usage.get(`${userId}:${today()}`);
-  return { callsToday: u?.calls || 0, tokensToday: u?.tokens || 0, callCap: DAILY_CALL_CAP };
+  return { callsToday: u?.calls || 0, tokensToday: u?.tokens || 0, callCap: DAILY_CALL_CAP, byFeature: u?.features || {} };
 }
 
 async function askJSON(name, properties, instructions, text, imageDataUrl, userId, options = {}) {
@@ -51,7 +67,7 @@ async function askJSON(name, properties, instructions, text, imageDataUrl, userI
   if (imageDataUrl) require('./foodInput').validateFoodInput({ imageDataUrl });
   const maxOutputTokens = Math.min(8000, Math.max(500, Number(options.maxOutputTokens) || 1500));
   const reservedTokens = imageDataUrl ? 4000 : Math.max(2000, maxOutputTokens);
-  const quotaKey = checkQuota(userId, reservedTokens);
+  const quotaKey = checkQuota(userId, reservedTokens, name);
   const { OpenAI } = require('openai');
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 30000, maxRetries: 0 });
   const content = [{ type: 'input_text', text }];
@@ -59,7 +75,7 @@ async function askJSON(name, properties, instructions, text, imageDataUrl, userI
   let result;
   try {
     result = await client.responses.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini', store: false, instructions,
+      model: resolveModel(options.tier), store: false, instructions,
       input: [{ role: 'user', content }], max_output_tokens: maxOutputTokens,
       text: { format: { type: 'json_schema', name, strict: true, schema: { type: 'object', additionalProperties: false, properties, required: Object.keys(properties) } } },
     });
@@ -68,7 +84,8 @@ async function askJSON(name, properties, instructions, text, imageDataUrl, userI
     if (e.name === 'APIConnectionTimeoutError') throw httpError(504, 'AI analysis timed out. Try again or use food search.');
     throw httpError(502, 'AI service could not complete this request. Please retry or enter values manually.');
   }
-  recordUsage(quotaKey, result, reservedTokens);
+  recordUsage(quotaKey, result, reservedTokens, name);
+  console.info('[ai] call', { model: resolveModel(options.tier), tier: options.tier || 'standard', tokens: result?.usage?.total_tokens ?? null });
   if (result.output?.some(item => item.content?.some(part => part.type === 'refusal'))) throw httpError(422, 'This input could not be analyzed. Try another photo or use food search.');
   try {
     if (result.status !== 'completed' || !result.output_text) throw new Error('Incomplete response');
@@ -77,4 +94,30 @@ async function askJSON(name, properties, instructions, text, imageDataUrl, userI
     throw httpError(502, 'AI service returned an incomplete estimate. Please retry or enter values manually.');
   }
 }
-module.exports = { askJSON, aiEnabled, aiUsage };
+// Text→speech for Leo's spoken replies. Same gate chain as askJSON; TTS is
+// billed per character, not per token — the quota reservation stands in for
+// cost accounting (tagged 'voice_speak' in byFeature). Output is never stored.
+async function synthesizeSpeech(text, userId) {
+  if (await require('./featureFlags/service').isAiShutdown(userId)) throw featureDisabled();
+  if (!aiEnabled()) throw httpError(503, 'AI features are not enabled on this server.');
+  if (!process.env.OPENAI_API_KEY?.trim()) throw httpError(503, 'AI service is not configured. Use manual logging or food search.');
+  const quotaKey = checkQuota(userId, 1000, 'voice_speak');
+  const { OpenAI } = require('openai');
+  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 30000, maxRetries: 0 });
+  let speech;
+  try {
+    speech = await client.audio.speech.create({
+      model: process.env.VOICE_SPEAK_MODEL || 'gpt-4o-mini-tts',
+      voice: process.env.VOICE_SPEAK_VOICE || 'alloy',
+      input: text, response_format: 'mp3',
+    });
+  } catch (e) {
+    if (e.status === 429) throw httpError(503, 'AI capacity is temporarily unavailable. Try again later.');
+    throw httpError(502, 'AI service could not complete this request. Please retry.');
+  }
+  recordUsage(quotaKey, null, 0, 'voice_speak');
+  console.info('[ai] call', { model: process.env.VOICE_SPEAK_MODEL || 'gpt-4o-mini-tts', tier: 'standard', tokens: null });
+  return Buffer.from(await speech.arrayBuffer());
+}
+
+module.exports = { askJSON, aiEnabled, aiUsage, resolveModel, MODEL_TIERS, synthesizeSpeech };
