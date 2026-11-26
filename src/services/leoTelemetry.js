@@ -18,14 +18,12 @@
 //   - The caller's payload object is never handed to the logger; a new flat
 //     object is built from validated scalars only.
 //
-// P30 EVENT CATALOG: PENDING. The canonical P30 catalog lives in the missing
-// spec (docs/programs/hey-leo-voice-assistant.md — absent from all refs, see
-// the pc-HUM-97 recovery record). Until it lands the shipped instance below
-// has an EMPTY catalog and rejects everything: the boundary is fail-closed
-// by default. Do not infer catalog entries here.
+// P30 EVENT CATALOG: v1 shipped below — recovered from the canonical spec
+// (docs/programs/hey-leo-voice-assistant.md, paperclip-humai). The boundary
+// remains fail-closed for anything outside the catalog.
 
 const IDENTIFIER = /^[A-Za-z0-9._-]{8,80}$/;
-const EVENT_NAME = /^[a-z][a-z0-9_]{0,47}(\.[a-z][a-z0-9_]{0,47})?$/;
+const EVENT_NAME = /^[a-z][a-z0-9_]{0,47}(\.[a-z][a-z0-9_]{0,47}){0,2}$/;
 const MAX_NUMERIC_FIELDS = 16;
 const MAX_CATEGORICAL_VALUES = 32;
 
@@ -121,9 +119,72 @@ function createLeoTelemetry({ catalog = {}, logger = console } = {}) {
   return { log, catalog: Object.freeze({ ...catalog }) };
 }
 
-// Shipped instance: EMPTY catalog — rejects every event until the canonical
-// P30 catalog lands. The catalog is data, not code: when the spec is
-// recovered it is added here as an explicit reviewed list.
-const leoTelemetry = createLeoTelemetry({ catalog: {} });
 
-module.exports = { createLeoTelemetry, leoTelemetry };
+// ---------------------------------------------------------------------------
+// P30 EVENT CATALOG v1 — from docs/programs/hey-leo-voice-assistant.md (P30,
+// recovered 2026-11-26). Closed enums are deliberately conservative: an
+// out-of-enum value is omitted field-wise, never fatal — extending the enum
+// is a reviewed catalog edit, not a code change.
+//
+// HONEST LIMITATION: the spec field list includes `version` (app version).
+// Version strings are unbounded free-form scalars and this boundary has no
+// free-string type BY DESIGN (it is what makes transcripts/tokens/health
+// data structurally unloggable). Version therefore belongs to the deployment
+// platform layer (Railway/release tagging), not to per-event payloads.
+// ---------------------------------------------------------------------------
+
+const PLATFORM = ['ios', 'android', 'web'];
+const ENV = ['production', 'staging', 'development', 'test'];
+const PROVIDER = ['local', 'openai', 'whisper', 'apple', 'google', 'mock'];
+const ERROR_CATEGORY = ['timeout', 'rate_limited', 'auth', 'network', 'provider', 'validation', 'cancelled', 'unknown'];
+// Leo mutation/tool surface — P29/P30 starter set; extended by reviewed edit.
+const TOOL = ['food_log', 'workout_log', 'water_log', 'weight_log', 'recommend', 'briefing', 'recipe_steps', 'grocery_list', 'evening_review', 'reminder', 'education', 'weather', 'label_scan', 'unknown'];
+const TIER = ['tier1', 'tier2', 'tier3'];
+const TRANSITION = ['idle', 'listening', 'transcribing', 'orchestrating', 'confirming', 'executing', 'rendering', 'speaking', 'standby', 'cancelled', 'error'];
+
+const MS = { min: 0, max: 3_600_000 }; // bounded 1h — long-session outliers omitted, not logged as garbage
+const COUNT = { min: 0, max: 1000 };
+const QUEUE_DEPTH = { min: 0, max: 10000 };
+
+const base = { categoricals: { platform: PLATFORM, env: ENV } };
+function withBase(schema) {
+  return {
+    numerics: { ...(schema.numerics || {}) },
+    categoricals: { ...base.categoricals, ...(schema.categoricals || {}) },
+  };
+}
+
+const P30_CATALOG = {
+  'leo.wake_word.detected': withBase({}),
+  'leo.session.started': withBase({}),
+  'leo.session.completed': withBase({ numerics: { durationMs: MS } }),
+  'leo.session.cancelled': withBase({ numerics: { durationMs: MS }, categoricals: { transition: TRANSITION } }),
+  'leo.mic.permission': withBase({ categoricals: { result: ['granted', 'denied', 'revoked'] } }),
+  'leo.audio.init': withBase({ numerics: { durationMs: MS } }),
+  'leo.audio.interrupted': withBase({ categoricals: { reason: ['call', 'background', 'bluetooth', 'user', 'system', 'unknown'] } }),
+  'leo.speech.started': withBase({}),
+  'leo.speech.finalized': withBase({ numerics: { durationMs: MS } }),
+  'leo.transcription.completed': withBase({ numerics: { durationMs: MS, audioDurationMs: MS }, categoricals: { provider: PROVIDER } }),
+  'leo.transcription.failed': withBase({ numerics: { durationMs: MS }, categoricals: { provider: PROVIDER, errorCategory: ERROR_CATEGORY } }),
+  'leo.intent.resolved': withBase({ numerics: { durationMs: MS }, categoricals: { tier: TIER, provider: PROVIDER } }),
+  'leo.tool.started': withBase({ categoricals: { tool: TOOL } }),
+  'leo.tool.completed': withBase({ numerics: { durationMs: MS, retryCount: COUNT }, categoricals: { tool: TOOL } }),
+  'leo.tool.failed': withBase({ numerics: { durationMs: MS, retryCount: COUNT }, categoricals: { tool: TOOL, errorCategory: ERROR_CATEGORY } }),
+  'leo.confirmation.shown': withBase({ categoricals: { tool: TOOL } }),
+  'leo.confirmation.accepted': withBase({ numerics: { durationMs: MS }, categoricals: { tool: TOOL } }),
+  'leo.confirmation.expired': withBase({ categoricals: { tool: TOOL } }),
+  'leo.safety.rejected': withBase({ categoricals: { safetyCategory: ['medical', 'unsafe_goal', 'injection', 'authz', 'allergy_bypass', 'other'] } }),
+  'leo.mutation.duplicate_prevented': withBase({ categoricals: { tool: TOOL } }),
+  'leo.response.rendered': withBase({ numerics: { durationMs: MS } }),
+  'leo.tts.started': withBase({ categoricals: { provider: PROVIDER } }),
+  'leo.tts.failed': withBase({ categoricals: { provider: PROVIDER, errorCategory: ERROR_CATEGORY } }),
+  'leo.provider.rate_limited': withBase({ numerics: { retryAfterMs: MS }, categoricals: { provider: PROVIDER } }),
+  'leo.offline.queued': withBase({ numerics: { queueDepth: QUEUE_DEPTH }, categoricals: { tool: TOOL } }),
+  'leo.offline.synced': withBase({ numerics: { syncLatencyMs: MS, queueDepth: QUEUE_DEPTH }, categoricals: { tool: TOOL, result: ['success', 'failed', 'duplicate'] } }),
+};
+
+// Shipped instance: P30 catalog v1 (recovered spec). Catalog is data, not
+// code — extensions are reviewed edits to P30_CATALOG above.
+const leoTelemetry = createLeoTelemetry({ catalog: P30_CATALOG });
+
+module.exports = { createLeoTelemetry, leoTelemetry, P30_CATALOG };

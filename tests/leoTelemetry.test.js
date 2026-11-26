@@ -181,10 +181,12 @@ describe('leoTelemetry — unknown events are rejected', () => {
     expect(s.lines).toHaveLength(0);
   });
 
-  test('the shipped instance has an empty catalog and rejects everything (P30 pending)', () => {
-    // No sink injection on the module-level instance — prove rejection via return value.
-    expect(leoTelemetry.log('leo.capture_committed', CTX, { durationMs: 1000 })).toBeNull();
-    expect(Object.keys(leoTelemetry.catalog)).toHaveLength(0);
+  test('the shipped instance rejects unknown events while admitting the P30 catalog', () => {
+    // Spec recovered 2026-11-26 — catalog v1 shipped. Fail-closed invariant
+    // preserved: anything outside the catalog is still rejected by return value.
+    expect(leoTelemetry.log('leo.totally_unknown', CTX, { durationMs: 1000 })).toBeNull();
+    expect(leoTelemetry.log('leo.capture_committed', CTX, {})).toBeNull();
+    expect(Object.keys(leoTelemetry.catalog).length).toBeGreaterThan(20);
   });
 });
 
@@ -199,5 +201,64 @@ describe('leoTelemetry — catalog validation', () => {
   test('catalog is frozen against post-construction widening', () => {
     const tel = createLeoTelemetry({ catalog: CATALOG, logger: sink().logger });
     expect(Object.isFrozen(tel.catalog)).toBe(true);
+  });
+});
+
+describe('P30 catalog v1 (recovered spec)', () => {
+  const { P30_CATALOG } = require('../src/services/leoTelemetry');
+
+  it('covers every pipeline stage per spec P30', () => {
+    const names = Object.keys(P30_CATALOG);
+    for (const required of [
+      'leo.wake_word.detected', 'leo.session.started', 'leo.session.completed', 'leo.session.cancelled',
+      'leo.mic.permission', 'leo.audio.init', 'leo.audio.interrupted', 'leo.speech.started', 'leo.speech.finalized',
+      'leo.transcription.completed', 'leo.intent.resolved', 'leo.tool.started', 'leo.tool.completed', 'leo.tool.failed',
+      'leo.safety.rejected', 'leo.mutation.duplicate_prevented', 'leo.response.rendered',
+      'leo.tts.started', 'leo.tts.failed', 'leo.provider.rate_limited', 'leo.offline.queued', 'leo.offline.synced',
+    ]) {
+      expect(names).toContain(required);
+    }
+  });
+
+  it('shipped instance emits catalog events with validated fields', () => {
+    const sink = [];
+    const { createLeoTelemetry, P30_CATALOG: cat } = require('../src/services/leoTelemetry');
+    const t = createLeoTelemetry({ catalog: cat, logger: { info: (m) => sink.push(m) } });
+    const out = t.log('leo.offline.synced', { correlationId: 'corr-abcdefgh', sessionId: 'sess-abcdefgh' }, {
+      tool: 'food_log', syncLatencyMs: 1200, queueDepth: 3, result: 'success', platform: 'android', env: 'test',
+    });
+    expect(out).toMatchObject({ event: 'leo.offline.synced', tool: 'food_log', syncLatencyMs: 1200, queueDepth: 3, result: 'success' });
+    expect(sink).toHaveLength(1);
+  });
+
+  it('never emits transcripts/tokens/audio refs even in approved events', () => {
+    const sink = [];
+    const { createLeoTelemetry, P30_CATALOG: cat } = require('../src/services/leoTelemetry');
+    const t = createLeoTelemetry({ catalog: cat, logger: { info: (m) => sink.push(m) } });
+    const out = t.log('leo.transcription.completed', {}, {
+      durationMs: 800, provider: 'openai', platform: 'ios', env: 'test',
+      transcript: 'user spoken words', audioRef: 's3://audio/x', token: 'sk-secret', nested: { evil: true },
+    });
+    const flat = JSON.stringify(out);
+    expect(flat).not.toContain('spoken');
+    expect(flat).not.toContain('s3://');
+    expect(flat).not.toContain('sk-secret');
+    expect(flat).not.toContain('evil');
+    expect(out.durationMs).toBe(800);
+  });
+
+  it('out-of-enum categorical values are omitted not fatal', () => {
+    const { createLeoTelemetry, P30_CATALOG: cat } = require('../src/services/leoTelemetry');
+    const t = createLeoTelemetry({ catalog: cat, logger: { info: () => {} } });
+    const out = t.log('leo.tool.started', {}, { tool: 'invented_future_tool', platform: 'ios', env: 'test' });
+    expect(out).not.toHaveProperty('tool');
+    expect(out.platform).toBe('ios');
+  });
+
+  it('duration bounds are enforced (absurd values omitted)', () => {
+    const { createLeoTelemetry, P30_CATALOG: cat } = require('../src/services/leoTelemetry');
+    const t = createLeoTelemetry({ catalog: cat, logger: { info: () => {} } });
+    const out = t.log('leo.session.completed', {}, { durationMs: Number.MAX_SAFE_INTEGER, platform: 'ios', env: 'test' });
+    expect(out).not.toHaveProperty('durationMs');
   });
 });
