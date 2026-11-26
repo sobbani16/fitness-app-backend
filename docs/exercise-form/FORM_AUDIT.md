@@ -166,3 +166,12 @@ Cross-reference: F1–F6 (§4) — F1 confirmed new vs `activity-safety-rule-*` 
 - Whether F1's `'back'` gap is offset clinically by prohibited-category recording practice — needs review of real restriction data.
 - Per-row human review of 871 instruction sets (mechanical scan found no demonstrable name↔text mismatch; semantic correctness unreviewed).
 - `formRules.ts` comment for `DEPTH_MARGINAL_DEG` describes the band backwards ("100° < min ≤ threshold" vs actual (95,100]) — cosmetic doc nit.
+
+## 9. Remediation addendum (increment 4 — 2026-11-26)
+
+- **F1 REMEDIATED** (pc-HUM-44, backend commit `4ed2929`, branch `humai/dev-07/pc-HUM-44-rec-safety`): `'back'` limitation token gained a `LIMITATION_BLOCKS` handler (hip-hinge mobility + carry pattern) with the §7.6-mandated test — `classify('deadlift')` under a `'back'` token is no longer `'suitable'`; clinical-standard alternatives (glute-bridge, db-row, dead-bug) remain suitable. §7 item 6 is closed except the residual clinical-policy question of adapt-vs-exclude on trunk loading.
+- **Phase gating extended to non-squat posture rules** (mobile commit `344fe6a`, branch `humai/dev-07/pc-HUM-67-pose-reps`): five ungated rules fired corrections at positions where the measured angle is correct by design — push-up/bench-press elbow-depth flagged straight-arm lockouts; overhead-press lockout flagged the bent bottom; pull-up/barbell-row pull-completion flagged extended-arm bottoms. Depth rules now bind `phase: 'down'`, completion rules `phase: 'up'`. Steadiness rules (push-up body line, row torso) stay ungated intentionally. Regression: correct lockout/bottom positions draw no wrong-phase correction; 167/167 detection tests green, tsc clean.
+- **NEW FINDING F7 (documented, not fixed)**: `deadlift.back` posture rule is semantically unsound independent of phase — its shoulder-hip-knee angle measures hip hinge, not spine curvature, so it cannot pass at a correctly hinged bottom regardless of form. Needs clinical/biomechanical redesign (proper spinal-alignment metric or removal); left unchanged deliberately.
+- §8 cosmetic nit (`DEPTH_MARGINAL_DEG` band comment backwards) fixed in the same mobile commit.
+
+Still requiring qualified human review (unchanged): §7 items 1–3, 5 — cue texts, posture labels, angle thresholds, big-library instruction text. This audit verifies plumbing and direction only, never clinical correctness.
