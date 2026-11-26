@@ -26,39 +26,8 @@ router.post('/', async (req, res, next) => {
     const userId = requireUser(req);
     const items = Array.isArray(req.body?.items) ? req.body.items : (req.body?.name ? [req.body] : []);
     if (!items.length || items.length > 100) throw httpError(400, 'items must be 1–100 entries.');
-    const prisma = getPrisma();
-    const out = new Map(); // dedupe: multiple inputs may merge into one row
-    for (const it of items) {
-      const name = String(it.name || '').trim().slice(0, 200);
-      if (!name) continue;
-      const normalizedName = normalize(name);
-      const amountG = Number.isFinite(Number(it.amountG)) ? Math.max(0, Number(it.amountG)) : null;
-      const unitLabel = it.unitLabel ? String(it.unitLabel).slice(0, 40) : null;
-      // Merge only with a pending row of the same name AND same unit label —
-      // "2 tomatoes" and "200 g tomatoes" never combine without a conversion.
-      const existing = await prisma.groceryItem.findFirst({ where: { userId, normalizedName, status: 'pending', unitLabel } });
-      if (existing) {
-        const updated = await prisma.groceryItem.update({
-          where: { id: existing.id },
-          data: {
-            amountG: existing.amountG != null && amountG != null ? existing.amountG + amountG : (amountG ?? existing.amountG),
-            sourceRecipeId: existing.sourceRecipeId || it.sourceRecipeId || null,
-          },
-        });
-        out.set(updated.id, updated);
-      } else {
-        const created = await prisma.groceryItem.create({
-          data: {
-            userId, name, normalizedName, amountG,
-            unitLabel,
-            optional: it.optional === true,
-            sourceRecipeId: it.sourceRecipeId ? String(it.sourceRecipeId) : null,
-          },
-        });
-        out.set(created.id, created);
-      }
-    }
-    res.status(201).json({ items: [...out.values()] });
+    const { items: saved } = await require('../services/groceryService').addItems(userId, items);
+    res.status(201).json({ items: saved });
   } catch (e) { next(e); }
 });
 
