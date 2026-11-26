@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-25T16:19:39.429Z",
+  "generatedAt": "2026-11-26T08:59:41.090Z",
   "generator": "scripts/generate-api-contract-inventory.js",
   "classification": {
     "stable": "public client contract — breaking changes need a deprecation window",
@@ -210,12 +210,12 @@
     },
     {
       "method": "GET",
-      "path": "/admin/users",
+      "path": "/admin/view-as/users",
       "surface": "stable"
     },
     {
       "method": "POST",
-      "path": "/admin",
+      "path": "/admin/view-as",
       "surface": "stable"
     },
     {
@@ -1410,82 +1410,27 @@
     },
     {
       "method": "POST",
-      "path": "/me/:assignmentId/complete",
+      "path": "/me/account/delete",
       "surface": "stable"
     },
     {
       "method": "POST",
-      "path": "/me/:assignmentId/feedback",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/me/:assignmentId/feedback",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/me/:assignmentId/log",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/me/:assignmentId/respond",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/me/:assignmentId/respond",
+      "path": "/me/account/export",
       "surface": "stable"
     },
     {
       "method": "GET",
-      "path": "/me/:assignmentId",
+      "path": "/me/account/retention",
       "surface": "stable"
     },
     {
       "method": "GET",
-      "path": "/me/:assignmentId",
+      "path": "/me/allergies",
       "surface": "stable"
     },
     {
-      "method": "POST",
-      "path": "/me/:id/confirm",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/me/:id/correct",
-      "surface": "stable"
-    },
-    {
-      "method": "DELETE",
-      "path": "/me/:id",
-      "surface": "stable"
-    },
-    {
-      "method": "DELETE",
-      "path": "/me/:id",
-      "surface": "stable"
-    },
-    {
-      "method": "DELETE",
-      "path": "/me/:id",
-      "surface": "stable"
-    },
-    {
-      "method": "PATCH",
-      "path": "/me/:id",
-      "surface": "stable"
-    },
-    {
-      "method": "PATCH",
-      "path": "/me/:id",
-      "surface": "stable"
-    },
-    {
-      "method": "DELETE",
-      "path": "/me/:token",
+      "method": "PUT",
+      "path": "/me/allergies",
       "surface": "stable"
     },
     {
@@ -1514,13 +1459,23 @@
       "surface": "stable"
     },
     {
+      "method": "POST",
+      "path": "/me/clinical-measurements/:id/correct",
+      "surface": "stable"
+    },
+    {
+      "method": "DELETE",
+      "path": "/me/clinical-measurements/:id",
+      "surface": "stable"
+    },
+    {
       "method": "GET",
-      "path": "/me/catalog",
+      "path": "/me/clinical-measurements",
       "surface": "stable"
     },
     {
       "method": "POST",
-      "path": "/me/delete",
+      "path": "/me/clinical-measurements",
       "surface": "stable"
     },
     {
@@ -1529,13 +1484,123 @@
       "surface": "stable"
     },
     {
-      "method": "POST",
-      "path": "/me/export",
+      "method": "DELETE",
+      "path": "/me/health-conditions/:id",
+      "surface": "stable"
+    },
+    {
+      "method": "PATCH",
+      "path": "/me/health-conditions/:id",
       "surface": "stable"
     },
     {
       "method": "GET",
-      "path": "/me/plan",
+      "path": "/me/health-conditions/catalog",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/me/health-conditions/plan",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/me/health-conditions",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/me/health-conditions",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/me/legacy-migration/redeem",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/me/medications/:id/confirm",
+      "surface": "stable"
+    },
+    {
+      "method": "DELETE",
+      "path": "/me/medications/:id",
+      "surface": "stable"
+    },
+    {
+      "method": "PATCH",
+      "path": "/me/medications/:id",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/me/medications",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/me/medications",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/me/notifications/read",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/me/notifications",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/me/nutrition-plans/:assignmentId/feedback",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/me/nutrition-plans/:assignmentId/log",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/me/nutrition-plans/:assignmentId/respond",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/me/nutrition-plans/:assignmentId",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/me/nutrition-plans",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/me/profile/weight",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/me/profile",
+      "surface": "stable"
+    },
+    {
+      "method": "PUT",
+      "path": "/me/profile",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/me/progress/unified",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/me/progress",
       "surface": "stable"
     },
     {
@@ -1549,28 +1614,43 @@
       "surface": "stable"
     },
     {
-      "method": "POST",
-      "path": "/me/read",
+      "method": "DELETE",
+      "path": "/me/push-tokens/:token",
       "surface": "stable"
     },
     {
       "method": "POST",
-      "path": "/me/redeem",
+      "path": "/me/push-tokens",
       "surface": "stable"
     },
     {
       "method": "GET",
-      "path": "/me/retention",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/me/unified",
+      "path": "/me/roles",
       "surface": "stable"
     },
     {
       "method": "POST",
-      "path": "/me/weight",
+      "path": "/me/workout-plans/:assignmentId/complete",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/me/workout-plans/:assignmentId/feedback",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/me/workout-plans/:assignmentId/respond",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/me/workout-plans/:assignmentId",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/me/workout-plans",
       "surface": "stable"
     },
     {
@@ -1609,88 +1689,8 @@
       "surface": "stable"
     },
     {
-      "method": "GET",
-      "path": "/me",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/me",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/me",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/me",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/me",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/me",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/me",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/me",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/me",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/me",
-      "surface": "stable"
-    },
-    {
       "method": "POST",
       "path": "/menu-analysis",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/me",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/me",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/me",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/me",
-      "surface": "stable"
-    },
-    {
-      "method": "PUT",
-      "path": "/me",
-      "surface": "stable"
-    },
-    {
-      "method": "PUT",
-      "path": "/me",
       "surface": "stable"
     },
     {
@@ -2080,46 +2080,6 @@
     },
     {
       "method": "POST",
-      "path": "/super-admin/:id/decision",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/super-admin/:id/history",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/super-admin/:id/revoke",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/super-admin/:id/status",
-      "surface": "stable"
-    },
-    {
-      "method": "PATCH",
-      "path": "/super-admin/:id",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/super-admin/:table/:id/activate",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/super-admin/:table/:id/deactivate",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/super-admin/:table/:id/transition",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
       "path": "/super-admin/articles/:id/corrections",
       "surface": "stable"
     },
@@ -2174,6 +2134,36 @@
       "surface": "stable"
     },
     {
+      "method": "POST",
+      "path": "/super-admin/clinical-rules/:table/:id/activate",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/super-admin/clinical-rules/:table/:id/deactivate",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/super-admin/clinical-rules/:table/:id/transition",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/super-admin/clinical-rules/events",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/super-admin/clinical-rules/user-reviews",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/super-admin/clinical-rules",
+      "surface": "stable"
+    },
+    {
       "method": "GET",
       "path": "/super-admin/entitlements/events",
       "surface": "stable"
@@ -2204,11 +2194,6 @@
       "surface": "stable"
     },
     {
-      "method": "GET",
-      "path": "/super-admin/events",
-      "surface": "stable"
-    },
-    {
       "method": "PUT",
       "path": "/super-admin/faqs/:id",
       "surface": "stable"
@@ -2224,13 +2209,53 @@
       "surface": "stable"
     },
     {
+      "method": "POST",
+      "path": "/super-admin/ingredient-evidence/:id/status",
+      "surface": "stable"
+    },
+    {
+      "method": "PATCH",
+      "path": "/super-admin/ingredient-evidence/:id",
+      "surface": "stable"
+    },
+    {
       "method": "GET",
-      "path": "/super-admin/health-sync-stats",
+      "path": "/super-admin/ingredient-evidence/health-sync-stats",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/super-admin/ingredient-evidence",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/super-admin/ingredient-evidence",
       "surface": "stable"
     },
     {
       "method": "GET",
       "path": "/super-admin/me/entitlements",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/super-admin/nutrition-profiles/:id/decision",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/super-admin/nutrition-profiles/:id/history",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/super-admin/nutrition-profiles/:id/revoke",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/super-admin/nutrition-profiles",
       "surface": "stable"
     },
     {
@@ -2276,31 +2301,6 @@
     {
       "method": "GET",
       "path": "/super-admin/suggestions",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/super-admin/user-reviews",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/super-admin",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/super-admin",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/super-admin",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/super-admin",
       "surface": "stable"
     },
     {
@@ -2499,198 +2499,198 @@
       "surface": "stable"
     },
     {
-      "method": "POST",
-      "path": "/trainer/:id/archive",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/trainer/:id/assign",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/trainer/:id/assign",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/trainer/:id/preview",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/trainer/:id/progress",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/trainer/:id/publish",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/trainer/:id/publish",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/trainer/:id/revise",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/trainer/:id/revise",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/trainer/:id",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/trainer/:id",
+      "method": "DELETE",
+      "path": "/trainer/commerce/packages/:id",
       "surface": "stable"
     },
     {
       "method": "PATCH",
-      "path": "/trainer/:id",
-      "surface": "stable"
-    },
-    {
-      "method": "PATCH",
-      "path": "/trainer/:id",
+      "path": "/trainer/commerce/packages/:id",
       "surface": "stable"
     },
     {
       "method": "GET",
-      "path": "/trainer/availability",
+      "path": "/trainer/commerce/packages",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/commerce/packages",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/trainer/commerce/payouts",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/commerce/purchases/:purchaseId/refund",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/trainer/commerce/purchases",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/trainer/copilot/clients/:clientId/suggestions",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/trainer/copilot/clients/:clientId/summary",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/trainer/copilot/clients",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/nutrition-plans/:id/archive",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/nutrition-plans/:id/assign",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/trainer/nutrition-plans/:id/preview",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/nutrition-plans/:id/publish",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/nutrition-plans/:id/revise",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/trainer/nutrition-plans/:id",
+      "surface": "stable"
+    },
+    {
+      "method": "PATCH",
+      "path": "/trainer/nutrition-plans/:id",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/trainer/nutrition-plans/clients/:clientId/progress",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/trainer/nutrition-plans",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/nutrition-plans",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/trainer/schedule/availability",
       "surface": "stable"
     },
     {
       "method": "PUT",
-      "path": "/trainer/availability",
+      "path": "/trainer/schedule/availability",
       "surface": "stable"
     },
     {
       "method": "POST",
-      "path": "/trainer/bookings/:id/cancel",
+      "path": "/trainer/schedule/bookings/:id/cancel",
       "surface": "stable"
     },
     {
       "method": "POST",
-      "path": "/trainer/bookings/:id/complete",
+      "path": "/trainer/schedule/bookings/:id/complete",
       "surface": "stable"
     },
     {
       "method": "POST",
-      "path": "/trainer/bookings/:id/reschedule",
+      "path": "/trainer/schedule/bookings/:id/reschedule",
       "surface": "stable"
     },
     {
       "method": "POST",
-      "path": "/trainer/bookings/:id/respond",
+      "path": "/trainer/schedule/bookings/:id/respond",
       "surface": "stable"
     },
     {
       "method": "GET",
-      "path": "/trainer/bookings",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/trainer/clients/:clientId/progress",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/trainer/clients/:clientId/suggestions",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/trainer/clients/:clientId/summary",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/trainer/clients",
+      "path": "/trainer/schedule/bookings",
       "surface": "stable"
     },
     {
       "method": "DELETE",
-      "path": "/trainer/packages/:id",
+      "path": "/trainer/schedule/session-types/:id",
       "surface": "stable"
     },
     {
       "method": "PATCH",
-      "path": "/trainer/packages/:id",
+      "path": "/trainer/schedule/session-types/:id",
       "surface": "stable"
     },
     {
       "method": "GET",
-      "path": "/trainer/packages",
+      "path": "/trainer/schedule/session-types",
       "surface": "stable"
     },
     {
       "method": "POST",
-      "path": "/trainer/packages",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/trainer/payouts",
+      "path": "/trainer/schedule/session-types",
       "surface": "stable"
     },
     {
       "method": "POST",
-      "path": "/trainer/purchases/:purchaseId/refund",
+      "path": "/trainer/workout-plans/:id/assign",
       "surface": "stable"
     },
     {
       "method": "GET",
-      "path": "/trainer/purchases",
+      "path": "/trainer/workout-plans/:id/progress",
       "surface": "stable"
     },
     {
-      "method": "DELETE",
-      "path": "/trainer/session-types/:id",
+      "method": "POST",
+      "path": "/trainer/workout-plans/:id/publish",
+      "surface": "stable"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/workout-plans/:id/revise",
+      "surface": "stable"
+    },
+    {
+      "method": "GET",
+      "path": "/trainer/workout-plans/:id",
       "surface": "stable"
     },
     {
       "method": "PATCH",
-      "path": "/trainer/session-types/:id",
+      "path": "/trainer/workout-plans/:id",
       "surface": "stable"
     },
     {
       "method": "GET",
-      "path": "/trainer/session-types",
+      "path": "/trainer/workout-plans",
       "surface": "stable"
     },
     {
       "method": "POST",
-      "path": "/trainer/session-types",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/trainer",
-      "surface": "stable"
-    },
-    {
-      "method": "GET",
-      "path": "/trainer",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/trainer",
-      "surface": "stable"
-    },
-    {
-      "method": "POST",
-      "path": "/trainer",
+      "path": "/trainer/workout-plans",
       "surface": "stable"
     },
     {
@@ -2845,7 +2845,7 @@
     },
     {
       "method": "POST",
-      "path": "/webhooks/:provider",
+      "path": "/webhooks/payments/:provider",
       "surface": "internal"
     },
     {
@@ -3000,26 +3000,9 @@
     }
   ],
   "knownDuplicates": [
-    "DELETE /me/:id",
-    "GET /admin/users",
     "GET /health",
     "GET /health/ready",
-    "GET /health/version",
-    "GET /me",
-    "GET /me/:assignmentId",
-    "GET /super-admin",
-    "GET /trainer",
-    "GET /trainer/:id",
-    "PATCH /me/:id",
-    "PATCH /trainer/:id",
-    "POST /me",
-    "POST /me/:assignmentId/feedback",
-    "POST /me/:assignmentId/respond",
-    "POST /trainer",
-    "POST /trainer/:id/assign",
-    "POST /trainer/:id/publish",
-    "POST /trainer/:id/revise",
-    "PUT /me"
+    "GET /health/version"
   ],
   "notes": "Duplicate method+path registrations are documented debt (aggregate+direct mount overlap); the invariant test regression-guards this set."
 }

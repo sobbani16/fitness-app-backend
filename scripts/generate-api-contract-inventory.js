@@ -21,7 +21,7 @@ function classify(mountPath) {
 
 function mountOf(layer) {
   const src = (layer.regexp && layer.regexp.source) || '';
-  const m = src.match(/^\^\\\/([^\\?]+)/);
+  const m = src.match(/^\^\\\/(.+?)\\\/\?\(\?=/) || src.match(/^\^\\\/([^\\?]+)/);
   if (!m) return '';
   return '/' + m[1].replace(/\\\//g, '/').replace(/\/?$/, '');
 }
