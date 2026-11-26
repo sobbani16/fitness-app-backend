@@ -36,6 +36,7 @@ function buildDb({ mealRow, recipes = [], allergies = ['peanut'] } = {}) {
       findUnique: async () => ({ id: 'p1', userId: OWNER, caloriesTarget: 2000, proteinTarget: 100, carbsTarget: 200, fatTarget: 70 }),
     },
     foodPreference: { findMany: async () => [] },
+    $transaction: async (fn) => fn(mockDb),
     userPlanningPreferences: { findUnique: async () => null },
     userAllergy: { findMany: async () => allergies.map((name) => ({ allergy: { name } })) },
     ingredient: { findMany: async ({ where }) => (where.id?.in || []).map((id) => ({ id, name: `ingredient ${id}`, catalog: null })) },
@@ -104,5 +105,27 @@ describe('rebalanceDay allergy enforcement (automatic writes, no user to acknowl
     mockDb = buildDb({ mealRow: meal(), recipes: [unknownRecipe], allergies: ['peanut'] });
     await rebalanceDay('p1', 1, OWNER, { skipMealId: 'nope', disliked: [], restrictions: [], preferences: [] });
     for (const c of mockDb.weeklyMeal.update.mock.calls) expect(c[0].data.recipeId).not.toBe('ru');
+  });
+});
+
+describe('P6-002 swap+rebalance atomicity', () => {
+  it('swap write and rebalance run inside a single transaction', async () => {
+    const txSpy = jest.fn(async (fn) => fn(mockDb));
+    mockDb.$transaction = txSpy;
+    mockDb = Object.assign(mockDb, buildDb({ mealRow: meal(), recipes: [recipe('r2', 'rice')] }));
+    mockDb.$transaction = txSpy;
+    await swapMeal('m1', 'r2', OWNER);
+    expect(txSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('a rebalance failure propagates — no silent half-swapped success', async () => {
+    mockDb = buildDb({ mealRow: meal(), recipes: [recipe('r2', 'rice')] });
+    mockDb.$transaction = async (fn) => {
+      // simulate the tx aborting mid-rebalance: throw inside the callback
+      const err = new Error('rebalance write failed');
+      try { await fn({ ...mockDb, weeklyMeal: { ...mockDb.weeklyMeal, update: jest.fn(async () => meal()), findMany: async () => { throw err; } } }); }
+      catch (e) { throw e; }
+    };
+    await expect(swapMeal('m1', 'r2', OWNER)).rejects.toThrow('rebalance write failed');
   });
 });

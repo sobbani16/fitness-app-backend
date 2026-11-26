@@ -106,34 +106,37 @@ async function swapMeal(weeklyMealId, newRecipeId, userId, { acknowledgeUnknownA
     throw Object.assign(httpError(409, 'Recipe composition is unknown — swapping requires explicit acknowledgment.'), { code: 'ALLERGY_COMPOSITION_UNKNOWN', details: { unknowns: verdict.unknown } });
   }
 
-  // Update this meal with the new recipe
-  await prisma.weeklyMeal.update({
-    where: { id: weeklyMealId },
-    data: {
-      recipeId: newRecipe.id,
-      foodName: newRecipe.recipeName,
-      portionG: newRecipe.portionG || newRecipe.servings * 100,
-      calories: newRecipe.calories || 0,
-      proteinG: newRecipe.proteinG || 0,
-      carbsG: newRecipe.carbsG || 0,
-      fatG: newRecipe.fatG || 0,
-      fiberG: newRecipe.fiberG || 0,
-    },
-  });
+  // P6-002: the swap write and the dependent rebalance are ONE atomic unit —
+  // a mid-rebalance failure must never leave the plan half-swapped with the
+  // day's macros no longer matching targets.
+  await prisma.$transaction(async (tx) => {
+    await tx.weeklyMeal.update({
+      where: { id: weeklyMealId },
+      data: {
+        recipeId: newRecipe.id,
+        foodName: newRecipe.recipeName,
+        portionG: newRecipe.portionG || newRecipe.servings * 100,
+        calories: newRecipe.calories || 0,
+        proteinG: newRecipe.proteinG || 0,
+        carbsG: newRecipe.carbsG || 0,
+        fatG: newRecipe.fatG || 0,
+        fiberG: newRecipe.fiberG || 0,
+      },
+    });
 
-  // Re-balance remaining meals for the day, preserving the meal just swapped
-  await rebalanceDay(meal.planId, meal.dayOfWeek, meal.plan.userId, {
-    disliked,
-    restrictions,
-    skipMealId: weeklyMealId,
-    preferences,
+    await rebalanceDay(meal.planId, meal.dayOfWeek, meal.plan.userId, {
+      disliked,
+      restrictions,
+      skipMealId: weeklyMealId,
+      preferences,
+    }, tx);
   });
 
   return prisma.weeklyMeal.findUnique({ where: { id: weeklyMealId }, include: { recipe: { include: { ingredients: true } } } });
 }
 
-async function rebalanceDay(planId, dayOfWeek, userId, filters) {
-  const prisma = getPrisma();
+async function rebalanceDay(planId, dayOfWeek, userId, filters, db) {
+  const prisma = db || getPrisma();
   const plan = await prisma.weeklyNutritionPlan.findUnique({ where: { id: planId } });
   if (!plan) throw new Error('Plan not found.');
 
