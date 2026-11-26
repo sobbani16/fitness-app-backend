@@ -347,11 +347,16 @@ router.post('/commands/execute', wrap(async (req, res) => {
           if (!n || !Number.isFinite(gramsUsed) || gramsUsed <= 0 || gramsUsed > 10000) {
             results.push({ intent: a.intent, status: 'skipped', reason: `${item.name}: needs a gram amount or a recognized serving` }); continue;
           }
+          // dayOffset (e.g. -1 for "yesterday") back-dates loggedAt rather than
+          // silently landing the meal today — retro-logging is explicit, never
+          // inferred beyond the spoken offset.
+          const dayOffset = Number.isFinite(Number(a.entities.dayOffset)) ? Math.max(-7, Math.min(0, Math.trunc(Number(a.entities.dayOffset)))) : 0;
+          const loggedAt = dayOffset ? new Date(Date.now() + dayOffset * 86400000) : undefined;
           const saved = await prisma.foodLog.create({ data: {
             id: `voice-${commandId}-${i}`, userId, foodName: item.name.slice(0, 300),
             quantityG: gramsUsed, calories: n.nutrition.calories ?? 0, proteinG: n.nutrition.proteinG ?? 0,
             carbsG: n.nutrition.carbsG ?? 0, fatG: n.nutrition.fatG ?? 0, fiberG: n.nutrition.fiberG ?? null,
-            mealType: String(a.entities.mealType || 'meal').slice(0, 30), ingredientId: ing.id,
+            mealType: String(a.entities.mealType || 'meal').slice(0, 30), ingredientId: ing.id, ...(loggedAt ? { loggedAt } : {}),
             nutritionSnapshot: { loggedSource: 'voice', grams: gramsUsed, calculated: n.nutrition, nutrientUnknowns: require('../services/nutrientCompleteness').computeUnknowns(n.nutrition), ...(servingMeta || {}) },
           } });
           created.push({ kind: 'foodLog', id: saved.id });

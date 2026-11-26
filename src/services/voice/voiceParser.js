@@ -192,26 +192,39 @@ function parseSegment(seg, ctx = {}) {
 
   // Loose exercise add: "add bench press" / "log squats"
   m = t.match(/^(?:add|log|record|do)\s+(.+?)(?:\s+(?:for|at)\s+(\d+)\s*(lbs?|pounds?|kgs?))?(?:\s+(?:for|x)\s+(\d+)\s*reps?)?$/);
-  if (m && !/food|eat|ate|meal|water|supplement|workout|weight|breakfast|lunch|dinner|snack|\d+\s*(?:g|grams?|milliliters?|ml|oz|ounces?|cups?|glasses?|liters?|litres?)\b/.test(m[1])) {
+  // Count-led phrasing ("log 2 boiled eggs", "log 2 dosas") is the dominant
+  // spoken FOOD shape — it only stays exercise when it carries explicit reps
+  // structure (m[4]); otherwise it falls through to the FOOD branch, where
+  // unresolved servings are asked about rather than mislogged as exercise.
+  const countLed = /^(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+/i.test(m ? m[1] : '');
+  const unitLed = /^(?:a|an)?\s*(?:tsp|tbsp|teaspoons?|tablespoons?|slices?|pieces?|cups?|bowls?|scoops?|handfuls?)\s+/i.test(m ? m[1] : '');
+  const foodShaped = (countLed || unitLed) && !m[4];
+  if (m && !foodShaped && !/food|eat|ate|meal|water|supplement|workout|weight|breakfast|lunch|dinner|snack|yesterday|\d+\s*(?:g|grams?|milliliters?|ml|oz|ounces?|cups?|glasses?|liters?|litres?)\b/.test(m[1])) {
     const name = m[1].trim();
     return { intent: 'LOG_EXERCISE_SET', entities: { exerciseName: name, sets: 1, reps: m[4] ? +m[4] : null, weight: m[2] ? +m[2] : null, weightUnit: m[3] ? (KG.test(m[3]) ? 'kg' : 'lbs') : (ctx.weightUnit || 'lbs') },
       missing: [m[4] ? null : 'reps'].filter(Boolean), segment: seg, status: 'needs_review' };
   }
 
   // FOOD — items split on commas / "and"
-  if (/log|add|ate|had|eat|meal|breakfast|lunch|dinner|snack/.test(t)) {
+  if (/log|add|ate|had|eat|meal|breakfast|lunch|dinner|snack|^\d+(?:\.\d+)?\s*(?:g|grams?)\s/.test(t)) {
     const mealType = (t.match(/breakfast|lunch|dinner|snack/) || [])[0] || 'meal';
     const cleaned = seg.replace(/^(please\s+)?(log|add|record|i\s+ate|i\s+had|i\s+eat)\s*/i, '')
       .replace(/\b(for|as)\s+(breakfast|lunch|dinner|snack)\b.*$/i, '').trim();
-    const items = cleaned.split(/,\s*(?:and\s+)?|\s+and\s+|\s+with\s+/).map(raw => {
+    const items = cleaned.split(/,\s*(?:and\s+)?|\s+and\s+|\s+with\s+|\s*\+\s*/).map(raw => {
       const s = raw.replace(/^(a|an|some|the)\s+/, '').trim(); if (!s) return null;
       const g = s.match(/(\d+(?:\.\d+)?)\s*(?:g|grams?)\s+(?:of\s+)?(.+)/);
       if (g) return { name: g[2].trim(), grams: +g[1], unit: 'g' };
       const c = s.match(/(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:(tsp|tbsp|teaspoons?|tablespoons?|slices?|pieces?|cups?|bowls?|scoops?|handfuls?)\s+(?:of\s+)?)?(.+)/);
       if (c) return { name: c[3].trim(), quantity: num(c[1]), unit: c[2] ? c[2].replace(/s$/, '') : 'servings', grams: null };
+      const u = s.match(/^(?:a|an)?\s*(tsp|tbsp|teaspoons?|tablespoons?|slice|pieces?|cups?|bowls?|scoops?|handfuls?)\s+(?:of\s+)?(.+)/i);
+      if (u) return { name: u[2].trim(), quantity: 1, unit: u[1].toLowerCase().replace(/s$/, ''), grams: null };
       return { name: s, grams: null, unit: 'unknown' };
     }).filter(Boolean);
-    if (items.length) return { intent: 'LOG_FOOD', entities: { items, mealType }, missing: items.some(i => i.grams == null) ? ['grams'] : [], segment: seg, status: items.every(i => i.grams != null) ? 'ready' : 'needs_review' };
+    if (items.length) {
+      const dayOffset = /\byesterday\b/.test(t) ? -1 : 0;
+      for (const it of items) it.name = it.name.replace(/\s+yesterday\s*$/, '').trim();
+      return { intent: 'LOG_FOOD', entities: { items, mealType, ...(dayOffset ? { dayOffset } : {}) }, missing: items.some(i => i.grams == null) ? ['grams'] : [], segment: seg, status: items.every(i => i.grams != null) ? 'ready' : 'needs_review' };
+    }
   }
 
   return { intent: 'UNKNOWN_INTENT', entities: {}, missing: ['intent'], segment: seg, status: 'needs_review' };
