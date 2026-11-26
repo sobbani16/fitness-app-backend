@@ -186,7 +186,7 @@ async function generateFoodSuggestions({ mealType, caloriesTarget, allergies, co
   // the suggestion is unchanged and the provenance says so honestly.
   const conditionNames=[...new Set((conditions||[]).map(c=>String(c).trim()).filter(Boolean))];
   const conditionRows=conditionNames.length
-    ? await db.healthCondition.findMany({where:{name:{in:conditionNames}},include:{conditionRules:{where:{reviewStatus:'APPROVED',activeAt:{not:null},retiredAt:null}}}})
+    ? await db.healthCondition.findMany({where:{name:{in:conditionNames}},include:{conditionRules:{where:liveRuleWhere()}}})
     : [];
   const liveRules=[];
   const unmappedConditions=conditionNames.filter(n=>!conditionRows.some(r=>r.name===n));

@@ -36,8 +36,34 @@ async function revalidateActivePlans(prisma, userId, allergies) {
   const out = [];
   for (const plan of plans) {
     const check = await checkPlan(prisma, plan, allergies);
+    // A confirmation made under the old allergy profile must not survive a
+    // re-check that now finds a conflict or unknown composition — unconfirm
+    // exactly those meals so re-confirmation goes through the allergy gate.
+    const staleIds = [...check.conflicts, ...check.unknown]
+      .filter((m) => m.confirmedByUser)
+      .map((m) => m.mealId);
+    if (staleIds.length) {
+      await prisma.weeklyMeal.updateMany({
+        where: { id: { in: staleIds }, planId: plan.id },
+        data: { confirmedByUser: false, lockedAt: null },
+      });
+    }
     await prisma.weeklyNutritionPlan.update({ where: { id: plan.id }, data: { generationDetails: { ...(plan.generationDetails || {}), allergyCheck: check } } });
-    out.push({ planId: plan.id, weekStartDate: plan.weekStartDate, status: check.status, conflicts: check.conflicts.length, needsReview: check.unknown.length });
+    if (staleIds.length) {
+      // Durable invalidation trail — the confirmation removal itself is the
+      // safety event, so it must not depend on anything ephemeral.
+      await prisma.safetyAuditLog.create({
+        data: {
+          userId,
+          checkType: 'allergy_invalidation',
+          input: { planId: plan.id, allergens: check.allergens },
+          result: { status: check.status, confirmationsInvalidated: staleIds.length, conflicts: check.conflicts.length, needsReview: check.unknown.length },
+          safetyScore: 0,
+          passed: check.status === 'clear',
+        },
+      }).catch(() => {});
+    }
+    out.push({ planId: plan.id, weekStartDate: plan.weekStartDate, status: check.status, conflicts: check.conflicts.length, needsReview: check.unknown.length, confirmationsInvalidated: staleIds.length });
   }
   return { weeklyPlans: out };
 }

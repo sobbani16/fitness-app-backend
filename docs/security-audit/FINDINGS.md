@@ -28,6 +28,17 @@ Status legend: FIXED / OPEN / ACCEPTED-RISK. Evidence in EVIDENCE.md, fixes in R
 
 - SEC-014 SQLi: all raw SQL parameterized via Prisma tagged templates.
 - AuthN lifecycle: scrypt, 32B sessions, hashed tokens, atomic reset, session invalidation, enumeration-resistant.
+
+## pc-HUM-74 increment — AI/provider choke point + web/admin posture
+
+| ID | Sev | Area | Finding | Status |
+|----|-----|------|---------|--------|
+| SEC-F-013 | HIGH | AI security | `/voice/transcribe` constructed its own OpenAI client — bypassed `isAiShutdown` emergency kill-switch AND per-user daily call/token quota (unbounded paid API spend). | FIXED — routes through `aiProvider.transcribeAudio` → `gateAICall` |
+| SEC-F-014 | HIGH | AI security | `labelScannerService.extractWithOpenAI` — second ungated paid path (own client, no shutdown/quota/timeout). | FIXED — now `gateAICall` + `recordUsage`; gate errors (403/429/503) propagate instead of silently falling back to regex |
+| SEC-F-015 | LOW | Web admin | `fitness-app-admin` stores the session token in `localStorage` — XSS-exfiltratable. Standard SPA trade-off; acceptable for v1, revisit if admin gets high-value write ops. | OPEN — documented residual |
+| SEC-F-016 | MED | MFA | No MFA anywhere (`totp|mfa|2fa` — zero hits in src+schema). Admin/clinical roles are the candidates. | OPEN — needs product design (TOTP enrollment UX, recovery codes, rollout sequencing) |
+
+Verified-OK this pass: web BFF holds token in httpOnly cookie only; view-as token forwarded as `x-view-as` header and verified/signed upstream; SEC-F-010 admin `x-user-id` spoofing already resolved on main (session auth in place).
 - AuthZ: admin uniformly `requirePermission`; ownership checks across health/plans/docs/conversations.
 - Uploads: magic-byte validation, private storage, short-lived signed URLs.
 - AI: `store:false`, bounded tokens, quotas, feature-gated, structured JSON, server re-validation.
