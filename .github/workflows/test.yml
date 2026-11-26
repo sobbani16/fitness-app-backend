@@ -65,7 +65,7 @@ jobs:
           # create the disposable DB, migrate, then run gated E2E
           PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c 'CREATE DATABASE fitness_auth_readiness' || true
           npx prisma migrate deploy
-          npx jest --runInBand tests/integration/platformE2E.test.js
+          npx jest --runInBand tests/integration/platformE2E.test.js tests/integration/retentionSweep.test.js
       - uses: actions/upload-artifact@v4
         if: always()
         with:

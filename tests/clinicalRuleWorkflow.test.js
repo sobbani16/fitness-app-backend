@@ -5,6 +5,8 @@ jest.mock('../src/lib/prisma', () => { const db = {
   conditionRule: { findMany: jest.fn(async () => []), findUnique: jest.fn(), update: jest.fn() },
   healthConditionNutrientRule: { findMany: jest.fn(async () => []), findUnique: jest.fn(), update: jest.fn() },
   safetyAuditLog: { create: jest.fn(async () => ({})) },
+  clinicalRuleEvent: { create: jest.fn(async ({ data }) => ({ id: 'ev1', ...data })) },
+  $transaction: jest.fn(async (fn) => (Array.isArray(fn) ? Promise.all(fn) : fn(db))),
 }; return { getPrisma: () => db }; });
 
 const request = require('supertest');
@@ -83,6 +85,33 @@ describe('clinical rule approval workflow', () => {
     expect(res.body.reviewedBy).toBe('rev');
     expect(prisma.safetyAuditLog.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ checkType: 'clinical_rule_review' }),
+    }));
+  });
+
+  test('from-state guard: REJECTED/DRAFT rules cannot jump straight to APPROVED', async () => {
+    prisma.userRole.findMany.mockResolvedValue(reviewerRole('ACADEMY_CLINICAL_REVIEW'));
+    for (const from of ['REJECTED', 'DRAFT', 'APPROVED', 'RETIRED']) {
+      prisma.conditionRule.findUnique.mockResolvedValue({ ...evidenceRule, reviewStatus: from });
+      const res = await request(app).post('/admin/clinical-rules/transition').set('x-user-id', 'rev')
+        .send({ type: 'condition', id: 'r2', to: 'APPROVED', attestation: ATTEST });
+      if (from === 'DRAFT') {
+        // complete rules in DRAFT are blocked by state; incomplete ones by gaps
+        expect([409, 422]).toContain(res.status);
+      } else {
+        expect(res.status).toBe(409);
+      }
+    }
+    expect(prisma.conditionRule.update).not.toHaveBeenCalled();
+  });
+
+  test('every transition writes an immutable ClinicalRuleEvent with the verified role', async () => {
+    prisma.userRole.findMany.mockResolvedValue(reviewerRole('ACADEMY_CLINICAL_REVIEW'));
+    prisma.conditionRule.findUnique.mockResolvedValue(evidenceRule);
+    prisma.conditionRule.update.mockResolvedValue({ ...evidenceRule, reviewStatus: 'APPROVED', version: 2 });
+    await request(app).post('/admin/clinical-rules/transition').set('x-user-id', 'rev')
+      .send({ type: 'condition', id: 'r2', to: 'APPROVED', attestation: ATTEST });
+    expect(prisma.clinicalRuleEvent.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ ruleTable: 'conditionRule', ruleId: 'r2', fromStatus: 'REVIEWED', toStatus: 'APPROVED', action: 'approve', actorId: 'rev', actorRole: expect.stringContaining('CLINICAL_REVIEWER') }),
     }));
   });
 
