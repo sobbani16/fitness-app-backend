@@ -41,6 +41,7 @@ app.use('/config', require('./routes/config'));
 if (process.env.SAFETY_STATE_FIXTURE === '1' || process.env.SAFETY_ENV_FIXTURE) {
   app.use('/test-fixtures/safety-state', require('./routes/safetyFixtures'));
 }
+app.use('/pose-models', require('./routes/poseModels'));
 app.use('/', require('./routes'));
 app.use((req,res) => { res.locals.errorCode = 'NOT_FOUND'; res.status(404).json({error:'Not found', code:'NOT_FOUND', correlationId: req.correlationId}); });
 app.use((err,req,res,next) => {
