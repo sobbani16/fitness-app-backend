@@ -68,8 +68,16 @@ afterAll(async () => {
   await step('userAllergies-byUser', () => prisma.userAllergy.deleteMany({ where: { userId: { in: uids } } }));
   await step('recipeEngagements', () => prisma.recipeEngagement.deleteMany({ where: { recipeId: { in: recipeIds } } }));
   await step('recipes', () => prisma.recipe.deleteMany({ where: { id: { in: recipeIds } } }));
-  // Users may still own other rows (meal plans, nutritionist profiles) —
-  // delete what we can, leave stragglers as report-only residue.
+  // Nutritionist/meal-plan chain blocks user deletion (NUTR-004 residual leak):
+  // mealPlanItem → mealPlan → nutritionistProfile, dependents before parents.
+  const profiles = await prisma.nutritionistProfile.findMany({ where: { userId: { in: uids } }, select: { id: true } }).catch(() => []);
+  const profileIds = profiles.map(pr => pr.id);
+  const plans = await prisma.mealPlan.findMany({ where: { OR: [{ nutritionistId: { in: profileIds } }, { clientId: { in: uids } }] }, select: { id: true } }).catch(() => []);
+  const planIds = plans.map(pl => pl.id);
+  await step('mealPlanItems', () => prisma.mealPlanItem.deleteMany({ where: { mealPlanId: { in: planIds } } }));
+  await step('mealPlans', () => prisma.mealPlan.deleteMany({ where: { id: { in: planIds } } }));
+  await step('nutritionistClients', () => prisma.nutritionistClient.deleteMany({ where: { OR: [{ nutritionistId: { in: profileIds } }, { clientId: { in: uids } }] } }));
+  await step('nutritionistProfiles', () => prisma.nutritionistProfile.deleteMany({ where: { id: { in: profileIds } } }));
   await step('users', () => prisma.user.deleteMany({ where: { id: { in: uids } } }));
   if (failures.length) console.warn(`[mealSuggest teardown] cleanup step failures: ${failures.join('; ')}`);
 });

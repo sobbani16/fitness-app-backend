@@ -215,3 +215,11 @@ Units:
 ## Remaining open questions (unchanged)
 3. `Recipe.calories`/`portionG`/`finishedYieldG` consistency after edits (computed at write, no trigger) — unverified drift risk.
 4. Mobile `labelPortion` 'package' free-text — no server validation.
+
+## Iteration 3 — NUTR-004 residual leak closure + NUTR-019 conservative gate (2026-11-26)
+
+**NUTR-004 residual leak (fixed):** the resilient teardown still leaked the nutritionist-chain users on every run — `mealPlanItem`/`mealPlan`/`nutritionistClient`/`nutritionistProfile` were never cleaned ("leave stragglers" comment), so the `-nutri`/`-client` users were FK-blocked from deletion on every run. 13 pre-fix legacy rows (`msmwv64eve-*` 11-24, `msmwvli06l-*` 11-25 batches) were found in `fitness_test` and cleaned from the disposable DB with dependents (foodLogs 2, foodPreferences 2, planningPrefs 2, userAllergies 2, nutritionistProfiles 1, users 13 total). Teardown now deletes the full chain in dependency order before users; verified post-fix: fresh run leaves **zero** ms-prefixed users/ingredients/recipes. The residue guard passes in-sequence (15/15).
+
+**NUTR-019 conservative gate (fixed — REJECTED only):** `reviewStatus: { not: 'REJECTED' }` added to all four read/suggest surfaces, matching the existing mutation-route semantics: `GET /recipes/:id/intelligence` (recipes.js:7), `recipeService.searchRecipes` (:97), `recipeService.getRecipeNutrition` (:109 — REJECTED now throws 404 'Recipe unavailable' like any invisible recipe), `mealSuggestion` candidates (:117). `nutritionRecommendation` already filtered REJECTED post-query (BLOCKED_REVIEW). **RESEARCH_DRAFT visibility is intentionally unchanged** — the draft read-gate vs per-surface draft labeling remains a product decision (230 drafts are the catalog's bulk; hiding them unilaterally would break meal suggestion). Regression: `tests/recipeReviewGate.test.js` (4/4) asserts REJECTED 404/absent on all four surfaces with SYSTEM and RESEARCH_DRAFT as visible controls.
+
+**Remaining unchanged:** shared-dev-DB cleanup approvals, data-owner adjudication of the 10 fixture ingredients, clinical-review items, pc-HUM-3/pc-HUM-5 deferrals, and the RESEARCH_DRAFT visibility product decision.
