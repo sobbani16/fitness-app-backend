@@ -129,7 +129,11 @@ function parseSegment(seg, ctx = {}) {
     const rest = m[2];
     const repsM = rest.match(/(\d+)\s*reps?/);
     const weightM = rest.match(/(\d+(?:\.\d+)?)\s*(lbs?|pounds?|kgs?|kilos?|kilograms?)/);
-    const name = rest.replace(/,?\s*\d+\s*reps?.*$/, '').replace(/,?\s*(?:at|@)\s*\d+(?:\.\d+)?\s*(?:lbs?|pounds?|kgs?|kilos?|kilograms?).*$/, '').trim();
+    let name = rest.replace(/,?\s*\d+\s*reps?.*$/, '').replace(/,?\s*(?:at|@)\s*\d+(?:\.\d+)?\s*(?:lbs?|pounds?|kgs?|kilos?|kilograms?).*$/, '').trim();
+    if (!name) { // "3 sets of 12 reps bench" — the name trails the rep count
+      const nm = rest.match(/\d+\s*reps?\s+(?:of\s+)?(.+)/);
+      name = nm ? nm[1].replace(/,?\s*(?:at|@)\s*\d+(?:\.\d+)?\s*(?:lbs?|pounds?|kgs?|kilos?|kilograms?).*$/, '').trim() : name;
+    }
     return {
       intent: 'LOG_EXERCISE_SET',
       entities: {
@@ -151,6 +155,12 @@ function parseSegment(seg, ctx = {}) {
       missing: [ex ? null : 'exercise', w != null ? null : 'weight'].filter(Boolean), segment: seg, status: ex ? 'ready' : 'needs_review' };
   }
 
+  // Loose exercise add — leading reps: "log 10 reps of squats"
+  m = t.match(/^(?:add|log|record|do)\s+(\d+)\s*reps?\s+(?:of\s+)?(.+)$/);
+  if (m && !/food|eat|ate|meal|water|supplement|workout|weight|breakfast|lunch|dinner|snack|\d+\s*(?:g|grams?|milliliters?|ml|oz|ounces?|cups?|glasses?|liters?|litres?)\b/.test(m[2])) {
+    return { intent: 'LOG_EXERCISE_SET', entities: { exerciseName: m[2].trim(), sets: 1, reps: +m[1], weight: null, weightUnit: ctx.weightUnit || 'lbs' },
+      missing: [], segment: seg, status: 'ready' };
+  }
   // Loose exercise add: "add bench press" / "log squats"
   m = t.match(/^(?:add|log|record|do)\s+(.+?)(?:\s+(?:for|at)\s+(\d+)\s*(lbs?|pounds?|kgs?))?(?:\s+(?:for|x)\s+(\d+)\s*reps?)?$/);
   if (m && !/food|eat|ate|meal|water|supplement|workout|weight|breakfast|lunch|dinner|snack|\d+\s*(?:g|grams?|milliliters?|ml|oz|ounces?|cups?|glasses?|liters?|litres?)\b/.test(m[1])) {
@@ -178,9 +188,15 @@ function parseSegment(seg, ctx = {}) {
   return { intent: 'UNKNOWN_INTENT', entities: {}, missing: ['intent'], segment: seg, status: 'needs_review' };
 }
 
+// Wake phrase — stripped before segmentation so "hey leo, log water" doesn't
+// leave a stray 'hey leo' UNKNOWN segment or corrupt the first segment's
+// intent (dictated prefixes otherwise land in LOG_FOOD). Works for both the
+// push-to-talk transcripts of today and a future always-listening engine.
+const WAKE_RE = /^\s*(?:(?:hey|ok|okay)\s+)?leo[,.!\s]+/i;
+
 const parseTranscript = (text, ctx = {}) => ({
   transcript: String(text).slice(0, 1000),
-  actions: splitSegments(text).map(s => parseSegment(s, ctx)),
+  actions: splitSegments(String(text).replace(WAKE_RE, '')).map(s => parseSegment(s, ctx)),
 });
 
 module.exports = { parseTranscript };

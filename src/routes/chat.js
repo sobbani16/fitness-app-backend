@@ -48,6 +48,30 @@ router.post('/', requireFeature('ai_coach'), async (req, res) => {
     const message = (req.body && req.body.message) ? String(req.body.message) : '';
     if (!message.trim()) return res.status(400).json({ error: 'message is required' });
 
+    // Fiber questions are answered deterministically by the engine — the LLM
+    // never sees them, so numbers can't be fabricated and no chat quota is
+    // consumed. Requires the fiber_ai_enabled flag on top of ai_coach. A
+    // grounded fiber answer opens a short-lived per-user "fiber thread" so
+    // follow-ups without a fiber keyword ("what can I add to dinner?") stay
+    // on the deterministic path. This check runs before the quota gate so
+    // free grounded answers — and quota-exhausted users' fiber questions —
+    // are not blocked by the LLM daily limit.
+    const fiberOn = await flags.isEnabled('fiber_ai_enabled', userId).catch(() => false);
+    if (fiberOn) {
+      const now = Date.now();
+      // Prune expired thread markers — the map is in-process and must not
+      // grow with every user who ever asked a fiber question.
+      for (const [uid, t] of fiberThreads) if (now - t >= FIBER_THREAD_TTL_MS) fiberThreads.delete(uid);
+      const inFiberThread = fiberThreads.has(userId);
+      const grounded = await require('../services/fiber/assistant').groundFiberAnswer(userId, message, { inFiberThread }).catch(() => ({ handled: false }));
+      if (grounded.handled) {
+        fiberThreads.set(userId, now);
+        const status = await limiter.status(userId);
+        return res.json({ topic: grounded.topic, answer: grounded.answer, source: grounded.source, quota: { limit: status.limit, used: status.used, remaining: status.remaining } });
+      }
+      fiberThreads.delete(userId);
+    }
+
     const gate = await limiter.consume(userId);
     if (!gate.allowed) {
       return res.status(429).json({
@@ -56,23 +80,6 @@ router.post('/', requireFeature('ai_coach'), async (req, res) => {
         used: gate.used,
         remaining: 0,
       });
-    }
-
-    // Fiber questions are answered deterministically by the engine — the LLM
-    // never sees them, so numbers can't be fabricated. Requires the
-    // fiber_ai_enabled flag on top of ai_coach. A grounded fiber answer opens
-    // a short-lived per-user "fiber thread" so follow-ups without a fiber
-    // keyword ("what can I add to dinner?") stay on the deterministic path.
-    const fiberOn = await flags.isEnabled('fiber_ai_enabled', userId).catch(() => false);
-    if (fiberOn) {
-      const thread = fiberThreads.get(userId);
-      const inFiberThread = !!(thread && Date.now() - thread < FIBER_THREAD_TTL_MS);
-      const grounded = await require('../services/fiber/assistant').groundFiberAnswer(userId, message, { inFiberThread }).catch(() => ({ handled: false }));
-      if (grounded.handled) {
-        fiberThreads.set(userId, Date.now());
-        return res.json({ topic: grounded.topic, answer: grounded.answer, source: grounded.source, quota: { limit: gate.limit, used: gate.used, remaining: gate.remaining } });
-      }
-      fiberThreads.delete(userId);
     }
 
     const reply = await generateReply(message, userId);

@@ -92,3 +92,22 @@ describe('voiceParser', () => {
     expect(parseTranscript('x'.repeat(2000)).transcript.length).toBe(1000);
   });
 });
+
+describe('wake phrase ("Hey Leo")', () => {
+  test('prefix is stripped before intent parse — dictated and future always-on transcripts', () => {
+    for (const t of ['hey leo log 10 reps of squats', 'hey leo, log 10 reps of squats', 'ok leo log 10 reps of squats', 'leo log 10 reps of squats']) {
+      const a = parseTranscript(t, {}).actions;
+      expect(a).toHaveLength(1);
+      expect(a[0].intent).toBe('LOG_EXERCISE_SET');
+      expect(a[0].entities.reps).toBe(10);
+    }
+  });
+  test('comma wake phrase does not leave a stray UNKNOWN segment', () => {
+    const a = parseTranscript('hey leo, log 250 ml water', {}).actions;
+    expect(a.map(x => x.intent)).toEqual(['LOG_WATER']);
+  });
+  test('mid-transcript "leo" is command content, never stripped', () => {
+    const a = parseTranscript('log 10 reps of squats then leo', {}).actions;
+    expect(a[0].intent).toBe('LOG_EXERCISE_SET');
+  });
+});
