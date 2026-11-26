@@ -62,6 +62,35 @@ presented as real-world validation.
   real held-out data — all blocked on needs_human decision #97 (footage +
   compute).
 
+### Artifact integrity verification (2026-11-26, HUM-100-K)
+
+- Contract: export prints `artifact_sha256` — SHA-256 over the exact byte
+  stream written to disk (serialized once, written once, hashed once). The
+  digest is the export record; it cannot live inside the file it covers.
+  The pre-existing embedded `checksumSha256` (model-parameter blob only)
+  and the checkpoint format are unchanged.
+- Verification: `pose/training/verify_checkpoint.py --checkpoint <path>
+  --sha256 <digest-from-export-record>` re-computes the digest over file
+  bytes independently and exits nonzero with clear diagnostics for mismatch
+  (exit 1), malformed digest, or unreadable file (exit 2).
+- Why both checksums: the embedded checksum covers only the model parameter
+  blob — evaluation-metadata-only tampering (inflating held-out accuracy)
+  leaves it unchanged. The artifact digest covers every byte and catches it.
+  Proven by regression test.
+- Usage: run export, copy the `artifact_sha256` line from stdout, verify any
+  copy of the checkpoint before consumption.
+- Evidence: `tests/poseTrainingPipeline.test.js` 13/13 — identical runs →
+  bit-identical bytes and digests; untouched checkpoint verifies against the
+  printed record; metadata-only edit rejected while embedded checksum stays
+  constant; malformed digest and unreadable file rejected. Decisive lines:
+  PASS `artifact bytes match export record` (sha 5ab1fe4b… on canonical
+  config); FAIL `artifact digest mismatch` after held-out accuracy tamper.
+- Distinct remaining checks under K: consent-record cross-validation against
+  the P3 consent ledger (per-participant scope + revocation freshness),
+  recording-session integrity (per-clip sha256 against manifest digests),
+  and the §20 real-world acceptance evaluation — all blocked on needs_human
+  decision #97 (footage + compute).
+
 ### Outstanding real-world validation (BLOCKED)
 
 - Real consented footage for the 5+1 target exercises (multi-view,

@@ -153,9 +153,16 @@ def main():
     heldout_eval = evaluate(model, test_samples)
     manifest = checkpoint_manifest(cfg, model, train_eval, heldout_eval)
     out = args.out or f"checkpoint-{manifest['configHash'][:12]}.json"
-    with open(out, "w") as f:
-        json.dump({"manifest": manifest, "export": export_local(manifest, cfg)}, f, indent=2)
+    # Serialize ONCE and write those exact bytes — the artifact digest must
+    # cover the byte stream as written, not a re-serialization. The digest is
+    # emitted on stdout as the export record (it cannot live inside the file
+    # it covers); verify_checkpoint.py re-computes it independently.
+    blob = json.dumps({"manifest": manifest, "export": export_local(manifest, cfg)}, indent=2).encode()
+    with open(out, "wb") as f:
+        f.write(blob)
+    artifact_sha = hashlib.sha256(blob).hexdigest()
     print(f"checkpoint written: {out} heldout_acc={heldout_eval['accuracy']} n_train={train_eval['n']} n_heldout={heldout_eval['n']} sha={manifest['checksumSha256'][:16]}")
+    print(f"artifact_sha256={artifact_sha}")
 
 if __name__ == "__main__":
     main()

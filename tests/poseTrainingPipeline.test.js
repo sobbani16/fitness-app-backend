@@ -142,3 +142,56 @@ print('identical' if m1['params'] == m2['params'] else 'DIFFERENT')
     expect(out).toBe('identical');
   });
 });
+
+describe('artifact integrity (§42)', () => {
+  const shaOf = (p) => require('crypto').createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+  const verify = (ckpt, sha) => {
+    try {
+      const out = execSync(`python3 pose/training/verify_checkpoint.py --checkpoint ${ckpt} --sha256 ${sha}`, { cwd: ROOT, stdio: 'pipe' });
+      return { exit: 0, out: out.toString() };
+    } catch (e) {
+      return { exit: e.status, out: (e.stderr || '').toString() + (e.stdout || '').toString() };
+    }
+  };
+
+  it('identical runs produce identical file bytes and artifact digests', () => {
+    const a = tmpOut('ba'), b = tmpOut('bb');
+    runPipeline(CFG, a);
+    runPipeline(CFG, b);
+    expect(fs.readFileSync(a).equals(fs.readFileSync(b))).toBe(true);
+    expect(shaOf(a)).toBe(shaOf(b));
+    const r = verify(a, shaOf(a));
+    expect(r.exit).toBe(0);
+    expect(r.out).toMatch(/PASS.*match export record/);
+  });
+
+  it('untouched checkpoint verifies against the printed artifact_sha256 export record', () => {
+    const a = tmpOut('rt');
+    const stdout = runPipeline(CFG, a).toString();
+    const sha = stdout.match(/artifact_sha256=([0-9a-f]{64})/)[1];
+    const r = verify(a, sha);
+    expect(r.exit).toBe(0);
+  });
+
+  it('evaluation-metadata-only edit fails verification even though the embedded model checksum is unchanged', () => {
+    const a = tmpOut('tamper');
+    const stdout = runPipeline(CFG, a).toString();
+    const sha = stdout.match(/artifact_sha256=([0-9a-f]{64})/)[1];
+    const doc = JSON.parse(fs.readFileSync(a, 'utf8'));
+    const embeddedBefore = doc.manifest.checksumSha256;
+    doc.manifest.evaluation.heldout.accuracy = 0.9999;
+    fs.writeFileSync(a, JSON.stringify(doc, null, 2));
+    const embeddedAfter = JSON.parse(fs.readFileSync(a, 'utf8')).manifest.checksumSha256;
+    expect(embeddedAfter).toBe(embeddedBefore); // embedded checksum cannot catch metadata tampering
+    const r = verify(a, sha);
+    expect(r.exit).toBe(1);
+    expect(r.out).toMatch(/FAIL — artifact digest mismatch/);
+  });
+
+  it('malformed digest and unreadable file exit nonzero with diagnostics', () => {
+    const a = tmpOut('edge');
+    runPipeline(CFG, a);
+    expect(verify(a, 'nothex').exit).toBe(2);
+    expect(verify(a + '.missing', shaOf(a)).exit).toBe(2);
+  });
+});
