@@ -4506,3 +4506,41 @@ model MlRolloutEvent {
 
   @@index([modelId, createdAt])
 }
+
+// ── P3 consent-gated pose recording platform (HUM-100) ─────────────────────
+model PoseConsent {
+  id            String    @id @default(uuid())
+  userId        String
+  participantKey String   // pseudonymous participant handle — clips reference this, never identity
+  scopeItems    Json      // {landmark_storage, raw_video, training_use, evaluation_use} booleans
+  consentVersion String
+  signedAt      DateTime  @default(now())
+  revokedAt     DateTime?
+  revocationChannel String?
+  createdAt     DateTime  @default(now())
+  clips         PoseClip[]
+
+  @@index([userId])
+  @@index([participantKey])
+}
+
+model PoseClip {
+  id          String   @id @default(uuid())
+  consentId   String
+  consent     PoseConsent @relation(fields: [consentId], references: [id], onDelete: Cascade)
+  participantKey String  // copied at ingest — immutable snapshot, joins never expose userId
+  exerciseId  String
+  datasetId   String   @default("humai-self-recorded")
+  storageRef  String   // opaque object-store reference — raw bytes never in the DB
+  landmarkOnly Boolean @default(true) // raw video stored ONLY with separate explicit consent
+  durationMs  Int
+  frameCount  Int?
+  viewpoint   String?  // front|side|rear|oblique per annotation schema
+  sha256      String
+  status      String   @default("registered") // registered|quarantined|deleted
+  createdAt   DateTime @default(now())
+  deletedAt   DateTime?
+
+  @@index([participantKey])
+  @@index([exerciseId, status])
+}
