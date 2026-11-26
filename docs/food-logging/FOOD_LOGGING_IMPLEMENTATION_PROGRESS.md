@@ -136,3 +136,14 @@ RESUME POINT unchanged minus cleared blocker: Phase 2 map → Phase 3 DB audit �
 2. Relax `quantityG` to nullable with a CHECK that at least one of quantityG/quantityMl is present — OR keep non-null and never write volume-native logs without conversion (status quo defect).
 3. Resolver: when nutrition basis is volume-compatible, compute directly (`per100ml × ml/100`) with `quantityG` null — never fabricate mass.
 Recommendation filed in decision #111: keep per-100g canonical for INGREDIENT storage (density conversion at import where trustworthy), add the FoodLog volume-native representation for logs.
+
+## Workstream C calculation contract — explicit bases (2026-11-26, same branch)
+
+`calculateDeclared(declared, input)` in `src/services/nutrition.js` — pure, no DB:
+- Scales PER_100_G by grams, PER_100_ML by volumeMl, PER_SERVING by servingCount — **only the matching unit**; mismatches reject `unit_mismatch` (conversion remains density-guarded in ingredientNutrition).
+- Preserves declared basis + referenceQuantity in the result; unknown nutrients stay `null` (measured zero survives as zero — proven by test).
+- Mass is `null` for native volume/serving input without documented mass — never fabricated, never zero.
+- Spec C2 examples exact: 330 mL → 138.6 kcal/mass null; 64 g → 158.08 kcal/mass 64; 2 servings → 240 kcal/mass null; fractional serving 0.5×55 g → 27.5 g.
+- Rejects invalid amounts, unsupported bases, missing input, bad servingMassG.
+
+**Remaining required-mass persistence constraint:** the calculation layer now produces correct volume-native nutrition with unknown mass, but the FoodLog write path cannot persist it — `quantityG` non-nullable forces the refusal documented in the baseline entry above. Persistence remediation awaits decision #111. FoodLog route behavior unchanged in this increment (characterization tests intact, 3/3).

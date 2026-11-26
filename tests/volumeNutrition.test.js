@@ -94,3 +94,50 @@ describe('baseline: native per-100-mL nutrition (Workstream C evidence)', () => 
     expect(r.provenance.conversion).toContain('1.04 g/ml');
   });
 });
+
+// ── Workstream C: explicit-basis calculation (calculateDeclared) ────────────
+const { calculateDeclared } = require('../src/services/nutrition');
+
+const JUICE_ML = { basis: 'PER_100_ML', nutrients: { calories: 42, proteinG: 0.7, carbsG: 10, fatG: 0.2, fiberG: null } };
+
+describe('calculateDeclared — explicit mass/volume/serving bases', () => {
+  it('330 mL at 42 kcal per 100 mL → 138.6 kcal with UNKNOWN mass', () => {
+    const r = calculateDeclared(JUICE_ML, { volumeMl: 330 });
+    expect(r.nutrition.calories).toBeCloseTo(138.6, 4);
+    expect(r.massG).toBeNull(); // never fabricated, never zero-stand-in
+    expect(r.basis).toBe('PER_100_ML');
+    expect(r.referenceQuantity).toBe(100);
+  });
+  it('64 g at 247 kcal per 100 g → 158.08 kcal, mass known', () => {
+    const r = calculateDeclared({ basis: 'PER_100_G', nutrients: { calories: 247 } }, { grams: 64 });
+    expect(r.nutrition.calories).toBeCloseTo(158.08, 4);
+    expect(r.massG).toBe(64);
+  });
+  it('2 servings at 120 kcal per serving → 240 kcal, mass unknown without documented serving mass', () => {
+    const r = calculateDeclared({ basis: 'PER_SERVING', nutrients: { calories: 120 } }, { servingCount: 2 });
+    expect(r.nutrition.calories).toBeCloseTo(240, 4);
+    expect(r.massG).toBeNull();
+  });
+  it('fractional servings scale correctly; documented serving mass yields mass', () => {
+    const r = calculateDeclared({ basis: 'PER_SERVING', nutrients: { calories: 120 } }, { servingCount: 0.5, servingMassG: 55 });
+    expect(r.nutrition.calories).toBeCloseTo(60, 4);
+    expect(r.massG).toBeCloseTo(27.5, 4);
+  });
+  it('unknown nutrients remain null — distinct from measured zero', () => {
+    const r = calculateDeclared(JUICE_ML, { volumeMl: 330 });
+    expect(r.nutrition.fiberG).toBeNull();
+    const z = calculateDeclared({ basis: 'PER_100_ML', nutrients: { fiberG: 0 } }, { volumeMl: 100 });
+    expect(z.nutrition.fiberG).toBe(0); // measured zero survives as zero
+  });
+  it('unit mismatches are rejected — no implicit conversion', () => {
+    expect(() => calculateDeclared(JUICE_ML, { grams: 100 })).toThrow(/unit_mismatch/);
+    expect(() => calculateDeclared({ basis: 'PER_100_G', nutrients: {} }, { volumeMl: 100 })).toThrow(/unit_mismatch/);
+    expect(() => calculateDeclared({ basis: 'PER_SERVING', nutrients: {} }, { grams: 50 })).toThrow(/unit_mismatch/);
+  });
+  it('invalid amounts and unsupported bases are rejected', () => {
+    expect(() => calculateDeclared(JUICE_ML, { volumeMl: -5 })).toThrow(/invalid volumeMl/);
+    expect(() => calculateDeclared(JUICE_ML, { volumeMl: NaN })).toThrow(/invalid volumeMl/);
+    expect(() => calculateDeclared({ basis: 'PER_GRAM', nutrients: {} }, { grams: 1 })).toThrow(/unsupported_basis/);
+    expect(() => calculateDeclared(JUICE_ML, {})).toThrow(/missing volumeMl/);
+  });
+});
