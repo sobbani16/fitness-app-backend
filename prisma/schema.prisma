@@ -2612,6 +2612,11 @@ model TrainerCoachingPackage {
   interval     String? // month | year for subscriptions
   priceCents   Int
   currency     String         @default("usd")
+  // JSON array of closed-enum deliverable keys (spec PHASE-10):
+  // workout_only, nutrition_in_scope, combined, check_ins, consultations,
+  // messaging, form_review, group_coaching. Explicit deliverables — a package
+  // without them is invalid by construction.
+  deliverables String?
   active       Boolean        @default(true)
 
   purchases TrainerPurchase[]
