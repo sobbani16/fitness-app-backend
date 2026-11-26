@@ -43,15 +43,22 @@ function aiUsage(userId) {
   return { callsToday: u?.calls || 0, tokensToday: u?.tokens || 0, callCap: DAILY_CALL_CAP };
 }
 
-async function askJSON(name, properties, instructions, text, imageDataUrl, userId, options = {}) {
-  // Emergency AI shutdown beats every other gate, including provider targeting.
+// Shared gate for every paid provider call: emergency shutdown → AI enabled →
+// key present → per-user quota reservation. Returns the quota key for
+// recordUsage. All provider traffic must pass through this module — no route
+// or service may construct its own ungated OpenAI client.
+async function gateAICall(userId, estimatedTokens = 3000) {
   if (await require('./featureFlags/service').isAiShutdown(userId)) throw featureDisabled();
   if (!aiEnabled()) throw httpError(503, 'AI features are not enabled on this server.');
   if (!process.env.OPENAI_API_KEY?.trim()) throw httpError(503, 'AI service is not configured. Use manual logging or food search.');
+  return checkQuota(userId, estimatedTokens);
+}
+
+async function askJSON(name, properties, instructions, text, imageDataUrl, userId, options = {}) {
   if (imageDataUrl) require('./foodInput').validateFoodInput({ imageDataUrl });
   const maxOutputTokens = Math.min(8000, Math.max(500, Number(options.maxOutputTokens) || 1500));
   const reservedTokens = imageDataUrl ? 4000 : Math.max(2000, maxOutputTokens);
-  const quotaKey = checkQuota(userId, reservedTokens);
+  const quotaKey = await gateAICall(userId, reservedTokens);
   const { OpenAI } = require('openai');
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 30000, maxRetries: 0 });
   const content = [{ type: 'input_text', text }];
@@ -77,4 +84,26 @@ async function askJSON(name, properties, instructions, text, imageDataUrl, userI
     throw httpError(502, 'AI service returned an incomplete estimate. Please retry or enter values manually.');
   }
 }
-module.exports = { askJSON, aiEnabled, aiUsage };
+// Audio transcription — same gates as askJSON (shutdown flag, AI enabled,
+// key present, per-user quota). Every paid provider call must pass through
+// this module; routes must never construct their own OpenAI client.
+async function transcribeAudio(buffer, { format = 'm4a', userId } = {}) {
+  const quotaKey = await gateAICall(userId, 2000); // ~30s clip at flat token reserve
+  const { OpenAI } = require('openai');
+  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 30000, maxRetries: 0 });
+  const file = new (require('buffer').File)([buffer], `clip.${format}`, { type: `audio/${format}` });
+  let result;
+  try {
+    result = await client.audio.transcriptions.create({
+      file, model: process.env.VOICE_TRANSCRIBE_MODEL || 'gpt-4o-mini-transcribe',
+    });
+  } catch (e) {
+    if (e.status === 429) throw httpError(503, 'AI capacity is temporarily unavailable. Try again shortly.');
+    if (e.name === 'APIConnectionTimeoutError') throw httpError(504, 'AI analysis timed out. Try again.');
+    throw httpError(502, 'AI service could not transcribe this clip. Please retry.');
+  }
+  recordUsage(quotaKey, result, 2000);
+  return { transcript: result.text || '' };
+}
+
+module.exports = { askJSON, aiEnabled, aiUsage, transcribeAudio, gateAICall, recordUsage };
