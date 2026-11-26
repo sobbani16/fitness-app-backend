@@ -12,7 +12,7 @@ const ld = require('./localDay');
 const prisma = new Proxy({}, { get: (_t, p) => getPrisma()[p] });
 
 // Versioned weight policy — bump on any formula change; snapshots keep theirs.
-const CALC_VERSION = 2;
+const CALC_VERSION = 3;
 const WEIGHTS = { nutrition: 25, hydration: 15, activity: 20, sleep: 15, habits: 15, planActions: 10 };
 
 const clamp = (n, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, n));
@@ -43,7 +43,7 @@ async function computeDay(userId, { tz, dayKeyStr, now = new Date(), persist = t
   const minsNow = local.minutes;
 
   const [meals, water, steps, workouts, sleep, habits, prefs, goals, planningPrefs] = await Promise.all([
-    prisma.foodLog.findMany({ where: { userId, loggedAt: { gte: startUtc, lt: endUtc } }, select: { calories: true, proteinG: true, fiberG: true, mealType: true, loggedAt: true } }).catch(() => []),
+    prisma.foodLog.findMany({ where: { userId, loggedAt: { gte: startUtc, lt: endUtc } }, select: { calories: true, proteinG: true, fiberG: true, mealType: true, loggedAt: true, nutritionSnapshot: true } }).catch(() => []),
     prisma.waterLog.aggregate({ where: { userId, loggedAt: { gte: startUtc, lt: endUtc } }, _sum: { amountMl: true } }).catch(() => ({ _sum: {} })),
     prisma.dailySteps.findFirst({ where: { userId, date: { gte: startUtc, lt: endUtc } }, select: { steps: true } }).catch(() => null),
     prisma.workoutSession.findMany({ where: { userId, startedAt: { gte: startUtc, lt: endUtc } }, select: { finishedAt: true, startedAt: true } }).catch(() => []),
@@ -64,14 +64,39 @@ async function computeDay(userId, { tz, dayKeyStr, now = new Date(), persist = t
   const logged = new Set(meals.map((m) => m.mealType || 'meal'));
   const loggedDue = dueMeals.filter((m) => logged.has(m) || logged.has('meal')).length;
   const kcalGoal = goals?.caloriesTarget || null;
-  const kcal = meals.reduce((a, m) => a + (m.calories || 0), 0);
+  // Coverage-aware accounting (Workstream H): stored zero is not measured
+  // zero. `unknownsFor` resolves explicit nutrientUnknowns, then snapshot
+  // source blocks, then schema-level nullability — legacy snapshot-less gram
+  // logs therefore count as measured, preserving their long-standing behavior.
+  const { unknownsFor } = require('./nutrientCompleteness');
+  const kcal = meals.reduce((a, m) => a + (m.calories || 0), 0); // legacy raw sum, kept for continuity
+  const measuredLogs = meals.filter((m) => !unknownsFor(m).includes('calories'));
+  const unknownCalLogs = meals.length - measuredLogs.length;
+  const measuredKcal = measuredLogs.reduce((a, m) => a + (m.calories || 0), 0);
+  const coverageState = meals.length === 0 ? 'none'
+    : unknownCalLogs === 0 ? 'complete'
+    : measuredLogs.length === 0 ? 'unknown'
+    : 'partial';
+  const calorieCoverage = {
+    state: coverageState,
+    measuredLogs: measuredLogs.length,
+    unknownLogs: unknownCalLogs,
+    measuredKcal: Math.round(measuredKcal),
+  };
   let nutProgress = dueMeals.length ? loggedDue / dueMeals.length : logged.size ? 0.5 : 0;
-  // Goal check: at day end, eating within ±20% of target counts as met.
-  if (kcalGoal && now >= endUtc) nutProgress = Math.max(nutProgress, Math.abs(kcal - kcalGoal) <= kcalGoal * 0.2 ? 1 : Math.min(1, kcal / kcalGoal));
+  // Goal check: at day end, eating within ±20% of target counts as met — but
+  // ONLY when calorie coverage is complete. Incomplete intake can never earn
+  // the adjustment: an unknown subtotal must not masquerade as a full day.
+  if (kcalGoal && now >= endUtc && coverageState === 'complete') {
+    nutProgress = Math.max(nutProgress, Math.abs(measuredKcal - kcalGoal) <= kcalGoal * 0.2 ? 1 : Math.min(1, measuredKcal / kcalGoal));
+  }
+  const kcalNote = coverageState === 'unknown' ? 'calorie intake unknown'
+    : coverageState === 'partial' ? `${Math.round(measuredKcal)} kcal measured (subtotal — ${unknownCalLogs} log${unknownCalLogs > 1 ? 's' : ''} unknown)`
+    : `${Math.round(measuredKcal)} kcal`;
   components.push(comp('nutrition', {
     status: dueMeals.length === 0 && !meals.length ? 'INSUFFICIENT_DATA' : componentStatus(nutProgress, meals.length > 0 || dueMeals.length > 0, false),
     progress: nutProgress,
-    detail: { note: meals.length === 0 ? 'No meals logged yet' : `${meals.length} logged · ${Math.round(kcal)} kcal`, dueMeals, calories: Math.round(kcal), goal: kcalGoal },
+    detail: { note: meals.length === 0 ? 'No meals logged yet' : `${meals.length} logged · ${kcalNote}`, dueMeals, calories: Math.round(kcal), measuredCalories: Math.round(measuredKcal), calorieCoverage, goal: kcalGoal },
     source: ['food_log'],
   }));
 

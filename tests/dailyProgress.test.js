@@ -133,3 +133,77 @@ describe('Daily Progress V2', () => {
     expect(r.components.find((c) => c.key === 'sleep').status).toBe('INSUFFICIENT_DATA');
   });
 });
+
+describe('Workstream H — calorie coverage accuracy', () => {
+  const AFTER_END = new Date('2026-11-19T02:00:00Z'); // 9pm next day — day 11/17 over, all meals due
+  const withLogs = (logs) => {
+    prisma.foodLog.findMany.mockResolvedValueOnce(logs.map((l, i) => ({ mealType: ['breakfast','lunch','dinner'][i % 3], loggedAt: MORNING, ...l })));
+    prisma.macroGoal.findUnique.mockResolvedValueOnce({ caloriesTarget: 2000, proteinTarget: null, fiberTarget: null, waterMlTarget: null });
+  };
+  const nutOf = (r) => r.components.find((c) => c.key === 'nutrition');
+  const snap = (unknowns, calculated) => ({ nutrientUnknowns: unknowns, calculated: calculated || null });
+
+  test('mixed intake — measured subtotal is labeled as such, never as the full total', async () => {
+    withLogs([
+      { calories: 600, nutritionSnapshot: null }, // legacy snapshot-less — measured
+      { calories: 0, nutritionSnapshot: snap(['calories']) }, // unknown calories stored as 0
+    ]);
+    const r = await computeDay('u1', { tz: TZ, now: MORNING, persist: false });
+    const n = nutOf(r);
+    expect(n.calorieCoverage.state).toBe('partial');
+    expect(n.calorieCoverage.measuredKcal).toBe(600);
+    expect(n.calorieCoverage.unknownLogs).toBe(1);
+    expect(n.note).toMatch(/subtotal/);
+    expect(n.note).not.toMatch(/^2 logged · 600 kcal$/);
+  });
+
+  test('all-unknown intake — calorie intake reported as unknown', async () => {
+    withLogs([
+      { calories: 0, nutritionSnapshot: snap(['calories']) },
+      { calories: 0, nutritionSnapshot: snap(['calories']) },
+    ]);
+    const r = await computeDay('u1', { tz: TZ, now: MORNING, persist: false });
+    const n = nutOf(r);
+    expect(n.calorieCoverage.state).toBe('unknown');
+    expect(n.note).toMatch(/calorie intake unknown/);
+  });
+
+  test('incomplete intake CANNOT earn the end-of-day calorie adjustment', async () => {
+    // measured 1900 of 2000 goal would earn the adjustment if complete — but
+    // one log's calories are unknown, so coverage is partial and no adjustment.
+    withLogs([
+      { calories: 1900, nutritionSnapshot: null },
+      { calories: 0, nutritionSnapshot: snap(['calories']) },
+    ]);
+    const complete = await computeDay('u1', { tz: TZ, dayKeyStr: '2026-11-17', now: AFTER_END, persist: false });
+    const nutPartial = nutOf(complete);
+    expect(nutPartial.calorieCoverage.state).toBe('partial');
+    expect(nutPartial.progress).toBeLessThan(1); // no GOAL_MET through the back door
+  });
+
+  test('complete intake — end-of-day adjustment unchanged (regression)', async () => {
+    withLogs([
+      { calories: 1000, nutritionSnapshot: null },
+      { calories: 900, nutritionSnapshot: snap([]) }, // explicit zero unknowns
+    ]);
+    const r = await computeDay('u1', { tz: TZ, dayKeyStr: '2026-11-17', now: AFTER_END, persist: false });
+    const n = nutOf(r);
+    expect(n.calorieCoverage.state).toBe('complete');
+    expect(n.progress).toBe(1); // 1900 within ±20% of 2000 — adjustment applies
+    expect(n.status).toBe('GOAL_MET');
+  });
+
+  test('measured zero is preserved as measured — not reclassified unknown', async () => {
+    withLogs([{ calories: 0, nutritionSnapshot: snap([]) }]); // explicit no-unknowns: the 0 is measured
+    const r = await computeDay('u1', { tz: TZ, now: MORNING, persist: false });
+    const n = nutOf(r);
+    expect(n.calorieCoverage.state).toBe('complete');
+    expect(n.calorieCoverage.measuredKcal).toBe(0);
+  });
+
+  test('snapshot-less legacy gram logs count as measured (behavior preserved)', async () => {
+    withLogs([{ calories: 450, nutritionSnapshot: undefined }]);
+    const r = await computeDay('u1', { tz: TZ, now: MORNING, persist: false });
+    expect(nutOf(r).calorieCoverage.state).toBe('complete');
+  });
+});
