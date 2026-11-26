@@ -116,3 +116,34 @@ RESUME POINT unchanged minus cleared blocker: Phase 2 map → Phase 3 DB audit �
 **Test-env findings:** earlier "8 failing suites" + Maestro mid-run deaths are **environmental** — full backend suite green (136/137 suites, 5520 tests); driver deaths correlate with parallel `workout-verify`/`p22`/`mv2` sessions on the same UDID + memory pressure. Infra kills ≠ app defects — runner retries on `ConnectException`/EOF/timeout signatures.
 
 **RESUME POINT:** finish 4 in-flight device flows → push (needs authorization) → Railway staging deploy + synthetic checks → staging mobile build → physical-device camera pass → final GO decision.
+
+## Workstream C baseline evidence — native per-100-mL persistence (2026-11-26, branch hum-49-volume-nutrition)
+
+**Executable baseline recorded** (`tests/volumeNutrition.test.js` +2, `tests/foodLogVolumeRoute.test.js` new, 12/12 green):
+
+| Probe | Required (spec C2) | ACTUAL recorded |
+|---|---|---|
+| Beverage 42 kcal/100 mL, no density, 330 mL | 138.6 kcal, mass unknown, log written | **400 `volume_requires_density` — ZERO writes; beverage unloggable with nutrition** |
+| Same beverage with density 1.04 (control) | write succeeds | write succeeds; quantityG=343.2 g converted, provenance in snapshot |
+| Schema constraint | volume-only logs representable | `FoodLog.quantityG` **non-nullable** — route seeds `quantityG=0` placeholder (foodLogs.js:51) before resolution; overwritten on success, write dies on refusal |
+
+**Database-verified** (read-only `information_schema` on local nonproduction Postgres): `FoodLog.quantityG is_nullable=NO` (double precision), `IngredientNutrient.amountPer100g is_nullable=YES` (numeric) — schema and live database agree; no drift.
+
+**Affected record types:** FoodLog (write path + all quantityG consumers — fiber/nutrition aggregation, health score, weekly review), IngredientNutrient (per-100g canonical only), Ingredient serving declarations.
+
+**Smallest backward-compatible remediation (input to decision #111):**
+1. Add nullable `quantityMl` + `nutritionBasis` enum (PER_100_G default/PER_100_ML/PER_SERVING) on FoodLog — additive migration, old clients unaffected (they only write quantityG).
+2. Relax `quantityG` to nullable with a CHECK that at least one of quantityG/quantityMl is present — OR keep non-null and never write volume-native logs without conversion (status quo defect).
+3. Resolver: when nutrition basis is volume-compatible, compute directly (`per100ml × ml/100`) with `quantityG` null — never fabricate mass.
+Recommendation filed in decision #111: keep per-100g canonical for INGREDIENT storage (density conversion at import where trustworthy), add the FoodLog volume-native representation for logs.
+
+## Workstream C calculation contract — explicit bases (2026-11-26, same branch)
+
+`calculateDeclared(declared, input)` in `src/services/nutrition.js` — pure, no DB:
+- Scales PER_100_G by grams, PER_100_ML by volumeMl, PER_SERVING by servingCount — **only the matching unit**; mismatches reject `unit_mismatch` (conversion remains density-guarded in ingredientNutrition).
+- Preserves declared basis + referenceQuantity in the result; unknown nutrients stay `null` (measured zero survives as zero — proven by test).
+- Mass is `null` for native volume/serving input without documented mass — never fabricated, never zero.
+- Spec C2 examples exact: 330 mL → 138.6 kcal/mass null; 64 g → 158.08 kcal/mass 64; 2 servings → 240 kcal/mass null; fractional serving 0.5×55 g → 27.5 g.
+- Rejects invalid amounts, unsupported bases, missing input, bad servingMassG.
+
+**Remaining required-mass persistence constraint:** the calculation layer now produces correct volume-native nutrition with unknown mass, but the FoodLog write path cannot persist it — `quantityG` non-nullable forces the refusal documented in the baseline entry above. Persistence remediation awaits decision #111. FoodLog route behavior unchanged in this increment (characterization tests intact, 3/3).

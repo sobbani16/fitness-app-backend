@@ -219,40 +219,47 @@ async function calculateScore(userId, date) {
     fiberScore * WEIGHTS.fiber,
   );
 
+  // Per-macro coverage (Workstream H): a stored 0 is not a measured 0. Each
+  // macro gets a measured subtotal (null when every log is unknown for it) and
+  // explicit assessment availability. Target-based tips are suppressed when
+  // any log is unknown for that macro — advice derived from an incomplete
+  // subtotal would steer users on fabricated certainty. Legacy snapshot-less
+  // logs count as measured via the unknownsFor fallback chain.
+  const { unknownsFor } = require('./nutrientCompleteness');
+  const macroKeyOf = { protein: 'proteinG', carbs: 'carbsG', fat: 'fatG', fiber: 'fiberG' };
+  const coverageOf = (macro) => {
+    const key = macroKeyOf[macro];
+    const unknownLogs = logs.filter((l) => unknownsFor(l).includes(key)).length;
+    const measured = logs.filter((l) => !unknownsFor(l).includes(key));
+    const measuredSubtotal = logs.length > 0 && measured.length === 0
+      ? null
+      : Math.round(measured.reduce((s, l) => s + (l[key] || 0), 0) * 10) / 10;
+    return { measuredSubtotal, unknownLogs, assessmentAvailable: unknownLogs === 0 };
+  };
+  const incompleteTip = (macro, unknownLogs) =>
+    `${macro.charAt(0).toUpperCase() + macro.slice(1)} data is incomplete — ${unknownLogs} logged meal${unknownLogs > 1 ? 's' : ''} without measured values. Log complete nutrition to get target advice.`;
+  const macroBreakdown = (macro, actual, target, score) => {
+    const cov = coverageOf(macro);
+    const status = macroStatus(actual, target);
+    return {
+      actual: Math.round(actual * 10) / 10,
+      target,
+      score,
+      color: scoreColor(score),
+      status,
+      measuredSubtotal: cov.measuredSubtotal,
+      unknownLogs: cov.unknownLogs,
+      assessmentAvailable: cov.assessmentAvailable,
+      tip: cov.assessmentAvailable ? macroTip(macro, actual, target, status) : incompleteTip(macro, cov.unknownLogs),
+    };
+  };
+
   // Build breakdown with colors and tips.
   const breakdown = {
-    protein: {
-      actual: Math.round(intake.proteinG * 10) / 10,
-      target: goals.proteinTarget,
-      score: proteinScore,
-      color: scoreColor(proteinScore),
-      status: macroStatus(intake.proteinG, goals.proteinTarget),
-      tip: macroTip('protein', intake.proteinG, goals.proteinTarget, macroStatus(intake.proteinG, goals.proteinTarget)),
-    },
-    carbs: {
-      actual: Math.round(intake.carbsG * 10) / 10,
-      target: goals.carbsTarget,
-      score: carbsScore,
-      color: scoreColor(carbsScore),
-      status: macroStatus(intake.carbsG, goals.carbsTarget),
-      tip: macroTip('carbs', intake.carbsG, goals.carbsTarget, macroStatus(intake.carbsG, goals.carbsTarget)),
-    },
-    fat: {
-      actual: Math.round(intake.fatG * 10) / 10,
-      target: goals.fatTarget,
-      score: fatScore,
-      color: scoreColor(fatScore),
-      status: macroStatus(intake.fatG, goals.fatTarget),
-      tip: macroTip('fat', intake.fatG, goals.fatTarget, macroStatus(intake.fatG, goals.fatTarget)),
-    },
-    fiber: {
-      actual: Math.round(intake.fiberG * 10) / 10,
-      target: goals.fiberTarget,
-      score: fiberScore,
-      color: scoreColor(fiberScore),
-      status: macroStatus(intake.fiberG, goals.fiberTarget),
-      tip: macroTip('fiber', intake.fiberG, goals.fiberTarget, macroStatus(intake.fiberG, goals.fiberTarget)),
-    },
+    protein: macroBreakdown('protein', intake.proteinG, goals.proteinTarget, proteinScore),
+    carbs: macroBreakdown('carbs', intake.carbsG, goals.carbsTarget, carbsScore),
+    fat: macroBreakdown('fat', intake.fatG, goals.fatTarget, fatScore),
+    fiber: macroBreakdown('fiber', intake.fiberG, goals.fiberTarget, fiberScore),
   };
 
   const result = {

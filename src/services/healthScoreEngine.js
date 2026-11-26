@@ -86,7 +86,7 @@ async function scoreMacroAdherence(userId, dateStr, prisma, tz) {
   // is not guaranteed; a shake can be logged as both food and supplement).
   const intake = logs.reduce(
     (a, l) => ({ protein: a.protein + l.proteinG, carbs: a.carbs + l.carbsG, fat: a.fat + l.fatG, fiber: a.fiber + (l.fiberG ?? 0) }),
-    { protein: 0, carbs: 0, fat: 0, fiber: 0 },
+    { protein: 0, carbs: 0, fat: 0, fiber: 0 }, // fiber sum assumes zero but is only DISPLAYED with coverage metadata; scoring path excludes it when unknown
   );
 
   const pScore = scoreMacro(intake.protein, targets.proteinTarget);
@@ -94,10 +94,21 @@ async function scoreMacroAdherence(userId, dateStr, prisma, tz) {
   const fScore = scoreMacro(intake.fat, targets.fatTarget);
   const fiScore = scoreMacro(intake.fiber, targets.fiberTarget);
 
-  const score = Math.round(pScore * 0.35 + cScore * 0.25 + fScore * 0.20 + fiScore * 0.20);
+  // Unknown is never a zero: logs whose fiber composition is unverifiable
+  // must not drag the composite down as a fake deficiency. When any of the
+  // day's logs have unknown fiber, the fiber component drops out and the
+  // remaining weights renormalize; the insight says exactly why.
+  const fiberUnknownCount = logs.filter((l) => require('./nutrientCompleteness').unknownsFor(l).includes('fiberG')).length;
+  const fiberInsufficient = logs.length > 0 && fiberUnknownCount > 0;
+  const score = fiberInsufficient
+    ? Math.round((pScore * 0.35 + cScore * 0.25 + fScore * 0.20) / 0.80)
+    : Math.round(pScore * 0.35 + cScore * 0.25 + fScore * 0.20 + fiScore * 0.20);
 
   const contributors = [];
   const insights = [];
+  if (fiberInsufficient) {
+    insights.push({ message: `Fiber intake is unknown for ${fiberUnknownCount} of today's ${logs.length} entries — the macro score excludes fiber rather than treating it as zero.`, severity: 'info' });
+  }
 
   // Protein contributors
   if (intake.protein >= targets.proteinTarget * 0.9) {
@@ -173,6 +184,9 @@ async function scoreConditionCompliance(userId, dateStr, prisma, tz) {
   let penalties = 0;
   const contributors = [];
   const insights = [];
+  if (fiberInsufficient) {
+    insights.push({ message: `Fiber intake is unknown for ${fiberUnknownCount} of today's ${logs.length} entries — the macro score excludes fiber rather than treating it as zero.`, severity: 'info' });
+  }
   // A given (food, attribute) pair penalizes once — logging the same item
   // twice must not stack duplicate penalties.
   const applied = new Set();
@@ -297,6 +311,9 @@ async function scoreActivity(userId, dateStr, prisma, tz) {
   const totalMinutes = workouts.reduce((s, w) => s + (w.durationMinutes || 0), 0);
   const contributors = [];
   const insights = [];
+  if (fiberInsufficient) {
+    insights.push({ message: `Fiber intake is unknown for ${fiberUnknownCount} of today's ${logs.length} entries — the macro score excludes fiber rather than treating it as zero.`, severity: 'info' });
+  }
 
   let score;
   if (totalMinutes >= 30) {
@@ -342,6 +359,9 @@ async function scoreRecovery(userId, dateStr, prisma, tz) {
 
   const contributors = [];
   const insights = [];
+  if (fiberInsufficient) {
+    insights.push({ message: `Fiber intake is unknown for ${fiberUnknownCount} of today's ${logs.length} entries — the macro score excludes fiber rather than treating it as zero.`, severity: 'info' });
+  }
   // Score only what was recorded: missing sleep or water logs are unknown,
   // not a default 70. Both missing → the whole component is unavailable.
   const parts = [];
@@ -537,7 +557,7 @@ async function getImprovementActions(userId, date) {
 
   const intake = logs.reduce(
     (a, l) => ({ protein: a.protein + l.proteinG, carbs: a.carbs + l.carbsG, fat: a.fat + l.fatG, fiber: a.fiber + (l.fiberG ?? 0) }),
-    { protein: 0, carbs: 0, fat: 0, fiber: 0 },
+    { protein: 0, carbs: 0, fat: 0, fiber: 0 }, // fiber sum assumes zero but is only DISPLAYED with coverage metadata; scoring path excludes it when unknown
   );
   const waterMl = waterLogs.reduce((s, w) => s + (w.amountMl || 0), 0);
 
@@ -634,6 +654,7 @@ async function getHealthScoreTrend(userId, days = 7) {
 
 module.exports = {
   calculateHealthScore,
+  scoreMacroAdherence,
   getImprovementActions,
   getHealthScoreTrend,
   statusFromScore,

@@ -162,7 +162,7 @@ async function getUserEnergySummary(prisma, userId, { date, timeZone, now = new 
     }),
     prisma.foodLog.findMany({
       where: { userId, loggedAt: { gte: dayStart, lt: dayEnd } },
-      select: { calories: true, loggedAt: true },
+      select: { calories: true, loggedAt: true, nutritionSnapshot: true },
       orderBy: { loggedAt: 'desc' },
     }),
   ]);
@@ -236,11 +236,24 @@ async function getUserEnergySummary(prisma, userId, { date, timeZone, now = new 
     : null;
 
   // ---- intake ----
-  const loggedKcal = foodLogs.reduce((s, l) => s + (Number.isFinite(l.calories) ? l.calories : 0), 0);
+  // Coverage-aware (Workstream H): a stored calorie value only counts when it
+  // was actually measured — unknownsFor resolves explicit nutrientUnknowns,
+  // then snapshot source blocks, then schema fallback. Snapshot-less legacy
+  // rows therefore count as measured, preserving long-standing behavior.
+  // loggedKcal reports the MEASURED subtotal for mixed intake, null when
+  // every log is unknown (there is no honest number), and zero for measured
+  // zero. completeness keeps its whole-day meaning — unknowable beyond 'partial'.
+  const { unknownsFor } = require('./nutrientCompleteness');
+  const measuredLogs = foodLogs.filter((l) => !unknownsFor(l).includes('calories'));
+  const unknownCalCount = foodLogs.length - measuredLogs.length;
+  const measuredKcal = measuredLogs.reduce((s, l) => s + (Number.isFinite(l.calories) ? l.calories : 0), 0);
   const mealCount = foodLogs.length;
+  const allUnknown = mealCount > 0 && measuredLogs.length === 0;
   const intake = {
-    loggedKcal: mealCount ? Math.round(loggedKcal) : (loggedKcal > 0 ? Math.round(loggedKcal) : null),
+    loggedKcal: mealCount === 0 ? null : allUnknown ? null : Math.round(measuredKcal),
     mealCount,
+    measuredLogCount: measuredLogs.length,
+    unknownLogCount: unknownCalCount,
     lastLoggedAt: foodLogs[0]?.loggedAt ?? null,
     // 'partial' is the best we can ever claim from logs — completeness is unknowable.
     completeness: mealCount === 0 ? 'none' : 'partial',
@@ -301,10 +314,15 @@ async function getUserEnergySummary(prisma, userId, { date, timeZone, now = new 
     intake,
     target: { intakeKcal: round(targetKcal), source: targetSource },
     balance: {
-      provisionalKcal: mealCount > 0 && expendedSoFar != null ? Math.round(loggedKcal - expendedSoFar) : null,
-      provisionalNote: mealCount > 0
-        ? 'Provisional — logged intake only; not a confirmed energy balance.'
-        : null,
+      // Withheld entirely when any logged meal has unknown calories: a balance
+      // derived from an unknown-inclusive subtotal would silently understate
+      // intake and fabricate a deficit. Measured-zero and snapshot-less legacy
+      // rows are measured — they do not withhold.
+      provisionalKcal: mealCount > 0 && unknownCalCount === 0 && expendedSoFar != null ? Math.round(measuredKcal - expendedSoFar) : null,
+      provisionalNote: mealCount === 0 ? null
+        : unknownCalCount > 0
+          ? `Withheld — ${unknownCalCount} logged meal${unknownCalCount > 1 ? 's have' : ' has'} unknown calories, so even a provisional balance would be misleading.`
+          : 'Provisional — logged intake only; not a confirmed energy balance.',
       completedDayKcal: null, // never claimed — intake completeness is unverifiable
     },
     sync: { lastSyncAt: lastSyncAt?.toISOString() ?? null, stale: syncStale },
