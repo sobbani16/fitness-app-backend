@@ -3,13 +3,15 @@ const request = require('supertest');
 const mockPrisma = {
   macroGoal: { findUnique: jest.fn(), upsert: jest.fn(), create: jest.fn() },
   waterLog: { findMany: jest.fn() },
+  user: { findUnique: jest.fn() },
+  userHealthCondition: { findMany: jest.fn() },
 };
 jest.mock('../src/lib/prisma', () => ({ getPrisma: () => mockPrisma }));
 const app = require('../src/app');
 const { routeLabel, failureCategory } = require('../src/middleware/requestContext');
 const { versionInfo } = require('../src/config/version');
 
-beforeEach(() => { jest.clearAllMocks(); mockPrisma.waterLog.findMany.mockResolvedValue([]); });
+beforeEach(() => { jest.clearAllMocks(); mockPrisma.waterLog.findMany.mockResolvedValue([]); mockPrisma.user.findUnique.mockResolvedValue(null); mockPrisma.userHealthCondition.findMany.mockResolvedValue([]); });
 
 describe('GET /health/version', () => {
   it('is public and exposes only build identity', async () => {
