@@ -62,7 +62,13 @@ router.post('/',async(req,res,next)=>{
    const calculated=typeof b.servingId==='string'&&b.servingId
      ?await require('../services/ingredientNutrition').calculate(b.ingredientId,{servingId:b.servingId,count:servingCount??1})
      :await require('../services/ingredientNutrition').calculate(b.ingredientId,{grams:data.quantityG});
-   if(calculated.serving)data.quantityG=calculated.grams;
+   if(calculated.serving){
+    data.quantityG=calculated.grams;
+    // The serving path converts count×grams server-side and bypasses the
+    // direct quantityG bound above — enforce the same cap here so
+    // count=1000 against a large serving can't persist absurd portions.
+    if(!Number.isFinite(data.quantityG)||data.quantityG>100000)throw httpError(400,'Invalid serving count');
+   }
    const edited=['calories','proteinG','carbsG','fatG','fiberG'].some(k=>data[k]!=null && (calculated.nutrition[k]==null || Math.abs(data[k]-calculated.nutrition[k])>(k==='calories'?0.51:0.051)));
    data.ingredientId=b.ingredientId;
    const catalogRevisionAtSelection=typeof b.catalogRevision==='string'?b.catalogRevision.slice(0,64):null;
