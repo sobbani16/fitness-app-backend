@@ -115,6 +115,7 @@ async function getMealSuggestions(prisma, userId, { occasion, limit = 5, now = n
     prisma.recipe.findMany({
       where: {
         OR: [{ isSystem: true }, { creatorId: userId }],
+        reviewStatus: { not: 'REJECTED' },
         calories: { not: null },
       },
       include: { ingredients: { select: { ingredientName: true } } },
