@@ -180,4 +180,39 @@ router.post('/confirmations/:id/confirm', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+
+// POST /leo/transcribe — voice-capture contract skeleton.
+// The STT provider decision is pending (needs_human #112): the contract is
+// provider-agnostic — validation, authz, idempotency, and privacy constraints
+// are independent of which engine eventually transcribes. Until a provider is
+// configured the endpoint answers 501 with the exact blocker rather than
+// silently accepting audio it cannot process.
+router.post('/transcribe', async (req, res, next) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) throw httpError(401, 'unauthorized');
+    const b = req.body && typeof req.body === 'object' ? req.body : {};
+    // contract validation — these hold regardless of provider
+    const format = String(b.format || '').toLowerCase();
+    if (!['m4a', 'aac', 'wav', 'mp3', 'webm'].includes(format)) {
+      throw httpError(400, 'format must be one of m4a|aac|wav|mp3|webm');
+    }
+    const durationMs = Number(b.durationMs);
+    if (!Number.isFinite(durationMs) || durationMs <= 0 || durationMs > 120000) {
+      throw httpError(400, 'durationMs must be within 1..120000 (voice captures are bounded to 2 minutes)');
+    }
+    if (typeof b.audioRef !== 'string' || b.audioRef.length < 8 || b.audioRef.length > 512) {
+      throw httpError(400, 'audioRef must be an opaque storage reference (8-512 chars) — raw audio is never posted inline');
+    }
+    if (!process.env.LEO_STT_PROVIDER) {
+      return res.status(501).json({
+        error: 'stt_provider_not_configured',
+        detail: 'STT provider decision pending (needs_human). Contract is stable: format, durationMs, audioRef, languageHint; transcripts will be idempotent on audioRef.',
+        contractVersion: CONTRACT_VERSION,
+      });
+    }
+    throw httpError(501, 'stt_provider_not_implemented');
+  } catch (e) { next(e); }
+});
+
 module.exports = router;
