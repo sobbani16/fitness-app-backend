@@ -1,0 +1,66 @@
+{
+  "at": "2026-11-26T21:18:47.868Z",
+  "sha": "8b3f7fb84f4e8ca607a761c79c11df53f3ccf177",
+  "runs": [
+    {
+      "run": 1,
+      "sha": "8b3f7fb84f4e",
+      "rc": 0,
+      "durationMs": 23931,
+      "suites": "unparsed",
+      "tests": "unparsed",
+      "nodeEnv": "test",
+      "db": "fitness_test",
+      "hostMemMBAfterRun": 19244,
+      "pgConnectionsAfterRun": null
+    },
+    {
+      "run": 2,
+      "sha": "8b3f7fb84f4e",
+      "rc": 0,
+      "durationMs": 20391,
+      "suites": "unparsed",
+      "tests": "unparsed",
+      "nodeEnv": "test",
+      "db": "fitness_test",
+      "hostMemMBAfterRun": 19877,
+      "pgConnectionsAfterRun": null
+    },
+    {
+      "run": 3,
+      "sha": "8b3f7fb84f4e",
+      "rc": 0,
+      "durationMs": 21416,
+      "suites": "unparsed",
+      "tests": "unparsed",
+      "nodeEnv": "test",
+      "db": "fitness_test",
+      "hostMemMBAfterRun": 18110,
+      "pgConnectionsAfterRun": null
+    },
+    {
+      "run": 4,
+      "sha": "8b3f7fb84f4e",
+      "rc": 1,
+      "durationMs": 20048,
+      "suites": "1 failed, 2 skipped, 156 passed, 157 of 159 total",
+      "tests": "1 failed, 4 skipped, 48 todo, 6074 passed, 6127 total",
+      "nodeEnv": "test",
+      "db": "fitness_test",
+      "hostMemMBAfterRun": 18692,
+      "pgConnectionsAfterRun": null
+    },
+    {
+      "run": 5,
+      "sha": "8b3f7fb84f4e",
+      "rc": 0,
+      "durationMs": 20395,
+      "suites": "unparsed",
+      "tests": "unparsed",
+      "nodeEnv": "test",
+      "db": "fitness_test",
+      "hostMemMBAfterRun": 18926,
+      "pgConnectionsAfterRun": null
+    }
+  ]
+}

@@ -4,7 +4,7 @@ const { searchRecipes, getRecipeNutrition } = require('../services/recipeService
 const router = express.Router();
 router.get('/:id/intelligence',async(req,res,next)=>{try{
  const db=require('../lib/prisma').getPrisma(), userId=req.userId||req.headers['x-user-id'];
- const recipe=await db.recipe.findFirst({where:{id:req.params.id,OR:[{isSystem:true},{creatorId:userId}]},include:{ingredients:true}});
+ const recipe=await db.recipe.findFirst({where:{id:req.params.id,reviewStatus:{not:'REJECTED'},OR:[{isSystem:true},{creatorId:userId}]},include:{ingredients:true}});
  if(!recipe)return res.status(404).json({error:'Recipe unavailable'});
  const grams=req.query.grams==null?undefined:Number(req.query.grams);
  if(grams!=null&&(!Number.isFinite(grams)||grams<=0||grams>100000))return res.status(400).json({error:'Invalid portion'});

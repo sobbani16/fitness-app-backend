@@ -182,18 +182,41 @@ router.post('/clinical-rules/transition', requirePermission('ACADEMY_CLINICAL_RE
       if (gaps.length) return res.status(422).json({ error: 'Rule has blocking gaps — resolve before approval.', gaps });
     }
 
-    const updated = await model.update({
-      where: { id },
-      data: { reviewStatus: to, reviewedBy: req.userId, reviewedAt: new Date(), version: { increment: 1 } },
-    });
-    await prisma.safetyAuditLog.create({
-      data: {
-        userId: req.userId, checkType: 'clinical_rule_review',
-        input: { type, id, to, attestation: attest.slice(0, 500) },
-        result: { status: 'ok', from: rule.reviewStatus, to },
-        passed: true,
-      },
-    }).catch(() => {});
+    // Same from-state rules as the governed workflow: approval only after
+    // review, review only from draft/in-review. Demotion to DRAFT is always
+    // allowed (moving a rule away from live is the safe direction).
+    const ALLOWED_FROM = { APPROVED: ['REVIEWED', 'IN_REVIEW'], REVIEWED: ['IN_REVIEW', 'DRAFT'], DRAFT: ['DRAFT', 'IN_REVIEW', 'REVIEWED', 'APPROVED', 'REJECTED'] };
+    if (!ALLOWED_FROM[to].includes(rule.reviewStatus)) {
+      return res.status(409).json({ error: `Cannot move a rule in ${rule.reviewStatus} to ${to} via this endpoint — use the governed transition workflow.` });
+    }
+
+    // Status change + immutable ClinicalRuleEvent + safetyAuditLog commit
+    // atomically — a crash between them would be a silent governance action.
+    const ruleTable = type === 'condition' ? 'conditionRule' : 'healthConditionNutrientRule';
+    const action = to === 'APPROVED' ? 'approve' : to === 'REVIEWED' ? 'review' : 'submit';
+    const [updated] = await prisma.$transaction((tx) => Promise.all([
+      tx[ruleTable].update({
+        where: { id },
+        data: { reviewStatus: to, reviewedBy: req.userId, reviewedAt: new Date(), version: { increment: 1 } },
+      }),
+      tx.clinicalRuleEvent.create({
+        data: {
+          ruleTable, ruleId: id, ruleCode: rule[ruleTable === 'conditionRule' ? 'ruleCode' : 'code'] || null,
+          fromStatus: rule.reviewStatus, toStatus: to, action,
+          actorId: req.userId, actorRole: (req.userRoles || []).join(',') || null,
+          notes: attest ? attest.slice(0, 500) : null,
+          diff: { reviewStatus: [rule.reviewStatus, to] },
+        },
+      }),
+      tx.safetyAuditLog.create({
+        data: {
+          userId: req.userId, checkType: 'clinical_rule_review',
+          input: { type, id, to, attestation: attest.slice(0, 500) },
+          result: { status: 'ok', from: rule.reviewStatus, to },
+          passed: true,
+        },
+      }),
+    ]));
     res.json({ id: updated.id, reviewStatus: updated.reviewStatus, reviewedBy: updated.reviewedBy, reviewedAt: updated.reviewedAt, version: updated.version });
   } catch (err) { fail(res, err); }
 });
