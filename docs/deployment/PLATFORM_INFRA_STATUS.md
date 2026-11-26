@@ -79,3 +79,24 @@ union vs backend registry has no automated consistency check.
    open design question).
 4. Optional: extend the contract manifest with `FEATURES` key list and assert
    mobile `FeatureKey` union ⊆ registry keys in `apiContract` tests.
+
+## Railway inspection evidence 2026-11-26T22:55Z (Decision #127 authorized — pc-HUM-97)
+
+First authorized live inspection; supersedes all prior inference. Sources: `railway status`, `railway deployment list --json` per service/environment, git ancestry checks. No mutations performed — inspection only.
+
+### Deployment topology (verified)
+| service | env | deployed commit | branch | status | deployed |
+|---|---|---|---|---|---|
+| fitness-app-backend | production | `6b100c4c2c03` | main | SUCCESS | 2026-11-26T21:13Z |
+| fitness-app-backend | staging | `6b100c4c2c03` | main | SUCCESS | 2026-11-26T21:13Z |
+| activity-safety-staging | staging | `1c45d1d19829` | feat/activity-safety-engine | SUCCESS | 2026-11-26T17:36Z |
+
+### Program-critical findings
+1. **merge→prod auto-deploy CONFIRMED**: production sits exactly at origin/main HEAD (`6b100c4`, 0 commits behind) and the deployed commit is itself a merge commit (PR #16). Merging to main IS a production release operation — the §4.1 gate discipline applies to every merge, and the merge-serialization policy (pc-HUM-63 needs-human) is now confirmed as a hard requirement, not a precaution.
+2. **Staging drift quantified**: `activity-safety-staging` is 49 commits behind main, deployed from the activity-safety feature branch — deliberate program isolation, not drift-by-accident. Smoke/perf evidence gathered against this URL measures that branch, not main. `fitness-app-backend-staging.up.railway.app` is main-current and is the correct target for main-behavior verification.
+3. **Migrations current** on the activity-safety deployment ("No pending migrations to apply" in runtime logs).
+4. Both health endpoints live-verified during inspection. No secrets or variable values were exposed in evidence gathering (one non-secret sender-email fragment appeared in a CLI output line — not logged to any artifact).
+5. Postgres service online in staging environment (single instance named `postgres-volume`).
+
+### §4.2 compliance note
+No production mutations, no variable dumps, no redeploys performed. `railway link` config was added to this worktree only (gitignored paths; no repo-visible change).

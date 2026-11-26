@@ -10,3 +10,6 @@ var/uploads/
 var/test-reports/
 /app.json
 .env.generated
+
+# Railway CLI link state (local deployment config, never committed)
+.railway/
