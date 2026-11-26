@@ -60,3 +60,37 @@ it('rejects invalid volumes', async () => {
   await expect(calculate('i-milk', { volumeMl: -5 }, db(MILK))).rejects.toMatchObject({ status: 400 });
   await expect(calculate('i-milk', { volumeMl: 'x' }, db(MILK))).rejects.toMatchObject({ status: 400 });
 });
+
+// ── Workstream C baseline evidence: native per-100-mL nutrition ─────────────
+// A beverage whose SOURCE declares nutrition per 100 mL cannot be represented
+// in the per-100g-canonical model without a density conversion. Required per
+// spec C2: 330 mL → 138.6 kcal with UNKNOWN mass (no conversion needed when
+// the basis is already volume-compatible). This suite records what the
+// current resolver ACTUALLY does — baseline evidence, not the fix.
+const BEVERAGE = {
+  id: 'i-bev', name: 'Orange juice (per-100ml declared)', source: 'usda', densityGPerMl: null,
+  caloriesPer100g: 42, proteinPer100g: 0.7, carbsPer100g: 10, fatPer100g: 0.2, fiberPer100g: 0.2,
+  catalog: null, servings: [
+    { id: 'sv-330', label: '1 can (330 ml)', grams: 0, ml: 330, estimated: false, sourceRecord: {} },
+  ],
+};
+const BEVERAGE_DENSITY = { ...BEVERAGE, id: 'i-bev-d', densityGPerMl: 1.04 };
+
+describe('baseline: native per-100-mL nutrition (Workstream C evidence)', () => {
+  it('REQUIRED: 330 ml → 138.6 kcal with unknown mass; ACTUAL: resolver refuses (volume_requires_density), zero nutrition computable', async () => {
+    // Required by spec C2: kcal computable directly on the volume basis —
+    // 42 kcal/100ml × 3.3 = 138.6 kcal, mass legitimately unknown.
+    // Actual: refusal because the only nutrition representation is per-100g
+    // canonical and volume→mass requires the missing density.
+    await expect(calculate('i-bev', { volumeMl: 330 }, db(BEVERAGE)))
+      .rejects.toMatchObject({ status: 400, message: 'volume_requires_density' });
+    await expect(calculate('i-bev', { servingId: 'sv-330', count: 1 }, db(BEVERAGE)))
+      .rejects.toMatchObject({ status: 400, message: 'volume_requires_density' });
+  });
+  it('CONTROL: identical beverage WITH valid density computes correctly through conversion', async () => {
+    const r = await calculate('i-bev-d', { volumeMl: 330 }, db(BEVERAGE_DENSITY));
+    expect(r.grams).toBeCloseTo(343.2, 1); // 330 × 1.04 — conversion documented
+    expect(r.nutrition.calories).toBeCloseTo(42 * 3.432, 1);
+    expect(r.provenance.conversion).toContain('1.04 g/ml');
+  });
+});
