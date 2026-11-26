@@ -2679,6 +2679,36 @@ model TrainerPaymentTransaction {
   @@index([purchaseId])
 }
 
+// PHASE-10 reviews (pc-HUM-143): verified-participant-only coaching reviews.
+// Anti-manipulation: one review per client-trainer pair (upsert = edit, not
+// duplicate); eligibility proven against a real coaching relation or paid
+// purchase in the service layer; self-reviews impossible by construction.
+model TrainerReview {
+  id               String   @id @default(uuid())
+  trainerId        String
+  clientId         String
+  // Ratings are integer 1-5 across the spec axes; overall is required,
+  // the rest optional-but-bounded. No free-text is required — body is optional.
+  overall          Int
+  quality          Int?
+  communication    Int?
+  professionalism  Int?
+  reliability      Int?
+  clarity          Int?
+  body             String?
+  status           String   @default("published") // published | flagged | removed
+  flaggedReason    String?
+  // Professional responses are a separate object per spec — never mixed into
+  // the review itself and never part of moderation state.
+  responseBody     String?
+  responseAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([trainerId, clientId])
+  @@index([trainerId, status])
+}
+
 model TrainerPayout {
   id          String         @id @default(uuid())
   trainerId   String
