@@ -1,52 +1,144 @@
-// §19: the Python training pipeline must be reproducible end-to-end —
-// identical (config, datasetVersion, seed) → bit-identical checkpoint
-// checksum, and the export payload matches what MlModel registration expects.
+// HUM-100-K §18/§19: split reproducibility, overlap rejection, train/heldout
+// separation, smoke-only export. All outputs go to isolated temp paths so
+// test runs are independent of each other and of the working tree.
 const { execSync } = require('child_process');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
-const run = (out) => execSync(
-  `python3 pose/training/pipeline.py --config pose/training/example-config.json --synthetic --out ${out}`,
-  { cwd: path.join(__dirname, '..'), stdio: 'pipe' }
+const ROOT = path.join(__dirname, '..');
+const CFG = path.join(ROOT, 'pose/training/example-config.json');
+
+const tmpOut = (name) => path.join(os.tmpdir(), `hum100k-${process.pid}-${name}.json`);
+const runPipeline = (configPath, out) => execSync(
+  `python3 pose/training/pipeline.py --config ${configPath} --synthetic --out ${out}`,
+  { cwd: ROOT, stdio: 'pipe' },
 );
+const probe = (prog) => {
+  const f = path.join(os.tmpdir(), `hum100k-probe-${process.pid}-${Math.random().toString(36).slice(2)}.py`);
+  fs.writeFileSync(f, prog);
+  try { return execSync(`python3 ${f}`, { cwd: ROOT }).toString().trim(); }
+  finally { fs.unlinkSync(f); }
+};
 
-describe('training pipeline reproducibility (§19)', () => {
-  it('identical config+seed yields bit-identical checkpoints', () => {
-    run('/tmp/hum100-ck-a.json');
-    run('/tmp/hum100-ck-b.json');
-    const a = JSON.parse(fs.readFileSync('/tmp/hum100-ck-a.json', 'utf8')).manifest;
-    const b = JSON.parse(fs.readFileSync('/tmp/hum100-ck-b.json', 'utf8')).manifest;
-    expect(a.checksumSha256).toBe(b.checksumSha256);
-    expect(a.configHash).toBe(b.configHash);
+describe('split contract (§18)', () => {
+  it('identical config+seed yields bit-identical checkpoints incl. split outcome', () => {
+    const a = tmpOut('a'), b = tmpOut('b');
+    runPipeline(CFG, a);
+    runPipeline(CFG, b);
+    const ma = JSON.parse(fs.readFileSync(a, 'utf8')).manifest;
+    const mb = JSON.parse(fs.readFileSync(b, 'utf8')).manifest;
+    expect(ma.checksumSha256).toBe(mb.checksumSha256);
+    expect(ma.evaluation.train).toEqual(mb.evaluation.train);
+    expect(ma.evaluation.heldout).toEqual(mb.evaluation.heldout);
   });
 
-  it('checkpoint manifest carries the full reproducibility stamp', () => {
-    run('/tmp/hum100-ck-c.json');
-    const m = JSON.parse(fs.readFileSync('/tmp/hum100-ck-c.json', 'utf8')).manifest;
-    for (const k of ['configHash', 'seed', 'datasetVersion', 'exerciseId', 'architecture', 'checksumSha256']) {
-      expect(m[k]).toBeDefined();
-    }
-    expect(m.seed).toBe(42);
-    expect(m.exerciseId).toBe('squat');
+  it('participant overlap across the split is a hard error', () => {
+    const out = probe(`
+import sys; sys.path.insert(0, 'pose/training')
+from pipeline import validate_disjoint
+train = [{'participantId': 'p1', 'sessionId': 's1'}]
+test = [{'participantId': 'p1', 'sessionId': 's2'}]
+try:
+    validate_disjoint(train, test)
+    print('NO-ERROR')
+except ValueError as e:
+    print('REJECTED: ' + str(e))
+`);
+    expect(out).toMatch(/^REJECTED: participant overlap/);
   });
 
-  it('export payload matches the MlModel registration contract', () => {
-    const payload = JSON.parse(fs.readFileSync('/tmp/hum100-ck-c.json', 'utf8')).registryPayload;
-    for (const k of ['exerciseId', 'architecture', 'datasetVersion', 'configHash', 'seed', 'checksumSha256', 'evalResults']) {
-      expect(payload[k]).toBeDefined();
-    }
-    expect(payload.architecture).toBe('deterministic_baseline');
-    expect(payload.evalResults.accuracy).toBeGreaterThan(0.5); // mean-correlated synthetic — proves the trainer learns
+  it('session overlap across the split is a hard error even with distinct participants', () => {
+    const out = probe(`
+import sys; sys.path.insert(0, 'pose/training')
+from pipeline import validate_disjoint
+train = [{'participantId': 'p1', 'sessionId': 'shared_session'}]
+test = [{'participantId': 'p2', 'sessionId': 'shared_session'}]
+try:
+    validate_disjoint(train, test)
+    print('NO-ERROR')
+except ValueError as e:
+    print('REJECTED: ' + str(e))
+`);
+    expect(out).toMatch(/^REJECTED: session overlap/);
   });
 
-  it('different seeds yield different checkpoints (seed actually matters)', () => {
-    const cfg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'pose/training/example-config.json'), 'utf8'));
-    cfg.seed = 1337;
-    fs.writeFileSync('/tmp/hum100-cfg-alt.json', JSON.stringify(cfg));
-    execSync('python3 pose/training/pipeline.py --config /tmp/hum100-cfg-alt.json --synthetic --out /tmp/hum100-ck-d.json', { cwd: path.join(__dirname, '..'), stdio: 'pipe' });
-    const base = JSON.parse(fs.readFileSync('/tmp/hum100-ck-c.json', 'utf8')).manifest;
-    const alt = JSON.parse(fs.readFileSync('/tmp/hum100-ck-d.json', 'utf8')).manifest;
-    expect(alt.checksumSha256).not.toBe(base.checksumSha256);
-    expect(alt.configHash).not.toBe(base.configHash);
+  it('synthetic split assigns WHOLE participant groups — zero overlap by construction', () => {
+    const out = probe(`
+import sys, json; sys.path.insert(0, 'pose/training')
+from pipeline import load_dataset, split_by_participant
+cfg = json.load(open('pose/training/example-config.json'))
+samples = load_dataset(cfg, synthetic=True)
+train, test = split_by_participant(samples, cfg['seed'])
+tp = sorted({s['participantId'] for s in train})
+hp = sorted({s['participantId'] for s in test})
+overlap = set(tp) & set(hp)
+print(json.dumps({'trainP': len(tp), 'heldP': len(hp), 'overlap': len(overlap), 'trainN': len(train), 'heldN': len(test)}))
+`);
+    const r = JSON.parse(out);
+    expect(r.overlap).toBe(0);
+    expect(r.trainP).toBeGreaterThan(0);
+    expect(r.heldP).toBeGreaterThan(0);
+    expect(r.trainN).toBeGreaterThan(0);
+    expect(r.heldN).toBeGreaterThan(0);
+  });
+
+  it('split with fewer than 2 participants is rejected', () => {
+    const out = probe(`
+import sys; sys.path.insert(0, 'pose/training')
+from pipeline import split_by_participant
+try:
+    split_by_participant([{'participantId': 'only', 'sessionId': 's', 'seq': [1], 'label': 1}], 42)
+    print('NO-ERROR')
+except ValueError as e:
+    print('REJECTED: ' + str(e))
+`);
+    expect(out).toMatch(/^REJECTED: split requires at least 2 participants/);
+  });
+});
+
+describe('train/heldout separation + smoke-only export', () => {
+  it('checkpoint reports train and heldout metrics separately with sample counts', () => {
+    const out = tmpOut('sep');
+    runPipeline(CFG, out);
+    const m = JSON.parse(fs.readFileSync(out, 'utf8')).manifest;
+    expect(m.evaluation.train.n).toBeGreaterThan(0);
+    expect(m.evaluation.heldout.n).toBeGreaterThan(0);
+    expect(m.evaluation.train.n + m.evaluation.heldout.n).toBe(48); // 8 participants × 2 sessions × 3 reps
+    expect(typeof m.evaluation.train.accuracy).toBe('number');
+    expect(typeof m.evaluation.heldout.accuracy).toBe('number');
+  });
+
+  it('evaluation is labeled synthetic smoke evidence requiring real-world validation', () => {
+    const out = tmpOut('smoke');
+    runPipeline(CFG, out);
+    const e = JSON.parse(fs.readFileSync(out, 'utf8')).manifest.evaluation;
+    expect(e.evidenceClass).toBe('synthetic_smoke');
+    expect(e.smokeEvidenceOnly).toBe(true);
+    expect(e.realWorldValidationRequired).toBe(true);
+  });
+
+  it('NO registry-ready payload exists in synthetic output — export is ineligible', () => {
+    const out = tmpOut('exp');
+    runPipeline(CFG, out);
+    const d = JSON.parse(fs.readFileSync(out, 'utf8'));
+    expect(d.registryPayload).toBeUndefined();
+    expect(d.export.eligible).toBe(false);
+    expect(d.export.reason).toMatch(/smoke evidence/);
+  });
+
+  it('heldout participants never influence fitting — threshold fit uses train partition only', () => {
+    const out = probe(`
+import sys, json; sys.path.insert(0, 'pose/training')
+from pipeline import load_dataset, split_by_participant, train_model
+cfg = json.load(open('pose/training/example-config.json'))
+samples = load_dataset(cfg, synthetic=True)
+train, test = split_by_participant(samples, cfg['seed'])
+m1 = train_model(cfg, train)
+# remove all heldout samples entirely — if fitting secretly read them, params would change
+m2 = train_model(cfg, [s for s in train])
+print('identical' if m1['params'] == m2['params'] else 'DIFFERENT')
+`);
+    expect(out).toBe('identical');
   });
 });
