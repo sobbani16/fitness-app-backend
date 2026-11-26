@@ -1,4 +1,5 @@
 const { getPrisma } = require('../../lib/prisma');
+const allergens = require('../allergens');
 
 async function getDayState(planId, dayOfWeek) {
   const prisma = getPrisma();
@@ -11,11 +12,50 @@ async function getDayState(planId, dayOfWeek) {
   return { confirmed, allConfirmed: confirmed };
 }
 
+/**
+ * Re-assess every meal of the day against the user's current allergies before
+ * locking (HF-0001 fail-closed). Generation-time checks are not enough: the
+ * allergy list may have changed since the plan was built, meals may have been
+ * swapped, and recipe composition data evolves. A conflict OR an unknown
+ * composition blocks confirmation — the user can still edit the day, but no
+ * allergic user may lock in food we cannot vouch for.
+ */
+async function assertDayAllergenSafe(prisma, planId, dayOfWeek, userId) {
+  const user = await allergens.loadUserAllergies(prisma, userId);
+  if (!user.keys.length && !user.custom.length) return; // no allergies declared — nothing to enforce
+  const meals = await prisma.weeklyMeal.findMany({
+    where: { planId, dayOfWeek },
+    include: { recipe: { include: { ingredients: true } } },
+  });
+  const ingredientIds = [];
+  for (const m of meals) for (const l of m.recipe?.ingredients || []) if (l.ingredientId) ingredientIds.push(l.ingredientId);
+  const info = await allergens.ingredientAllergenInfo(prisma, ingredientIds);
+  const blocked = [];
+  for (const m of meals) {
+    const item = m.recipe
+      ? allergens.recipeItem(m.recipe, info)
+      : { name: m.foodName, lines: [] }; // ad-hoc entry — no ingredient list → unknown for allergic users
+    const r = allergens.assess(item, user);
+    if (!allergens.ELIGIBLE(r.status)) {
+      blocked.push({ mealType: m.mealType, foodName: m.foodName, status: r.status, conflicts: r.conflicts, unknown: r.unknown.slice(0, 3) });
+    }
+  }
+  if (blocked.length) {
+    const err = new Error('This day contains meals that conflict with or cannot be verified against your allergies. Edit the meals before confirming.');
+    err.status = 409;
+    err.code = 'ALLERGEN_CONFLICT';
+    err.blockedMeals = blocked;
+    throw err;
+  }
+}
+
 async function confirmDay(planId, dayOfWeek, userId) {
   const prisma = getPrisma();
   const plan = await prisma.weeklyNutritionPlan.findUnique({ where: { id: planId } });
   if (!plan) throw new Error('Plan not found.');
   if (plan.userId !== userId) throw new Error('Not authorized to confirm this plan.');
+
+  await assertDayAllergenSafe(prisma, planId, dayOfWeek, userId);
 
   await prisma.weeklyMeal.updateMany({
     where: { planId, dayOfWeek },

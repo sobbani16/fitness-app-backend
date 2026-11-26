@@ -248,7 +248,7 @@ router.post('/days/:dayOfWeek/confirm', async (req, res) => {
     const state = await confirmDay(planId, Number(req.params.dayOfWeek), userId);
     res.json(state);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(err.status || 400).json({ error: err.message, code: err.code, blockedMeals: err.blockedMeals });
   }
 });
 
