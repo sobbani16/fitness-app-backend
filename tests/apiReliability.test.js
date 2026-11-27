@@ -24,6 +24,13 @@ describe('GET /health/version', () => {
     expect(versionInfo({ RAILWAY_GIT_COMMIT_SHA: 'fa8c6e0aabbccddeeff00112233445566778899a' }).commit).toBe('fa8c6e0aabbc');
     expect(versionInfo({ RAILWAY_GIT_COMMIT_SHA: 'postgres://secret' }).commit).toBeNull();
     expect(versionInfo({ NODE_ENV: 'production' }).environment).toBe('production');
+    // pc-HUM-53: deployment identity must name the actual Railway environment —
+    // NODE_ENV=production runs in BOTH staging and production services, so a
+    // NODE_ENV-only classification makes the environments indistinguishable.
+    expect(versionInfo({ NODE_ENV: 'production', RAILWAY_ENVIRONMENT_NAME: 'staging' }).environment).toBe('staging');
+    expect(versionInfo({ NODE_ENV: 'production', RAILWAY_ENVIRONMENT_NAME: 'production' }).environment).toBe('production');
+    // free-form values never pass through unvalidated — closed enum only
+    expect(versionInfo({ NODE_ENV: 'production', RAILWAY_ENVIRONMENT_NAME: 'evil env; drop' }).environment).toBe('production');
   });
 });
 

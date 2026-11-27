@@ -20,7 +20,15 @@ function versionInfo(env = process.env) {
     startedAt,
     contract: API_CONTRACT_VERSION,
     minClientContract: MIN_CLIENT_CONTRACT,
-    environment: env.NODE_ENV === 'production' ? 'production' : env.NODE_ENV === 'test' ? 'test' : 'development',
+    // Deployment identity must name the actual environment. NODE_ENV is
+    // 'production' in BOTH Railway staging and production services, so prefer
+    // the platform-injected RAILWAY_ENVIRONMENT_NAME (closed enum — free-form
+    // values never pass through), falling back to NODE_ENV off-platform.
+    environment: (() => {
+      const railEnv = String(env.RAILWAY_ENVIRONMENT_NAME || '').toLowerCase();
+      if (railEnv === 'staging' || railEnv === 'production') return railEnv;
+      return env.NODE_ENV === 'production' ? 'production' : env.NODE_ENV === 'test' ? 'test' : 'development';
+    })(),
   };
 }
 
