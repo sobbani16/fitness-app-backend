@@ -74,3 +74,45 @@ decline-restore/revoked-no-restore/reschedule-keeps.
 - `EntitlementEvent` (platform-level audit model) is not yet written by the
   trainer-commerce path — purchase/refund audit currently lives in
   `TrainerPaymentTransaction` + `auditLog`.
+
+## 2026-11-27 — payment infrastructure verification: production-safety pins (pc-HUM-143)
+
+Coverage analysis before writing: the payment verification core was ALREADY deep —
+trainerCommerce.test.js pins signature rejection (bad/missing/unknown-provider),
+amount+currency mismatch, replay no-op, entitlement activation per package kind;
+trainerCommerceConcurrency.test.js pins double-grant races, cross-user idempotency,
+atomic refund claiming, client-field-ignoring (quantity/coupon/referral never influence
+price — server-controlled pricing VERIFIED), spoofed-amount loud failure. Duplicating
+that would be waste. Genuine gaps filled instead:
+
+### Production-safety — the card's hard requirement, now executable-pinned (8 tests)
+`tests/commerce/productionSafety.test.js` — fresh-module probes with controlled NODE_ENV:
+- getProvider('mock') in production → throws "disabled in production" (both explicit and defaulted selection)
+- direct MockProvider construction in production without PAYMENTS_WEBHOOK_SECRET → throws — **no silent mock-secret fallback in prod**; fallback verified working in test env (developer experience preserved)
+- production WITH secret configured → construction succeeds (real-provider path unblocked)
+- unknown provider names rejected, never silently fall back to mock
+- discovery: `isProduction()` is Railway-aware (RAILWAY_ENVIRONMENT_NAME takes precedence) — consistent with the pc-HUM-77 bypass-gate hardening; the payment guard inherits that strengthened classification.
+
+### As-built posture verified (audit of existing implementation)
+- HMAC-SHA256 webhook signatures with timingSafeEqual comparison — constant-time
+- idempotency anchored twice: unique providerRef on purchase + P2002 on providerEventId; unknown purchases acked-and-ignored (provider stops retrying, nothing applied)
+- purchase↔provider binding: an event on the wrong provider's route cannot transition a purchase
+- fail-closed when trainer_paid_coaching_enabled is off — valid signature creates nothing
+- entitlement lifecycle complete: payment.succeeded activates (guarded against re-activation in terminal states), payment.failed/canceled/expired transition pendings only, payment.refunded revokes
+- refund bounds: amount integer-validated ≤ purchase amount; atomic claim (paid→refund_pending) BEFORE the external call — concurrent refunds cannot double-reach the provider
+
+### ARCHITECTURAL FINDING — rawBody re-serialization sharp edge (remediation deferred, documented)
+`paymentWebhooks.js` verifies signatures over `JSON.stringify(req.body)` — the parsed-then-
+re-serialized form. Internally consistent for the mock provider (signs the same serialization),
+but **real providers sign the raw wire bytes** — express.json() consumes them before the route
+sees anything. Key-ordering/whitespace/unicode differences between the provider's bytes and
+JSON.stringify output will invalidate every real-provider signature. Remediation shape when a
+real provider onboards: capture raw bytes via `express.raw({type})` on the webhook route (or a
+verify-capture middleware), pass the buffer to verification, parse after verification. NOT a
+live vulnerability today — the only provider is the mock — but it is a guaranteed integration
+failure for the first real provider if undocumented. Severity: integration-blocker-on-onboarding,
+not production-exposure.
+
+### Defects note
+Routed defects #193/194: same jest-failure signature as defect #245 — classified AUTH_RBAC
+flake class (root-cause fix on PR #77, awaiting founder merge). Not re-reproduced per dedup discipline.
