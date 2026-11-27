@@ -96,6 +96,25 @@ describe('controlled rollout state machine', () => {
     expect(db.events.some(e => e.modelId === v1.id && e.toState === 'rolled_back' && /superseded/.test(e.reason))).toBe(true);
     expect(db.models.find(x => x.id === v2.id).status).toBe('active');
   });
+  it('controlled rollout: supersession AUTO-WIRES the rollback target when the operator did not — fleet never stranded', async () => {
+    const db = fakeDb();
+    const m1 = await registerModel(db, valid({ evalResults: { macroF1: 0.9 }, approvalRef: 'qa' }));
+    await transition(db, m1.id, 'candidate', { reason: 's' });
+    await transition(db, m1.id, 'approved', { reason: 'a' });
+    await transition(db, m1.id, 'active', { reason: 'ship' });
+    // operator forgets rollbackTargetId — the system must wire it anyway
+    const m2 = await registerModel(db, valid({ version: '2.0.0', evalResults: { macroF1: 0.95 }, approvalRef: 'qa' }));
+    await transition(db, m2.id, 'candidate', { reason: 's' });
+    await transition(db, m2.id, 'approved', { reason: 'a' });
+    await transition(db, m2.id, 'active', { reason: 'ship' });
+    expect(db.models.find(x => x.id === m2.id).rollbackTargetId).toBe(m1.id); // auto-wired
+    // the superseded model never self-points
+    expect(db.models.find(x => x.id === m1.id).rollbackTargetId ?? null).not.toBe(m1.id);
+    // rollback of m2 restores m1 even without operator wiring
+    await rollback(db, m2.id, { reason: 'prod regression' });
+    expect(db.models.find(x => x.id === m1.id).status).toBe('active');
+  });
+
   it('rollback restores the rollback target and never deletes events', async () => {
     const db = fakeDb();
     const m1 = await registerModel(db, valid({ evalResults: { macroF1: 0.9 }, approvalRef: 'qa' }));

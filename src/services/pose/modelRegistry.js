@@ -64,14 +64,23 @@ async function transition(prisma, modelId, to, { actor = 'system', reason = '', 
     const active = await prisma.mlModel.findFirst({ where: { name: model.name, status: 'active', id: { not: model.id } } });
     if (active) {
       await prisma.mlRolloutEvent.create({ data: { modelId: active.id, fromState: 'active', toState: 'rolled_back', reason: `superseded by ${model.id} activation`, actor } });
-      await prisma.mlModel.update({ where: { id: active.id }, data: { status: 'rolled_back', rollbackTargetId: active.rollbackTargetId || active.id } });
+      // The superseded model's own rollback chain is preserved untouched —
+      // rollback targets point BACKWARD from the new model, never self-point.
+      await prisma.mlModel.update({ where: { id: active.id }, data: { status: 'rolled_back' } });
+      // Controlled-rollout invariant: a promotion must never strand the fleet
+      // without a rollback path. If the operator did not wire one explicitly,
+      // the superseded active model becomes the rollback target automatically.
+      if (!model.rollbackTargetId) {
+        await prisma.mlModel.update({ where: { id: model.id }, data: { rollbackTargetId: active.id } });
+        model.rollbackTargetId = active.id;
+      }
     }
   }
 
   const event = await prisma.mlRolloutEvent.create({ data: { modelId: model.id, fromState: model.status, toState: to, reason, actor } });
   const updated = await prisma.mlModel.update({
     where: { id: model.id },
-    data: { status: to, ...(to === 'active' ? { promotedAt: new Date() } : {}) },
+    data: { status: to, rollbackTargetId: model.rollbackTargetId || undefined, ...(to === 'active' ? { promotedAt: new Date() } : {}) },
   });
   return { model: updated, event };
 }
