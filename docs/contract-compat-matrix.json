@@ -1,0 +1,1863 @@
+{
+  "generatedAt": "2026-11-26T09:00:07.281Z",
+  "generator": "scripts/generate-contract-compat-matrix.js",
+  "backendInventory": "docs/api-contract-inventory.json",
+  "mobileApiDir": "../fitness-app-mobile/src/api",
+  "totals": {
+    "mobileCalls": 307,
+    "matched": 306,
+    "matchedMainOnlyBranchLag": 0,
+    "unmatchedBackendMissing": 1
+  },
+  "rows": [
+    {
+      "method": "GET",
+      "path": "/academy/featured",
+      "consumer": "academy.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/academy/articles",
+      "consumer": "academy.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/academy/articles/${slug}",
+      "consumer": "academy.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/academy/faq/search",
+      "consumer": "academy.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/academy/suggestions",
+      "consumer": "academy.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/activity-safety/recommendation",
+      "consumer": "activitySafety.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/activity-safety/evaluate",
+      "consumer": "activitySafety.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/activity-safety/symptoms",
+      "consumer": "activitySafety.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/activity-safety/symptoms",
+      "consumer": "activitySafety.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PATCH",
+      "path": "/activity-safety/symptoms/${id}",
+      "consumer": "activitySafety.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "DELETE",
+      "path": "/activity-safety/symptoms/${id}",
+      "consumer": "activitySafety.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/activity-safety/injuries",
+      "consumer": "activitySafety.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/activity-safety/feedback",
+      "consumer": "activitySafety.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/activity-safety/profile",
+      "consumer": "activitySafety.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/activity-safety/injuries",
+      "consumer": "activitySafety.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PATCH",
+      "path": "/activity-safety/injuries/${injuryId}",
+      "consumer": "activitySafety.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/me/allergies",
+      "consumer": "allergies.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/me/allergies",
+      "consumer": "allergies.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/trainer/schedule/availability",
+      "consumer": "bookings.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/schedule/session-types",
+      "consumer": "bookings.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PATCH",
+      "path": "/trainer/schedule/session-types/${encodeURIComponent(id)}",
+      "consumer": "bookings.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "DELETE",
+      "path": "/trainer/schedule/session-types/${encodeURIComponent(id)}",
+      "consumer": "bookings.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/schedule/bookings/${encodeURIComponent(id)}/respond",
+      "consumer": "bookings.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/schedule/bookings/${encodeURIComponent(id)}/cancel",
+      "consumer": "bookings.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/schedule/bookings/${encodeURIComponent(id)}/reschedule",
+      "consumer": "bookings.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/schedule/bookings/${encodeURIComponent(id)}/complete",
+      "consumer": "bookings.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/me/bookings",
+      "consumer": "bookings.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/me/bookings/${encodeURIComponent(id)}/cancel",
+      "consumer": "bookings.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/me/bookings/${encodeURIComponent(id)}/reschedule",
+      "consumer": "bookings.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/chat",
+      "consumer": "chat.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/chat/status",
+      "consumer": "chat.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/me/clinical-measurements",
+      "consumer": "clinicalMeasurements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/me/clinical-measurements",
+      "consumer": "clinicalMeasurements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/me/clinical-measurements/${id}/correct",
+      "consumer": "clinicalMeasurements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "DELETE",
+      "path": "/me/clinical-measurements/${id}",
+      "consumer": "clinicalMeasurements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/coaching/intake/${relationId}",
+      "consumer": "coaching.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/coaching/intake/${relationId}",
+      "consumer": "coaching.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/coaching/intake/${relationId}/submit",
+      "consumer": "coaching.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/coaching/outcome-plans/relation/${relationId}",
+      "consumer": "coaching.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/coaching/outcome-plans/mine",
+      "consumer": "coaching.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/coaching/preference",
+      "consumer": "coaching.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/coaching/preference",
+      "consumer": "coaching.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/communication/groups",
+      "consumer": "communication.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/communication/documents/me",
+      "consumer": "communication.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/communication/documents/${id}/url",
+      "consumer": "communication.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/communication/video-sessions",
+      "consumer": "communication.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/communication/video-sessions/${id}/summary",
+      "consumer": "communication.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/communication/groups/${groupId}/messages",
+      "consumer": "communication.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/communication/groups/${groupId}/accept",
+      "consumer": "communication.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/communication/groups/${groupId}/leave",
+      "consumer": "communication.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/communication/video-sessions/${id}/join",
+      "consumer": "communication.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/communication/video-sessions/${id}/cancel",
+      "consumer": "communication.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/communication/video-sessions/${id}/recording-consent",
+      "consumer": "communication.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/config/features",
+      "consumer": "config.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/conversations",
+      "consumer": "conversations.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/conversations/unread-count",
+      "consumer": "conversations.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/conversations/with/${encodeURIComponent(clientId)}",
+      "consumer": "conversations.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/conversations/with-trainer/${encodeURIComponent(trainerId)}",
+      "consumer": "conversations.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/conversations/${encodeURIComponent(conversationId)}/messages",
+      "consumer": "conversations.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/conversations/${encodeURIComponent(conversationId)}/messages",
+      "consumer": "conversations.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/conversations/${encodeURIComponent(conversationId)}/read",
+      "consumer": "conversations.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/conversations/${encodeURIComponent(conversationId)}/report",
+      "consumer": "conversations.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/recipes/${encodeURIComponent(id)}",
+      "consumer": "cooking.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/recipes/${encodeURIComponent(id)}/engagement",
+      "consumer": "cooking.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/recipes/match-ingredients",
+      "consumer": "cooking.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/recipes/${encodeURIComponent(id)}/customize",
+      "consumer": "cooking.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/grocery",
+      "consumer": "cooking.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/grocery",
+      "consumer": "cooking.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PATCH",
+      "path": "/grocery/${encodeURIComponent(id)}",
+      "consumer": "cooking.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/trainer/copilot/clients",
+      "consumer": "copilot.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/trainer/copilot/clients/${clientId}/summary",
+      "consumer": "copilot.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/trainer/copilot/clients/${clientId}/suggestions",
+      "consumer": "copilot.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/daily-progress/today",
+      "consumer": "dailyProgress.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/daily-progress/history",
+      "consumer": "dailyProgress.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/daily-progress/calendar",
+      "consumer": "dailyProgress.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/daily-progress/week",
+      "consumer": "dailyProgress.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/progress-coach/opportunities",
+      "consumer": "dailyProgress.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/progress-coach/streak",
+      "consumer": "dailyProgress.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/daily-progress/preferences",
+      "consumer": "dailyProgress.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/daily-stats/water/replace",
+      "consumer": "dailyStats.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/daily-stats/water",
+      "consumer": "dailyStats.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/daily-stats/water",
+      "consumer": "dailyStats.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/daily-stats/water/last",
+      "consumer": "dailyStats.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/daily-stats/steps",
+      "consumer": "dailyStats.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/daily-stats/steps",
+      "consumer": "dailyStats.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/energy/summary",
+      "consumer": "energy.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/exercises/library/${encodeURIComponent(id)}",
+      "consumer": "exerciseLibrary.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/exercises",
+      "consumer": "exercises.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/exercises/prefill/${encodeURIComponent(exerciseType)}",
+      "consumer": "exercises.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/exercises",
+      "consumer": "exercises.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/exercises/${encodeURIComponent(sessionId)}/sets",
+      "consumer": "exercises.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/exercises/${encodeURIComponent(id)}/finish",
+      "consumer": "exercises.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/fiber/target",
+      "consumer": "fiber.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/fiber/daily",
+      "consumer": "fiber.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/fiber/trend",
+      "consumer": "fiber.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/fiber/weekly",
+      "consumer": "fiber.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/fiber/target",
+      "consumer": "fiber.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/fiber/sequence",
+      "consumer": "fiber.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/fiber/supplement-check",
+      "consumer": "fiber.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/fiber/supplement-check/${checkId}/confirm",
+      "consumer": "fiber.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/fiber/supplement-education",
+      "consumer": "fiber.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/food-intel/barcode/${encodeURIComponent(code)}",
+      "consumer": "foodIntel.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/food-intel/evidence/${encodeURIComponent(key)}",
+      "consumer": "foodIntel.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/food-intel/evidence",
+      "consumer": "foodIntel.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/food-intel/suitability",
+      "consumer": "foodIntel.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/food-intel/scan-result",
+      "consumer": "foodIntel.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/food-intel/alternatives",
+      "consumer": "foodIntel.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/food-intel/log",
+      "consumer": "foodIntel.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/food-intel/barcode/${encodeURIComponent(code)}/favorite",
+      "consumer": "foodIntel.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/food-intel/barcode/${encodeURIComponent(code)}/correct",
+      "consumer": "foodIntel.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/foods/search",
+      "consumer": "foods.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/recipes/match",
+      "consumer": "foods.ts",
+      "backend": "UNMATCHED_BACKEND_MISSING"
+    },
+    {
+      "method": "GET",
+      "path": "/form-checks/mine",
+      "consumer": "formChecks.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/form-checks/trainer",
+      "consumer": "formChecks.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/form-checks",
+      "consumer": "formChecks.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/form-checks/${id}/decline",
+      "consumer": "formChecks.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/form-checks/${id}/acknowledge",
+      "consumer": "formChecks.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/form-checks/${id}/feedback",
+      "consumer": "formChecks.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/form-checks/${id}/video-url",
+      "consumer": "formChecks.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/form-checks/${id}/video",
+      "consumer": "formChecks.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "consumer": "health.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/me/health-conditions/catalog",
+      "consumer": "healthConditions.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/me/health-conditions",
+      "consumer": "healthConditions.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/me/health-conditions",
+      "consumer": "healthConditions.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PATCH",
+      "path": "/me/health-conditions/${id}",
+      "consumer": "healthConditions.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "DELETE",
+      "path": "/me/health-conditions/${id}",
+      "consumer": "healthConditions.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/health-data/summary",
+      "consumer": "healthData.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/health-data/energy",
+      "consumer": "healthData.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/health-score",
+      "consumer": "healthScore.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/health-score/actions",
+      "consumer": "healthScore.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/health-score/trend",
+      "consumer": "healthScore.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/health-sources/providers",
+      "consumer": "healthSources.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/health-sources/sources",
+      "consumer": "healthSources.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/health-sources/recovery",
+      "consumer": "healthSources.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/health-sources/sources/${provider}/connect",
+      "consumer": "healthSources.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/health-sources/sources/${provider}/disconnect",
+      "consumer": "healthSources.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "DELETE",
+      "path": "/health-sources/sources/${provider}/data",
+      "consumer": "healthSources.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/health-sources/sources/${provider}/measurements",
+      "consumer": "healthSources.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/summary/history",
+      "consumer": "history.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/ingredients/search",
+      "consumer": "ingredients.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/ingredients/selections",
+      "consumer": "ingredients.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/ingredients/${encodeURIComponent(id)}/selection",
+      "consumer": "ingredients.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/ingredients/estimate",
+      "consumer": "ingredients.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/ingredients/estimate/log",
+      "consumer": "ingredients.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/label-scanner/extract",
+      "consumer": "labelScanner.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/label-scanner/adjust",
+      "consumer": "labelScanner.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/label-scanner/save",
+      "consumer": "labelScanner.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/label-scanner/history",
+      "consumer": "labelScanner.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/label-scanner/insights",
+      "consumer": "labelScanner.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/label-scanner/compare",
+      "consumer": "labelScanner.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/label-scanner/classify",
+      "consumer": "labelScanner.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/label-scanner/extract-merged",
+      "consumer": "labelScanner.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/label-scanner/menu",
+      "consumer": "labelScanner.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/macro-score",
+      "consumer": "macroScore.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/macro-score/goals",
+      "consumer": "macroScore.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/macro-score/goals",
+      "consumer": "macroScore.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/macro-score/trend",
+      "consumer": "macroScore.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/meal-suggest",
+      "consumer": "mealSuggest.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/meals/analyze",
+      "consumer": "meals.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/meals/detect",
+      "consumer": "meals.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/meals/ingredient-nutrition",
+      "consumer": "meals.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/me/medications",
+      "consumer": "medications.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/me/medications",
+      "consumer": "medications.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PATCH",
+      "path": "/me/medications/${id}",
+      "consumer": "medications.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/me/medications/${id}/confirm",
+      "consumer": "medications.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "DELETE",
+      "path": "/me/medications/${id}",
+      "consumer": "medications.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/mind/preferences",
+      "consumer": "mind.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/mind/check-ins",
+      "consumer": "mind.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/mind/tracks",
+      "consumer": "mind.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/mind/tracks/${key}",
+      "consumer": "mind.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/mind/exercises",
+      "consumer": "mind.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/mind/insights",
+      "consumer": "mind.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/mind/reminders",
+      "consumer": "mind.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/mind/preferences",
+      "consumer": "mind.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/mind/check-ins",
+      "consumer": "mind.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PATCH",
+      "path": "/mind/check-ins/${id}",
+      "consumer": "mind.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "DELETE",
+      "path": "/mind/check-ins/${id}",
+      "consumer": "mind.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/mind/exercises/${key}/complete",
+      "consumer": "mind.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/mind/leo",
+      "consumer": "mind.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/recommendations/nutrition-status",
+      "consumer": "nutrition.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/recommendations/suggest",
+      "consumer": "nutrition.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/personal-plans/draft",
+      "consumer": "personalPlans.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/personal-plans",
+      "consumer": "personalPlans.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/personal-plans/${id}",
+      "consumer": "personalPlans.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/personal-plans/${plan.id}/confirm",
+      "consumer": "personalPlans.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/personal-plans/suggestions",
+      "consumer": "personalPlans.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/personal-plans/catalog",
+      "consumer": "personalPlans.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/pose-coaching/sessions",
+      "consumer": "poseCoaching.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PATCH",
+      "path": "/pose-coaching/sessions/${encodeURIComponent(id)}",
+      "consumer": "poseCoaching.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/pose-coaching/diagnostics-access",
+      "consumer": "poseCoaching.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/me/entitlements",
+      "consumer": "purchases.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/me/purchases/checkout",
+      "consumer": "purchases.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/me/purchases",
+      "consumer": "purchases.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/trainer/commerce/packages",
+      "consumer": "purchases.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/commerce/packages",
+      "consumer": "purchases.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PATCH",
+      "path": "/trainer/commerce/packages/${encodeURIComponent(id)}",
+      "consumer": "purchases.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "DELETE",
+      "path": "/trainer/commerce/packages/${encodeURIComponent(id)}",
+      "consumer": "purchases.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/trainer/commerce/purchases",
+      "consumer": "purchases.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/me/push-tokens",
+      "consumer": "pushTokens.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "DELETE",
+      "path": "/me/push-tokens/${encodeURIComponent(token)}",
+      "consumer": "pushTokens.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/recipes/search",
+      "consumer": "recipes.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/recipes/${encodeURIComponent(id)}/nutrition",
+      "consumer": "recipes.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/recipes/generate",
+      "consumer": "recipes.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/recipes/save-generated",
+      "consumer": "recipes.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/recommendations",
+      "consumer": "recommendations.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/reminders/preferences",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/reminders/categories",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/reminders/suggestions",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/reminders/instances",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/reminders/inbox",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/reminders/preferences",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/reminders/preferences/pause",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/reminders/preferences/revoke-adaptive",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/reminders/preferences/reset-learning",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/reminders/preferences/mute-suggestions",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/reminders/preferences/timezone",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/reminders/reconcile",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/reminders/categories/${encodeURIComponent(category)}",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/reminders/suggestions/${id}/accept",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/reminders/suggestions/${id}/decline",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/reminders/instances/${id}/action",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/reminders/devices",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/reminders/test",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/reminders/diagnostics",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/reminders/tick",
+      "consumer": "reminders.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/me/roles",
+      "consumer": "roles.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/summary/daily",
+      "consumer": "summary.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/supplements",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/supplements/detail/${supplementId}",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/supplements/mine",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/supplements/mine/${userSupplementId}/schedules",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/supplements/safety",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/supplements/search",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/supplements/mine",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "DELETE",
+      "path": "/supplements/mine/${supplementId}",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PATCH",
+      "path": "/supplements/mine/${userSupplementId}",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/supplements/personal",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/supplements/mine/${userSupplementId}/schedules",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/supplements/schedules/${scheduleId}",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "DELETE",
+      "path": "/supplements/schedules/${scheduleId}",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/supplements/doses/today",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/supplements/doses/upcoming",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/supplements/doses/${occurrenceId}/action",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/supplements/history",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/supplements/log",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "DELETE",
+      "path": "/supplements/log/${logId}",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/supplements/log",
+      "consumer": "supplements.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/today/actions",
+      "consumer": "today.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/today/actions/feedback",
+      "consumer": "today.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/nutrition-plans",
+      "consumer": "trainerNutrition.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PATCH",
+      "path": "/trainer/nutrition-plans/${encodeURIComponent(id)}",
+      "consumer": "trainerNutrition.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/nutrition-plans/${encodeURIComponent(id)}/publish",
+      "consumer": "trainerNutrition.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/nutrition-plans/${encodeURIComponent(id)}/revise",
+      "consumer": "trainerNutrition.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/nutrition-plans/${encodeURIComponent(id)}/archive",
+      "consumer": "trainerNutrition.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/nutrition-plans/${encodeURIComponent(id)}/assign",
+      "consumer": "trainerNutrition.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/me/nutrition-plans/${encodeURIComponent(assignmentId)}/respond",
+      "consumer": "trainerNutrition.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/me/nutrition-plans/${encodeURIComponent(assignmentId)}/feedback",
+      "consumer": "trainerNutrition.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/me/nutrition-plans/${encodeURIComponent(assignmentId)}/log",
+      "consumer": "trainerNutrition.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/workout-plans",
+      "consumer": "trainerPlans.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PATCH",
+      "path": "/trainer/workout-plans/${encodeURIComponent(id)}",
+      "consumer": "trainerPlans.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/workout-plans/${encodeURIComponent(id)}/publish",
+      "consumer": "trainerPlans.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/workout-plans/${encodeURIComponent(id)}/revise",
+      "consumer": "trainerPlans.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer/workout-plans/${encodeURIComponent(id)}/assign",
+      "consumer": "trainerPlans.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/me/workout-plans/${encodeURIComponent(assignmentId)}/respond",
+      "consumer": "trainerPlans.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/me/workout-plans/${encodeURIComponent(assignmentId)}/feedback",
+      "consumer": "trainerPlans.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/me/workout-plans/${encodeURIComponent(assignmentId)}/complete",
+      "consumer": "trainerPlans.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/trainer-requests",
+      "consumer": "trainerRequests.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer-requests/${id}/accept",
+      "consumer": "trainerRequests.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer-requests/${id}/decline",
+      "consumer": "trainerRequests.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer-requests/invite",
+      "consumer": "trainerRequests.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/trainer-relationships/${relationId}/consents",
+      "consumer": "trainerRequests.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/trainer-relationships/${relationId}/consents",
+      "consumer": "trainerRequests.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainer-relationships/${relationId}/end",
+      "consumer": "trainerRequests.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/trainers/drop-reasons",
+      "consumer": "trainers.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainers/signup",
+      "consumer": "trainers.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PATCH",
+      "path": "/trainers/me/profile",
+      "consumer": "trainers.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainers/applications",
+      "consumer": "trainers.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PATCH",
+      "path": "/trainers/applications/me",
+      "consumer": "trainers.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainers/applications/me/submit",
+      "consumer": "trainers.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainers/me/certifications",
+      "consumer": "trainers.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PATCH",
+      "path": "/trainers/me/certifications/${id}",
+      "consumer": "trainers.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "DELETE",
+      "path": "/trainers/me/certifications/${id}",
+      "consumer": "trainers.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainers/${trainerId}/subscribe",
+      "consumer": "trainers.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainers/me/drop",
+      "consumer": "trainers.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/trainers/clients/${clientId}/drop",
+      "consumer": "trainers.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/me/progress/unified",
+      "consumer": "unifiedProgress.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/videos/report",
+      "consumer": "videos.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/videos/search",
+      "consumer": "videos.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/voice/transcribe",
+      "consumer": "voice.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/voice/interpret",
+      "consumer": "voice.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/voice/commands/execute",
+      "consumer": "voice.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/voice/commands/undo",
+      "consumer": "voice.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/weather",
+      "consumer": "weather.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/weather/geocode",
+      "consumer": "weather.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/weekly-plan/preferences/me",
+      "consumer": "weeklyPlan.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/weekly-plan/generate",
+      "consumer": "weeklyPlan.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/weekly-plan/meals/${mealId}/swap",
+      "consumer": "weeklyPlan.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/weekly-plan/days/${dayOfWeek}/confirm",
+      "consumer": "weeklyPlan.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/weekly-plan/days/${dayOfWeek}/unconfirm",
+      "consumer": "weeklyPlan.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/weekly-plan/shopping-list/generate",
+      "consumer": "weeklyPlan.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PATCH",
+      "path": "/weekly-plan/shopping-list/items/${itemId}/check",
+      "consumer": "weeklyPlan.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/weekly-plan/preferences",
+      "consumer": "weeklyPlan.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/weekly-review",
+      "consumer": "weeklyReview.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "GET",
+      "path": "/weekly-review/history",
+      "consumer": "weeklyReview.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "PUT",
+      "path": "/weekly-review/opt",
+      "consumer": "weeklyReview.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/weekly-review/${weekOf}/open",
+      "consumer": "weeklyReview.ts",
+      "backend": "MATCHED"
+    },
+    {
+      "method": "POST",
+      "path": "/me/profile/weight",
+      "consumer": "weight.ts",
+      "backend": "MATCHED"
+    }
+  ],
+  "notes": [
+    "UNMATCHED_BACKEND_MISSING = mobile client calls a path absent from the backend inventory — integration break or inventory blind spot.",
+    "Backend routes with no mobile consumer are not listed: web/admin/internal surfaces exist.",
+    "FINDING 2026-11-26: POST /recipes/match (mobile foods.ts matchRecipesByIngredients) is absent from backend — the handler lives at POST /foods/match (in-file comment mislabels it /recipes/match). LATENT not live: no mobile screen imports the function (v2 /recipes/match-ingredients via cooking.ts is the live path). Recommend mobile-owner cleanup of the dead export.",
+    "Generator defect fixed 2026-11-26: mount extraction truncated multi-segment mounts (/me/allergies to /me), corrupting inventory rows and inflating knownDuplicates (artifact entries collapsed to the 3 real GET /health* double-mounts). Inventory regenerated.",
+    "Response-shape compat is verified per-endpoint by contract tests (e.g. fiberMobileContract) — this matrix covers method+path existence."
+  ]
+}

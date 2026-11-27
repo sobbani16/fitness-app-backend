@@ -59,8 +59,12 @@ async function createRequest(trainerUserId, { relationId, exerciseKey, exerciseN
       exerciseKey: key, exerciseName: name, note: note?.trim().slice(0, 1000) || null,
     },
   });
-  const gate = await safetyGate(getPrisma(), relation.clientId).catch(() => null);
-  const clientSafetyNotice = gate?.enabled && (gate.status === 'urgent' || gate.status === 'no_safe_candidate' || (gate.limitations || []).length > 0 || (gate.blockedCategories || []).length > 0)
+  // A gate error must surface as unverifiable — never silence: a silent
+  // failure reads as "no restrictions" to the trainer (pc-HUM-44 follow-up).
+  const gate = await safetyGate(getPrisma(), relation.clientId).catch(() => 'error');
+  const clientSafetyNotice = gate === 'error'
+    ? 'Member safety status could not be verified — confirm with the member before they film it.'
+    : gate?.enabled && (gate.status === 'urgent' || gate.status === 'no_safe_candidate' || (gate.limitations || []).length > 0 || (gate.blockedCategories || []).length > 0)
     ? 'Member has activity-safety records on file — confirm this exercise is appropriate before they film it.'
     : null;
   return { ...request, clientSafetyNotice };

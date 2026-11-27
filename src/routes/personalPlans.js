@@ -18,7 +18,9 @@ function getUserId(req) {
 // merge into planning inputs; user-supplied limitations can only add.
 async function gateFor(req, res) {
   const userId = getUserId(req);
-  const g = await safetyGate(getPrisma(), userId).catch(() => null);
+  // Fail closed: a gate error is an unverifiable safety state → 503, not an
+  // unconstrained plan. 'unknown' status hits the existing 503 branch below.
+  const g = await safetyGate(getPrisma(), userId).catch(() => ({ enabled: true, status: 'unknown', suppressActivityPushes: true, activityPushOk: false }));
   if (!g || !g.enabled) return { limitations: [], blockedCategories: [], reviewRequired: false };
   if (g.status === 'unknown') return res?.status(503).json({ error: 'Safety context unavailable — try again shortly.' }), null;
   return { limitations: g.limitations, blockedCategories: g.blockedCategories, reviewRequired: g.reviewRequired, urgent: g.status === 'urgent' };

@@ -92,3 +92,54 @@ describe('voiceParser', () => {
     expect(parseTranscript('x'.repeat(2000)).transcript.length).toBe(1000);
   });
 });
+
+describe('pc-HUM-91 food-routing precedence (acceptance matrix)', () => {
+  test('"log 2 boiled eggs" is food, never exercise', () => {
+    const r = a('log 2 boiled eggs')[0];
+    expect(r.intent).toBe('LOG_FOOD');
+    expect(r.entities.items[0]).toMatchObject({ name: 'boiled eggs', quantity: 2 });
+    // count without verified serving stays needs_review — never fabricates grams
+    expect(r.status).toBe('needs_review');
+  });
+
+  test('"log 2 dosas + cup sambar" splits on plus into two items', () => {
+    const items = a('log 2 dosas + cup sambar')[0].entities.items;
+    expect(items).toHaveLength(2);
+    expect(items[0]).toMatchObject({ name: 'dosas', quantity: 2 });
+    expect(items[1]).toMatchObject({ name: 'sambar', quantity: 1, unit: 'cup' });
+  });
+
+  test('"log rice yesterday" carries explicit dayOffset -1', () => {
+    const r = a('log rice yesterday')[0];
+    expect(r.intent).toBe('LOG_FOOD');
+    expect(r.entities.dayOffset).toBe(-1);
+    expect(r.entities.items[0].name).not.toMatch(/yesterday/i);
+  });
+
+  test('bare gram-led "150g cooked chicken" enters the food branch ready', () => {
+    const r = a('150g cooked chicken')[0];
+    expect(r.intent).toBe('LOG_FOOD');
+    expect(r.entities.items[0]).toMatchObject({ name: 'cooked chicken', grams: 150 });
+    expect(r.status).toBe('ready');
+  });
+
+  test('unit-led "log a cup of sambar" is food with quantity 1 cup', () => {
+    const r = a('log a cup of sambar')[0];
+    expect(r.intent).toBe('LOG_FOOD');
+    expect(r.entities.items[0]).toMatchObject({ name: 'sambar', quantity: 1, unit: 'cup' });
+  });
+
+  test('exercise controls preserved: bare and structured exercise still LOG_EXERCISE_SET', () => {
+    expect(a('log squats')[0].intent).toBe('LOG_EXERCISE_SET');
+    expect(a('log squats')[0].entities.exerciseName).toBe('squats');
+    expect(a('log 3 sets of squats')[0].intent).toBe('LOG_EXERCISE_SET');
+    expect(a('log squats for 10 reps')[0].entities.reps).toBe(10);
+    // count-led WITH reps structure stays exercise
+    expect(a('log 2 pushups for 10 reps')[0].intent).toBe('LOG_EXERCISE_SET');
+  });
+
+  test('grocery/recipe precedence unaffected by food routing', () => {
+    expect(a('add 2 eggs to my grocery list')[0].intent).toBe('ADD_GROCERY');
+    expect(a('log the palak paneer recipe for dinner')[0].intent).toBe('LOG_RECIPE');
+  });
+});

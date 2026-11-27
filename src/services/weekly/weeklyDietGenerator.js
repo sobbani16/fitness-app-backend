@@ -3,6 +3,7 @@ const { httpError } = require('../../lib/errors');
 const { nutrients, version } = require('./catalog');
 const { recipeAllowed, validateTargets, validatePreferences, assessMeals, preferredCuisines } = require('./planningPolicy');
 const { generateAiWeeklyMeals } = require('./aiWeeklyGenerator');
+const { liveRuleWhere } = require('../healthOutcomes/clinicalRuleGovernance');
 function recipeToMeal(recipe, factor = 1) {
   return { recipeId:recipe.id, foodName:recipe.recipeName, portionG:Math.round(recipe.portionG*factor*10)/10,
     ...Object.fromEntries(nutrients.map(k=>[k,Math.round(recipe[k]*factor*10)/10])) };
@@ -48,11 +49,11 @@ async function generateWeeklyPlan(userId, weekStartDate, requested = {}) {
   const restrictions = preferences?.dietaryRestrictions||[];
   const allergies = (await prisma.userAllergy.findMany({where:{userId},include:{allergy:true}})).map(a=>a.allergy.name).filter(Boolean);
   // Active health conditions drive the deterministic safety layer: ingredient
-  // attribute rules (block/warn) and APPROVED nutrient rules are enforced on
+  // attribute rules (block/warn) and live nutrient rules are enforced on
   // every proposed meal, for both AI drafts and the catalog fallback.
   const userConditions = await prisma.userHealthCondition.findMany({where:{userId,active:true},include:{condition:{include:{
-    conditionRules:{where:{target:'ingredient',reviewStatus:'APPROVED'}},
-    nutrientRules:{where:{reviewStatus:'APPROVED'},include:{nutrient:true}}}}}});
+    conditionRules:{where:{target:'ingredient',...liveRuleWhere()}},
+    nutrientRules:{where:liveRuleWhere(),include:{nutrient:true}}}}}});
   const conditionRules = userConditions.flatMap(uc=>uc.condition.conditionRules.map(r=>({attribute:r.attribute,action:r.action,reason:r.reason,conditionName:uc.condition.name})));
   const nutrientRules = userConditions.flatMap(uc=>uc.condition.nutrientRules.map(r=>({action:r.action,severity:r.severity,thresholdValue:Number(r.thresholdValue),thresholdUnit:r.thresholdUnit,thresholdBasis:r.thresholdBasis,conditionName:uc.condition.name,nutrient:r.nutrient})));
   const blockAttrs = new Set(conditionRules.filter(r=>r.action==='block').map(r=>r.attribute));

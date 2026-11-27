@@ -66,7 +66,7 @@ function rank(opps, nowLocalMinutes) {
 async function opportunities(userId, { tz, now = new Date() } = {}) {
   const [progress, gate] = await Promise.all([
     computeDay(userId, { tz, now, persist: false }),
-    safetyGate(getPrisma(), userId, { now }).catch(() => ({ status: 'unknown', suppressActivityPushes: true })),
+    safetyGate(getPrisma(), userId, { now }).catch(() => ({ enabled: true, status: 'unknown', suppressActivityPushes: true, activityPushOk: false })),
   ]);
   const zone = progress.timezone;
   const mins = ld.localParts(now, zone).minutes;
