@@ -172,3 +172,27 @@ weekly-plan acknowledgeUnknown mismatch; weekly-plan details-shape mismatch; inj
 
 ### Open findings register (unchanged)
 weekly-plan acknowledgeUnknown + details-shape mismatches; injury painLevel null-corruption; symptom no-idempotency retry gap. Punitha independent QA now due across six milestones.
+
+
+## 2026-11-26 — food log creation + portion contract milestone (pc-HUM-63 continuation 7)
+
+**Evidence commit**: this commit. **Harness**: `tests/contracts/foodLogCreate.contract.test.js` — 16/16, real route + real middleware, catalog conversion mocked at calculate() boundary (portion contract is the route's unit/amount persistence; catalog arithmetic is a separate surface). Battery: 90/90 in tests/contracts, 11/11 apiContract+releaseMechanics.
+
+### Revision pins
+- backend candidate `5962739` — branch HEAD, tested live
+- backend baseline `625352c` — static/fixture comparison
+- mobile pair `f184c99`/`846a88a` — mealSync.ts offline-queue caller transcribed from git objects
+- related commit `24ff6b8`: **ABSENT from candidate** (merge-base check) — recorded per card requirement
+
+### Verified live
+1. Exact mobile wire format accepted: client-generated stable id + quantityG/macros/nullable fiberG/serving metadata. fiberG explicit-null survives. userId session-derived always.
+2. **Both portion paths**: legacy quantityG-direct persists verbatim; candidate servingId+servingCount path — catalog conversion authoritative server-side (client quantityG overridden, documented contract), servingCount multiplication correct, 100000g cap enforced on conversion output.
+3. **IDEMPOTENCY VERIFIED — the retry contract the offline queue depends on**: repeat POST same id same user → 200 no-op returning existing, exactly one row. Cross-user id conflict → 409, original untouched. Sharp contrast with symptom submission's duplicate-row behavior — the ledger now has both halves of the idempotency story.
+4. Validation envelope: missing foodName/id, malformed id, negative/absurd quantityG, non-finite calories, far-future loggedAt → all 400 with zero-row proof each. 401 AUTH_REQUIRED no-token with zero rows.
+5. Compatibility: legacy minimal wire ⊆ candidate-accepted fields (forward-compatible); candidate-mobile serving wire accepted (execution-verified). Both upgrade orders safe. mealSync item-level failure classification (400/409/422 waits for user correction) matches backend semantics — the consumer design is coherent with the verified server behavior (static, fixture-labeled).
+
+### Fixture fault disclosed
+Initial catalog mock didn't multiply by servingCount — 1 failure corrected before evidence commit. No app defect implicated.
+
+### Open findings register (unchanged)
+weekly-plan acknowledgeUnknown + details-shape mismatches; injury painLevel null-corruption; symptom no-idempotency retry gap (food-log contrast now documented); incomplete-profile benign-ALLOW engine-owner confirmation. Punitha independent QA due across seven milestones.
