@@ -14,6 +14,15 @@ const MAX_OBSERVATIONS = 200;
 
 const err = (status, message) => Object.assign(new Error(message), { status });
 
+// Optional date field — absent/null → null; present-but-invalid → 400.
+// Persisting an Invalid Date object crashes the prisma write as a 500.
+function optionalDate(value, field) {
+  if (value === undefined || value === null) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) throw err(400, `valid ${field} is required`);
+  return d;
+}
+
 function sanitizeDiagnostics(list) {
   if (!Array.isArray(list)) return null;
   return list.slice(0, MAX_DIAGNOSTIC_REPS).map((d) => ({
@@ -46,12 +55,25 @@ async function createSession(userId, body) {
   const startedAt = body.startedAt ? new Date(body.startedAt) : null;
   if (!startedAt || Number.isNaN(startedAt.getTime())) throw err(400, 'valid startedAt is required');
 
+  // Idempotency: a client-generated op id makes retry/offline-sync redelivery
+  // a no-op returning the existing session — never a duplicate workout.
+  const clientOpId = typeof body.clientOpId === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(body.clientOpId)
+    ? body.clientOpId : null;
+  if (body.clientOpId != null && !clientOpId) throw err(400, 'clientOpId must be ≤100 chars of [a-zA-Z0-9_-]');
+  if (clientOpId) {
+    const existing = await getPrisma().coachingSession.findUnique({ where: { clientOpId } });
+    if (existing) {
+      if (existing.userId !== userId) throw err(409, 'clientOpId conflict');
+      return { stored: true, session: existing, deduplicated: true };
+    }
+  }
   const session = await getPrisma().coachingSession.create({
     data: {
       userId,
       exerciseId,
+      clientOpId,
       startedAt,
-      endedAt: body.endedAt ? new Date(body.endedAt) : null,
+      endedAt: optionalDate(body.endedAt, 'endedAt'),
       devicePlatform: String(body.devicePlatform || '').slice(0, 16) || null,
       appBuild: String(body.appBuild || '').slice(0, 80) || null,
       modelVersion: String(body.modelVersion || '').slice(0, 80) || null,
@@ -106,13 +128,73 @@ async function finalizeSession(userId, id, body) {
       ...(typeof body.corrections?.note === 'string' ? { note: body.corrections.note.slice(0, 200) } : {}),
     };
   }
-  if (body.endedAt) data.endedAt = new Date(body.endedAt);
+  if (body.endedAt !== undefined) data.endedAt = optionalDate(body.endedAt, 'endedAt');
   if (!Object.keys(data).length) throw err(400, 'Nothing to update');
   return getPrisma().coachingSession.update({ where: { id: s.id }, data });
 }
 
 // Consent withdrawal / user-controlled deletion — owner only, hard delete
 // (the record is the sensitive artifact; there is no softer artifact to keep).
+// §28 progress summary — version-aware by construction. Progress claims across
+// differing measurement versions are unreliable: a model/rules change alters
+// what a "rep" means, so the summary segments history by (modelVersion,
+// ruleVersion) and refuses to present a single cross-version trend line.
+// Provenance is never collapsed: auto vs user-confirmed vs corrected counts
+// remain distinct, and discarded sessions are excluded from trend math but
+// reported in meta. No calories/weight/activation are computed anywhere here.
+async function progressSummary(userId, { exerciseId } = {}) {
+  const where = { userId, consentToStore: true, ...(exerciseId ? { exerciseId } : {}) };
+  const rows = await getPrisma().coachingSession.findMany({
+    where,
+    orderBy: { startedAt: 'asc' },
+    select: {
+      id: true, exerciseId: true, startedAt: true, countedReps: true,
+      confirmedReps: true, discarded: true, modelVersion: true, ruleVersion: true,
+    },
+  });
+  const live = rows.filter((r) => !r.discarded);
+  const vkey = (r) => `${r.modelVersion || 'unknown'}|${r.ruleVersion || 'unknown'}`;
+  const versions = new Map();
+  for (const r of live) {
+    const k = vkey(r);
+    if (!versions.has(k)) versions.set(k, { modelVersion: r.modelVersion || null, ruleVersion: r.ruleVersion || null, sessions: 0, effectiveReps: 0, firstAt: r.startedAt, lastAt: r.startedAt });
+    const v = versions.get(k);
+    v.sessions += 1;
+    v.effectiveReps += (r.confirmedReps ?? r.countedReps) || 0;
+    if (r.startedAt < v.firstAt) v.firstAt = r.startedAt;
+    if (r.startedAt > v.lastAt) v.lastAt = r.startedAt;
+  }
+  const orderedKeys = [...versions.keys()];
+  const correctedCount = live.filter((r) => r.confirmedReps != null && r.confirmedReps !== r.countedReps).length;
+  const confirmedCount = live.filter((r) => r.confirmedReps != null).length;
+  return {
+    exerciseId: exerciseId || null,
+    sessions: {
+      total: live.length,
+      discarded: rows.length - live.length,
+      autoOnly: live.length - confirmedCount,          // provenance: camera count never reviewed
+      userConfirmed: confirmedCount,
+      corrected: correctedCount,                        // confirmed differs from counted — measurement disagreement signal
+    },
+    versions: [...versions.values()].sort((a, b) => new Date(a.firstAt) - new Date(b.firstAt)),
+    distinctVersions: orderedKeys.length,
+    // honest comparability verdict: a single-version history supports trend
+    // reading; multi-version history does not — measurement changed mid-stream.
+    crossVersionComparable: orderedKeys.length <= 1,
+    comparabilityNote: orderedKeys.length <= 1
+      ? null
+      : 'Progress comparisons span differing model/rule versions — measurement definitions changed. Compare within version segments only.',
+    trend: live.map((r) => ({
+      sessionId: r.id,
+      exerciseId: r.exerciseId,
+      at: r.startedAt,
+      effectiveReps: (r.confirmedReps ?? r.countedReps) || 0,
+      provenance: r.confirmedReps != null ? (r.confirmedReps !== r.countedReps ? 'user-corrected' : 'user-confirmed') : 'auto',
+      versionKey: vkey(r),
+    })),
+  };
+}
+
 async function deleteSession(userId, id) {
   const s = await getSession(userId, id);
   await getPrisma().coachingSession.delete({ where: { id: s.id } });
@@ -125,4 +207,5 @@ module.exports = {
   getSession,
   finalizeSession,
   deleteSession,
+  progressSummary,
 };

@@ -105,6 +105,7 @@ router.use('/reminders', reminders);
 router.use('/videos', videos);
 router.use('/health-data', healthData);
 router.use('/pose-coaching', require('./poseCoaching'));
+router.use('/exercise-intelligence', require('./exerciseIntelligence'));
 router.use('/personal-plans', personalPlans);
 router.use('/menu-analysis', menuAnalysis);
 router.use('/voice', voice);

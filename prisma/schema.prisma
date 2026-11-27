@@ -310,8 +310,44 @@ model ExerciseSet {
 // NEVER stores raw frames/video; only rep diagnostics, coaching events shown,
 // and user-confirmed/corrected counts. Unconfirmed sessions are not workout
 // records — confirmed reps may be copied into ExerciseSet by the client.
+// §26/27 exercise intelligence (pc-HUM-108) — simplest versioned architecture.
+// One row per (exerciseId, version); monotonic versions per exercise make
+// profile versions traceable and let workout results reference the exact
+// profile version in force. Ordinary users have NO write path at any layer —
+// profiles are server-controlled (seed/admin), satisfying the spec's
+// activation-safety rule by construction. Movement families are a canonical
+// server-side registry (spec §familes are a bounded editorial set — a table
+// would be redundant ceremony).
+model ExerciseIntelligenceProfile {
+  id             String   @id @default(uuid())
+  exerciseId     String
+  version        Int
+  // primary family from the canonical spec registry; secondaryFamilies is a
+  // JSON array for compound exercises. Equipment stays orthogonal on the
+  // Exercise catalog rows per spec — never duplicated into family identity.
+  movementFamily    String
+  secondaryFamilies String  @default("[]")
+  movementSubtype   String?
+  trackingMethod    String  @default("manual") // manual | rep_counter_fsm | pose_ml | none
+  coachingCapability String @default("none") // none | basic | guided | automated
+  // validated capability map — e.g. {"repCounting": {"status": "validated", "engine": "rep-counter-fsm", "engineVersion": "1"}}
+  // shape-validated at the service layer; unknown capabilities never activate.
+  capabilities   String
+  status         String   @default("draft") // draft | validated | disabled
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([exerciseId, version])
+  @@index([exerciseId, status])
+}
+
 model CoachingSession {
   id String @id @default(uuid())
+
+  // Client-generated idempotency key — retry/offline sync can never duplicate
+  // the session (same pattern as food logs). Null for legacy rows.
+  clientOpId String? @unique
 
   userId String
 
