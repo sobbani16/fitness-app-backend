@@ -44,13 +44,12 @@ jobs:
         with:
           node-version: 22
       - name: dev-secret fallbacks must only appear inside requiredSecret() calls
-        run: |
-          # Any dev-secret literal outside a requiredSecret() call = raw fallback → fail.
-          ! grep -rn "dev-view-as-secret\|dev-video-secret\|dev-doc-secret\|dev-formcheck-secret" \
-            src/ --include='*.js' | grep -v "requiredSecret("
-          # The payment mock secret is dev-only and must stay behind the
-          # isProduction() gate inside payments/provider.js.
-          ! grep -rn "'mock-secret'\|\"mock-secret\"" src/ --include='*.js' | grep -v "services/payments/provider.js"
+        # Precise matcher (scripts/check-dev-secret-guard.js): same rules as the
+        # original grep — literal outside requiredSecret() = raw fallback = fail,
+        # payments mock exemption unchanged — but no longer false-positives on
+        # the PREDICTABLE denylist definition in src/lib/env.js (data, not
+        # usage). Regression-tested in tests/devSecretGuard.test.js.
+        run: node scripts/check-dev-secret-guard.js
       - name: payment webhook route has a dedicated rate limiter
         run: grep -q "rateLimit" src/routes/paymentWebhooks.js
       - name: provider binding check present
