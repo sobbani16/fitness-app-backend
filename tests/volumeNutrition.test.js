@@ -43,11 +43,15 @@ it('explicit volumeMl converts with density', async () => {
   expect(r.nutrition.calories).toBeCloseTo(61 * 1.03, 1);
 });
 
-it('refuses volume without density — no fabricated mass', async () => {
-  await expect(calculate('i-oil', { servingId: 'sv-cup', count: 1 }, db(OIL_NO_DENSITY)))
-    .rejects.toMatchObject({ status: 400, message: 'volume_requires_density' });
-  await expect(calculate('i-oil', { volumeMl: 50 }, db(OIL_NO_DENSITY)))
-    .rejects.toMatchObject({ status: 400, message: 'volume_requires_density' });
+it('volume without density resolves volume-natively — mass null, NEVER fabricated (decision #144/#155)', async () => {
+  const r1 = await calculate('i-oil', { servingId: 'sv-cup', count: 1 }, db(OIL_NO_DENSITY));
+  expect(r1.grams).toBeNull(); // unknown mass — never 1ml=1g
+  expect(r1.volumeMl).toBe(240);
+  expect(r1.nutritionBasis).toBe('PER_100_ML');
+  expect(r1.nutrition.calories).toBeCloseTo(61 * 2.4, 1); // declared basis × volume
+  const r2 = await calculate('i-oil', { volumeMl: 50 }, db(OIL_NO_DENSITY));
+  expect(r2.grams).toBeNull();
+  expect(r2.nutrition.calories).toBeCloseTo(61 * 0.5, 1);
 });
 
 it('never applies a 1ml=1g implicit fallback', async () => {
@@ -77,15 +81,17 @@ const BEVERAGE = {
 const BEVERAGE_DENSITY = { ...BEVERAGE, id: 'i-bev-d', densityGPerMl: 1.04 };
 
 describe('baseline: native per-100-mL nutrition (Workstream C evidence)', () => {
-  it('REQUIRED: 330 ml → 138.6 kcal with unknown mass; ACTUAL: resolver refuses (volume_requires_density), zero nutrition computable', async () => {
-    // Required by spec C2: kcal computable directly on the volume basis —
+  it('APPROVED: 330 ml → 138.6 kcal with unknown mass — volume-native resolution (decisions #111/#144/#155)', async () => {
+    // Spec C2 realized: kcal computable directly on the volume basis —
     // 42 kcal/100ml × 3.3 = 138.6 kcal, mass legitimately unknown.
-    // Actual: refusal because the only nutrition representation is per-100g
-    // canonical and volume→mass requires the missing density.
-    await expect(calculate('i-bev', { volumeMl: 330 }, db(BEVERAGE)))
-      .rejects.toMatchObject({ status: 400, message: 'volume_requires_density' });
-    await expect(calculate('i-bev', { servingId: 'sv-330', count: 1 }, db(BEVERAGE)))
-      .rejects.toMatchObject({ status: 400, message: 'volume_requires_density' });
+    const r = await calculate('i-bev', { volumeMl: 330 }, db(BEVERAGE));
+    expect(r.nutrition.calories).toBeCloseTo(138.6, 1);
+    expect(r.grams).toBeNull();
+    expect(r.nutritionBasis).toBe('PER_100_ML');
+    expect(r.provenance.conversion).toMatch(/volume-native/);
+    const rs = await calculate('i-bev', { servingId: 'sv-330', count: 1 }, db(BEVERAGE));
+    expect(rs.nutrition.calories).toBeCloseTo(138.6, 1);
+    expect(rs.grams).toBeNull();
   });
   it('CONTROL: identical beverage WITH valid density computes correctly through conversion', async () => {
     const r = await calculate('i-bev-d', { volumeMl: 330 }, db(BEVERAGE_DENSITY));

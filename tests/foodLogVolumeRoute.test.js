@@ -40,13 +40,22 @@ const post = (body) => request(app).post('/foodLogs').send({
 });
 
 describe('POST /foodLogs volume baseline (Workstream C evidence)', () => {
-  it('ACTUAL: per-100-mL beverage without density — request rejected, ZERO writes, 138.6 kcal never recorded', async () => {
+  it('APPROVED: per-100-mL beverage without density persists — 330 mL reads back as 138.6 kcal, mass honestly unknown', async () => {
+    // decisions #111/#144/#155: volume-native persistence, never 1ml=1g.
+    // Declared nutrition 42 kcal/100 mL × 330 mL = 138.6 kcal; quantityG null.
     const res = await post({ ingredientId: 'i-bev', foodName: 'Orange juice', volumeMl: 330, calories: 138.6, proteinG: 2.3, carbsG: 33, fatG: 0.7, fiberG: 0.7 });
-    // REQUIRED per spec C2: 201 with calories=138.6, quantityG legitimately unknown.
-    // ACTUAL behavior recorded here as baseline:
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/volume_requires_density/);
-    expect(creates.length).toBe(0); // no write occurs — the beverage is unloggable with nutrition
+    expect(res.status).toBeLessThan(300);
+    expect(creates.length).toBe(1);
+    expect(creates[0].calories).toBeCloseTo(138.6, 1); // 42 × 330/100 — exact declared math
+    expect(creates[0].quantityG).toBeNull(); // mass unknown — never fabricated
+    expect(creates[0].quantityMl).toBe(330);
+    expect(creates[0].quantityUnit).toBe('ml');
+    expect(creates[0].nutritionSnapshot.nutritionBasis).toBe('PER_100_ML');
+    expect(creates[0].nutritionSnapshot.massUnknown).toBe(true);
+    // read-back: the persisted shape round-trips volume + unknown mass + nutrition
+    expect(res.body.quantityMl).toBe(330);
+    expect(res.body.quantityG).toBeNull();
+    expect(res.body.calories).toBeCloseTo(138.6, 1);
   });
 
   it('CONTROL: same beverage with valid density — write occurs, converted mass + nutrition persisted', async () => {
@@ -64,9 +73,9 @@ describe('POST /foodLogs volume baseline (Workstream C evidence)', () => {
     // volume-only log cannot exist without SOME mass value. Overwritten on
     // successful conversion; the write never happens at all on refusal.
     const src = require('fs').readFileSync(require('path').join(__dirname, '../src/routes/foodLogs.js'), 'utf8');
-    expect(src).toMatch(/k==='quantityG'\s*&&\s*b\[k\]==null\s*&&\s*b\.volumeMl!=null/);
+    expect(src).toMatch(/data\[k\]=null;continue;.*volume-native/);
     const schema = require('fs').readFileSync(require('path').join(__dirname, '../prisma/schema.prisma'), 'utf8');
     const foodLogBlock = schema.slice(schema.indexOf('model FoodLog'));
-    expect(foodLogBlock.slice(0, 2000)).toMatch(/quantityG\s+Float[^?]/); // non-nullable — no quantityG?
+    expect(foodLogBlock.slice(0, 2000)).toMatch(/quantityG\s+Float\?/); // nullable — unknown mass is honestly null (decision #155)
   });
 });

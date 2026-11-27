@@ -14,11 +14,25 @@ function gramsFromVolume(item,ml){
  return ml*d;
 }
 async function calculate(id,{grams,servingId,count=1,volumeMl}={},db=getPrisma()){
- const item=await getIngredient(id,db);let serving=null,densityUsed=null;
+ const item=await getIngredient(id,db);let serving=null,densityUsed=null,volumeNative=null;
  if(servingId){serving=item.servings.find(s=>s.id===servingId);if(!serving || !Number.isFinite(count)||count<=0||count>1000)throw httpError(400,'Invalid serving');
-  if(serving.ml!=null){densityUsed=item.densityGPerMl;grams=gramsFromVolume(item,serving.ml)*count;}
+  if(serving.ml!=null){
+   if(Number.isFinite(item.densityGPerMl)&&item.densityGPerMl>0&&item.densityGPerMl<=3){densityUsed=item.densityGPerMl;grams=gramsFromVolume(item,serving.ml)*count;}
+   else volumeNative={volumeMl:serving.ml*count};
+  }
   else grams=serving.grams*count;}
- else if(volumeMl!=null){const v=Number(volumeMl);if(!Number.isFinite(v)||v<=0||v>100000)throw httpError(400,'Invalid volumeMl');densityUsed=item.densityGPerMl;grams=gramsFromVolume(item,v);}
+ else if(volumeMl!=null){const v=Number(volumeMl);if(!Number.isFinite(v)||v<=0||v>100000)throw httpError(400,'Invalid volumeMl');
+  if(Number.isFinite(item.densityGPerMl)&&item.densityGPerMl>0&&item.densityGPerMl<=3){densityUsed=item.densityGPerMl;grams=gramsFromVolume(item,v);}
+  else volumeNative={volumeMl:v};}
+ // Volume-native path (decisions #111/#144/#155): a volume-declared ingredient
+ // without documented density is NEVER mass-converted (never 1ml=1g). Nutrition
+ // scales by the declared per-100mL basis through the approved pure helper;
+ // mass stays honestly null.
+ if(volumeNative){
+  const declared={basis:'PER_100_ML',nutrients:fromIngredient(item)};
+  const out=require('./nutrition').calculateDeclared(declared,{volumeMl:volumeNative.volumeMl});
+  return {nutrition:out.nutrition,grams:null,volumeMl:volumeNative.volumeMl,nutritionBasis:'PER_100_ML',serving:serving?{id:serving.id,label:serving.label,grams:serving.grams,ml:serving.ml??null,count,estimated:serving.estimated,source:serving.sourceRecord}:null,densityGPerMl:null,provenance:{...provenance(item),nutritionBasis:'PER_100_ML',conversion:'volume-native: declared per-100mL × ml/100 — mass unknown (no documented density)',calculation:out.calculation}};
+ }
  const nutrition=scale(fromIngredient(item),grams);
  return {nutrition,grams,serving:serving?{id:serving.id,label:serving.label,grams:serving.grams,ml:serving.ml??null,count,estimated:serving.estimated,source:serving.sourceRecord}:null,densityGPerMl:densityUsed??null,provenance:{...provenance(item),conversion:densityUsed!=null?`volume_ml × ${densityUsed} g/ml → grams`:'direct grams'}};
 }

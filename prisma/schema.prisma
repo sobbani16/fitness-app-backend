@@ -242,7 +242,12 @@ model FoodLog {
 
   foodName String
 
-  quantityG Float
+  // decision #111/#144/#155: null = unknown mass — NEVER fabricated (never 1ml=1g).
+  // Volume-native entries carry quantityMl with quantityG null when density is unknown.
+  quantityG Float?
+
+  quantityMl   Float?
+  quantityUnit String?
 
   calories Float
 

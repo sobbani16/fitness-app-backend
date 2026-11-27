@@ -48,7 +48,7 @@ router.post('/',async(req,res,next)=>{
   for(const k of ['quantityG','calories','proteinG','carbsG','fatG','fiberG']) {
    if(k==='fiberG' && b[k]==null){data[k]=null;continue;}
    // volumeMl + ingredientId resolves quantityG server-side via density.
-   if(k==='quantityG' && b[k]==null && b.volumeMl!=null && b.ingredientId){data[k]=0;continue;}
+   if(k==='quantityG' && b[k]==null && b.volumeMl!=null && b.ingredientId){data[k]=null;continue;} // volume-native: mass resolved server-side or honestly null
    const n=b[k]; if(!Number.isFinite(n)||n<0||n>100000)throw httpError(400,`Invalid ${k}`); data[k]=n;
   }
   const loggedAt=b.loggedAt ? new Date(b.loggedAt) : new Date();
@@ -64,11 +64,13 @@ router.post('/',async(req,res,next)=>{
    const calculated=typeof b.servingId==='string'&&b.servingId
      ?await require('../services/ingredientNutrition').calculate(b.ingredientId,{servingId:b.servingId,count:servingCount??1})
      :await require('../services/ingredientNutrition').calculate(b.ingredientId,b.volumeMl!=null?{volumeMl:Number(b.volumeMl)}:{grams:data.quantityG});
-   if(calculated.serving||b.volumeMl!=null)data.quantityG=calculated.grams;
+   if(calculated.serving||b.volumeMl!=null)data.quantityG=calculated.grams??null;
+   if(b.volumeMl!=null){data.quantityMl=Number(b.volumeMl);data.quantityUnit='ml';}
+   else if(calculated.serving&&calculated.serving.ml!=null){data.quantityMl=calculated.serving.ml*(servingCount??1);data.quantityUnit='ml';}
    const edited=['calories','proteinG','carbsG','fatG','fiberG'].some(k=>data[k]!=null && (calculated.nutrition[k]==null || Math.abs(data[k]-calculated.nutrition[k])>(k==='calories'?0.51:0.051)));
    data.ingredientId=b.ingredientId;
    const catalogRevisionAtSelection=typeof b.catalogRevision==='string'?b.catalogRevision.slice(0,64):null;
-   data.nutritionSnapshot={...calculated.provenance,catalogRevisionAtSelection,catalogChangedSinceSelection:!!catalogRevisionAtSelection && catalogRevisionAtSelection!==calculated.provenance.revision,grams:data.quantityG,loggedFoodName:data.foodName,selectedServing:b.selectedServing && typeof b.selectedServing==='string'?b.selectedServing.slice(0,200):null,servingId:typeof b.servingId==='string'?b.servingId.slice(0,80):calculated.serving?.id??null,servingGrams:calculated.serving?.grams??null,servingMl:calculated.serving?.ml??null,densityGPerMl:calculated.densityGPerMl??null,volumeMl:b.volumeMl!=null?Number(b.volumeMl):null,servingCount:servingCount??(calculated.serving&&calculated.serving.grams>0?Math.round((calculated.grams/calculated.serving.grams)*100)/100:null),calculated:calculated.nutrition,saved:{calories:data.calories,proteinG:data.proteinG,carbsG:data.carbsG,fatG:data.fatG,fiberG:data.fiberG},nutrientUnknowns:require('../services/nutrientCompleteness').computeUnknowns(calculated.nutrition,{calories:data.calories,proteinG:data.proteinG,carbsG:data.carbsG,fatG:data.fatG,fiberG:data.fiberG}),userEdited:edited,loggedSource:edited?'user-entered correction':'catalog calculation'};
+   data.nutritionSnapshot={...calculated.provenance,catalogRevisionAtSelection,catalogChangedSinceSelection:!!catalogRevisionAtSelection && catalogRevisionAtSelection!==calculated.provenance.revision,grams:data.quantityG,massUnknown:data.quantityG==null&&data.quantityMl!=null?true:undefined,nutritionBasis:calculated.nutritionBasis??null,loggedFoodName:data.foodName,selectedServing:b.selectedServing && typeof b.selectedServing==='string'?b.selectedServing.slice(0,200):null,servingId:typeof b.servingId==='string'?b.servingId.slice(0,80):calculated.serving?.id??null,servingGrams:calculated.serving?.grams??null,servingMl:calculated.serving?.ml??null,densityGPerMl:calculated.densityGPerMl??null,volumeMl:b.volumeMl!=null?Number(b.volumeMl):null,servingCount:servingCount??(calculated.serving&&calculated.serving.grams>0?Math.round((calculated.grams/calculated.serving.grams)*100)/100:null),calculated:calculated.nutrition,saved:{calories:data.calories,proteinG:data.proteinG,carbsG:data.carbsG,fatG:data.fatG,fiberG:data.fiberG},nutrientUnknowns:require('../services/nutrientCompleteness').computeUnknowns(calculated.nutrition,{calories:data.calories,proteinG:data.proteinG,carbsG:data.carbsG,fatG:data.fatG,fiberG:data.fiberG}),userEdited:edited,loggedSource:edited?'user-entered correction':'catalog calculation'};
   } else data.nutritionSnapshot={loggedSource:'user-entered or external estimate',grams:data.quantityG,nutrientUnknowns:data.fiberG==null?['fiberG']:[]};
   if(b.nutritionProfileId&&b.ingredientId){
    if(typeof b.nutritionProfileId!=='string'||!/^[0-9a-f-]{36}$/i.test(b.nutritionProfileId))throw httpError(400,'Invalid nutrition profile');
