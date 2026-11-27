@@ -27,3 +27,11 @@
 - gitleaks CI lane on every PR (SHA-pinned action) — future-commit scanning continuous
 - `tests/security/credentialExposure.test.js` — regression suite in main
 - env validation startup gate (P07) — predictable values rejected by name in production
+
+## Addendum 2026-11-27 — readiness command + authorized live inspection (pc-HUM-77)
+
+**Read-only readiness command delivered**: `scripts/config-readiness.js` — output contract exactly name/present/valid/feature/action per row; values never printed or inspected beyond shape (length/structure only, never content). 7/7 tests including the cardinal-rule proof: even malformed values never echo into serialized output. Exit 1 in production when any required row needs SET/REPLACE.
+
+**Authorized Railway inspection refresh (#127, read-only)**: staging inventory matches the readiness model — required secrets present with no short/empty shapes; capability secrets (DOC_URL/VIDEO_TOKEN/FORM_CHECK/VIEW_AS/PAYMENTS_WEBHOOK) absent and correctly degradable (derivable-from-master warnings or commerce-inactive); CORS_ORIGINS absent = documented safe default (no browser cross-origin, native clients unaffected). No values accessed beyond shape signals; nothing modified.
+
+**Provisioning inventory**: `provision-secrets.js` already generates cryptographically independent per-purpose secrets or a master for HMAC domain separation, writes gitignored-only, never prints. Runbook consolidation: rotation instructions remain owner-decision-gated per the needs-human asks below — no live rotation without explicit authorization.
