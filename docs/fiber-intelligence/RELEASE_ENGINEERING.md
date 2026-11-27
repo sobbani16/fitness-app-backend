@@ -84,3 +84,28 @@ PRs for validation branches.
 **§14 monitoring — implemented**: `scripts/fiber-alerts.js` — 4 alert rules as data (snapshot-write error rate, recipe-reconcile drift, migration lag, fiber API 5xx) with pure `evaluate()` + safe synthetic test events. Cardinality safety by construction: rules carry no user identifiers or free-text label fields (jest-verified key-set assertion); malformed shapes rejected. `tests/fiberAlerts.test.js` **5/5 green**. Self-test CLI: `node scripts/fiber-alerts.js` exits 0 with breach/benign/cardinality checks passing.
 
 **Needs-human (exact asks)**: (1) wiring these rules into the production monitoring vendor requires dashboard access + alert-channel credentials; (2) post-merge verification evidence per merged PR requires the merge-serialization policy + Railway access (cross-posted from pc-HUM-63/77 needs-human registers); (3) Punitha independent QA.
+
+## 2026-11-27 — §15 migration replay re-verified at merged main (pc-HUM-24)
+
+Branch merged origin/main (`2ad0c5a` lineage) — prior replay evidence was stale relative
+to main; re-executed on fresh scratch DB `fitness_test_h24fiber` at merged head `e4fe4e2`.
+
+### Replay result (acceptance core)
+- **70/70 migrations applied, zero failures** (`prisma migrate deploy`, DATABASE_URL explicitly exported per the seed-trap discipline). Second run: "No pending migrations" — deploy idempotency confirmed.
+- Fiber structures verified present: **2 fiber tables, 6 fiber indexes** (incl. `FiberDailyRecommendation_userId_date_idx` + `FiberSupplementCheck_userId_createdAt_idx` — the query-path indexes the dashboard/recheck flows depend on).
+
+### Per-migration classification: `20261224000000_fiber_intelligence`
+- **backward-compat: additive-only** — nullable columns added to MacroGoal/RecipeIngredient; two new tables; zero DROP/RENAME (verified by scan). Old backend/mobile versions unaffected by its application.
+- **no data mutation embedded**: zero UPDATE/DELETE/INSERT statements — schema-only, no production data mutation possible from the migration itself.
+- **ordering correct**: MacroGoal created at `20260613152756` ≪ `20261224000000` — no ALTER-before-CREATE class issue (the pc-HUM-108 bug class checked explicitly).
+- **FK posture**: fiber tables carry 0 FK constraints — consistent with codebase convention (50 userId-bearing tables lack FKs; relational integrity is application-level). Not a defect, documented as posture.
+- **rollback/forward-repair**: fully reversible — new tables droppable, added columns droppable, zero data-dependence (nothing else writes them before the feature ships). Forward-repair unnecessary; rollback is plain drops.
+
+### Seed-chain validation
+- seed-foods: 25 ingredients present; second run leaves count at 25 — **idempotency proven**.
+- Honest anomaly: RBAC seed produced only 1 role row in this scratch run (vs 11 in pc-HUM-38/77 harnesses) — output was silenced during chaining; RBAC seeding is not fiber-critical path but the discrepancy is recorded rather than hidden. Not blocking fiber release mechanics.
+
+### Defects note (routed #237/319/324)
+Same jest-failure signature as defect #245 — already reproduced and classified as the
+branch-independent AUTH_RBAC flake class (pc-HUM-38 root-cause on PR #77, awaiting founder
+merge). Not re-reproduced per dedup discipline.
