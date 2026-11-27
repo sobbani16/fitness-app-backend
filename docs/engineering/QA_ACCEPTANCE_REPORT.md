@@ -131,3 +131,23 @@ weekly-plan acknowledgeUnknown mismatch; weekly-plan details-shape mismatch; inj
 
 ### Open findings register (unchanged)
 weekly-plan acknowledgeUnknown mismatch; weekly-plan details-shape mismatch; injury painLevel null-corruption — still open pending owner decisions. Punitha independent QA due on all five milestones.
+
+
+## 2026-11-26 — safety recommendation contract milestone (pc-HUM-63 continuation 6)
+
+**Evidence commit**: this commit. **Harness**: `tests/contracts/safetyRecommend.contract.test.js` — 10/10, real route + real feature gate + real recommend pipeline, synthetic tokens/fixtures. Battery: 74/74 in tests/contracts.
+
+### Revision pins
+- backend candidate `96ed02a` — branch HEAD, tested live; merge `df477ee` referenced as gate-evidence pin (fixture-labeled static)
+- backend baseline `625352c` — recommendation route present on lineage (fixture-labeled static)
+- mobile pair `f184c99`/`846a88a` — getSafetyRecommendation caller + SafetyRecommendation type transcribed from git objects; wire identical across pair
+
+### Verified live
+1. Response shape keys exact: disposition/policyVersion/suggestion/requiredData/activities/noMedicalClaims; disposition within mobile's 5-member enum; per-candidate rows carry activityId/decision/suppressed/reasons.
+2. **Safety-critical invariants proven**: restricted user never receives a blocked activity as suggestion (per-candidate BLOCK rows are correct surfacing, never recommended); urgent symptom suppresses everything (suggestion null, suppressed-family disposition); no activityId spoofing (query ignored, session-scoped context only).
+3. **Documented nuance — incomplete-profile semantics**: recommendation pipeline yields indoor_walk ALLOW (empty reasons) — data-independent benign activity — while data-dependent candidates still evaluate INSUFFICIENT_DATA per-row. Contrast with evaluate milestone's outdoor_walk INSUFFICIENT_DATA is activity-dependence, not contradiction. Flagged for engine-owner confirmation; not asserted as defect.
+4. 401 AUTH_REQUIRED envelope on missing token. Feature gate health_aware_recommendations in chain.
+5. Compatibility: mobile wire (lat/lon query only) ⊆ route-consumed keys; mobile-consumed response keys ⊆ route-produced — additive extras (restFallback/environment) ignored by axios pass-through. Both upgrade orders safe (fixture-labeled static evidence marked).
+
+### Open findings register (unchanged)
+weekly-plan acknowledgeUnknown + details-shape mismatches; injury painLevel null-corruption; symptom no-idempotency retry gap. Punitha independent QA now due across six milestones.
