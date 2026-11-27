@@ -164,14 +164,19 @@ router.post('/sequence', requireFeature('fiber_meal_sequencing_enabled'), async 
       if (typeof (it.name || it.foodName) !== 'string' || !(it.name || it.foodName).trim()) throw httpError(400, 'Each item needs a name.');
       if (it.amountG != null && (!Number.isFinite(it.amountG) || it.amountG <= 0 || it.amountG > 20000)) throw httpError(400, 'amountG must be 0–20000.');
     }
-    const [allergies, prefs] = await Promise.all([
-      prisma.userAllergy.findMany({ where: { userId }, include: { allergy: { select: { name: true } } } }).catch(() => []),
-      prisma.foodPreference.findMany({ where: { userId, preference: { in: ['DISLIKE', 'NEVER_RECOMMEND'] } }, select: { foodName: true } }).catch(() => []),
-    ]);
-    res.json(await sequenceMeal(items, {
-      allergenTerms: new Set(allergies.map((a) => String(a.allergy?.name || '').toLowerCase()).filter(Boolean)),
-      avoidNames: new Set(prefs.map((p) => p.foodName.toLowerCase())),
-    }));
+    // Fail closed: allergy/preference lookups feed exclusion terms into the
+    // suggestion engine. Treating a lookup failure as an empty result would
+    // silently drop recorded exclusions — the exact class of failure the
+    // safety contract forbids. Return a sanitized unavailable response; never
+    // leak the raw lookup error. sequenceMeal is only called after both reads
+    // succeed.
+    let exclusion;
+    try {
+      exclusion = await require('../services/fiber/exclusionContext').loadExclusionContext(prisma, userId);
+    } catch {
+      throw httpError(503, 'Meal sequencing is temporarily unavailable — please try again.');
+    }
+    res.json(await sequenceMeal(items, exclusion));
   } catch (e) { next(e); }
 });
 

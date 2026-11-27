@@ -151,9 +151,34 @@ async function sequenceAnswer(prisma, userId, message) {
   if (!Array.isArray(comps) || !comps.length) {
     return 'Scan or log a meal with separate components first, and I can suggest an eating order. Mixed dishes like biryani don’t get a forced sequence.';
   }
+  // Fail-closed parity with POST /fiber/sequence: both flags must be enabled,
+  // exclusion context must load, and the engine must succeed — otherwise the
+  // answer is a HANDLED sanitized unavailable message. Returning
+  // { handled: false } here would let the generic chat LLM invent an order,
+  // which is exactly the failure class this contract forbids.
+  const UNAVAILABLE = 'Meal ordering is temporarily unavailable — please try again in a bit. Your logged meals are unaffected.';
+  try {
+    const { isEnabled } = require('../featureFlags/service');
+    const [intelligenceOn, sequencingOn] = await Promise.all([
+      isEnabled('fiber_intelligence_enabled').catch(() => false),
+      isEnabled('fiber_meal_sequencing_enabled').catch(() => false),
+    ]);
+    if (!intelligenceOn || !sequencingOn) return UNAVAILABLE;
+  } catch { return UNAVAILABLE; }
   const items = comps.flatMap((c) => (Array.isArray(c.ingredients) && c.ingredients.length ? c.ingredients : [{ name: c.foodName, amountG: null }]).map((i) => ({ name: i.name || c.foodName, amountG: i.amountG ?? null })));
-  const seq = await sequenceMeal(items, {});
+  let exclusion;
+  try {
+    exclusion = await require('./exclusionContext').loadExclusionContext(prisma, userId);
+  } catch { return UNAVAILABLE; }
+  let seq;
+  try {
+    seq = await sequenceMeal(items, exclusion);
+  } catch { return UNAVAILABLE; }
   if (!seq.separable) return seq.explanation[0] || 'That meal’s components can’t realistically be eaten in a set order.';
+  if (seq.sequencingApplicable === false) {
+    const add = seq.suggestedAddition ? ` If you want a fiber anchor, ${seq.suggestedAddition.food} (${seq.suggestedAddition.serving}) is a reasonable add — food first, no pressure.` : '';
+    return `“${log.foodName}” is a single-component meal — there’s nothing to order.${add}`;
+  }
   const order = seq.order.map((s) => `${s.rank}. ${s.component}`).join(' → ');
   const extra = seq.suggestedAddition ? ` Optionally start with ${seq.suggestedAddition.food} for fiber.` : '';
   return `For “${log.foodName}”: ${order}.${extra} It’s an optional suggestion, not a rule.`;
