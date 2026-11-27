@@ -79,15 +79,31 @@ function loadCommitted(outDir) {
 }
 
 function coverageDiff(catalog, committed) {
-  const invIds = new Set((committed.inv.exercises || []).map((e) => e.id));
+  // Persisted-ID aware lookup: a legacy row may persist under an id that
+  // differs from its normalized slug. A catalog exercise is covered when the
+  // committed inventory carries an entry whose id OR normalizedName equals
+  // the catalog slug — and the profile is keyed by that entry's persisted id.
+  // Ambiguity (slug matches one entry's id but a DIFFERENT entry's
+  // normalizedName) is a hard failure — never silently accept either.
+  const entries = committed.inv.exercises || [];
   const profIds = new Set((committed.prof.profiles || []).map((p) => p.exerciseId));
-  const missingInventory = catalog.rows.filter((r) => !invIds.has(r.id)).map((r) => r.id);
-  const missingProfiles = catalog.rows.filter((r) => !profIds.has(r.id)).map((r) => r.id);
+  const missingInventory = [];
+  const missingProfiles = [];
+  const ambiguous = [];
+  for (const r of catalog.rows) {
+    const byId = entries.filter((e) => e.id === r.id);
+    const byNorm = entries.filter((e) => e.normalizedName === r.id);
+    const matched = new Set([...byId, ...byNorm].map((e) => e.id));
+    if (matched.size > 1) { ambiguous.push(`${r.id} -> [${[...matched].join(', ')}]`); continue; }
+    if (!matched.size) { missingInventory.push(r.id); continue; }
+    const persistedId = [...matched][0];
+    if (!profIds.has(persistedId)) missingProfiles.push(`${r.id} (persisted as ${persistedId})`);
+  }
   const invSeen = new Set(); const invDupes = [];
   for (const e of (committed.inv.exercises || [])) { if (invSeen.has(e.id)) invDupes.push(e.id); invSeen.add(e.id); }
   const profSeen = new Set(); const profDupes = [];
   for (const p of (committed.prof.profiles || [])) { if (profSeen.has(p.exerciseId)) profDupes.push(p.exerciseId); profSeen.add(p.exerciseId); }
-  return { missingInventory, missingProfiles, invDupes, profDupes };
+  return { missingInventory, missingProfiles, invDupes, profDupes, ambiguous };
 }
 
 
@@ -149,8 +165,9 @@ async function checkMode(catalogPath, outDir) {
   const diff = coverageDiff(catalog, committed);
   const failures = [];
   if (catalog.catalogDuplicates.length) failures.push(`duplicate ids in catalog source: ${catalog.catalogDuplicates.join(', ')}`);
-  if (diff.missingInventory.length) failures.push(`catalog exercises missing from committed inventory: ${diff.missingInventory.join(', ')}`);
+  if (diff.missingInventory.length) failures.push(`catalog exercises missing from committed inventory: ${diff.missingInventory.join(', ')} — run: node scripts/exercise-inventory.js --drafts`);
   if (diff.missingProfiles.length) failures.push(`catalog exercises missing a draft intelligence profile: ${diff.missingProfiles.join(', ')} — run: node scripts/exercise-inventory.js --drafts`);
+  if (diff.ambiguous && diff.ambiguous.length) failures.push(`ambiguous coverage — catalog slug maps to multiple persisted entries, resolve identity before trusting drafts: ${diff.ambiguous.join('; ')}`);
   if (diff.invDupes.length) failures.push(`duplicate ids in committed inventory: ${diff.invDupes.join(', ')}`);
   if (diff.profDupes.length) failures.push(`duplicate ids in committed profiles: ${diff.profDupes.join(', ')}`);
   console.log(JSON.stringify({ mode: 'check', catalogRows: catalog.rows.length, committedInventory: (committed.inv.exercises || []).length, committedProfiles: (committed.prof.profiles || []).length, missingInventory: diff.missingInventory.length, missingProfiles: diff.missingProfiles.length, failures: failures.length }, null, 1));

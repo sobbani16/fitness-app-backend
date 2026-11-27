@@ -84,6 +84,39 @@ describe('§33 importer-driven onboarding', () => {
     expect(fs.existsSync(path.join(out, 'drafts', `${PREFIX}delta-raise.json`))).toBe(false);
   });
 
+test('persisted ID (differing from derived slug) drives muscles, draft identity, coverage, and result', async () => {
+    // seed a legacy-shaped row: upsert matches on normalizedName but the
+    // persisted row keeps its own distinct id
+    const slug = `${PREFIX}legacy-named`;
+    const persistedId = `${PREFIX}legacy-persisted-xyz`;
+    await prisma.exercise.upsert({
+      where: { normalizedName: slug },
+      update: {},
+      create: { id: persistedId, normalizedName: slug, name: 'legacy original', equipment: 'dumbbell', appEquipment: ['dumbbell'], level: 'beginner', force: 'pull', mechanic: 'isolation', instructions: ['old'], source: 'free-exercise-db' },
+    });
+    const out = tmpOut();
+    const res = await importCatalog(prisma, [row(`${PREFIX}legacy named`)], { stageDraft: { outDir: out, fixedDate: '2026-01-01T00:00:00.000Z' } });
+    expect(res.imported).toBe(1);
+    // exactly one draft + coverage under the PERSISTED id, zero under the derived slug
+    expect(res.drafts[0].id).toBe(persistedId);
+    expect(fs.existsSync(path.join(out, 'drafts', `${persistedId}.json`))).toBe(true);
+    expect(fs.existsSync(path.join(out, 'drafts', `${slug}.json`))).toBe(false);
+    const profs = JSON.parse(fs.readFileSync(path.join(out, 'exercise-profiles.v1.json'), 'utf8'));
+    expect(profs.profiles.map((p) => p.exerciseId)).toEqual([persistedId]);
+    const inv = JSON.parse(fs.readFileSync(path.join(out, 'exercise-inventory.json'), 'utf8'));
+    expect(inv.exercises.map((e) => e.id)).toEqual([persistedId]);
+    // muscles attach to the persisted id — nothing orphaned under the slug
+    const muscles = await prisma.exerciseMuscle.findMany({ where: { exerciseId: persistedId } });
+    expect(muscles.some((m) => m.role === 'primary')).toBe(true);
+    expect(await prisma.exerciseMuscle.count({ where: { exerciseId: slug } })).toBe(0);
+    // replay is byte-stable
+    const before = fs.readFileSync(path.join(out, 'exercise-profiles.v1.json'), 'utf8');
+    await importCatalog(prisma, [row(`${PREFIX}legacy named`)], { stageDraft: { outDir: out, fixedDate: '2026-01-02T00:00:00.000Z' } });
+    expect(fs.readFileSync(path.join(out, 'exercise-profiles.v1.json'), 'utf8')).toBe(before);
+    await prisma.exerciseMuscle.deleteMany({ where: { exerciseId: persistedId } });
+    await prisma.exercise.delete({ where: { id: persistedId } });
+  });
+
   test('a failed import produces no draft and no partial coverage entry', async () => {
     const out = tmpOut();
     // hybrid client: real prisma except upsert blows up for the bad row

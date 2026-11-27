@@ -26,7 +26,7 @@ async function importRow(prisma, raw, stageDraft) {
   const secondary = [...new Set((raw.secondaryMuscles || []).flatMap(canonicalMuscle))]
     .filter(m => !primary.includes(m));
   const appEquipment = [...new Set([raw.equipment].filter(Boolean).map(canonicalEquipment))];
-  await prisma.exercise.upsert({
+  const persisted = await prisma.exercise.upsert({
     where: { normalizedName: id },
     update: {
       name, level: raw.level || null, force: raw.force || null,
@@ -42,28 +42,32 @@ async function importRow(prisma, raw, stageDraft) {
       source: 'free-exercise-db', sourceId: raw.id || null,
     },
   });
-  await prisma.exerciseMuscle.deleteMany({ where: { exerciseId: id } });
+  // The persisted row id is authoritative — an existing row matched on
+  // normalizedName may carry a legacy id that differs from the derived slug.
+  // Muscle writes, draft identity/provenance and the result must all use it;
+  // never rekey the exercise itself.
+  const pid = persisted.id;
+  await prisma.exerciseMuscle.deleteMany({ where: { exerciseId: pid } });
   await prisma.exerciseMuscle.createMany({
     data: [
-      ...primary.map(m => ({ exerciseId: id, muscle: m, role: 'primary' })),
-      ...secondary.map(m => ({ exerciseId: id, muscle: m, role: 'secondary' })),
+      ...primary.map(m => ({ exerciseId: pid, muscle: m, role: 'primary' })),
+      ...secondary.map(m => ({ exerciseId: pid, muscle: m, role: 'secondary' })),
     ],
     skipDuplicates: true,
   });
-  // Persisted ID + normalized metadata drive the draft — never the raw row.
   let draft = null;
   if (stageDraft) {
     const { stageExerciseDraft } = require('./exercise-inventory');
     draft = stageExerciseDraft({
-      id, normalizedName: id, name, level: raw.level || null,
+      id: pid, normalizedName: persisted.normalizedName || id, name, level: raw.level || null,
       force: raw.force || null, mechanic: raw.mechanic || null,
       equipment: raw.equipment || null, appEquipment,
       category: raw.category || null, instructions: raw.instructions || [],
-      source: 'free-exercise-db', sourceId: raw.id || null, reviewStatus: null,
+      source: persisted.source || 'free-exercise-db', sourceId: raw.id || null, reviewStatus: persisted.reviewStatus || null,
       muscles: [...primary.map((muscle) => ({ muscle, role: 'primary' })), ...secondary.map((muscle) => ({ muscle, role: 'secondary' }))],
     }, stageDraft.outDir || DRAFTS_OUT, { fixedDate: stageDraft.fixedDate });
   }
-  return { id, draft };
+  return { id: pid, draft };
 }
 
 async function importCatalog(prisma, rows, opts = {}) {
