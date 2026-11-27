@@ -90,6 +90,59 @@ function coverageDiff(catalog, committed) {
   return { missingInventory, missingProfiles, invDupes, profDupes };
 }
 
+
+/**
+ * Stage a deterministic draft profile + coverage entry for one imported
+ * exercise. Idempotent: existing profiles are never overwritten — reviewed
+ * profiles are preserved untouched, existing drafts make retries no-ops.
+ * Writes docs/exercise-intelligence/drafts/<id>.json (review artifact keyed
+ * by exercise ID) and merges the coverage entry into the committed
+ * inventory/profile files. Returns { staged, reason }.
+ */
+function stageExerciseDraft(ex, outDir, opts = {}) {
+  const stamp = opts.fixedDate || new Date().toISOString();
+  const committed = loadCommitted(outDir);
+  const profiles = [...(committed.prof.profiles || [])];
+  const invExercises = [...(committed.inv.exercises || [])];
+  const existing = profiles.find((p) => p.exerciseId === ex.id);
+  if (existing) {
+    return { staged: false, reason: existing.validation?.profileReviewStatus === 'auto_generated_unreviewed' ? 'draft_exists' : 'reviewed_profile_preserved' };
+  }
+  const profile = buildProfile(ex);
+  profile.generatedAt = stamp;
+  profiles.push(profile);
+  profiles.sort((a, b) => a.exerciseId.localeCompare(b.exerciseId));
+  if (!invExercises.some((e) => e.id === ex.id)) {
+    invExercises.push({
+      id: ex.id, name: ex.name, normalizedName: ex.normalizedName,
+      level: ex.level, force: ex.force, mechanic: ex.mechanic,
+      equipment: ex.equipment, appEquipment: ex.appEquipment, category: ex.category,
+      instructionCount: (ex.instructions || []).length,
+      primaryMuscles: profile.identity.primaryMuscles, secondaryMuscles: profile.identity.secondaryMuscles,
+      source: ex.source, sourceId: ex.sourceId || null, reviewStatus: ex.reviewStatus,
+      movementFamily: profile.classification.family, movementSubtype: profile.classification.subtype,
+      taxonomyRule: profile.classification.ruleId, classified: profile.classification.classified,
+      capabilityLevel: profile.capability.level,
+    });
+    invExercises.sort((a, b) => a.id.localeCompare(b.id));
+  }
+  fs.writeFileSync(committed.invPath, JSON.stringify({ generatedAt: stamp, count: invExercises.length, exercises: invExercises }, null, 1));
+  fs.writeFileSync(committed.profPath, JSON.stringify({ profileVersion: PROFILE_VERSION, generatedAt: stamp, count: profiles.length, honesty: 'no profile claims ML validation; capability levels derive from evidence — all Level 0 manual tracking today; §33 drafts are auto-generated and unreviewed', profiles }, null, 1));
+  const draftsDir = path.join(outDir, 'drafts');
+  fs.mkdirSync(draftsDir, { recursive: true });
+  const evidenceGaps = [
+    ...(profile.classification.classified ? [] : ['movement-family unclassified — taxonomy review needed']),
+    'profile unreviewed — human review required before any capability beyond manual tracking',
+    'no training data, no validated rep counting or form observation',
+  ];
+  fs.writeFileSync(path.join(draftsDir, `${ex.id}.json`), JSON.stringify({
+    exerciseId: ex.id, reviewStatus: 'pending_review', generatedAt: stamp,
+    capabilityLevel: 0, tracking: 'manual_only',
+    validatedCapabilities: [], evidenceGaps, profile,
+  }, null, 1));
+  return { staged: true, reason: 'drafted', classified: profile.classification.classified };
+}
+
 async function checkMode(catalogPath, outDir) {
   const catalog = loadCatalogRows(catalogPath);
   const committed = loadCommitted(outDir);
@@ -261,4 +314,6 @@ No exercise is marked ML/camera validated: there is no pose pipeline, no validat
   console.log('inventory + profiles written to docs/exercise-intelligence/ — integrity checks passed');
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });
+
+module.exports = { stageExerciseDraft, loadCatalogRows, rowToExercise, coverageDiff, loadCommitted };
