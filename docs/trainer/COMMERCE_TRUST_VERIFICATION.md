@@ -116,3 +116,29 @@ not production-exposure.
 ### Defects note
 Routed defects #193/194: same jest-failure signature as defect #245 — classified AUTH_RBAC
 flake class (root-cause fix on PR #77, awaiting founder merge). Not re-reproduced per dedup discipline.
+
+## 2026-11-27 — reviews trust verification: adversarial probes (pc-HUM-143)
+
+Assessment-first again inverted expectations: trainerReviews implementation + base test
+suite already existed covering the core trust properties (verified-participant gate,
+self-review block, upsert-in-place, low-rating acceptance, moderation flagging).
+This increment probed the adversarial gaps the base suite didn't — `tests/trainerReviewsAdversarial.test.js` (12 tests):
+
+### Payment-incomplete is NOT participation — verified
+- PENDING purchase (checkout created, never paid) → 403, zero rows — the review-farm vector (free checkouts to unlock review rights) is closed
+- FAILED and CANCELED purchases → 403 — neither money nor relationship ever existed
+- **PINNED DESIGN DECISIONS**: refunded purchases DO verify participation (a refund must not silence a real negative experience — correct trust behavior); refund_pending does NOT yet verify (money in flux, conservative). Both deliberate, both now executable-pinned.
+
+### Rating boundary adversaries — all reject, none coerce
+- 0 → 400 (not clamped to 1); 6 → 400 (not clamped to 5); 2.5 → 400 (never rounded); "5" string → 400 (type confusion never coerced); body 2001 chars → 400, exactly 2000 accepted.
+
+### No-required-favorable — structural + behavioral proof
+- 1-star and 5-star submissions produce identical 201 envelopes (key-for-key)
+- **structural scan: zero references to rating/overall in trainerCommerceService + payments provider** — nothing in the entitlement/access flow reads ratings; favorable reviews cannot unlock anything because nothing downstream consumes them
+- aggregate verified honest: flagged/removed reviews never inflate count/average
+
+### Boundary documentation
+Reviews are owned by this card's lane (trainerReviewService + trainerReviews route);
+the PM-03 tier-engine lane may CONSUME aggregates for ranking — consumption-side
+manipulation resistance (weighting, recency, brigading detection) is their scope,
+documented here as the handoff boundary.
