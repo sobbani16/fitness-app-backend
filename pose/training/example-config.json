@@ -1,0 +1,9 @@
+{
+  "configVersion": "1.0.0",
+  "exerciseId": "squat",
+  "datasetVersion": "synthetic-smoke-v1",
+  "seed": 42,
+  "architecture": "deterministic_baseline",
+  "hyperparameters": { "epochs": 20, "learningRate": 0.01, "batchSize": 8, "windowFrames": 32, "angleNoiseAugmentDeg": 2.0 },
+  "export": { "format": "onnx", "quantization": "fp16" }
+}
