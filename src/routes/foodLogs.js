@@ -74,6 +74,25 @@ router.post('/',async(req,res,next)=>{
    const catalogRevisionAtSelection=typeof b.catalogRevision==='string'?b.catalogRevision.slice(0,64):null;
    data.nutritionSnapshot={...calculated.provenance,catalogRevisionAtSelection,catalogChangedSinceSelection:!!catalogRevisionAtSelection && catalogRevisionAtSelection!==calculated.provenance.revision,grams:data.quantityG,loggedFoodName:data.foodName,selectedServing:b.selectedServing && typeof b.selectedServing==='string'?b.selectedServing.slice(0,200):null,servingId:typeof b.servingId==='string'?b.servingId.slice(0,80):calculated.serving?.id??null,servingGrams:calculated.serving?.grams??null,servingCount:servingCount??(calculated.serving&&calculated.serving.grams>0?Math.round((calculated.grams/calculated.serving.grams)*100)/100:null),calculated:calculated.nutrition,saved:{calories:data.calories,proteinG:data.proteinG,carbsG:data.carbsG,fatG:data.fatG,fiberG:data.fiberG},nutrientUnknowns:require('../services/nutrientCompleteness').computeUnknowns(calculated.nutrition,{calories:data.calories,proteinG:data.proteinG,carbsG:data.carbsG,fatG:data.fatG,fiberG:data.fiberG}),userEdited:edited,loggedSource:edited?'user-entered correction':'catalog calculation'};
   } else data.nutritionSnapshot={loggedSource:'user-entered or external estimate',grams:data.quantityG,nutrientUnknowns:data.fiberG==null?['fiberG']:[]};
+  // Explicitly grouped meal components (pc-HUM-207): one top-level component
+  // per explicitly entered food — a mixed dish is ONE component, never
+  // decomposed. Only allowlisted fields persist (foodName, amountG); unknown
+  // weight is honest null. Nothing is inferred — no ingredients, no weights,
+  // no provenance — and arbitrary snapshot fields are never accepted here.
+  if(b.components!=null){
+   if(!Array.isArray(b.components)||!b.components.length)throw httpError(400,'components must be a non-empty array when provided');
+   if(b.components.length>20)throw httpError(400,'components limited to 20 per meal');
+   data.nutritionSnapshot.components=b.components.map((c,i)=>{
+    if(!c||typeof c!=='object'||Array.isArray(c))throw httpError(400,`components[${i}] must be an object`);
+    if(typeof c.foodName!=='string'||!c.foodName.trim())throw httpError(400,`components[${i}].foodName required`);
+    if(c.foodName.length>300)throw httpError(400,`components[${i}].foodName too long`);
+    const out={foodName:c.foodName.trim()};
+    if(c.amountG==null){out.amountG=null;}
+    else if(!Number.isFinite(c.amountG)||c.amountG<=0||c.amountG>20000)throw httpError(400,`components[${i}].amountG must be within 0–20000 g or null for unknown weight`);
+    else out.amountG=c.amountG;
+    return out;
+   });
+  }
   if(b.nutritionProfileId&&b.ingredientId){
    if(typeof b.nutritionProfileId!=='string'||!/^[0-9a-f-]{36}$/i.test(b.nutritionProfileId))throw httpError(400,'Invalid nutrition profile');
    data.nutritionSnapshot.nutritionProfileId=b.nutritionProfileId;
