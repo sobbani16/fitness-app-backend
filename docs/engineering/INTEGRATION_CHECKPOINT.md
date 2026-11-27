@@ -255,3 +255,43 @@ weekly-plan ×2; injury painLevel; symptom no-idempotency; benign-ALLOW engine c
 
 ### Battery re-run at audit time
 tests/contracts 108/108 + apiContract/releaseMechanics 11/11 at `39a291f` — reproducibility confirmed byte-exact.
+
+## 2026-11-27 — ledger reconciliation milestone (pc-HUM-63 §018)
+
+**Live verification pass** — every row checked against GitHub PR state and origin/main
+git log this session (`gh pr list --state all`, `git log origin/main --merges`):
+
+### Contradictions resolved (stale 'pending/draft/unmerged' vs verified truth)
+1. **pc-HUM-77 PR #18 — MERGED** (merge commit `0d79e64` in origin/main): ledger said
+   "draft, blocked on red guards". First DevSecOps tranche is IN MAIN. Continuation
+   work (readiness command, defect-245 reproduction, P07 traceability + bypass-gate
+   hardening) lives on PR #73 OPEN head `06a0e2a903`.
+2. **pc-HUM-165 PR #19 — MERGED** (merge commit `99b7383`): ledger said "draft".
+   Security event logging is IN MAIN.
+3. **PR-existence contradictions ×4**: ledger rows said "none" for PRs that exist —
+   pc-HUM-97 → PR #45 OPEN `d1e0d00c8f`; pc-HUM-108 → PR #52 OPEN `f9e068e3ea`;
+   pc-HUM-143 → PR #28 OPEN `f55864d2fd`; pc-HUM-38 → PR #77 OPEN `ac77cf4415`.
+   All corrected with heads verified by gh-pr-list this session.
+4. **pc-HUM-63 self-row**: test evidence updated 3/3 → 121/121 (safety-surface pins
+   landed since the row was written), PR #21 OPEN head `d65bf9c0cf` byte-exact.
+
+### Contract-infrastructure state (integration baseline, verified this session)
+- 593-endpoint manifest, contract v2/min 1, **zero drift at merged main**
+- 121/121 contract tests: 108 pre-existing + 13 new real-DB safety-surface pins
+- additive-only harness semantics: key removal/retyping fails (old-client break class),
+  unknown-key addition passes (RN/JSON tolerance invariant) — harness self-verifying
+
+### Release-order dependencies (verifiable)
+- backend contract lanes must merge before mobile consumer-side verification can pin
+  against main — consumer pinning against an unmerged backend branch double-counts risk.
+- pc-HUM-38 flake fix (PR #77) gates any ≥5-clean-runs CI acceptance claim on other lanes;
+  the AUTH_RBAC flake class is branch-independent (confirmed on hum77 by defect-245 repro).
+- weekly-plan field mismatches ×2, injury painLevel null-corruption, symptom
+  no-idempotency — open findings unchanged, still need cross-repo owner decisions.
+
+### Ledger-consistency method
+Rows updated only with: (a) gh-pr-list/view output captured this session, (b) git-log
+merge-commit evidence in origin/main, (c) test counts from evidence already recorded
+in PR comments/docs at cited SHAs. Unverifiable fields remain 'pending'/'unknown'.
+Punitha QA column unchanged — independent verification still pending everywhere; no
+self-reported evidence promoted to merge evidence.

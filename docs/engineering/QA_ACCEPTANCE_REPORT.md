@@ -9,6 +9,10 @@ evidence for QA consumption. Nothing here is merge evidence by itself.
 | release mechanics guards | `3c1881f` | 11/11 (8 fixture + 3 contract) | pending |
 | security event logging | `268f08cd` (PR #19) | 102/102 × 5 suites | pending |
 | DevSecOps P07/P08 | `89c70d2c` (PR #18) | CI jest green at head | pending |
+| DevSecOps P07 continuation (readiness/traceability/bypass-hardening) | `06a0e2a903` (PR #73) | 33/33 security regression, bootChain 6/6, smoke 93/93 | pending |
+| defect-245 reproduction (flake cross-branch confirmation) | `42709f6836` (PR #73) | repro1 exit 1 (2 fail) / repro2 exit 0 — ordering-dependence proven | pending |
+| AUTH_RBAC flake root-cause + fix (pc-HUM-38) | `ac77cf4415` (PR #77) | zero auth-class flakes in 5-run battery; 4/5 fully clean | pending |
+| safety-surface contract pins (allergy/injury/error envelopes) | `d65bf9c0cf` (PR #21) | 13/13 real-DB; contract regression 121/121; smoke 33/33 | pending |
 
 Methodology notes for QA:
 - every cited test count was produced by the repository's installed jest runner

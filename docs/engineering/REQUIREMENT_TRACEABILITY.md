@@ -5,7 +5,8 @@
 | HUM-P6-013 contract surface machine-readable | `contracts/api-contract.json` + `scripts/emit-api-contract.js` @ `155d341` | drift guard test 3/3 | implemented-unmerged |
 | HUM-P6-013 backcompat additive-not-breaking | `scripts/check-contract-additivity.js` @ `3c1881f` | fixture tests green | implemented-unmerged |
 | HUM-P6-013 old-mobile both directions | minClientContract 426 runtime path | apiContract.test.js 426 case | verified on branch |
-| HUM-P6-013 release-order deps | documented in INTEGRATION_CHECKPOINT | n/a | partial — deep shapes pending |
+| HUM-P6-013 deep shape contracts (allergy/injury/errors) | `tests/contracts/safetySurfaceContract.test.js` @ `d65bf9c0cf` | 13/13 real-DB incl. additive-only harness meta-tests | verified on branch |
+| HUM-P6-013 release-order deps | documented in INTEGRATION_CHECKPOINT | n/a | partial — allergy/injury/error deep shapes pinned @ `d65bf9c0cf`; recs/food/portion deep shapes pending |
 | HUM-P6-018 canonical ledgers | this docs/engineering/ set @ this branch | n/a | implemented — first iteration |
 | release-mechanics migration validation | `check-migrations.js` | fixture tests; 69/69 real scan | implemented-unmerged |
 | release-mechanics expected-head guard | `check-release-head.js` | fixture tests incl. mismatch detection | implemented-unmerged |
