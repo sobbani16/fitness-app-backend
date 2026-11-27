@@ -175,3 +175,24 @@ Initial catalog mock didn't multiply by servingCount — 1 failure corrected bef
 
 ### Open findings register (unchanged)
 weekly-plan acknowledgeUnknown + details-shape mismatches; injury painLevel null-corruption; symptom no-idempotency retry gap (food-log contrast now documented); incomplete-profile benign-ALLOW engine-owner confirmation. Punitha independent QA due across seven milestones.
+
+
+## 2026-11-26 — fiber dashboard summary contract milestone (pc-HUM-63 continuation 8)
+
+**Evidence commit**: this commit. **Harness**: `tests/contracts/fiberSummary.contract.test.js` — 9/9, real route + middleware + real dailyEngine. Battery: 99/99 in tests/contracts.
+
+### Pins
+- backend candidate `6bf88ef` tested live; baseline `625352c` static (pre-fiber)
+- mobile pair `f184c99`/`846a88a` — fiber.ts DailyFiber type transcribed
+- backend `5ffa2b0` ABSENT from candidate (merge-base verified); mobile merge `6b6b6e5` exists but post-dates pair — static reference only
+
+### Verified live
+1. Response shape: date/timezone/target{targetG,...}/status{confirmedG,...} — mobile-consumed keys all present.
+2. **Gram units exact passthrough** — no scaling/rounding drift on confirmedG.
+3. **The core distinction verified: confirmed vs estimated vs unknown never collapse** — null-fiber rows count as unknown meals, confirmedG stays a MEASURED zero; mixed rows sum confirmed exactly without null corruption. Matches mobile type's own invariant comment ("must never collapse into one number or treat unknown as zero") — consumer and producer invariants aligned.
+4. target.targetG nullable — null ≠ 0 preserved.
+5. **Observed contract correction**: malformed date → 400 strict rejection (not lenient fallback as initially hypothesized — assertion corrected to document reality, disclosed).
+6. 401 AUTH_REQUIRED envelope; supplement fiber reported separately (never inflates food-confirmed — verified in engine reading, fixture-labeled); service persists fiberDailyRecommendation snapshot (upsert mocked at boundary).
+
+### Open findings register (unchanged)
+weekly-plan acknowledgeUnknown + details-shape; injury painLevel null-corruption; symptom no-idempotency; incomplete-profile benign-ALLOW engine confirmation. Punitha QA due across eight milestones.
