@@ -55,6 +55,28 @@ function extractPart(raw) {
 }
 
 function safetySegment(seg, t) {
+  // RESTRICTION QUERY — "show my restrictions" / "what restrictions do I have".
+  // Read-only question, never a write.
+  if (/^(?:hey\s+)?(?:show|list|tell me|what are|what's)\s+(?:me\s+)?(?:my\s+)?(?:activity\s+|safety\s+)?restrictions\b/.test(t)
+    || /^what restrictions do i have/.test(t)) {
+    return { intent: 'SHOW_RESTRICTIONS', entities: {}, missing: [], segment: seg, status: 'ready' };
+  }
+  // RESTRICTION CREATE — clinician-phrased: "my doctor told me not to lift
+  // heavy" / "physio said no running". The clinician mention is CONTEXT, never
+  // provenance — execution stores these as user-reported, because a voice
+  // transcript cannot verify a clinician.
+  let rm = t.match(/(?:doctor|physio(?:therapist)?|clinician|surgeon|pt)\s+(?:told me|said)\s+(?:not to|to avoid|to stop|no more|no)\s+(.+?)[.\s!]*$/)
+        || t.match(/(?:my\s+)?(?:doctor|physio(?:therapist)?|clinician|surgeon)\s+(?:told me|said)\s+(?:i\s+)?(?:shouldn't|should not|can't|cannot|must not)\s+(.+?)[.\s!]*$/);
+  if (rm) {
+    return { intent: 'CREATE_RESTRICTION', entities: { activityText: rm[1].trim(), clinicianMentioned: true }, missing: [], segment: seg, status: 'ready' };
+  }
+  // RESTRICTION CREATE — preference-phrased: "don't recommend running" /
+  // "stop suggesting hiit" / "never recommend swimming".
+  rm = t.match(/(?:don't|do not|stop|never|quit)\s+(?:recommend\w*|suggest\w*|propose\w*|offering|giving)\s+(?:me\s+)?(.+?)[.\s!]*$/);
+  if (rm) {
+    return { intent: 'CREATE_RESTRICTION', entities: { activityText: rm[1].trim(), clinicianMentioned: false }, missing: [], segment: seg, status: 'ready' };
+  }
+
   // Injury: "I injured/hurt/sprained my [left|right|both] <body part> [yesterday|today|...]"
   let m = t.match(/\b(?:i\s+)?(?:just\s+)?(injur\w+|hurt|sprain\w+|strain\w+|pull(?:ed)?|fractur\w+|brok\w+|tore|torn|twist\w+|dislocat\w+)\s+(?:my\s+)?((?:left|right|both)\s+)?([a-z ]+?)(?:\s+(?:yesterday|today|this morning|last night|earlier|last week|on\s+\w+day|ago|at|during|while|badly|really))?[.\s!]*$/);
   if (m && /\binjur|hurt|sprain|strain|pull|fractur|brok|tore|torn|twist|dislocat/.test(m[1])) {

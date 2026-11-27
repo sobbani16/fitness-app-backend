@@ -67,6 +67,7 @@ const applyUndo = async (prisma, cmd) => {
       data: { finishedAt: e.prev.finishedAt, endedAt: e.prev.endedAt, durationMinutes: e.prev.durationMinutes },
     });
     if (e.kind === 'userInjury') await prisma.userInjury.deleteMany({ where: { id: e.id, userId: cmd.userId } });
+    if (e.kind === 'userActivityRestriction') await prisma.userActivityRestriction.deleteMany({ where: { id: e.id, userId: cmd.userId } });
     if (e.kind === 'symptomReport') await prisma.userSymptomReport.deleteMany({ where: { id: e.id, userId: cmd.userId } });
   }
 };
@@ -104,7 +105,7 @@ router.post('/transcribe', voiceEnabled, wrap(async (req, res) => {
 // proposes candidate fields only — everything is re-validated and resolved
 // server-side; it can never emit an ID or execute anything.
 const VOICE_INTENTS = ['LOG_EXERCISE_SET', 'LOG_FOOD', 'LOG_WATER', 'MARK_SUPPLEMENT_TAKEN',
-  'UPDATE_EXERCISE_SET', 'START_WORKOUT', 'COMPLETE_WORKOUT', 'LOG_MOOD', 'START_BREATHING_EXERCISE', 'SHOW_MOOD_TRENDS', 'CREATE_REFLECTION_REMINDER', 'ASK_FIBER', 'UNDO_ACTION', 'CANCEL_COMMAND', 'UNKNOWN_INTENT'];
+  'UPDATE_EXERCISE_SET', 'START_WORKOUT', 'COMPLETE_WORKOUT', 'LOG_MOOD', 'START_BREATHING_EXERCISE', 'SHOW_MOOD_TRENDS', 'CREATE_REFLECTION_REMINDER', 'ASK_FIBER', 'UNDO_ACTION', 'CANCEL_COMMAND', 'REPORT_INJURY', 'REPORT_SYMPTOM', 'CREATE_RESTRICTION', 'SHOW_RESTRICTIONS', 'UNKNOWN_INTENT'];
 
 const NULLABLE = { type: ['number', 'null'] };
 const NULLABLE_STR = { type: ['string', 'null'] };
@@ -225,6 +226,42 @@ router.post('/interpret', voiceEnabled, wrap(async (req, res) => {
         }
       }
       if (a.entities.items.length && a.entities.items.every(i => i.status !== 'needs_review')) { a.status = 'ready'; a.missing = (a.missing || []).filter(m => m !== 'grams'); }
+    }
+    if (a.intent === 'CREATE_RESTRICTION') {
+      // Resolve the spoken activity against the canonical catalog — the
+      // restriction carries the catalog's category set, never a voice-guessed
+      // one. Unresolvable activities clarify before persisting.
+      const { ACTIVITIES: ACTIVITY_CATALOG } = require('../services/activitySafety/activityCatalog');
+      const txt = String(a.entities.activityText || '').toLowerCase().trim();
+      // Spoken activity → canonical catalog entry. Synonyms cover the common
+      // phrasings; otherwise fall back to token overlap. Anything unmapped
+      // stays needs_review — clarify before persisting, never guess.
+      const ACTIVITY_SYNONYMS = {
+        running: 'outdoor_run', run: 'outdoor_run', jogging: 'outdoor_run', jog: 'outdoor_run',
+        walking: 'outdoor_walk', walk: 'outdoor_walk', hiking: 'outdoor_walk', hike: 'outdoor_walk',
+        swimming: 'swimming', swim: 'swimming',
+        cycling: 'stationary_cycling', biking: 'stationary_cycling', spinning: 'stationary_cycling', biking_indoor: 'stationary_cycling',
+        lifting: 'strength_training', lift: 'strength_training', weights: 'strength_training', weightlifting: 'strength_training',
+        'lift heavy': 'overhead_lifting', 'heavy lifting': 'overhead_lifting', 'lifting heavy': 'overhead_lifting',
+        deadlifts: 'strength_training', deadlift: 'strength_training', squats: 'strength_training', squat: 'strength_training',
+        yoga: 'gentle_mobility', stretching: 'gentle_mobility', mobility: 'gentle_mobility',
+        hiit: 'group_fitness_class', crossfit: 'group_fitness_class', jumping: 'group_fitness_class', jump: 'group_fitness_class',
+        'overhead press': 'overhead_lifting', pressing: 'overhead_lifting',
+        football: 'contact_sport', basketball: 'contact_sport', soccer: 'contact_sport', rugby: 'contact_sport', boxing: 'contact_sport',
+      };
+      const direct = ACTIVITY_SYNONYMS[txt] || ACTIVITY_SYNONYMS[txt.replace(/\s+(heavy|hard|fast)$/, '').trim()];
+      const tokenHit = !direct && Object.keys(ACTIVITY_CATALOG).find((id) =>
+        txt.length > 3 && (id.includes(txt) || txt.split(/\s+/).some((w) => w.length > 4 && id.split('_').includes(w))));
+      const resolvedId = direct || tokenHit || (ACTIVITY_CATALOG[txt] ? txt : null);
+      const hit = resolvedId ? ACTIVITY_CATALOG[resolvedId] : null;
+      if (hit) {
+        a.entities.activityId = hit.id;
+        a.entities.categories = hit.demands.categories;
+        a.status = 'ready';
+      } else {
+        a.status = 'needs_review';
+        a.missing = [...new Set([...(a.missing || []), 'activity'])];
+      }
     }
     if (a.intent === 'MARK_SUPPLEMENT_TAKEN') {
       const links = await prisma.userSupplement.findMany({
@@ -387,6 +424,46 @@ router.post('/commands/execute', wrap(async (req, res) => {
         } });
         created.push({ kind: 'emotionalCheckIn', id: c.id });
         results.push({ intent: a.intent, status: 'saved', detail: `mood logged as ${a.entities.mood.replace('_',' ')}` });
+        break;
+      }
+      case 'CREATE_RESTRICTION': {
+        // Voice-created restriction — NEVER clinician_documented: a transcript
+        // cannot verify clinician provenance, even when the user mentions a
+        // doctor. clinicianMentioned is recorded in the reason as context.
+        const cats = Array.isArray(a.entities.categories) ? a.entities.categories : [];
+        const { ACTIVITY_CATEGORIES } = require('../services/activitySafety/constants');
+        const valid = new Set(Object.values(ACTIVITY_CATEGORIES));
+        if (!cats.length || cats.some((k) => !valid.has(k))) { results.push({ intent: a.intent, status: 'skipped', reason: 'activity unresolved — clarify before saving' }); break; }
+        const activityText = String(a.entities.activityText || '').slice(0, 80);
+        const reason = a.entities.clinicianMentioned
+          ? `Voice: user reports clinician guidance about "${activityText}" — unverified, user-reported`
+          : `Voice: user asked not to be recommended "${activityText}"`;
+        const row = await prisma.userActivityRestriction.create({ data: {
+          userId,
+          categories: cats,
+          bodyRegions: [],
+          severity: 'prohibited',
+          reason,
+          source: a.entities.clinicianMentioned ? 'self_reported' : 'user_preference',
+          expiresAt: null, reassessAt: null,
+        } });
+        created.push({ kind: 'userActivityRestriction', id: row.id });
+        const { invalidateSafetyAdvice } = require('../services/activitySafety/recommendationSafety');
+        await invalidateSafetyAdvice(userId).catch(() => {});
+        results.push({ intent: a.intent, status: 'saved',
+          detail: a.entities.clinicianMentioned
+            ? `Noted — ${activityText} will be excluded from your recommendations. If a clinician directed this, ask them to document it in your care plan; a voice note is never medical clearance or diagnosis.`
+            : `Got it — ${activityText} won't be recommended. You can review or remove this anytime in your restrictions.`,
+          safety: { restrictionId: row.id, userEditable: true, notDiagnosis: true } });
+        break;
+      }
+      case 'SHOW_RESTRICTIONS': {
+        // Read-only — never writes, never implies anything about clearance.
+        const rows = await prisma.userActivityRestriction.findMany({ where: { userId, status: 'active' }, orderBy: { createdAt: 'desc' }, take: 20 });
+        const list = rows.map((r) => `${(r.categories || []).join(', ')}${r.source === 'clinician_documented' ? ' (clinician-documented)' : ''}${r.expiresAt ? ` until ${new Date(r.expiresAt).toISOString().slice(0, 10)}` : ''}`);
+        results.push({ intent: a.intent, status: 'answered',
+          detail: rows.length ? `You have ${rows.length} active restriction${rows.length === 1 ? '' : 's'}: ${list.join('; ')}.` : 'You have no active restrictions.',
+          restrictions: rows.map((r) => ({ id: r.id, categories: r.categories, severity: r.severity, source: r.source, expiresAt: r.expiresAt })) });
         break;
       }
       case 'REPORT_INJURY': {
