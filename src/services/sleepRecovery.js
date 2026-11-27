@@ -58,7 +58,7 @@ async function getSleepRecoverySummary(userId) {
   }
 
   const completeness = nights >= 5 ? 'good' : nights > 0 ? 'partial' : 'none';
-  const gate = await safetyGate(prisma, userId).catch(() => null);
+  const gate = await safetyGate(prisma, userId).catch(() => ({ suppressActivityPushes: true })); // fail closed: an unverifiable gate must not leak activity nudges
   const rawSuggestion = signals.some(s => s.key === 'short_sleep' || s.key === 'low_energy')
     ? 'lighter_intensity' : signals.length ? 'steady_schedule' : null;
   const suggestion = gate?.suppressActivityPushes && rawSuggestion === 'lighter_intensity'

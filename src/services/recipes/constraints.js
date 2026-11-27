@@ -11,10 +11,12 @@
 //   - Constraint classes stay distinct: medical / allergy / intolerance /
 //     pattern / dislike / limit / soft / equipment / availability / unknown.
 //   - Unresolved information is recorded in `unknown` — never treated as safe.
-//   - Only APPROVED clinical rules produce blocked attributes; DRAFT rules are
-//     inert (same posture as mealSuggestion/foodIntel/conditionEvaluation).
+//   - Only LIVE clinical rules (APPROVED + activated, not retired/expired)
+//     produce blocked attributes; DRAFT/inactive rules are inert (same posture
+//     as mealSuggestion/foodIntel/conditionEvaluation).
 
 const { getPrisma } = require('../../lib/prisma');
+const { liveRuleWhere } = require('../healthOutcomes/clinicalRuleGovernance');
 const { normalize } = require('../ingredientCsv');
 const { keywordsFor, ALLERGEN_KEYWORDS } = require('../mealSuggestion');
 
@@ -125,7 +127,7 @@ async function loadConstraints(userId, request = {}) {
     prisma.userAllergy.findMany({ where: { userId }, include: { allergy: true } }).catch(() => []),
     prisma.userHealthCondition.findMany({
       where: { userId, active: true },
-      include: { condition: { include: { conditionRules: { where: { reviewStatus: 'APPROVED' } } } } },
+      include: { condition: { include: { conditionRules: { where: liveRuleWhere() } } } },
     }).catch(() => []),
     prisma.foodPreference.findMany({ where: { userId } }).catch(() => []),
     prisma.userPlanningPreferences.findUnique({ where: { userId } }).catch(() => null),
@@ -143,7 +145,7 @@ async function loadConstraints(userId, request = {}) {
   const allergenTerms = new Set();
   for (const a of allergenSources) for (const w of keywordsFor(a.name)) allergenTerms.add(normalize(w));
 
-  // ---- medical conditions (APPROVED rules only) ---------------------------
+  // ---- medical conditions (live rules only) ------------------------------
   const medicalConditions = [];
   const blockedAttributes = new Set();
   const warnRules = [];
@@ -164,7 +166,7 @@ async function loadConstraints(userId, request = {}) {
     }
   }
 
-  // ---- medical nutrient limits (APPROVED nutrient rules) ------------------
+  // ---- medical nutrient limits (live nutrient rules) ---------------------
   // HealthConditionNutrientRule: LIMIT/MONITOR thresholds per nutrient for the
   // user's active conditions. DRAFT/REVIEWED rules are inert — same posture
   // as ingredient rules. Missing computed values fail to 'review', not zero.
@@ -173,7 +175,7 @@ async function loadConstraints(userId, request = {}) {
     let nutrientRules = [];
     try {
       nutrientRules = await prisma.healthConditionNutrientRule.findMany({
-        where: { healthConditionId: { in: conditionIds }, reviewStatus: 'APPROVED' },
+        where: { healthConditionId: { in: conditionIds }, ...liveRuleWhere() },
         include: { nutrient: true, healthCondition: true },
       });
     } catch { nutrientRules = []; }
@@ -305,7 +307,7 @@ async function loadConstraints(userId, request = {}) {
       servings: Number.isFinite(Number(request.servings)) ? Number(request.servings) : null,
     },
     provenance: {
-      sources: ['userAllergy', 'userHealthCondition+conditionRule(APPROVED)', 'foodPreference', 'userPlanningPreferences', 'foodInventory', 'macroGoal'],
+      sources: ['userAllergy', 'userHealthCondition+conditionRule(live)', 'foodPreference', 'userPlanningPreferences', 'foodInventory', 'macroGoal'],
       narrowingOnly: true,
     },
   };

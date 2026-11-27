@@ -274,6 +274,14 @@ async function markRefunded(tx, purchase, amountCents, reason) {
   if (purchase.status !== 'refunded') {
     await tx.trainerPurchase.update({ where: { id: purchase.id }, data: { status: 'refunded' } });
   }
+  // Cumulative bound inside the transaction: distinct refund events (provider
+  // retries, partial-refund sequences) must never total more than captured.
+  // Re-checked under the tx umbrella so concurrent refund events serialize.
+  const prior = await tx.trainerRefund.aggregate({ where: { purchaseId: purchase.id }, _sum: { amountCents: true } });
+  const already = prior._sum.amountCents || 0;
+  if (already + amountCents > purchase.amountCents) {
+    throw httpError(400, 'Cumulative refunds would exceed the captured amount.');
+  }
   await tx.trainerRefund.create({
     data: { purchaseId: purchase.id, amountCents, reason: reason || 'provider_refund', status: 'processed' },
   });
@@ -317,7 +325,10 @@ async function applyEvent(tx, purchase, event) {
       // cannot double-grant — the loser sees updateMany count 0. The purchase
       // row was read outside the tx, so its status is stale by design.
       const claimed = await tx.trainerPurchase.updateMany({
-        where: { id: purchase.id, status: { not: 'paid' } },
+        // 'refunded'/'refund_pending' are terminal for activation: an
+        // out-of-order payment.succeededed arriving after a refund must
+        // never re-create usable value on money that was returned.
+        where: { id: purchase.id, status: { notIn: ['paid', 'refunded', 'refund_pending'] } },
         data: { status: 'paid' },
       });
       if (claimed.count === 1) await activateEntitlement(tx, purchase);

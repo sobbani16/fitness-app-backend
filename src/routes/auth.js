@@ -6,6 +6,7 @@ const { hashPassword, verifyPassword, createSession, hashToken } = require('../s
 const authenticate = require('../middleware/authenticate');
 const { httpError } = require('../lib/errors');
 const { GENERIC_MESSAGE, normalizeEmail, validatePassword, enqueueAction, consumeLimit, requestAction, completeAction, actionStatus } = require('../services/authLifecycle');
+const { emitLoginResult } = require('../services/securityEvents');
 router.use((req, res, next) => { res.set('Cache-Control', 'no-store'); res.set('Referrer-Policy', 'no-referrer'); next(); });
 router.get('/action', (req, res) => res.sendFile(path.join(__dirname, '../public/auth-action.html')));
 router.get('/action.js', (req, res) => res.sendFile(path.join(__dirname, '../public/auth-action.js')));
@@ -42,14 +43,23 @@ router.post('/register', async (req, res, next) => {
 router.post('/login', async (req, res, next) => {
   try {
     const { email, password } = credentials(req.body);
-    if (!await consumeLimit('login-email', email, 10, 15 * 60000)) throw httpError(429, 'Too many attempts. Try again in 15 minutes.');
+    if (!await consumeLimit('login-email', email, 10, 15 * 60000)) {
+      emitLoginResult({ outcome: 'rate_limited', correlationId: req.correlationId });
+      throw httpError(429, 'Too many attempts. Try again in 15 minutes.');
+    }
+    let loginUserId = null;
     const session = await getPrisma().$transaction(async tx => {
       // Serialize with resets: an old-password login must not create a session after revocation.
       const users = await tx.$queryRaw`SELECT * FROM "User" WHERE "email" = ${email} FOR UPDATE`;
       const user = users[0];
-      if (!await verifyPassword(password, user?.passwordHash)) throw httpError(401, 'Invalid email or password.');
+      if (!await verifyPassword(password, user?.passwordHash)) {
+        emitLoginResult({ outcome: 'invalid_credentials', correlationId: req.correlationId });
+        throw httpError(401, 'Invalid email or password.');
+      }
+      loginUserId = user.id;
       return createSession(user, tx);
     });
+    emitLoginResult({ outcome: 'success', userId: loginUserId, correlationId: req.correlationId });
     res.json(session);
   } catch (e) { next(e); }
 });

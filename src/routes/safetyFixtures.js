@@ -25,16 +25,38 @@ const body = req => (req.body && typeof req.body === 'object' ? req.body : {});
 
 const ENABLED = process.env.SAFETY_STATE_FIXTURE === '1';
 const SYNTHETIC_DOMAINS = new Set(['euploading.com', 'staging.test', 'syn.local', 'example.com']);
+// Fixture writes require BOTH a synthetic identity AND an explicit DB-backed
+// privilege — a synthetic email domain alone must not authorize writes, and
+// no prod account can hold this role (roles are server-assigned).
+const FIXTURE_ROLE = 'QA_FIXTURE_WRITER';
 const CONDITION_KEY_BY_NAME = require('../services/activitySafety/context').CONDITION_KEYS || {};
+
+// Per-caller sliding-window rate limit: fixture setup is scripted, anything
+// beyond this is abuse or a runaway harness.
+const RATE_LIMIT = { windowMs: 60_000, max: 30 };
+const buckets = new Map();
+const rateLimited = (userId) => {
+  const now = Date.now();
+  const hits = (buckets.get(userId) || []).filter((t) => now - t < RATE_LIMIT.windowMs);
+  if (hits.length >= RATE_LIMIT.max) { buckets.set(userId, hits); return true; }
+  hits.push(now); buckets.set(userId, hits); return false;
+};
 
 const isSynthetic = async (prisma, userId) => {
   const u = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
   return !!u?.email && SYNTHETIC_DOMAINS.has(u.email.split('@')[1]?.toLowerCase());
 };
 
+const isPrivileged = async (prisma, userId) => !!(await prisma.userRole.findFirst({
+  where: { userId, active: true, role: { name: FIXTURE_ROLE } }, select: { id: true },
+}));
+
 const gate = async (req, res, next) => {
   if (!ENABLED) return res.status(404).json({ error: 'not_found' });
-  if (!await isSynthetic(getPrisma(), uid(req))) return res.status(403).json({ error: 'synthetic_users_only' });
+  const prisma = getPrisma();
+  if (!await isSynthetic(prisma, uid(req))) return res.status(403).json({ error: 'synthetic_users_only' });
+  if (!await isPrivileged(prisma, uid(req))) return res.status(403).json({ error: 'fixture_privilege_required' });
+  if (rateLimited(uid(req))) return res.status(429).json({ error: 'rate_limited' });
   next();
 };
 router.use(gate);
@@ -47,6 +69,14 @@ router.use(gate);
 router.post('/', requireFeature('activity_safety_engine'), async (req, res) => {
   try {
     const prisma = getPrisma(), userId = uid(req), b = body(req);
+    for (const k of ['conditions', 'restrictions', 'surgeries']) {
+      if (b[k] !== undefined && (!Array.isArray(b[k]) || b[k].length > 25)) {
+        return res.status(400).json({ error: `${k} must be an array of at most 25 entries` });
+      }
+    }
+    if ((b.conditions || []).some((n) => typeof n !== 'string' || n.length > 120)) {
+      return res.status(400).json({ error: 'condition names must be strings of at most 120 chars' });
+    }
     const made = { conditions: 0, restrictions: 0, surgeries: 0, profile: false, user: false, env: false };
     // env: per-scenario deterministic environment fixture (envPatch) for THIS
     // synthetic user — in-memory only, cleared on DELETE and on restart.

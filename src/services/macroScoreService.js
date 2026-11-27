@@ -11,6 +11,7 @@
 // Overall score = weighted average (protein 35%, carbs 25%, fat 20%, fiber 20%).
 
 const { getPrisma } = require('../lib/prisma');
+const { resolveFiberTarget } = require('./fiber/targets');
 
 const WEIGHTS = { protein: 0.35, carbs: 0.25, fat: 0.20, fiber: 0.20 };
 
@@ -119,7 +120,29 @@ async function getGoals(userId) {
   // race into a unique-constraint failure.
   if (!goals) goals = await prisma.macroGoal.upsert({ where: { userId }, update: {}, create: { userId, ...DEFAULT_GOALS } });
   const { waterMlTarget, waterMlTargetBasis } = await deriveWaterTarget(userId, goals);
-  return { ...goals, waterMlTarget, waterMlTargetBasis };
+  const fiber = await deriveFiberTarget(userId, goals);
+  return { ...goals, ...fiber, waterMlTarget, waterMlTargetBasis };
+}
+
+// The stored MacroGoal.fiberTarget is only authoritative when a user or
+// clinician set it (basis 'custom'/'clinician'). For every other row the
+// single resolver computes the personalized target — the same value
+// /fiber/target and /fiber/daily report — so every surface agrees.
+async function deriveFiberTarget(userId, goals) {
+  const prisma = getPrisma();
+  const [user, conditions] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { dateOfBirth: true, gender: true } }),
+    prisma.userHealthCondition.findMany({ where: { userId, active: true }, include: { condition: { select: { name: true } } } }),
+  ]);
+  const resolved = resolveFiberTarget({
+    dateOfBirth: user?.dateOfBirth, gender: user?.gender, macroGoal: goals,
+    conditionNames: conditions.map((c) => c.condition?.name).filter(Boolean),
+  });
+  return {
+    fiberTarget: resolved.targetG ?? goals.fiberTarget,
+    fiberTargetBasis: resolved.basis,
+    fiberReviewRequired: resolved.reviewRequired,
+  };
 }
 
 // Water target basis: 'custom' = user-set, 'history' = derived from the user's
@@ -162,7 +185,8 @@ async function updateGoals(userId, updates) {
     create: { userId, ...DEFAULT_GOALS, ...updates, source: updates.source || 'custom' },
   });
   const { waterMlTarget, waterMlTargetBasis } = await deriveWaterTarget(userId, goals);
-  return { ...goals, waterMlTarget, waterMlTargetBasis };
+  const fiber = await deriveFiberTarget(userId, goals);
+  return { ...goals, ...fiber, waterMlTarget, waterMlTargetBasis };
 }
 
 /**

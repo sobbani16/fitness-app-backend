@@ -242,7 +242,7 @@ describe('checkout -> webhook -> entitlement', () => {
     const res = await postWebhook(event, headers['x-mock-signature']);
     expect(res.status).toBe(200);
     expect(res.body.processed).toBe(true);
-    expect(mockPrisma.trainerPurchase.updateMany).toHaveBeenCalledWith({ where: { id: 'pur-1', status: { not: 'paid' } }, data: { status: 'paid' } });
+    expect(mockPrisma.trainerPurchase.updateMany).toHaveBeenCalledWith({ where: { id: 'pur-1', status: { notIn: ['paid', 'refunded', 'refund_pending'] } }, data: { status: 'paid' } });
     expect(mockPrisma.trainerEntitlement.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ kind: 'session_pack', remainingSessions: 5, clientId: 'client-1', trainerId: 'tp-1', status: 'active' }),
     });
