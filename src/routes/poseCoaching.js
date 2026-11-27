@@ -26,6 +26,14 @@ router.post('/sessions', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+// GET /progress — §28 version-aware progress summary. Provenance is never
+// collapsed; cross-version trend claims are refused when measurement changed.
+router.get('/progress', async (req, res) => {
+  try {
+    res.json(await svc.progressSummary(req.userId, { exerciseId: req.query.exerciseId }));
+  } catch (e) { fail(res, e); }
+});
+
 router.get('/sessions', async (req, res) => {
   try {
     res.json(await svc.listSessions(req.userId, {

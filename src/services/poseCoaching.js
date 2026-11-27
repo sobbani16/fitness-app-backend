@@ -135,6 +135,66 @@ async function finalizeSession(userId, id, body) {
 
 // Consent withdrawal / user-controlled deletion — owner only, hard delete
 // (the record is the sensitive artifact; there is no softer artifact to keep).
+// §28 progress summary — version-aware by construction. Progress claims across
+// differing measurement versions are unreliable: a model/rules change alters
+// what a "rep" means, so the summary segments history by (modelVersion,
+// ruleVersion) and refuses to present a single cross-version trend line.
+// Provenance is never collapsed: auto vs user-confirmed vs corrected counts
+// remain distinct, and discarded sessions are excluded from trend math but
+// reported in meta. No calories/weight/activation are computed anywhere here.
+async function progressSummary(userId, { exerciseId } = {}) {
+  const where = { userId, consentToStore: true, ...(exerciseId ? { exerciseId } : {}) };
+  const rows = await getPrisma().coachingSession.findMany({
+    where,
+    orderBy: { startedAt: 'asc' },
+    select: {
+      id: true, exerciseId: true, startedAt: true, countedReps: true,
+      confirmedReps: true, discarded: true, modelVersion: true, ruleVersion: true,
+    },
+  });
+  const live = rows.filter((r) => !r.discarded);
+  const vkey = (r) => `${r.modelVersion || 'unknown'}|${r.ruleVersion || 'unknown'}`;
+  const versions = new Map();
+  for (const r of live) {
+    const k = vkey(r);
+    if (!versions.has(k)) versions.set(k, { modelVersion: r.modelVersion || null, ruleVersion: r.ruleVersion || null, sessions: 0, effectiveReps: 0, firstAt: r.startedAt, lastAt: r.startedAt });
+    const v = versions.get(k);
+    v.sessions += 1;
+    v.effectiveReps += (r.confirmedReps ?? r.countedReps) || 0;
+    if (r.startedAt < v.firstAt) v.firstAt = r.startedAt;
+    if (r.startedAt > v.lastAt) v.lastAt = r.startedAt;
+  }
+  const orderedKeys = [...versions.keys()];
+  const correctedCount = live.filter((r) => r.confirmedReps != null && r.confirmedReps !== r.countedReps).length;
+  const confirmedCount = live.filter((r) => r.confirmedReps != null).length;
+  return {
+    exerciseId: exerciseId || null,
+    sessions: {
+      total: live.length,
+      discarded: rows.length - live.length,
+      autoOnly: live.length - confirmedCount,          // provenance: camera count never reviewed
+      userConfirmed: confirmedCount,
+      corrected: correctedCount,                        // confirmed differs from counted — measurement disagreement signal
+    },
+    versions: [...versions.values()].sort((a, b) => new Date(a.firstAt) - new Date(b.firstAt)),
+    distinctVersions: orderedKeys.length,
+    // honest comparability verdict: a single-version history supports trend
+    // reading; multi-version history does not — measurement changed mid-stream.
+    crossVersionComparable: orderedKeys.length <= 1,
+    comparabilityNote: orderedKeys.length <= 1
+      ? null
+      : 'Progress comparisons span differing model/rule versions — measurement definitions changed. Compare within version segments only.',
+    trend: live.map((r) => ({
+      sessionId: r.id,
+      exerciseId: r.exerciseId,
+      at: r.startedAt,
+      effectiveReps: (r.confirmedReps ?? r.countedReps) || 0,
+      provenance: r.confirmedReps != null ? (r.confirmedReps !== r.countedReps ? 'user-corrected' : 'user-confirmed') : 'auto',
+      versionKey: vkey(r),
+    })),
+  };
+}
+
 async function deleteSession(userId, id) {
   const s = await getSession(userId, id);
   await getPrisma().coachingSession.delete({ where: { id: s.id } });
@@ -147,4 +207,5 @@ module.exports = {
   getSession,
   finalizeSession,
   deleteSession,
+  progressSummary,
 };
