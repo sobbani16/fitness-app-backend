@@ -65,3 +65,25 @@ Punitha independent verification required. The two contract mismatches need a cr
 
 ### Remaining owner/QA dependencies
 Weekly-plan mismatches still need cross-repo owner decision (open). Punitha independent verification required. Fixture-only items labeled in harness.
+
+
+## 2026-11-26 — injury PATCH contract milestone (pc-HUM-63 continuation 3)
+
+**Evidence commit**: this commit. **Harness**: `tests/contracts/injuryPatch.contract.test.js` — 14/14, real route + real middleware (bypass disabled), synthetic identities. Combined battery 49/49 across 5 suites.
+
+### Revision pins (rationale)
+- backend candidate `5e2f3ef` — branch HEAD, tested live
+- backend baseline `625352c` — injury PATCH exists but granular validation envelope is a candidate-side ADDITIVE expansion (static diff evidence, fixture-labeled)
+- mobile candidate `f184c99` — humai/dev-02/pc-HUM-43-injury-ux tip (read-only git objects only — dev-02 branch untouched)
+- mobile baseline `846a88a` — mobile origin/main; updateInjury wire surface identical in both revisions
+
+### Verified live
+Method/path/response `{updated:true}`; editable-fields allowlist (unsupported_fields 400 with field enumeration, zero mutation); per-field invalid_field 400s (status/laterality/painLevel bounds/clearance-pair); no_editable_fields 400; cross-user 404 no-existence-leak; missing token 401 envelope; object-level authz in the write itself (`where: {id, userId}`); clinician-documented 409 clinician_fields_locked with non-locked edits still accepted; status=resolved server-side resolvedAt set/cleared; repeat-patch repeat-safe.
+
+### CONTRACT DEFECT recorded (app logic unchanged per instructions)
+**painLevel null-corruption**: mobile types painLevel as `number | null` (null = cleared/unrecorded); backend validation explicitly exempts null but `num(null)` coerces to 0 — the write persists pain-level-ZERO, collapsing semantically distinct states. Harness documents actual behavior with the defect annotation. Release-order dependency: backend fix can ship independently (old mobile never relies on reading back null); fix decision belongs to the route owner.
+
+### Compatibility findings (fixture-labeled)
+- old mobile wire keys ⊆ candidate INJURY_EDITABLE — forward compatible, no old-client payload rejected as unsupported.
+- baseline error envelope ⊆ candidate envelope — additive validation expansion, no breaking change for well-formed clients in either upgrade order.
+- weekly-plan findings from prior milestones remain OPEN.
