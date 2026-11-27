@@ -3,6 +3,12 @@
 
 const mockStore = { user: { id: 'u1', dateOfBirth: new Date('1990-01-01'), gender: 'female', timeZone: 'UTC' }, ingredients: [], foodLogs: [], macroGoal: null, conditions: [], allergies: [], foodPrefs: [], suppLogs: [], plans: [] };
 
+const mockFlags = { fiber_intelligence_enabled: true, fiber_meal_sequencing_enabled: true };
+const mockFlagState = { outage: false };
+jest.mock('../src/services/featureFlags/service', () => ({
+  isEnabled: async (key) => { if (mockFlagState.outage) throw new Error('injected flag provider outage'); return Boolean(mockFlags[key]); },
+}));
+
 jest.mock('../src/lib/prisma', () => ({
   getPrisma: () => ({
     user: { findUnique: async () => mockStore.user },
@@ -13,14 +19,16 @@ jest.mock('../src/lib/prisma', () => ({
         return take ? rows.slice(0, take) : rows;
       },
     },
-    foodLog: { findMany: async () => mockStore.foodLogs, findFirst: async () => mockStore.foodLogs[0] || null },
+    foodLog: { findMany: async () => mockStore.foodLogs, findFirst: async ({ where } = {}) => mockStore.foodLogs.find((l) => l.userId == null || l.userId === where?.userId) || null },
     macroGoal: { findUnique: async () => mockStore.macroGoal },
     userHealthCondition: { findMany: async () => mockStore.conditions },
-    userAllergy: { findMany: async () => mockStore.allergies },
-    foodPreference: { findMany: async () => mockStore.foodPrefs },
+    userAllergy: { findMany: async () => { if (mockStore.failAllergies) throw new Error('injected allergy failure'); return mockStore.allergies; } },
+    foodPreference: { findMany: async () => { if (mockStore.failPrefs) throw new Error('injected prefs failure'); return mockStore.foodPrefs; } },
     supplementLog: { findMany: async () => mockStore.suppLogs },
     weeklyNutritionPlan: { findFirst: async () => mockStore.plans[0] || null },
     fiberDailyRecommendation: { upsert: async () => ({}) },
+    ingredientCatalog: { findMany: async () => mockStore.catalogRows || [] },
+    ingredientServing: { findMany: async () => [] },
   }),
 }));
 
@@ -34,6 +42,8 @@ beforeEach(() => {
   ];
   mockStore.foodLogs = []; mockStore.macroGoal = { caloriesTarget: 2000, fiberTarget: 30 };
   mockStore.conditions = []; mockStore.allergies = []; mockStore.foodPrefs = []; mockStore.suppLogs = []; mockStore.plans = [];
+  mockStore.failAllergies = false; mockStore.failPrefs = false;
+  mockFlags.fiber_intelligence_enabled = true; mockFlags.fiber_meal_sequencing_enabled = true; mockFlagState.outage = false;
 });
 
 describe('isFiberQuestion', () => {
@@ -111,6 +121,108 @@ describe('groundFiberAnswer', () => {
     expect(r.handled).toBe(false);
   });
 
+// --- pc-HUM-207 fail-closed sequencing parity with POST /fiber/sequence ---
+  const seqmeal = () => {
+    mockStore.foodLogs = [{ userId: 'u1', foodName: 'lunch bowl', nutritionSnapshot: { components: [
+        { foodName: 'white rice', ingredients: [{ name: 'white rice', amountG: 200 }] },
+        { foodName: 'grilled chicken', ingredients: [{ name: 'grilled chicken', amountG: 120 }] },
+      ] } }];
+  };
+
+  it('applies recorded exclusions — empty-context bypass closed', async () => {
+    mockStore.foodPrefs = [{ foodName: 'broccoli' }];
+    mockStore.foodLogs = [{ userId: 'u1', foodName: 'lunch bowl', nutritionSnapshot: { components: [
+        { foodName: 'white rice', ingredients: [{ name: 'white rice', amountG: 200 }] },
+        { foodName: 'grilled chicken', ingredients: [{ name: 'grilled chicken', amountG: 120 }] },
+      ] } }];
+    const r = await groundFiberAnswer('u1', 'What should I eat first?');
+    expect(r.handled).toBe(true);
+    if (/optionally start with/i.test(r.answer)) expect(r.answer).not.toMatch(/broccoli/i);
+  });
+
+  it('unavailable + still handled when allergy lookup fails — generic chat cannot replace it', async () => {
+    mockStore.failAllergies = true;
+    mockStore.foodLogs = [{ userId: 'u1', foodName: 'lunch bowl', nutritionSnapshot: { components: [
+        { foodName: 'white rice', ingredients: [{ name: 'white rice', amountG: 200 }] },
+        { foodName: 'grilled chicken', ingredients: [{ name: 'grilled chicken', amountG: 120 }] },
+      ] } }];
+    const r = await groundFiberAnswer('u1', 'What should I eat first?');
+    expect(r.handled).toBe(true); // never falls through to the LLM
+    expect(r.answer).toMatch(/temporarily unavailable/i);
+    expect(r.answer).not.toMatch(/\d+\. /); // no order steps
+    expect(r.answer).not.toMatch(/injected allergy failure/);
+  });
+
+  it('unavailable when preference lookup fails', async () => {
+    mockStore.failPrefs = true;
+    mockStore.foodLogs = [{ userId: 'u1', foodName: 'lunch bowl', nutritionSnapshot: { components: [
+        { foodName: 'white rice', ingredients: [{ name: 'white rice', amountG: 200 }] },
+        { foodName: 'grilled chicken', ingredients: [{ name: 'grilled chicken', amountG: 120 }] },
+      ] } }];
+    const r = await groundFiberAnswer('u1', 'What should I eat first?');
+    expect(r.handled).toBe(true);
+    expect(r.answer).toMatch(/temporarily unavailable/i);
+    expect(r.answer).not.toMatch(/injected prefs failure/);
+  });
+
+  it('unavailable when either flag is disabled', async () => {
+    mockStore.foodLogs = [{ userId: 'u1', foodName: 'lunch bowl', nutritionSnapshot: { components: [
+        { foodName: 'white rice', ingredients: [{ name: 'white rice', amountG: 200 }] },
+        { foodName: 'grilled chicken', ingredients: [{ name: 'grilled chicken', amountG: 120 }] },
+      ] } }];
+    mockFlags.fiber_meal_sequencing_enabled = false;
+    let r = await groundFiberAnswer('u1', 'What should I eat first?');
+    expect(r.handled).toBe(true);
+    expect(r.answer).toMatch(/temporarily unavailable/i);
+    mockFlags.fiber_meal_sequencing_enabled = true;
+    mockFlags.fiber_intelligence_enabled = false;
+    r = await groundFiberAnswer('u1', 'What should I eat first?');
+    expect(r.answer).toMatch(/temporarily unavailable/i);
+  });
+
+  it('unavailable on flag-provider outage — fail closed, not fail open', async () => {
+    mockFlagState.outage = true;
+    mockStore.foodLogs = [{ userId: 'u1', foodName: 'lunch bowl', nutritionSnapshot: { components: [
+        { foodName: 'white rice', ingredients: [{ name: 'white rice', amountG: 200 }] },
+        { foodName: 'grilled chicken', ingredients: [{ name: 'grilled chicken', amountG: 120 }] },
+      ] } }];
+    const r = await groundFiberAnswer('u1', 'What should I eat first?');
+    expect(r.handled).toBe(true);
+    expect(r.answer).toMatch(/temporarily unavailable/i);
+    expect(r.answer).not.toMatch(/outage/);
+  });
+
+  it('user scoping: another user’s meal is never sequenced for the caller', async () => {
+    mockStore.foodLogs = [{ userId: 'someone-else', foodName: 'their bowl', nutritionSnapshot: { components: [
+      { foodName: 'white rice', ingredients: [{ name: 'white rice', amountG: 200 }] },
+      { foodName: 'grilled chicken', ingredients: [{ name: 'grilled chicken', amountG: 120 }] },
+    ] } }];
+    const r = await groundFiberAnswer('u1', 'What should I eat first?');
+    expect(r.answer).not.toMatch(/their bowl/i);
+  });
+
+  it('single-component meals honor sequencingApplicable — no vacuous order', async () => {
+    mockStore.foodLogs = [{ userId: 'u1', foodName: 'plain rice', nutritionSnapshot: { components: [
+      { foodName: 'white rice', ingredients: [{ name: 'white rice', amountG: 200 }] },
+    ] } }];
+    const r = await groundFiberAnswer('u1', 'What should I eat first?');
+    expect(r.handled).toBe(true);
+    expect(r.answer).toMatch(/nothing to order|single-component/i);
+    expect(r.answer).not.toMatch(/\d+\. /);
+  });
+
+  it('successful empty-profile control still produces an order with no exclusions', async () => {
+    mockStore.foodLogs = [{ userId: 'u1', foodName: 'lunch bowl', nutritionSnapshot: { components: [
+        { foodName: 'white rice', ingredients: [{ name: 'white rice', amountG: 200 }] },
+        { foodName: 'grilled chicken', ingredients: [{ name: 'grilled chicken', amountG: 120 }] },
+      ] } }];
+    const r = await groundFiberAnswer('u1', 'What should I eat first?');
+    expect(r.handled).toBe(true);
+    expect(r.answer).toMatch(/lunch bowl/i);
+    expect(r.answer).toMatch(/\d+\. /);
+    expect(r.answer).toMatch(/optional suggestion/i);
+  });
+
   // --- Stage 4: weekly, mixed-dish, article-stripping, fiber threads ---------
   it('answers weekly questions from the 7-day review, not the daily total', async () => {
     mockStore.foodLogs = [
@@ -156,5 +268,30 @@ describe('groundFiberAnswer', () => {
     const r = await groundFiberAnswer('u-gone', 'How much fiber have I eaten today?');
     expect(r.handled).toBe(false);
     mockStore.user = { id: 'u1', dateOfBirth: new Date('1990-01-01'), gender: 'female', timeZone: 'UTC' };
+  });
+});
+
+describe('stored composition parity — assistant (pc-HUM-207)', () => {
+  it('nested-ingredient snapshot stays intact — no flattening, top-level grams preserved', async () => {
+    mockStore.foodLogs = [{
+      id: 'log-1', userId: 'u1', foodName: 'lunch',
+      nutritionSnapshot: { components: [
+        { foodName: 'chicken biryani', amountG: 350, ingredients: [{ name: 'basmati rice', amountG: 200 }] },
+        { foodName: 'cucumber salad', amountG: null },
+      ] },
+    }];
+    const out = await groundFiberAnswer('u1', 'What should I eat first?');
+    expect(out.handled).toBe(true);
+    // biryani appears whole; nested 'basmati rice' never surfaces as its own step
+    const text = out.answer || '';
+    expect(text).toMatch(/biryani/i);
+    expect(text).not.toMatch(/basmati rice/);
+  });
+  it('unusable stored composition yields the handled fallback — never partial guidance', async () => {
+    mockStore.foodLogs = [{ id: 'log-2', userId: 'u1', foodName: 'lunch', nutritionSnapshot: { components: [{ foodName: '', amountG: 10 }] } }];
+    const out = await groundFiberAnswer('u1', 'What should I eat first?');
+    expect(out.handled).toBe(true);
+    expect(out.answer || '').not.toMatch(/\d+\. /);
+    mockStore.foodLogs = [];
   });
 });

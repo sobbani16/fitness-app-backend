@@ -9,6 +9,7 @@ const { resolveZone, dayKey, dayRangeUtc } = require('../services/localDay');
 const { resolveFiberTarget } = require('../services/fiber/targets');
 const { dailyFiber, fiberStateOf } = require('../services/fiber/dailyEngine');
 const { sequenceMeal } = require('../services/fiber/sequencing');
+const { readStoredComposition } = require('../services/fiber/storedComposition');
 const { evaluateFiberSupplement, confirmCheck } = require('../services/fiber/supplementCheck');
 
 const router = express.Router();
@@ -155,23 +156,29 @@ router.post('/sequence', requireFeature('fiber_meal_sequencing_enabled'), async 
     if (!items && typeof req.body?.foodLogId === 'string') {
       const log = await prisma.foodLog.findFirst({ where: { id: req.body.foodLogId, userId }, select: { nutritionSnapshot: true } });
       if (!log) throw httpError(404, 'Meal not found');
-      const comps = log.nutritionSnapshot?.components;
-      if (!Array.isArray(comps) || !comps.length) throw httpError(422, 'That meal has no recorded components to sequence.');
-      items = comps.flatMap((c) => (Array.isArray(c.ingredients) && c.ingredients.length ? c.ingredients : [{ name: c.foodName, amountG: null }]).map((i) => ({ name: i.name || c.foodName, amountG: i.amountG ?? null })));
+      const read = readStoredComposition(log.nutritionSnapshot);
+      if (read.error === 'no_components') throw httpError(422, 'That meal has no recorded components to sequence.');
+      if (read.error) throw httpError(422, 'That meal’s saved composition is unusable — log it again with explicit foods.');
+      items = read.items;
     }
     if (!items?.length) throw httpError(400, 'Provide items[] or foodLogId.');
     for (const it of items) {
       if (typeof (it.name || it.foodName) !== 'string' || !(it.name || it.foodName).trim()) throw httpError(400, 'Each item needs a name.');
       if (it.amountG != null && (!Number.isFinite(it.amountG) || it.amountG <= 0 || it.amountG > 20000)) throw httpError(400, 'amountG must be 0–20000.');
     }
-    const [allergies, prefs] = await Promise.all([
-      prisma.userAllergy.findMany({ where: { userId }, include: { allergy: { select: { name: true } } } }).catch(() => []),
-      prisma.foodPreference.findMany({ where: { userId, preference: { in: ['DISLIKE', 'NEVER_RECOMMEND'] } }, select: { foodName: true } }).catch(() => []),
-    ]);
-    res.json(await sequenceMeal(items, {
-      allergenTerms: new Set(allergies.map((a) => String(a.allergy?.name || '').toLowerCase()).filter(Boolean)),
-      avoidNames: new Set(prefs.map((p) => p.foodName.toLowerCase())),
-    }));
+    // Fail closed: allergy/preference lookups feed exclusion terms into the
+    // suggestion engine. Treating a lookup failure as an empty result would
+    // silently drop recorded exclusions — the exact class of failure the
+    // safety contract forbids. Return a sanitized unavailable response; never
+    // leak the raw lookup error. sequenceMeal is only called after both reads
+    // succeed.
+    let exclusion;
+    try {
+      exclusion = await require('../services/fiber/exclusionContext').loadExclusionContext(prisma, userId);
+    } catch {
+      throw httpError(503, 'Meal sequencing is temporarily unavailable — please try again.');
+    }
+    res.json(await sequenceMeal(items, exclusion));
   } catch (e) { next(e); }
 });
 

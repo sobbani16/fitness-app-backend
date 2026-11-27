@@ -13,8 +13,8 @@ jest.mock('../src/lib/prisma', () => ({
     user: { findUnique: async () => mockStore.user },
     macroGoal: { findUnique: async () => mockStore.macroGoal, upsert: async ({ create }) => create },
     userHealthCondition: { findMany: async () => mockStore.conditions },
-    userAllergy: { findMany: async () => mockStore.allergies },
-    foodPreference: { findMany: async () => mockStore.foodPrefs },
+    userAllergy: { findMany: async () => { if (mockStore.failAllergies) throw new Error('injected allergy lookup failure'); return mockStore.allergies; } },
+    foodPreference: { findMany: async () => { if (mockStore.failPrefs) throw new Error('injected preference lookup failure'); return mockStore.foodPrefs; } },
     foodLog: { findMany: async () => { mockStore.foodLogFindManyCalls = (mockStore.foodLogFindManyCalls || 0) + 1; return mockStore.foodLogs; }, findFirst: async ({ where }) => mockStore.foodLogs.find((l) => l.id === where.id && l.userId === where.userId) || null },
     userRole: { findFirst: async ({ where }) => (mockStore.roles || []).some((r) => where.role.name.in.includes(r)) ? { id: 'r1' } : null },
     supplementLog: { findMany: async () => mockStore.suppLogs },
@@ -154,5 +154,108 @@ describe('response contracts', () => {
     const hit = res.body.days.find((d) => d.confirmedG === 4);
     expect(hit).toBeTruthy();
     expect(hit.mealsLogged).toBe(1);
+  });
+it('POST /fiber/sequence fails closed when allergy lookup fails — no order, no addition, no raw error', async () => {
+    mockStore.failAllergies = true;
+    const res = await request(app).post('/fiber/sequence').set('x-user-id', USER)
+      .send({ items: [{ name: 'white rice, cooked', amountG: 200 }, { name: 'grilled chicken', amountG: 120 }] });
+    expect(res.status).toBe(503);
+    expect(res.body.order).toBeUndefined();
+    expect(res.body.suggestedAddition).toBeUndefined();
+    expect(JSON.stringify(res.body)).not.toMatch(/injected allergy lookup failure/);
+    expect(res.body.error).toMatch(/unavailable|try again/i);
+    mockStore.failAllergies = false;
+  });
+
+  it('POST /fiber/sequence fails closed when preference lookup fails', async () => {
+    mockStore.failPrefs = true;
+    const res = await request(app).post('/fiber/sequence').set('x-user-id', USER)
+      .send({ items: [{ name: 'white rice, cooked', amountG: 200 }, { name: 'grilled chicken', amountG: 120 }] });
+    expect(res.status).toBe(503);
+    expect(res.body.order).toBeUndefined();
+    expect(JSON.stringify(res.body)).not.toMatch(/injected preference lookup failure/);
+    mockStore.failPrefs = false;
+  });
+
+  it('POST /fiber/sequence fails closed for owned foodLogId lookups too', async () => {
+    mockStore.foodLogs = [{ id: 'log-seq', userId: USER, nutritionSnapshot: { components: [{ foodName: 'white rice', ingredients: [{ name: 'white rice', amountG: 200 }] }, { foodName: 'grilled chicken', ingredients: [{ name: 'grilled chicken', amountG: 120 }] }] } }];
+    mockStore.failAllergies = true;
+    const res = await request(app).post('/fiber/sequence').set('x-user-id', USER).send({ foodLogId: 'log-seq' });
+    expect(res.status).toBe(503);
+    expect(res.body.order).toBeUndefined();
+    mockStore.failAllergies = false;
+    mockStore.foodLogs = [];
+  });
+
+  it('empty allergy/preference profile control: sequence succeeds and applies no exclusions', async () => {
+    mockStore.allergies = []; mockStore.foodPrefs = [];
+    const res = await request(app).post('/fiber/sequence').set('x-user-id', USER)
+      .send({ items: [{ name: 'white rice, cooked', amountG: 200 }, { name: 'grilled chicken', amountG: 120 }] });
+    expect(res.status).toBe(200);
+    expect(res.body.order.length).toBe(2);
+  });
+
+  it('recorded exclusions reach the suggestion engine when lookups succeed', async () => {
+    mockStore.foodPrefs = [{ foodName: 'broccoli' }];
+    const res = await request(app).post('/fiber/sequence').set('x-user-id', USER)
+      .send({ items: [{ name: 'white rice, cooked', amountG: 200 }, { name: 'grilled chicken', amountG: 120 }] });
+    expect(res.status).toBe(200);
+    if (res.body.suggestedAddition) expect(res.body.suggestedAddition.food).not.toMatch(/broccoli/i);
+    mockStore.foodPrefs = [];
+  });
+});
+
+describe('stored composition parity — pc-HUM-207', () => {
+  beforeEach(() => { mockFlags.fiber_meal_sequencing_enabled = true; mockFlags.fiber_intelligence_enabled = true; mockStore.failAllergies = false; mockStore.failPrefs = false; });
+  const seed = (components) => {
+    mockStore.foodLogs = [{ id: 'log-saved', userId: USER, foodName: 'lunch', nutritionSnapshot: { components } }];
+  };
+
+  test('PR #61 direct format — one step per component, mixed dish never decomposed', async () => {
+    seed([{ foodName: 'chicken biryani', amountG: 350 }, { foodName: 'side salad', amountG: 120 }]);
+    const res = await request(app).post('/fiber/sequence').set('x-user-id', USER).send({ foodLogId: 'log-saved' });
+    expect(res.status).toBe(200);
+    const steps = (res.body.order || []).map((o) => o.component);
+    expect(steps).toHaveLength(2);
+    expect(steps).toContain('chicken biryani');
+    expect(steps).toContain('side salad');
+  });
+
+  test('legacy photo snapshot with nested recipe ingredients — dish stays ONE item', async () => {
+    seed([
+      { foodName: 'chicken biryani', amountG: null, ingredients: [{ name: 'basmati rice', amountG: 200 }, { name: 'chicken thigh', amountG: 150 }] },
+      { foodName: 'raita side', amountG: 80 },
+    ]);
+    const res = await request(app).post('/fiber/sequence').set('x-user-id', USER).send({ foodLogId: 'log-saved' });
+    expect(res.status).toBe(200);
+    const steps = (res.body.order || []).map((o) => o.component);
+    expect(steps).toHaveLength(2); // nested ingredients NEVER surface as separate steps
+    expect(steps).not.toContain('basmati rice');
+    expect(steps).not.toContain('chicken thigh');
+    expect(steps).toContain('chicken biryani');
+  });
+
+  test('saved and entered representations yield identical orders when equivalent', async () => {
+    const comps = [{ foodName: 'grilled paneer', amountG: 150 }, { foodName: 'spinach side', amountG: 100 }];
+    seed(comps);
+    const saved = await request(app).post('/fiber/sequence').set('x-user-id', USER).send({ foodLogId: 'log-saved' });
+    const entered = await request(app).post('/fiber/sequence').set('x-user-id', USER).send({ items: comps.map((c) => ({ name: c.foodName, amountG: c.amountG })) });
+    expect(saved.status).toBe(200);
+    expect(entered.status).toBe(200);
+    expect((saved.body.order || []).map((o) => o.component)).toEqual((entered.body.order || []).map((o) => o.component));
+  });
+
+  test('unusable and over-limit compositions rejected without partial guidance', async () => {
+    seed([{ foodName: '', amountG: 100 }, { foodName: 'ok', amountG: 50 }]);
+    let res = await request(app).post('/fiber/sequence').set('x-user-id', USER).send({ foodLogId: 'log-saved' });
+    expect(res.status).toBe(422);
+    expect(res.body.order).toBeUndefined();
+    seed(Array.from({ length: 21 }, (_, i) => ({ foodName: `f${i}`, amountG: 10 })));
+    res = await request(app).post('/fiber/sequence').set('x-user-id', USER).send({ foodLogId: 'log-saved' });
+    expect(res.status).toBe(422);
+    seed([{ foodName: 'bad', amountG: 99999 }]);
+    res = await request(app).post('/fiber/sequence').set('x-user-id', USER).send({ foodLogId: 'log-saved' });
+    expect(res.status).toBe(422);
+    mockStore.foodLogs = [];
   });
 });
