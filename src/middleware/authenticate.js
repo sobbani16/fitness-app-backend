@@ -1,8 +1,11 @@
 const { authenticate } = require('../services/authService');
 const { verifyViewAsToken, isSuperAdmin } = require('../services/viewAsService');
+const { isProduction } = require('../lib/env');
 module.exports = async function authenticateRequest(req, res, next) {
   // Legacy identity is allowed ONLY in isolated unit tests, never in a running server.
-  if (process.env.NODE_ENV === 'test' && process.env.AUTH_TEST_BYPASS === 'true') return next();
+  // isProduction() is Railway-aware: even a production deploy misconfigured with
+  // NODE_ENV=test can never activate the bypass while RAILWAY_ENVIRONMENT_NAME=production.
+  if (process.env.NODE_ENV === 'test' && process.env.AUTH_TEST_BYPASS === 'true' && !isProduction()) return next();
   try {
     const token = /^Bearer (.+)$/i.exec(req.headers.authorization || '')?.[1];
     req.userId = await authenticate(token);
