@@ -462,6 +462,67 @@ function overlapWhere(trainerId, start, end, bufferMs, excludeId) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Entitlement consumption — session-kind entitlements (session_pack, session)
+// deplete by one per booking and restore once on cancel/decline. Subscriptions
+// are time-based and never decrement. Bookings WITHOUT an entitlement proceed
+// unchanged — requiring one is a product decision, not a trust invariant.
+// ---------------------------------------------------------------------------
+
+/**
+ * Consume one session from the client's soonest-expiring usable entitlement.
+ * Returns { id } or null when nothing consumable exists. The decrement is
+ * guarded on remainingSessions > 0 so concurrent bookings can't go negative.
+ */
+async function consumeEntitlement(tx, rel) {
+  const candidates = await tx.trainerEntitlement.findMany({
+    where: {
+      clientId: rel.clientId,
+      trainerId: rel.trainerId,
+      status: 'active',
+      kind: { in: ['session', 'session_pack'] },
+      remainingSessions: { gt: 0 },
+    },
+  });
+  const usable = candidates
+    .filter((e) => !e.expiresAt || e.expiresAt.getTime() > Date.now())
+    .sort((a, b) => (a.expiresAt ? +a.expiresAt : Infinity) - (b.expiresAt ? +b.expiresAt : Infinity));
+  for (const e of usable) {
+    const before = e.remainingSessions; // capture pre-decrement — the update mutates the row
+    const claimed = await tx.trainerEntitlement.updateMany({
+      where: { id: e.id, status: 'active', remainingSessions: { gt: 0 } },
+      data: { remainingSessions: { decrement: 1 } },
+    });
+    if (claimed.count !== 1) continue; // lost a race — try the next pack
+    if (before - 1 === 0) {
+      await tx.trainerEntitlement.updateMany({
+        where: { id: e.id, remainingSessions: 0 },
+        data: { status: 'exhausted' },
+      });
+    }
+    return { id: e.id };
+  }
+  return null;
+}
+
+/**
+ * Restore the session a booking consumed. Never restores into a revoked
+ * (refunded) or expired entitlement — the refund already returned the money,
+ * so restoring there would double-compensate.
+ */
+async function restoreEntitlement(tx, booking) {
+  if (!booking.entitlementId) return;
+  const ent = await tx.trainerEntitlement.findUnique({ where: { id: booking.entitlementId } });
+  if (!ent || !['active', 'exhausted'].includes(ent.status)) return;
+  await tx.trainerEntitlement.update({
+    where: { id: ent.id },
+    data: {
+      remainingSessions: { increment: 1 },
+      ...(ent.status === 'exhausted' ? { status: 'active' } : {}),
+    },
+  });
+}
+
 /**
  * Request a booking. Caller must be a participant of an ACTIVE relation
  * (client or trainer side). The overlap re-check happens inside the
@@ -506,6 +567,10 @@ async function requestBooking(userId, { relationId, sessionTypeId, startAtUtc, c
       err.code = 'SLOT_TAKEN';
       throw err;
     }
+    // Consume before creating: if the entitlement write fails the booking
+    // must not exist. null when the client holds nothing consumable —
+    // entitlement-less bookings remain free by design.
+    const entitlement = await consumeEntitlement(tx, rel);
     const booking = await tx.trainerBooking.create({
       data: {
         relationId,
@@ -516,6 +581,7 @@ async function requestBooking(userId, { relationId, sessionTypeId, startAtUtc, c
         requestedBy,
         meetingLink: sessionType.meetingLink || null,
         clientNote: clientNote || null,
+        entitlementId: entitlement?.id || null,
       },
     });
     await tx.trainerBookingEvent.create({
@@ -570,7 +636,15 @@ async function respond(bookingId, trainerUserId, action) {
   }
   const status = action === 'confirm' ? 'confirmed' : 'declined';
   return coachingTransaction(async (tx) => {
-    const updated = await tx.trainerBooking.update({ where: { id: bookingId }, data: { status } });
+    // Atomic transition claim — see cancel(). Only the responder that flips
+    // the status may restore the entitlement on decline.
+    const claimed = await tx.trainerBooking.updateMany({
+      where: { id: bookingId, status: { in: RESPONDABLE_STATUSES } },
+      data: { status },
+    });
+    if (claimed.count === 0) throw httpError(409, `Booking is ${booking.status} and cannot be responded to.`);
+    if (status === 'declined') await restoreEntitlement(tx, booking);
+    const updated = await tx.trainerBooking.findUnique({ where: { id: bookingId } });
     await tx.trainerBookingEvent.create({
       data: { bookingId, actorId: trainerUserId, action: status, fromStart: booking.startAtUtc, toStart: booking.startAtUtc },
     });
@@ -615,7 +689,16 @@ async function cancel(bookingId, userId) {
     }
   }
   return coachingTransaction(async (tx) => {
-    const updated = await tx.trainerBooking.update({ where: { id: bookingId }, data: { status: 'canceled' } });
+    // Atomic transition claim: only the caller that flips the status restores
+    // the entitlement. Concurrent/duplicate cancels see count 0 and cannot
+    // double-restore.
+    const claimed = await tx.trainerBooking.updateMany({
+      where: { id: bookingId, status: { in: CANCELABLE_STATUSES } },
+      data: { status: 'canceled' },
+    });
+    if (claimed.count === 0) throw httpError(409, `Booking is ${booking.status} and cannot be canceled.`);
+    await restoreEntitlement(tx, booking);
+    const updated = await tx.trainerBooking.findUnique({ where: { id: bookingId } });
     await tx.trainerBookingEvent.create({
       data: { bookingId, actorId: userId, action: 'canceled', fromStart: booking.startAtUtc },
     });

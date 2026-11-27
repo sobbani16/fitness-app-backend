@@ -30,6 +30,7 @@ function resetStore() {
   store.bookingEvents = [];
   store.notifications = [];
   store.audit = [];
+  store.entitlements = [];
   store.seq = 0;
 }
 resetStore();
@@ -165,6 +166,16 @@ const mockPrisma = {
       const row = store.bookings.find((b) => b.id === id);
       return row ? Object.assign(row, data) : null;
     }),
+    updateMany: jest.fn(async ({ where, data }) => {
+      let count = 0;
+      for (const b of store.bookings) {
+        if (where.id && b.id !== where.id) continue;
+        if (where.status && typeof where.status === 'object' && 'in' in where.status && !where.status.in.includes(b.status)) continue;
+        count += 1;
+        Object.assign(b, data);
+      }
+      return { count };
+    }),
     findUnique: jest.fn(async ({ where: { id } }) => {
       const row = store.bookings.find((b) => b.id === id);
       return row ? decorateBooking(row) : null;
@@ -181,6 +192,53 @@ const mockPrisma = {
   },
   trainerBookingEvent: {
     create: jest.fn(async ({ data }) => { const row = { id: nid('ev'), createdAt: new Date(), ...data }; store.bookingEvents.push(row); return row; }),
+  },
+  trainerEntitlement: {
+    findMany: jest.fn(async ({ where } = {}) =>
+      store.entitlements.filter((e) => {
+        if (!where) return true;
+        for (const [key, cond] of Object.entries(where)) {
+          if (key === 'kind') { if (cond && typeof cond === 'object' && 'in' in cond ? !cond.in.includes(e.kind) : e.kind !== cond) return false; }
+          else if (key === 'remainingSessions') { if (cond && typeof cond === 'object' && 'gt' in cond ? !(e.remainingSessions > cond.gt) : e.remainingSessions !== cond) return false; }
+          else if (key === 'OR' || key === 'AND') { /* expiry checked in service tests via status */ }
+          else if (e[key] !== cond) return false;
+        }
+        return true;
+      })),
+    findUnique: jest.fn(async ({ where: { id } }) => store.entitlements.find((e) => e.id === id) || null),
+    updateMany: jest.fn(async ({ where, data }) => {
+      let count = 0;
+      for (const e of store.entitlements) {
+        let match = true;
+        for (const [key, cond] of Object.entries(where || {})) {
+          if (key === 'id') { if (e.id !== cond) match = false; }
+          else if (key === 'status') {
+            if (cond && typeof cond === 'object' && 'in' in cond) { if (!cond.in.includes(e.status)) match = false; }
+            else if (e.status !== cond) match = false;
+          }
+          else if (key === 'remainingSessions') { if (!(e.remainingSessions > (cond?.gt ?? -Infinity))) match = false; }
+          else if (e[key] !== cond) match = false;
+        }
+        if (!match) continue;
+        count += 1;
+        for (const [key, val] of Object.entries(data)) {
+          if (val && typeof val === 'object' && 'decrement' in val) e[key] -= val.decrement;
+          else if (val && typeof val === 'object' && 'increment' in val) e[key] += val.increment;
+          else e[key] = val;
+        }
+      }
+      return { count };
+    }),
+    update: jest.fn(async ({ where: { id }, data }) => {
+      const row = store.entitlements.find((e) => e.id === id);
+      if (!row) return null;
+      for (const [key, val] of Object.entries(data)) {
+        if (val && typeof val === 'object' && 'decrement' in val) row[key] -= val.decrement;
+        else if (val && typeof val === 'object' && 'increment' in val) row[key] += val.increment;
+        else row[key] = val;
+      }
+      return row;
+    }),
   },
   notification: {
     create: jest.fn(async ({ data }) => { const row = { id: nid('nt'), read: false, createdAt: new Date(), ...data }; store.notifications.push(row); return row; }),
@@ -464,6 +522,114 @@ describe('cancel, reschedule, complete', () => {
     expect(filtered.status).toBe(200);
     expect(filtered.body.bookings).toHaveLength(1);
     expect(filtered.body.bookings[0].status).toBe('requested');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Entitlement consumption — session packs deplete on booking, restore on
+// cancel/decline, never restore into a refunded (revoked) entitlement.
+// ---------------------------------------------------------------------------
+describe('entitlement consumption', () => {
+  const START = '2027-01-05T15:00:00.000Z';
+  function seedEntitlement(overrides = {}) {
+    const row = {
+      id: nid('ent'), purchaseId: 'pur-1', clientId: CLIENT, trainerId: TRAINER_ID,
+      kind: 'session_pack', remainingSessions: 3, expiresAt: null, status: 'active',
+      ...overrides,
+    };
+    store.entitlements.push(row);
+    return row;
+  }
+  const book = (st, start = START) =>
+    asClient(request(app).post('/me/bookings')).send({ relationId: REL_ID, sessionTypeId: st.id, startAtUtc: start });
+
+  test('booking consumes one session from an active pack', async () => {
+    const st = seedSessionType();
+    const ent = seedEntitlement({ remainingSessions: 3 });
+    const res = await book(st);
+    expect(res.status).toBe(201);
+    expect(res.body.entitlementId).toBe(ent.id);
+    expect(store.entitlements.find((e) => e.id === ent.id).remainingSessions).toBe(2);
+  });
+
+  test('last session exhausts the pack', async () => {
+    const st = seedSessionType();
+    const ent = seedEntitlement({ remainingSessions: 1 });
+    const res = await book(st);
+    expect(res.status).toBe(201);
+    const updated = store.entitlements.find((e) => e.id === ent.id);
+    expect(updated.remainingSessions).toBe(0);
+    expect(updated.status).toBe('exhausted');
+  });
+
+  test('subscription entitlements are not decremented (time-based)', async () => {
+    const st = seedSessionType();
+    const ent = seedEntitlement({ kind: 'subscription', remainingSessions: null, expiresAt: new Date(Date.now() + 30 * 86400e3) });
+    const res = await book(st);
+    expect(res.status).toBe(201);
+    expect(res.body.entitlementId).toBeNull();
+    expect(store.entitlements.find((e) => e.id === ent.id).remainingSessions).toBeNull();
+  });
+
+  test('no entitlement → free booking proceeds unchanged', async () => {
+    const st = seedSessionType();
+    const res = await book(st);
+    expect(res.status).toBe(201);
+    expect(res.body.entitlementId).toBeNull();
+  });
+
+  test('exhausted/expired entitlements are not consumed', async () => {
+    const st = seedSessionType();
+    seedEntitlement({ remainingSessions: 0, status: 'exhausted' });
+    seedEntitlement({ remainingSessions: 5, expiresAt: new Date(Date.now() - 86400e3), status: 'expired' });
+    const res = await book(st);
+    expect(res.status).toBe(201);
+    expect(res.body.entitlementId).toBeNull();
+  });
+
+  test('cancel restores the consumed session exactly once', async () => {
+    const st = seedSessionType({ cancelWindowMin: 0 });
+    const ent = seedEntitlement({ remainingSessions: 1 });
+    const res = await book(st, new Date(Date.now() + 96 * 3600e3).toISOString());
+    expect(store.entitlements.find((e) => e.id === ent.id).status).toBe('exhausted');
+    const cancel = await asClient(request(app).post(`/me/bookings/${res.body.id}/cancel`)).send({});
+    expect(cancel.status).toBe(200);
+    const updated = store.entitlements.find((e) => e.id === ent.id);
+    expect(updated.remainingSessions).toBe(1);
+    expect(updated.status).toBe('active');
+    // second cancel attempt is a no-op conflict, no double restore
+    await asClient(request(app).post(`/me/bookings/${res.body.id}/cancel`)).send({});
+    expect(store.entitlements.find((e) => e.id === ent.id).remainingSessions).toBe(1);
+  });
+
+  test('decline restores the consumed session', async () => {
+    const st = seedSessionType();
+    const ent = seedEntitlement({ remainingSessions: 2 });
+    const res = await book(st);
+    expect(store.entitlements.find((e) => e.id === ent.id).remainingSessions).toBe(1);
+    const dec = await asTrainer(request(app).post(`/trainer/schedule/bookings/${res.body.id}/respond`)).send({ action: 'decline' });
+    expect(dec.body.status).toBe('declined');
+    expect(store.entitlements.find((e) => e.id === ent.id).remainingSessions).toBe(2);
+  });
+
+  test('revoked (refunded) entitlement is not restored', async () => {
+    const st = seedSessionType({ cancelWindowMin: 0 });
+    const ent = seedEntitlement({ remainingSessions: 2 });
+    const res = await book(st, new Date(Date.now() + 96 * 3600e3).toISOString());
+    store.entitlements.find((e) => e.id === ent.id).status = 'revoked'; // refund landed mid-flight
+    await asClient(request(app).post(`/me/bookings/${res.body.id}/cancel`)).send({});
+    expect(store.entitlements.find((e) => e.id === ent.id).remainingSessions).toBe(1);
+  });
+
+  test('reschedule keeps the consumption (no restore, no double-charge)', async () => {
+    const st = seedSessionType();
+    const ent = seedEntitlement({ remainingSessions: 2 });
+    const res = await book(st, new Date('2027-02-01T15:00:00Z').toISOString());
+    const ok = await asClient(request(app).post(`/me/bookings/${res.body.id}/reschedule`))
+      .send({ startAtUtc: '2027-02-03T18:00:00.000Z' });
+    expect(ok.status).toBe(200);
+    expect(store.entitlements.find((e) => e.id === ent.id).remainingSessions).toBe(1);
+    expect(ok.body.entitlementId).toBe(ent.id);
   });
 });
 

@@ -36,6 +36,7 @@ app.use('/me/profile', require('./routes/profile'));
 // myPurchases is mounted in routes/index.js AFTER the other /me mounts —
 // its router-level paid-coaching flag must not shadow /me/roles, plans, etc.
 app.use('/trainer/commerce', require('./routes/trainerCommerce'));
+app.use('/trainer/reviews', require('./routes/trainerReviews'));
 app.use('/config', require('./routes/config'));
 // Staging-only safety fixtures (OPS-REQ-4): module throws if NODE_ENV=production.
 if (process.env.SAFETY_STATE_FIXTURE === '1' || process.env.SAFETY_ENV_FIXTURE) {

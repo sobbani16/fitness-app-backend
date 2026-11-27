@@ -2572,6 +2572,10 @@ model TrainerBooking {
   meetingLink   String?
   clientNote    String?
   trainerNote   String?
+  // Entitlement consumed by this booking (null = no paid consumption).
+  // Restored once if the booking is canceled/declined before completion.
+  entitlementId String?
+  entitlement   TrainerEntitlement? @relation(fields: [entitlementId], references: [id])
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
@@ -2608,6 +2612,11 @@ model TrainerCoachingPackage {
   interval     String? // month | year for subscriptions
   priceCents   Int
   currency     String         @default("usd")
+  // JSON array of closed-enum deliverable keys (spec PHASE-10):
+  // workout_only, nutrition_in_scope, combined, check_ins, consultations,
+  // messaging, form_review, group_coaching. Explicit deliverables — a package
+  // without them is invalid by construction.
+  deliverables String?
   active       Boolean        @default(true)
 
   purchases TrainerPurchase[]
@@ -2656,6 +2665,8 @@ model TrainerEntitlement {
   expiresAt         DateTime?
   status            String           @default("active") // active | exhausted | expired | revoked
 
+  bookings          TrainerBooking[]
+
   @@index([clientId, status])
   @@index([trainerId])
 }
@@ -2671,6 +2682,36 @@ model TrainerPaymentTransaction {
   createdAt       DateTime        @default(now())
 
   @@index([purchaseId])
+}
+
+// PHASE-10 reviews (pc-HUM-143): verified-participant-only coaching reviews.
+// Anti-manipulation: one review per client-trainer pair (upsert = edit, not
+// duplicate); eligibility proven against a real coaching relation or paid
+// purchase in the service layer; self-reviews impossible by construction.
+model TrainerReview {
+  id               String   @id @default(uuid())
+  trainerId        String
+  clientId         String
+  // Ratings are integer 1-5 across the spec axes; overall is required,
+  // the rest optional-but-bounded. No free-text is required — body is optional.
+  overall          Int
+  quality          Int?
+  communication    Int?
+  professionalism  Int?
+  reliability      Int?
+  clarity          Int?
+  body             String?
+  status           String   @default("published") // published | flagged | removed
+  flaggedReason    String?
+  // Professional responses are a separate object per spec — never mixed into
+  // the review itself and never part of moderation state.
+  responseBody     String?
+  responseAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([trainerId, clientId])
+  @@index([trainerId, status])
 }
 
 model TrainerPayout {

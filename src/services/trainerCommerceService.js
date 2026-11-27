@@ -14,6 +14,8 @@ const { coachingTransaction } = require('./coachingTransaction');
 const flags = require('./featureFlags/service');
 
 const PACKAGE_KINDS = ['subscription', 'one_time', 'session_pack'];
+// Spec PHASE-10 closed enum — packages must declare explicit deliverables.
+const DELIVERABLE_KEYS = ['workout_only', 'nutrition_in_scope', 'combined', 'check_ins', 'consultations', 'messaging', 'form_review', 'group_coaching'];
 const SUBSCRIPTION_INTERVALS = ['month', 'year'];
 
 // ---------------------------------------------------------------------------
@@ -37,12 +39,28 @@ function requirePrice(priceCents) {
 function requireCurrency(currency) {
   const value = currency === undefined ? 'usd' : currency;
   if (typeof value !== 'string' || !/^[a-zA-Z]{3}$/.test(value)) {
-    throw httpError(400, 'currency must be a 3-letter code.');
+    throw httpError(400, 'currency must be a 3-letter ISO-4217 code (e.g. inr, usd).');
   }
   return value.toLowerCase();
 }
 
-function validateNewPackage({ title, kind, priceCents, currency, sessionCount, interval }) {
+function validateDeliverables(value, { required }) {
+  if (value === undefined) {
+    if (required) throw httpError(400, 'deliverables are required — packages must declare explicit deliverables.');
+    return undefined;
+  }
+  if (!Array.isArray(value) || value.length === 0 || value.length > DELIVERABLE_KEYS.length) {
+    throw httpError(400, 'deliverables must be a non-empty array of deliverable keys.');
+  }
+  const unique = new Set(value);
+  if (unique.size !== value.length) throw httpError(400, 'deliverables must not contain duplicates.');
+  for (const key of value) {
+    if (!DELIVERABLE_KEYS.includes(key)) throw httpError(400, `unknown deliverable key: ${key}.`);
+  }
+  return JSON.stringify(value);
+}
+
+function validateNewPackage({ title, kind, priceCents, currency, sessionCount, interval, deliverables }) {
   if (!PACKAGE_KINDS.includes(kind)) {
     throw httpError(400, `kind must be one of: ${PACKAGE_KINDS.join(', ')}.`);
   }
@@ -51,6 +69,7 @@ function validateNewPackage({ title, kind, priceCents, currency, sessionCount, i
     kind,
     priceCents: requirePrice(priceCents),
     currency: requireCurrency(currency),
+    deliverables: validateDeliverables(deliverables, { required: true }),
     sessionCount: null,
     interval: null,
   };
@@ -84,6 +103,10 @@ function validatePackagePatch(fields) {
       throw httpError(400, 'sessionCount must be an integer between 1 and 1000.');
     }
     data.sessionCount = fields.sessionCount;
+  }
+  if (fields.deliverables !== undefined) {
+    const validated = validateDeliverables(fields.deliverables, { required: true });
+    data.deliverables = validated;
   }
   if (fields.interval !== undefined) {
     if (fields.interval !== null && !SUBSCRIPTION_INTERVALS.includes(fields.interval)) {
@@ -490,3 +513,6 @@ module.exports = {
   listEntitlements,
   listPayouts,
 };
+
+// exported for tests
+module.exports.DELIVERABLE_KEYS = DELIVERABLE_KEYS;

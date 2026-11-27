@@ -32,12 +32,12 @@ const provider = getProvider('mock');
 const TRAINER = { id: 'tp-1', userId: 'trainer-1', verified: true, active: true, applicationStatus: 'approved' };
 const SESSION_PACK = {
   id: 'pkg-1', trainerId: 'tp-1', title: '5-Session Pack', kind: 'session_pack',
-  sessionCount: 5, interval: null, priceCents: 5000, currency: 'usd', active: true,
+  sessionCount: 5, interval: null, priceCents: 5000, currency: 'usd', active: true, deliverables: '["consultations","messaging"]',
   trainer: { userId: 'trainer-1' },
 };
 const SUBSCRIPTION_PKG = {
   id: 'pkg-2', trainerId: 'tp-1', title: 'Monthly Coaching', kind: 'subscription',
-  sessionCount: null, interval: 'month', priceCents: 9900, currency: 'usd', active: true,
+  sessionCount: null, interval: 'month', priceCents: 9900, currency: 'usd', active: true, deliverables: '["combined"]',
   trainer: { userId: 'trainer-1' },
 };
 
@@ -100,7 +100,7 @@ describe('package CRUD authorization', () => {
     mockPrisma.trainerProfile.findUnique.mockResolvedValue(TRAINER);
     mockPrisma.trainerCoachingPackage.create.mockImplementation(async ({ data }) => ({ id: 'pkg-new', ...data }));
     const res = await request(app).post('/trainer/commerce/packages').set('x-user-id', 'trainer-1')
-      .send({ title: '5-Session Pack', kind: 'session_pack', sessionCount: 5, priceCents: 5000 });
+      .send({ title: '5-Session Pack', kind: 'session_pack', sessionCount: 5, priceCents: 5000, deliverables: ['consultations', 'form_review'] });
     expect(res.status).toBe(201);
     expect(res.body.trainerId).toBe('tp-1');
     expect(res.body.currency).toBe('usd');
@@ -112,6 +112,53 @@ describe('package CRUD authorization', () => {
     const res = await request(app).post('/trainer/commerce/packages').set('x-user-id', 'trainer-1')
       .send({ title: 'x', kind: 'forever', priceCents: 100 });
     expect(res.status).toBe(400);
+  });
+
+  describe('deliverables validation (spec PHASE-10)', () => {
+    const setupTrainer = () => {
+      mockRoles('trainer-1', ['TRAINER']);
+      mockPrisma.trainerProfile.findUnique.mockResolvedValue(TRAINER);
+    };
+    const post = (payload) => request(app).post('/trainer/commerce/packages').set('x-user-id', 'trainer-1').send(payload);
+    const base = { title: 'Pack', kind: 'one_time', priceCents: 1000 };
+
+    it('400 when deliverables are missing', async () => {
+      setupTrainer();
+      expect((await post(base)).status).toBe(400);
+    });
+
+    it('400 on unknown deliverable keys', async () => {
+      setupTrainer();
+      expect((await post({ ...base, deliverables: ['magic_powers'] })).status).toBe(400);
+    });
+
+    it('400 on duplicates and empty arrays', async () => {
+      setupTrainer();
+      expect((await post({ ...base, deliverables: ['messaging', 'messaging'] })).status).toBe(400);
+      expect((await post({ ...base, deliverables: [] })).status).toBe(400);
+    });
+
+    it('201 with valid keys incl. INR currency, stored as JSON', async () => {
+      setupTrainer();
+      mockPrisma.trainerCoachingPackage.create.mockImplementation(async ({ data }) => ({ id: 'pkg-inr', ...data }));
+      const res = await post({ ...base, priceCents: 250000, currency: 'inr', deliverables: ['workout_only', 'nutrition_in_scope', 'check_ins'] });
+      expect(res.status).toBe(201);
+      expect(res.body.deliverables).toBe('["workout_only","nutrition_in_scope","check_ins"]');
+      expect(res.body.currency).toBe('inr');
+    });
+
+    it('patch can update deliverables but rejects unknown keys', async () => {
+      setupTrainer();
+      mockPrisma.trainerCoachingPackage.findUnique.mockResolvedValue(SESSION_PACK);
+      mockPrisma.trainerCoachingPackage.update.mockImplementation(async ({ data }) => ({ ...SESSION_PACK, ...data }));
+      const ok = await request(app).patch('/trainer/commerce/packages/pkg-1').set('x-user-id', 'trainer-1')
+        .send({ deliverables: ['group_coaching'] });
+      expect(ok.status).toBe(200);
+      expect(ok.body.deliverables).toBe('["group_coaching"]');
+      const bad = await request(app).patch('/trainer/commerce/packages/pkg-1').set('x-user-id', 'trainer-1')
+        .send({ deliverables: ['not_a_thing'] });
+      expect(bad.status).toBe(400);
+    });
   });
 
   it('GET /packages lists trainer packages', async () => {
@@ -128,7 +175,7 @@ describe('package CRUD authorization', () => {
     mockPrisma.trainerProfile.findUnique.mockResolvedValue(TRAINER);
     mockPrisma.trainerCoachingPackage.findUnique.mockResolvedValue({ ...SESSION_PACK, trainerId: 'tp-other' });
     const res = await request(app).patch('/trainer/commerce/packages/pkg-1').set('x-user-id', 'trainer-1')
-      .send({ priceCents: 6000 });
+      .send({ priceCents: 6000, deliverables: ['messaging'] });
     expect(res.status).toBe(404);
   });
 
