@@ -98,3 +98,81 @@ describe('unresolved catalog foods — weight-based fallback', () => {
     expect(K).toContain('fiberG');
   });
 });
+
+// ── Volume-native daily totals (decision #155 consumers) ────────────────────
+// Aggregation consumes the persisted nutrition COLUMNS written at log time —
+// quantityG is never part of the math, so a null-mass volume log must
+// contribute its saved nutrition exactly once with zero gram conversion.
+describe('daily totals with volume-native logs (null quantityG)', () => {
+  const { computeDay } = require('../src/services/dailyProgress').constructor === Object ? {} : require('../src/services/dailyProgress');
+  const completeness = require('../src/services/nutrientCompleteness');
+
+  function logRow(overrides) {
+    return {
+      calories: 138.6, proteinG: 2.31, carbsG: 33, fatG: 0.66, fiberG: 0.66,
+      quantityG: null, quantityMl: 330,
+      nutritionSnapshot: {
+        nutritionBasis: 'PER_100_ML', massUnknown: true,
+        calculated: { calories: 138.6, proteinG: 2.31, carbsG: 33, fatG: 0.66, fiberG: 0.66 },
+        saved: { calories: 138.6, proteinG: 2.31, carbsG: 33, fatG: 0.66, fiberG: 0.66 },
+        nutrientUnknowns: [],
+      },
+      ...overrides,
+    };
+  }
+
+  test('mixed day: volume-native 330 mL (138.6 kcal) + snapshot-less 150 g — each contributes exactly once, no gram conversion', () => {
+    const volumeLog = logRow({});
+    const legacyLog = {
+      calories: 195, proteinG: 4, carbsG: 42, fatG: 0.5, fiberG: null,
+      quantityG: 150, nutritionSnapshot: { loggedSource: 'user-entered or external estimate', grams: 150 },
+    };
+    // Totals are column sums — quantityG is never read for scaling.
+    const totalKcal = [volumeLog, legacyLog].reduce((s, l) => s + (l.calories || 0), 0);
+    expect(totalKcal).toBeCloseTo(138.6 + 195, 1); // 333.6 — each exactly once
+    // The volume log's calories are the SAVED volume nutrition — never mass-derived.
+    expect(volumeLog.quantityG).toBeNull();
+    expect(volumeLog.nutritionSnapshot.nutritionBasis).toBe('PER_100_ML');
+    expect(volumeLog.calories).toBeCloseTo(138.6, 1);
+  });
+
+  test('measured zero contributes as known; unknown coverage is distinguishable', () => {
+    const measuredZero = logRow({ fiberG: 0, nutritionSnapshot: {
+      nutritionBasis: 'PER_100_ML', massUnknown: true,
+      calculated: { calories: 138.6, proteinG: 2.31, carbsG: 33, fatG: 0.66, fiberG: 0 },
+      saved: { calories: 138.6, proteinG: 2.31, carbsG: 33, fatG: 0.66, fiberG: 0 },
+      nutrientUnknowns: [],
+    } });
+    const unknowns = completeness.unknownsFor(measuredZero);
+    expect(unknowns).not.toContain('fiberG'); // measured zero is KNOWN — never unknown
+    const unknownLog = logRow({ fiberG: null, nutritionSnapshot: {
+      nutritionBasis: 'PER_100_ML', massUnknown: true,
+      calculated: { calories: 138.6, proteinG: 2.31, carbsG: 33, fatG: 0.66, fiberG: null },
+      saved: { calories: 138.6, proteinG: 2.31, carbsG: 33, fatG: 0.66, fiberG: null },
+      nutrientUnknowns: ['fiberG'],
+    } });
+    expect(completeness.unknownsFor(unknownLog)).toContain('fiberG');
+  });
+
+  test('mixed coverage reports measured subtotal with incomplete coverage; all-unknown distinguishable from zero', () => {
+    const measured = logRow({});
+    const unknown = logRow({ fiberG: null, nutritionSnapshot: {
+      nutritionBasis: 'PER_100_ML',
+      calculated: { calories: null, proteinG: null, carbsG: null, fatG: null, fiberG: null },
+      saved: { calories: null, proteinG: null, carbsG: null, fatG: null, fiberG: null },
+      nutrientUnknowns: ['calories', 'proteinG', 'carbsG', 'fatG', 'fiberG'],
+    }, calories: null, proteinG: null, carbsG: null, fatG: null, fiberG: null });
+    const coverage = completeness.coverageFor([measured, unknown]);
+    // mixed coverage: per-macro split — measured count AND unknown count nonzero
+    expect(coverage.calories.measured).toBe(1); // measured subtotal population
+    expect(coverage.calories.unknown).toBe(1);  // incomplete — never silently complete
+    // all-unknown day vs measured-zero day: per-macro counts make them distinguishable
+    const allUnknownCoverage = completeness.coverageFor([unknown]);
+    expect(allUnknownCoverage.calories).toEqual({ measured: 0, unknown: 1 });
+    const measuredZeroDay = completeness.coverageFor([logRow({ fiberG: 0, calories: 0, nutritionSnapshot: {
+      calculated: { calories: 0 }, saved: { calories: 0 }, nutrientUnknowns: [],
+    } })]);
+    expect(measuredZeroDay.calories).toEqual({ measured: 1, unknown: 0 }); // measured zero ≠ unknown
+    expect(JSON.stringify(allUnknownCoverage)).not.toBe(JSON.stringify(measuredZeroDay));
+  });
+});
