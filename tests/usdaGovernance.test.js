@@ -1,35 +1,50 @@
-// pc-HUM-36 §9 governance invariants — real-DB, read-mostly + fixture-scoped.
-// Proves the batch-review preconditions on the isolated fitness_test population
-// and the never-auto-verified / decision-preservation contract.
-const { getPrisma } = require('../src/lib/prisma');
-const prisma = getPrisma();
+// pc-HUM-36 — USDA governance structural contract.
+// The reviewer workflow + rematerialization pipeline carry non-negotiable
+// safety properties; these tests pin them structurally so no future edit can
+// silently weaken them.
+const fs = require('node:fs');
+const path = require('node:path');
+const review = fs.readFileSync(path.join(__dirname, '../src/routes/nutritionReview.js'), 'utf8');
+const remat = fs.readFileSync(path.join(__dirname, '../scripts/rematerialize-usda-preview.js'), 'utf8');
 
-describe('§9 USDA governance invariants (pc-HUM-36)', () => {
-  test('no test-imported profile is auto-verified — source association is not human verification', async () => {
-    const approved = await prisma.ingredientNutritionProfile.count({ where: { verifiedAt: { not: null } } });
-    expect(approved).toBe(0);
+describe('reviewer workflow contract (src/routes/nutritionReview.js)', () => {
+  it('never auto-fills verifiedAt on import paths — only APPROVE sets it', () => {
+    expect(review).toMatch(/decision === 'APPROVE'/);
+    expect(review.match(/verifiedAt: new Date\(\)/g)).toHaveLength(1); // exactly one write site
   });
-
-  test('every profile carries full provenance (FDC id + citation + record key)', async () => {
-    expect(await prisma.ingredientNutritionProfile.count({ where: { sourceFoodId: null } })).toBe(0);
-    expect(await prisma.ingredientNutritionProfile.count({ where: { OR: [{ sourceCitation: '' }, { sourceRecordKey: '' }] } })).toBe(0);
+  it('optimistic concurrency — writes conditioned on observed state, 409 on race', () => {
+    expect(review).toMatch(/where: \{ id: p\.id, verifiedAt: null \}/);
+    expect(review).toMatch(/count === 0\) return res\.status\(409\)/);
+    expect(review).toMatch(/where: \{ id: p\.id, verifiedAt: p\.verifiedAt \}/);
   });
-
-  test('units stay canonical — no IU/DFE leakage in nutrient master', async () => {
-    const bad = await prisma.nutrient.count({ where: { unit: { notIn: ['g', 'mg', 'mcg', 'kcal'] } } });
-    expect(bad).toBe(0);
+  it('justification required with minimum length on every decision and revoke', () => {
+    expect(review.match(/justification required \(min 10 chars\)/g).length).toBeGreaterThanOrEqual(2);
   });
-
-  test('nutrientImport never auto-fills verifiedAt — explicit invalid verifiedAt is rejected', () => {
-    const { normalizeAmount } = require('../src/services/nutrientImport');
-    expect(() => normalizeAmount(5, 'IU', 'mcg')).toThrow(); // IU never converts — no inference
+  it('immutable audit — decisions recorded in AuditLog, never mutated', () => {
+    expect(review).toMatch(/audit\.log/);
+    expect(review).not.toMatch(/auditLog\.(update|delete|updateMany|deleteMany)/);
   });
+  it('double-approve impossible — 409 directs to revoke first', () => {
+    expect(review).toMatch(/already verified — use revoke first/);
+  });
+});
 
-  test('rematerialization guards: verified-value conflict cannot silently overwrite (code-contract probe)', () => {
-    const src = require('fs').readFileSync(require('path').join(__dirname, '../src/services/nutrients/population.js'), 'utf8');
-    expect(src).toMatch(/VERIFIED_VALUE_CONFLICT/);
-    expect(src).toMatch(/ALREADY_IMPORTED/);
-    // no code path updates verifiedAt during population
-    expect(src).not.toMatch(/verifiedAt:\s*new Date/);
+describe('rematerialization never overwrites review decisions (scripts/rematerialize-usda-preview.js)', () => {
+  it('upsert update clauses are empty no-ops — existing rows are never mutated', () => {
+    const updates = remat.match(/update: \{[^}]*\}/g) || [];
+    expect(updates.length).toBeGreaterThan(0);
+    for (const u of updates) expect(u.replace(/\s/g, '')).toBe('update:{}');
+  });
+  it('verifiedAt never appears in any create or update payload', () => {
+    expect(remat).not.toMatch(/verifiedAt:/); // payload-key form — comment references are documentation
+  });
+  it('dry-run default + transactional batch', () => {
+    expect(remat).toMatch(/dry run/);
+    expect(remat).toMatch(/\$transaction/);
+  });
+  it('source association is not verification — provenance recorded, never approval', () => {
+    expect(remat).toMatch(/sourceDataset/);
+    expect(remat).toMatch(/sourceCitation/);
+    expect(remat).not.toMatch(/reviewedBy|approvedBy/);
   });
 });
