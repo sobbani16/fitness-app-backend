@@ -111,3 +111,23 @@ Both upgrade orders safe-by-construction on this axis: caller byte-identical acr
 
 ### Open findings register (unchanged)
 weekly-plan acknowledgeUnknown mismatch; weekly-plan details-shape mismatch; injury painLevel null-corruption — all still open pending cross-repo owner decisions. Punitha independent QA due on all milestones.
+
+
+## 2026-11-26 — safety evaluation contract milestone (pc-HUM-63 continuation 5)
+
+**Evidence commit**: this commit. **Harness**: `tests/contracts/safetyEval.contract.test.js` — 11/11, real route + real middleware + real deterministic safety engine, synthetic tokens/fixtures. Battery: 64/64 in tests/contracts, 11/11 apiContract+releaseMechanics.
+
+### Revision pins
+- backend candidate `e8d47de` — branch HEAD, tested live
+- backend baseline `625352c` — evaluate route present, same method/path family (fixture-labeled static)
+- mobile pair `f184c99`/`846a88a` — evaluateActivity caller wire keys identical (activityId/lat/lon)
+
+### Verified live + the milestone's central finding
+1. **Unavailable-vs-clearance distinction is structural, not conventional**: incomplete/empty safety profile evaluates to `INSUFFICIENT_DATA` — NEVER ALLOW. The conservative default is engine-enforced. Mobile's ActivityDecision type (transcribed, byte-identical across the pair) names all 7 decisions including INSUFFICIENT_DATA — the distinction survives the wire; the consumer cannot collapse unavailability into clearance by type widening.
+2. Restriction path verified: non-weight-bearing knee injury blocks strength training (BLOCK_ACTIVITY/MODIFY/NEEDS_CLINICAL_REVIEW — never ALLOW). Urgent symptom fixture suppresses clearance.
+3. Wire contract: mobile format {activityId, lat, lon} → 200 {decision, reasons[], noMedicalClaims:true}; unknown/missing activityId → 400; lat/lon optional; 401 envelope; errors are 500-envelope — the backend never synthesizes ALLOW on failure.
+4. Activity catalog keys are namespaced (`outdoor_walk` not `walking`) — fixture correction during harness construction disclosed in ledger; mobile consumers use catalog-provided ids so no cross-repo key mismatch exists (verified via mobile caller usage pattern).
+5. Both upgrade orders compatible: wire keys + decision enum stable across both pairs (fixture-labeled where static).
+
+### Open findings register (unchanged)
+weekly-plan acknowledgeUnknown mismatch; weekly-plan details-shape mismatch; injury painLevel null-corruption — still open pending owner decisions. Punitha independent QA due on all five milestones.
