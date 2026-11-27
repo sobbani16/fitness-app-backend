@@ -218,3 +218,20 @@ FeatureFlagsContext @846a88a: cache-then-refresh; on failure with no config → 
 
 ### Open findings register (unchanged)
 weekly-plan ×2; injury painLevel; symptom no-idempotency; benign-ALLOW engine confirmation. Punitha QA due ×9 milestones.
+
+
+## 2026-11-26 — milestone 9 evidence recovery audit (pc-HUM-63 verification card)
+
+**Audit of commit 39a291f evidence chain — no divergence found**: branch HEAD == PR #21 head == `39a291f8c34e` byte-exact. All five assertion families present in the harness: explicit-false-as-value, registry-closed unknown-key rejection, provider-failure precedence, safety-default fabrication check, unrelated-feature visibility breadth.
+
+### Recovered diff-verified compatibility evidence (upgrades prior fixture-inference)
+1. **Backend axis byte-identity**: `src/routes/config.js` + `src/services/featureFlags/service.js` diff baseline `625352c` ↔ candidate `39a291f` = **0 lines** — the entire flag delivery contract is invariant across the backend pair. Config route exists at baseline (transcribed header confirms same authenticated-design intent).
+2. **Mobile axis byte-identity**: `src/context/FeatureFlagsContext.tsx` diff `f184c99` ↔ `846a88a` = **0 lines** — consumer logic invariant across the mobile pair.
+3. Verdict upgrade: both upgrade orders safe-by-construction on the flag axis — now diff-verified static proof, not additive-superset inference. Evidence type: STATIC byte-identity (strongest non-executable form).
+
+### Claims deliberately left OPEN (unsupported, per recovery card)
+- RN-runtime execution of the consumer fallback chain (cache-write/read, epoch-guard timing) — impossible without the RN runtime; remains static transcription. Owner: mobile QA with device/simulator harness.
+- Provider failure under real provider (not stub) — provider is infrastructure, out of contract-test scope.
+
+### Battery re-run at audit time
+tests/contracts 108/108 + apiContract/releaseMechanics 11/11 at `39a291f` — reproducibility confirmed byte-exact.
