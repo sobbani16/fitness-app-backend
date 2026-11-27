@@ -216,3 +216,25 @@ weekly-plan acknowledgeUnknown + details-shape mismatches; injury painLevel null
 
 ### Open findings register (unchanged)
 weekly-plan acknowledgeUnknown + details-shape; injury painLevel null-corruption; symptom no-idempotency; incomplete-profile benign-ALLOW engine confirmation. Punitha QA due across eight milestones.
+
+
+## 2026-11-26 — feature flag delivery + fallback contract milestone (pc-HUM-63 continuation 9)
+
+**Evidence commit**: this commit. **Harness**: `tests/contracts/flagDelivery.contract.test.js` — 9/9, real config route + real registry service, provider stubbed at boundary only. Battery: 108/108 in tests/contracts.
+
+### Pins
+- backend candidate `1707a73` tested live; baseline `625352c` static
+- mobile pair `f184c99`/`846a88a` — FeatureFlagsContext.tsx consumer transcribed
+- mobile `0f89238`: EXCLUDED from both pins (post-dates pair) — recorded per card
+
+### Verified live (backend execution)
+1. Shape: {configVersion, refreshAfterSeconds, features{}} + Cache-Control private (per-user, never shared-cacheable).
+2. Every value boolean — no null/tri-state on wire; explicit false delivered as VALUE not omission; registry breadth confirmed.
+3. **Provider-failure semantics verified against design comment**: outage resolves through the SAME precedence chain with empty provider contribution — env guards/dependencies/emergency-shutdown never weaken. Error or safe-default, never fabricated all-true. Registry-closed delivery — client-invented keys never echo.
+4. 401 AUTH_REQUIRED — flags per-user never public.
+
+### Consumer fallback — STATIC transcription (labeled)
+FeatureFlagsContext @846a88a: cache-then-refresh; on failure with no config → cached values applied (saved values survive degradation — controls fail to last-known, not open); epoch guard prevents cross-account flag leaks; 429/Retry-After backoff honored; MIN_ATTEMPT floor. All backend facts it depends on execution-verified. Both upgrade orders compatible — response keys stable superset; registry keys additive-only.
+
+### Open findings register (unchanged)
+weekly-plan ×2; injury painLevel; symptom no-idempotency; benign-ALLOW engine confirmation. Punitha QA due ×9 milestones.
