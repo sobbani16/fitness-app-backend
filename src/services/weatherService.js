@@ -11,7 +11,7 @@ async function fetchWeather(lat, lon) {
   if (!isFiniteNumber(lat) || !isFiniteNumber(lon)) {
     throw new Error('lat and lon must be finite numbers');
   }
-  const url = `${OPEN_METEO_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,weather_code`;
+  const url = `${OPEN_METEO_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m`;
   const res = await _fetch(url);
   if (!res.ok) throw new Error(`weather fetch failed: ${res.status}`);
   const data = await res.json();
@@ -19,10 +19,14 @@ async function fetchWeather(lat, lon) {
   const tempC = Number(cur.temperature_2m);
   const precip = Number(cur.precipitation) || 0;
   const code = Number(cur.weather_code);
+  const windSpeedKmh = Number(cur.wind_speed_10m);
+  const windGustsKmh = Number(cur.wind_gusts_10m);
   return {
     tempC: isFinite(tempC) ? tempC : null,
     precipitation: precip,
     weatherCode: isFinite(code) ? code : null,
+    windSpeedKmh: isFinite(windSpeedKmh) ? windSpeedKmh : null,
+    windGustsKmh: isFinite(windGustsKmh) ? windGustsKmh : null,
     condition: deriveCondition({ tempC, precip, code }),
     description: describe(code),
   };

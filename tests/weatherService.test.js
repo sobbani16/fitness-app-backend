@@ -34,6 +34,32 @@ describe('fetchWeather', () => {
     expect(r.description).toBe('clear sky');
   });
 
+  it('requests wind fields and returns them as km/h numbers', async () => {
+    let requestedUrl = '';
+    setFetch(async url => {
+      requestedUrl = url;
+      return {
+        ok: true,
+        json: async () => ({ current: { temperature_2m: 18, precipitation: 0, weather_code: 3, wind_speed_10m: 24.5, wind_gusts_10m: 41.2 } }),
+      };
+    });
+    const r = await fetchWeather(40, -74);
+    expect(requestedUrl).toContain('wind_speed_10m');
+    expect(requestedUrl).toContain('wind_gusts_10m');
+    expect(r.windSpeedKmh).toBe(24.5);
+    expect(r.windGustsKmh).toBe(41.2);
+  });
+
+  it('returns null wind fields when the provider omits them', async () => {
+    setFetch(async () => ({
+      ok: true,
+      json: async () => ({ current: { temperature_2m: 18, precipitation: 0, weather_code: 3 } }),
+    }));
+    const r = await fetchWeather(40, -74);
+    expect(r.windSpeedKmh).toBeNull();
+    expect(r.windGustsKmh).toBeNull();
+  });
+
   it('throws on non-ok response', async () => {
     setFetch(async () => ({ ok: false, status: 500, json: async () => ({}) }));
     await expect(fetchWeather(40, -74)).rejects.toThrow(/500/);
