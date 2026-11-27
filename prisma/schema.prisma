@@ -54,6 +54,8 @@ model User {
   goalHistories      GoalHistory[]
   workoutSessions  WorkoutSession[]
   coachingSessions CoachingSession[]
+  leoConfirmations  LeoConfirmation[]
+  leoSessions      LeoSession[]
   energyRecords    HealthEnergyRecord[]
   workoutPlans     UserWorkoutPlan[]
   groceryItems     GroceryItem[]
@@ -4461,4 +4463,53 @@ model UserClinicalReview {
   updatedAt DateTime @updatedAt
 
   @@index([userId, status])
+}
+
+// Leo voice-assistant confirmations — a granted confirmation binds to
+// (user, session, exact tool+args hash) and expires; consumed once.
+model LeoSession {
+  id          String   @id @default(uuid())
+  userId      String
+  clientRef   String?  // caller idempotency key — retried create dedups
+  status      String   @default("active") // active | ended | cancelled
+  preferences Json?
+  createdAt   DateTime @default(now())
+  endedAt     DateTime?
+
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages LeoMessage[]
+
+  @@unique([userId, clientRef])
+  @@index([userId])
+}
+
+model LeoMessage {
+  id         String   @id @default(uuid())
+  sessionId  String
+  role       String   // user | assistant | tool
+  content    String
+  toolName   String?
+  toolCallId String?
+  clientRef  String? // caller idempotency key — retried send dedups
+  createdAt  DateTime @default(now())
+
+  session LeoSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, clientRef])
+  @@index([sessionId, createdAt])
+}
+
+model LeoConfirmation {
+  id         String    @id @default(uuid())
+  userId     String
+  sessionId  String
+  toolName   String
+  argsHash   String // sha256 of canonicalized args — the confirmation covers EXACTLY this call
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sessionId])
 }
