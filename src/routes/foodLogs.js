@@ -49,6 +49,11 @@ router.post('/',async(req,res,next)=>{
    if(k==='fiberG' && b[k]==null){data[k]=null;continue;}
    const n=b[k]; if(!Number.isFinite(n)||n<0||n>100000)throw httpError(400,`Invalid ${k}`); data[k]=n;
   }
+  // HUM-P6-004: a food log is a CONSUMED portion, never a bulk batch — the
+  // authoritative portion cap is 5000 g (aligned with the client guard).
+  // Recipe batch sizes do not flow through food logs. Rejected input never
+  // persists and never feeds nutrient calculation — this check precedes both.
+  if (data.quantityG > 5000) throw httpError(400, 'quantityG exceeds the 5000 g maximum consumed portion');
   const loggedAt=b.loggedAt ? new Date(b.loggedAt) : new Date();
   if(!Number.isFinite(loggedAt.getTime())||loggedAt.getTime()>Date.now()+300000)throw httpError(400,'Invalid loggedAt');
   const prisma=getPrisma();
