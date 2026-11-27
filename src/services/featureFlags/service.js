@@ -24,9 +24,13 @@
 const { FEATURES, KEYS, envOverrideName } = require('../../config/featureRegistry');
 const provider = require('./provider');
 
-const CACHE_TTL_MS = process.env.FF_CACHE_TTL_MS !== undefined
-  ? Number(process.env.FF_CACHE_TTL_MS)
-  : 60_000;
+// TTL is read dynamically (not frozen at module load) so tests can opt into
+// cache behavior explicitly while the global test default stays TTL=0.
+function cacheTtlMs() {
+  return process.env.FF_CACHE_TTL_MS !== undefined
+    ? Number(process.env.FF_CACHE_TTL_MS)
+    : 60_000;
+}
 const CACHE_MAX = Number(process.env.FF_CACHE_MAX) || 5_000;
 
 // userId -> { flags: {key:boolean}, expiresAt }
@@ -114,7 +118,7 @@ async function getProviderFlags(userId) {
  * snake_case plus the resolved ai_emergency_shutdown state.
  */
 async function evaluateAll(userId) {
-  const cached = CACHE_TTL_MS > 0 ? cache.get(String(userId)) : null;
+  const cached = cacheTtlMs() > 0 ? cache.get(String(userId)) : null;
   if (cached && cached.expiresAt > Date.now()) return cached.flags;
 
   const providerFlags = await getProviderFlags(userId);
@@ -132,9 +136,9 @@ async function evaluateAll(userId) {
   resolved.set('ai_emergency_shutdown', shutdownFlag);
   for (const key of KEYS) flags[key] = resolveKey(key, pf, aiShutdown, resolved, new Set(), userId);
 
-  if (CACHE_TTL_MS > 0) {
+  if (cacheTtlMs() > 0) {
     if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value);
-    cache.set(String(userId), { flags, expiresAt: Date.now() + CACHE_TTL_MS });
+    cache.set(String(userId), { flags, expiresAt: Date.now() + cacheTtlMs() });
   }
   return flags;
 }
@@ -171,7 +175,7 @@ function diagnostics() {
   return {
     provider: provider.providerName(),
     cacheSize: cache.size,
-    cacheTtlMs: CACHE_TTL_MS,
+    cacheTtlMs: cacheTtlMs(),
     envAiShutdown: envAiShutdown(),
     lastProviderErrorAt: lastProviderErrorAt || undefined,
     lastProviderError: lastProviderError || undefined,

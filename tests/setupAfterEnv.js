@@ -14,3 +14,38 @@ afterAll(async () => {
 // leak into the next test/file as a transient 403. resetCache clears between
 // tests while leaving cache semantics intact (verified by featureFlags.test).
 afterEach(() => { try { require('../src/services/featureFlags/service').resetCache(); } catch (_) {} });
+
+// Per-test process.env isolation: jest isolates module registries per file but
+// NOT the process environment — with --runInBand every file shares one process,
+// so a suite mutating a flag env (or any env) without restoring it leaks into
+// every later file. That leak is the residual AUTH_RBAC-class flake: a leaked
+// flag deletion turns a requireFeature gate closed and unauthenticated probes
+// see 403 instead of 401. Snapshot/restore per test makes mutation leakage
+// structurally impossible while leaving setup.js bootstrap values intact
+// (they are set before the first snapshot).
+let envSnapshot = null;
+beforeEach(() => { envSnapshot = { ...process.env }; });
+afterEach(() => {
+  if (!envSnapshot) return;
+  for (const key of Object.keys(process.env)) {
+    if (!(key in envSnapshot)) delete process.env[key];
+  }
+  for (const [key, value] of Object.entries(envSnapshot)) {
+    if (process.env[key] !== value) process.env[key] = value;
+  }
+});
+
+// File-boundary env restoration: per-test snapshot/restore handles intra-file
+// leaks, but module-level and beforeAll mutations predate the first snapshot
+// and would otherwise persist into every later file. Restore the pristine
+// bootstrap snapshot (captured in setup.js) after each file completes.
+afterAll(() => {
+  const pristine = globalThis.__PRISTINE_ENV_SNAPSHOT;
+  if (!pristine) return;
+  for (const key of Object.keys(process.env)) {
+    if (!(key in pristine)) delete process.env[key];
+  }
+  for (const [key, value] of Object.entries(pristine)) {
+    if (process.env[key] !== value) process.env[key] = value;
+  }
+});
