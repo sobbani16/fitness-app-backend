@@ -69,3 +69,31 @@ it('rejects confirming another user\u2019s plan', async () => {
   await expect(confirmDay('p1', 1, 'intruder')).rejects.toThrow(/Not authorized/);
   expect(mockUpdateMany).not.toHaveBeenCalled();
 });
+
+it('missing ingredient identity is NOT negative evidence — AI lines are unresolved by default (§5)', async () => {
+  // AI-provenance meal: ingredient names only, no catalog identity. 'pesto'
+  // classically carries pine nuts but has no allergen text hit and matches no
+  // composite heuristic — before the fix the line was blanket-marked resolved
+  // and missing identity silently counted as negative evidence.
+  mockStore.plan.generationDetails = { ai: { ingredients: [
+    { dayOfWeek: 1, mealType: 'lunch', ingredients: [{ name: 'pesto', grams: 60 }, { name: 'grilled chicken', grams: 120 }] },
+  ] } };
+  await expect(confirmDay('p1', 1, USER)).rejects.toMatchObject({ status: 409, code: 'ALLERGY_COMPOSITION_UNKNOWN' });
+  expect(mockUpdateMany).not.toHaveBeenCalled();
+});
+
+it('AI-provenance allergen names still hit as text evidence (conflict, not just unknown)', async () => {
+  mockStore.plan.generationDetails = { ai: { ingredients: [
+    { dayOfWeek: 1, mealType: 'lunch', ingredients: [{ name: 'peanut satay sauce', grams: 60 }] },
+  ] } };
+  await expect(confirmDay('p1', 1, USER)).rejects.toMatchObject({ status: 409, code: 'ALLERGY_CONFLICT' });
+  expect(mockUpdateMany).not.toHaveBeenCalled();
+});
+
+it('acknowledgment path still available for AI meals after the user verifies composition', async () => {
+  mockStore.plan.generationDetails = { ai: { ingredients: [
+    { dayOfWeek: 1, mealType: 'lunch', ingredients: [{ name: 'grilled chicken', grams: 120 }] },
+  ] } };
+  await expect(confirmDay('p1', 1, USER, { acknowledgeUnknownAllergens: true })).resolves.toMatchObject({ allConfirmed: true });
+  expect(mockUpdateMany).toHaveBeenCalledTimes(1);
+});

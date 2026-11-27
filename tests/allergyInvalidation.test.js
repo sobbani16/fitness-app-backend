@@ -59,9 +59,14 @@ describe('revalidateActivePlans — stale confirmation invalidation', () => {
   });
 
   it('leaves confirmed meals intact when the re-check is clear', async () => {
+    // A genuinely-clear meal: recipe-linked, fully resolved identity, declared
+    // allergens — clear re-checks must never strip confirmations. (AI-name-only
+    // meals are honestly unknown under §5 missing-identity semantics and are
+    // covered by the fail-closed test above.)
     const plan = planWith(
-      [{ id: 'm2', dayOfWeek: 2, mealType: 'dinner', foodName: 'Plain rice', recipe: null, confirmedByUser: true }],
-      [{ dayOfWeek: 2, mealType: 'dinner', ingredients: [{ name: 'steamed rice', resolved: true }] }],
+      [{ id: 'm2', dayOfWeek: 2, mealType: 'dinner', foodName: 'Plain rice', confirmedByUser: true,
+         recipe: { id: 'r1', recipeName: 'Plain rice', allergens: [], nutritionSource: null,
+                   ingredients: [{ ingredientId: null, ingredientName: 'water' }] } }],
     );
     const { db, calls } = fakeDb([plan]);
     const out = await revalidateActivePlans(db, 'u1', ALLERGIES);

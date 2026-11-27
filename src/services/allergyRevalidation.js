@@ -8,7 +8,13 @@ const A = require('./allergens');
 function mealItem(meal, plan, info) {
   if (meal.recipe) return A.recipeItem(meal.recipe, info);
   const ai = (plan.generationDetails?.ai?.ingredients || []).find(x => x.dayOfWeek === meal.dayOfWeek && x.mealType === meal.mealType);
-  return { name: meal.foodName, lines: (ai?.ingredients || []).map(i => ({ name: i.name, resolved: true })) };
+  // AI-provenance ingredients are names only — no catalog identity, no declared
+  // allergens. Blanket-marking them resolved counts missing identity as negative
+  // evidence (§5 forbids it): 'pesto' assesses clear though it carries nuts.
+  // Unresolved lines fail closed exactly like unlinked recipe lines; the
+  // acknowledgment path is the user-verified escape. The ingredient NAME still
+  // contributes text evidence, so real allergen words surface as conflicts.
+  return { name: meal.foodName, lines: (ai?.ingredients || []).map(i => ({ name: i.name, resolved: false })) };
 }
 
 async function checkPlan(prisma, plan, allergies) {
