@@ -1,0 +1,1327 @@
+{
+  "mode": "deterministic",
+  "ranAt": "2026-11-27T01:53:31.806Z",
+  "results": [
+    {
+      "id": "wp-knee-contraindicated-dropped",
+      "target": "workoutPlan",
+      "clinical": true,
+      "expect": "pass",
+      "failures": [],
+      "note": "Provider prescribes squat under a knee limitation; sanitize must drop it (contraindicated exercises excluded).",
+      "output": {
+        "plan": {
+          "days": [
+            {
+              "weekday": "mon",
+              "focus": "lower",
+              "warmup": [],
+              "cooldown": [],
+              "exercises": [
+                {
+                  "exerciseId": "push-up",
+                  "sets": 3,
+                  "reps": "10",
+                  "restSec": 60,
+                  "why": "push base"
+                }
+              ]
+            }
+          ],
+          "summary": "day 1"
+        },
+        "warnings": [
+          "Removed 'squat' — not suitable/not in catalog"
+        ],
+        "suitability": {
+          "bench-press": {
+            "status": "adapt",
+            "reasons": [
+              "Bench Press: requires barbell/bench — not in your equipment list"
+            ],
+            "alternatives": [
+              "push-up",
+              "db-floor-press"
+            ]
+          },
+          "db-floor-press": {
+            "status": "adapt",
+            "reasons": [
+              "Dumbbell Floor Press: requires dumbbell — not in your equipment list"
+            ],
+            "alternatives": [
+              "push-up"
+            ]
+          },
+          "squat": {
+            "status": "adapt",
+            "reasons": [
+              "Barbell Squat: consider a lower-demand alternative for reported knee"
+            ],
+            "alternatives": [
+              "goblet-squat",
+              "leg-press"
+            ]
+          },
+          "goblet-squat": {
+            "status": "adapt",
+            "reasons": [
+              "Goblet Squat: consider a lower-demand alternative for reported knee"
+            ],
+            "alternatives": [
+              "leg-press",
+              "box-squat"
+            ]
+          },
+          "box-squat": {
+            "status": "adapt",
+            "reasons": [
+              "Box Squat: consider a lower-demand alternative for reported knee"
+            ],
+            "alternatives": [
+              "chair-squat"
+            ]
+          },
+          "chair-squat": {
+            "status": "adapt",
+            "reasons": [
+              "Sit-to-Stand: may not suit reported knee"
+            ],
+            "alternatives": []
+          },
+          "deadlift": {
+            "status": "adapt",
+            "reasons": [
+              "Deadlift: requires barbell — not in your equipment list"
+            ],
+            "alternatives": [
+              "rdl-dumbbell",
+              "glute-bridge"
+            ]
+          },
+          "rdl-dumbbell": {
+            "status": "adapt",
+            "reasons": [
+              "Dumbbell Romanian Deadlift: requires dumbbell — not in your equipment list"
+            ],
+            "alternatives": [
+              "glute-bridge"
+            ]
+          },
+          "glute-bridge": {
+            "status": "suitable",
+            "reasons": [
+              "Glute Bridge: fits your goal, equipment and experience"
+            ],
+            "alternatives": []
+          },
+          "overhead-press": {
+            "status": "adapt",
+            "reasons": [
+              "Overhead Press: requires barbell — not in your equipment list"
+            ],
+            "alternatives": [
+              "seated-db-press",
+              "band-press"
+            ]
+          },
+          "seated-db-press": {
+            "status": "adapt",
+            "reasons": [
+              "Seated Dumbbell Press: requires dumbbell/bench — not in your equipment list"
+            ],
+            "alternatives": [
+              "band-press"
+            ]
+          },
+          "band-press": {
+            "status": "adapt",
+            "reasons": [
+              "Band Shoulder Press: requires band — not in your equipment list"
+            ],
+            "alternatives": []
+          },
+          "barbell-row": {
+            "status": "adapt",
+            "reasons": [
+              "Barbell Row: requires barbell — not in your equipment list"
+            ],
+            "alternatives": [
+              "db-row",
+              "band-row"
+            ]
+          },
+          "db-row": {
+            "status": "adapt",
+            "reasons": [
+              "Dumbbell Row: requires dumbbell/bench — not in your equipment list"
+            ],
+            "alternatives": [
+              "band-row"
+            ]
+          },
+          "band-row": {
+            "status": "adapt",
+            "reasons": [
+              "Band Row: requires band — not in your equipment list"
+            ],
+            "alternatives": []
+          },
+          "pull-up": {
+            "status": "adapt",
+            "reasons": [
+              "Pull-Up: requires pullup-bar — not in your equipment list"
+            ],
+            "alternatives": [
+              "lat-pulldown",
+              "band-pulldown"
+            ]
+          },
+          "lat-pulldown": {
+            "status": "adapt",
+            "reasons": [
+              "Lat Pulldown: requires machine — not in your equipment list"
+            ],
+            "alternatives": [
+              "band-pulldown"
+            ]
+          },
+          "band-pulldown": {
+            "status": "adapt",
+            "reasons": [
+              "Band Pulldown: requires band — not in your equipment list"
+            ],
+            "alternatives": []
+          },
+          "push-up": {
+            "status": "suitable",
+            "reasons": [
+              "Push-Up: fits your goal, equipment and experience"
+            ],
+            "alternatives": [
+              "incline-push-up",
+              "knee-push-up"
+            ]
+          },
+          "incline-push-up": {
+            "status": "adapt",
+            "reasons": [
+              "Incline Push-Up: requires box — not in your equipment list"
+            ],
+            "alternatives": [
+              "knee-push-up"
+            ]
+          },
+          "knee-push-up": {
+            "status": "suitable",
+            "reasons": [
+              "Knee Push-Up: fits your goal, equipment and experience"
+            ],
+            "alternatives": []
+          },
+          "leg-press": {
+            "status": "adapt",
+            "reasons": [
+              "Leg Press: consider a lower-demand alternative for reported knee"
+            ],
+            "alternatives": [
+              "goblet-squat"
+            ]
+          },
+          "lunge": {
+            "status": "adapt",
+            "reasons": [
+              "Lunge: consider a lower-demand alternative for reported knee"
+            ],
+            "alternatives": [
+              "split-squat"
+            ]
+          },
+          "split-squat": {
+            "status": "adapt",
+            "reasons": [
+              "Split Squat: consider a lower-demand alternative for reported knee"
+            ],
+            "alternatives": [
+              "goblet-squat"
+            ]
+          },
+          "plank": {
+            "status": "suitable",
+            "reasons": [
+              "Plank: fits your goal, equipment and experience"
+            ],
+            "alternatives": [
+              "dead-bug"
+            ]
+          },
+          "dead-bug": {
+            "status": "suitable",
+            "reasons": [
+              "Dead Bug: fits your goal, equipment and experience"
+            ],
+            "alternatives": []
+          },
+          "farmer-carry": {
+            "status": "adapt",
+            "reasons": [
+              "Farmer Carry: requires dumbbell — not in your equipment list"
+            ],
+            "alternatives": []
+          }
+        },
+        "safety": {
+          "limitationsApplied": 1,
+          "restrictedCategoriesApplied": 0,
+          "reviewRequired": false
+        },
+        "catalogVersion": "exercise-catalog.v1",
+        "ruleVersion": "suitability.v1",
+        "status": "draft"
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "wp-back-token-known-gap",
+      "target": "workoutPlan",
+      "clinical": true,
+      "expect": "known_gap",
+      "failures": [],
+      "note": "pc-HUM-7 F1: 'back' limitation token is dead in exerciseSuitability — deadlift stays 'suitable' and survives sanitize. Documents the confirmed gap; flips to pass only after a clinical-policy fix + constraint test.",
+      "output": {
+        "plan": {
+          "days": [
+            {
+              "weekday": "mon",
+              "focus": "hinge",
+              "warmup": [],
+              "cooldown": [],
+              "exercises": [
+                {
+                  "exerciseId": "plank",
+                  "sets": 2,
+                  "reps": "30",
+                  "restSec": 60,
+                  "why": "bracing"
+                }
+              ]
+            }
+          ],
+          "summary": "hinge day"
+        },
+        "warnings": [
+          "Removed 'deadlift' — not suitable/not in catalog"
+        ],
+        "suitability": {
+          "bench-press": {
+            "status": "adapt",
+            "reasons": [
+              "Bench Press: requires barbell/bench — not in your equipment list"
+            ],
+            "alternatives": [
+              "push-up",
+              "db-floor-press"
+            ]
+          },
+          "db-floor-press": {
+            "status": "adapt",
+            "reasons": [
+              "Dumbbell Floor Press: requires dumbbell — not in your equipment list"
+            ],
+            "alternatives": [
+              "push-up"
+            ]
+          },
+          "squat": {
+            "status": "adapt",
+            "reasons": [
+              "Barbell Squat: requires barbell/rack — not in your equipment list"
+            ],
+            "alternatives": [
+              "goblet-squat",
+              "leg-press"
+            ]
+          },
+          "goblet-squat": {
+            "status": "adapt",
+            "reasons": [
+              "Goblet Squat: requires dumbbell — not in your equipment list"
+            ],
+            "alternatives": [
+              "leg-press",
+              "box-squat"
+            ]
+          },
+          "box-squat": {
+            "status": "adapt",
+            "reasons": [
+              "Box Squat: requires box — not in your equipment list"
+            ],
+            "alternatives": [
+              "chair-squat"
+            ]
+          },
+          "chair-squat": {
+            "status": "adapt",
+            "reasons": [
+              "Sit-to-Stand: requires chair — not in your equipment list"
+            ],
+            "alternatives": []
+          },
+          "deadlift": {
+            "status": "adapt",
+            "reasons": [
+              "Deadlift: may not suit reported back"
+            ],
+            "alternatives": [
+              "rdl-dumbbell",
+              "glute-bridge"
+            ]
+          },
+          "rdl-dumbbell": {
+            "status": "adapt",
+            "reasons": [
+              "Dumbbell Romanian Deadlift: may not suit reported back"
+            ],
+            "alternatives": [
+              "glute-bridge"
+            ]
+          },
+          "glute-bridge": {
+            "status": "suitable",
+            "reasons": [
+              "Glute Bridge: fits your goal, equipment and experience"
+            ],
+            "alternatives": []
+          },
+          "overhead-press": {
+            "status": "suitable",
+            "reasons": [
+              "Overhead Press: fits your goal, equipment and experience"
+            ],
+            "alternatives": [
+              "seated-db-press",
+              "band-press"
+            ]
+          },
+          "seated-db-press": {
+            "status": "adapt",
+            "reasons": [
+              "Seated Dumbbell Press: requires dumbbell/bench — not in your equipment list"
+            ],
+            "alternatives": [
+              "band-press"
+            ]
+          },
+          "band-press": {
+            "status": "adapt",
+            "reasons": [
+              "Band Shoulder Press: requires band — not in your equipment list"
+            ],
+            "alternatives": []
+          },
+          "barbell-row": {
+            "status": "adapt",
+            "reasons": [
+              "Barbell Row: may not suit reported back"
+            ],
+            "alternatives": [
+              "db-row",
+              "band-row"
+            ]
+          },
+          "db-row": {
+            "status": "adapt",
+            "reasons": [
+              "Dumbbell Row: requires dumbbell/bench — not in your equipment list"
+            ],
+            "alternatives": [
+              "band-row"
+            ]
+          },
+          "band-row": {
+            "status": "adapt",
+            "reasons": [
+              "Band Row: requires band — not in your equipment list"
+            ],
+            "alternatives": []
+          },
+          "pull-up": {
+            "status": "adapt",
+            "reasons": [
+              "Pull-Up: requires pullup-bar — not in your equipment list"
+            ],
+            "alternatives": [
+              "lat-pulldown",
+              "band-pulldown"
+            ]
+          },
+          "lat-pulldown": {
+            "status": "adapt",
+            "reasons": [
+              "Lat Pulldown: requires machine — not in your equipment list"
+            ],
+            "alternatives": [
+              "band-pulldown"
+            ]
+          },
+          "band-pulldown": {
+            "status": "adapt",
+            "reasons": [
+              "Band Pulldown: requires band — not in your equipment list"
+            ],
+            "alternatives": []
+          },
+          "push-up": {
+            "status": "suitable",
+            "reasons": [
+              "Push-Up: fits your goal, equipment and experience"
+            ],
+            "alternatives": [
+              "incline-push-up",
+              "knee-push-up"
+            ]
+          },
+          "incline-push-up": {
+            "status": "adapt",
+            "reasons": [
+              "Incline Push-Up: requires box — not in your equipment list"
+            ],
+            "alternatives": [
+              "knee-push-up"
+            ]
+          },
+          "knee-push-up": {
+            "status": "suitable",
+            "reasons": [
+              "Knee Push-Up: fits your goal, equipment and experience"
+            ],
+            "alternatives": []
+          },
+          "leg-press": {
+            "status": "adapt",
+            "reasons": [
+              "Leg Press: requires machine — not in your equipment list"
+            ],
+            "alternatives": [
+              "goblet-squat"
+            ]
+          },
+          "lunge": {
+            "status": "suitable",
+            "reasons": [
+              "Lunge: fits your goal, equipment and experience"
+            ],
+            "alternatives": [
+              "split-squat"
+            ]
+          },
+          "split-squat": {
+            "status": "suitable",
+            "reasons": [
+              "Split Squat: fits your goal, equipment and experience"
+            ],
+            "alternatives": [
+              "goblet-squat"
+            ]
+          },
+          "plank": {
+            "status": "suitable",
+            "reasons": [
+              "Plank: fits your goal, equipment and experience"
+            ],
+            "alternatives": [
+              "dead-bug"
+            ]
+          },
+          "dead-bug": {
+            "status": "suitable",
+            "reasons": [
+              "Dead Bug: fits your goal, equipment and experience"
+            ],
+            "alternatives": []
+          },
+          "farmer-carry": {
+            "status": "adapt",
+            "reasons": [
+              "Farmer Carry: may not suit reported back"
+            ],
+            "alternatives": []
+          }
+        },
+        "safety": {
+          "limitationsApplied": 1,
+          "restrictedCategoriesApplied": 0,
+          "reviewRequired": false
+        },
+        "catalogVersion": "exercise-catalog.v1",
+        "ruleVersion": "suitability.v1",
+        "status": "draft"
+      },
+      "verdict": "GAP_CLOSED"
+    },
+    {
+      "id": "wp-hallucinated-id-dropped",
+      "target": "workoutPlan",
+      "clinical": false,
+      "expect": "pass",
+      "failures": [],
+      "note": "Provider invents an exercise ID; sanitize must drop non-catalog IDs and warn.",
+      "output": {
+        "plan": {
+          "days": [
+            {
+              "weekday": "tue",
+              "focus": "",
+              "warmup": [],
+              "cooldown": [],
+              "exercises": [
+                {
+                  "exerciseId": "push-up",
+                  "sets": 2,
+                  "reps": "8",
+                  "restSec": 60,
+                  "why": "base"
+                }
+              ]
+            }
+          ],
+          "summary": ""
+        },
+        "warnings": [
+          "Removed 'dragon-squat' — not suitable/not in catalog"
+        ],
+        "suitability": {
+          "bench-press": {
+            "status": "adapt",
+            "reasons": [
+              "Bench Press: requires barbell/bench — not in your equipment list"
+            ],
+            "alternatives": [
+              "push-up",
+              "db-floor-press"
+            ]
+          },
+          "db-floor-press": {
+            "status": "adapt",
+            "reasons": [
+              "Dumbbell Floor Press: requires dumbbell — not in your equipment list"
+            ],
+            "alternatives": [
+              "push-up"
+            ]
+          },
+          "squat": {
+            "status": "adapt",
+            "reasons": [
+              "Barbell Squat: requires barbell/rack — not in your equipment list"
+            ],
+            "alternatives": [
+              "goblet-squat",
+              "leg-press"
+            ]
+          },
+          "goblet-squat": {
+            "status": "adapt",
+            "reasons": [
+              "Goblet Squat: requires dumbbell — not in your equipment list"
+            ],
+            "alternatives": [
+              "leg-press",
+              "box-squat"
+            ]
+          },
+          "box-squat": {
+            "status": "adapt",
+            "reasons": [
+              "Box Squat: requires box — not in your equipment list"
+            ],
+            "alternatives": [
+              "chair-squat"
+            ]
+          },
+          "chair-squat": {
+            "status": "adapt",
+            "reasons": [
+              "Sit-to-Stand: requires chair — not in your equipment list"
+            ],
+            "alternatives": []
+          },
+          "deadlift": {
+            "status": "adapt",
+            "reasons": [
+              "Deadlift: requires barbell — not in your equipment list"
+            ],
+            "alternatives": [
+              "rdl-dumbbell",
+              "glute-bridge"
+            ]
+          },
+          "rdl-dumbbell": {
+            "status": "adapt",
+            "reasons": [
+              "Dumbbell Romanian Deadlift: requires dumbbell — not in your equipment list"
+            ],
+            "alternatives": [
+              "glute-bridge"
+            ]
+          },
+          "glute-bridge": {
+            "status": "suitable",
+            "reasons": [
+              "Glute Bridge: fits your goal, equipment and experience"
+            ],
+            "alternatives": []
+          },
+          "overhead-press": {
+            "status": "adapt",
+            "reasons": [
+              "Overhead Press: requires barbell — not in your equipment list"
+            ],
+            "alternatives": [
+              "seated-db-press",
+              "band-press"
+            ]
+          },
+          "seated-db-press": {
+            "status": "adapt",
+            "reasons": [
+              "Seated Dumbbell Press: requires dumbbell/bench — not in your equipment list"
+            ],
+            "alternatives": [
+              "band-press"
+            ]
+          },
+          "band-press": {
+            "status": "adapt",
+            "reasons": [
+              "Band Shoulder Press: requires band — not in your equipment list"
+            ],
+            "alternatives": []
+          },
+          "barbell-row": {
+            "status": "adapt",
+            "reasons": [
+              "Barbell Row: requires barbell — not in your equipment list"
+            ],
+            "alternatives": [
+              "db-row",
+              "band-row"
+            ]
+          },
+          "db-row": {
+            "status": "adapt",
+            "reasons": [
+              "Dumbbell Row: requires dumbbell/bench — not in your equipment list"
+            ],
+            "alternatives": [
+              "band-row"
+            ]
+          },
+          "band-row": {
+            "status": "adapt",
+            "reasons": [
+              "Band Row: requires band — not in your equipment list"
+            ],
+            "alternatives": []
+          },
+          "pull-up": {
+            "status": "adapt",
+            "reasons": [
+              "Pull-Up: requires pullup-bar — not in your equipment list"
+            ],
+            "alternatives": [
+              "lat-pulldown",
+              "band-pulldown"
+            ]
+          },
+          "lat-pulldown": {
+            "status": "adapt",
+            "reasons": [
+              "Lat Pulldown: requires machine — not in your equipment list"
+            ],
+            "alternatives": [
+              "band-pulldown"
+            ]
+          },
+          "band-pulldown": {
+            "status": "adapt",
+            "reasons": [
+              "Band Pulldown: requires band — not in your equipment list"
+            ],
+            "alternatives": []
+          },
+          "push-up": {
+            "status": "suitable",
+            "reasons": [
+              "Push-Up: fits your goal, equipment and experience"
+            ],
+            "alternatives": [
+              "incline-push-up",
+              "knee-push-up"
+            ]
+          },
+          "incline-push-up": {
+            "status": "adapt",
+            "reasons": [
+              "Incline Push-Up: requires box — not in your equipment list"
+            ],
+            "alternatives": [
+              "knee-push-up"
+            ]
+          },
+          "knee-push-up": {
+            "status": "suitable",
+            "reasons": [
+              "Knee Push-Up: fits your goal, equipment and experience"
+            ],
+            "alternatives": []
+          },
+          "leg-press": {
+            "status": "adapt",
+            "reasons": [
+              "Leg Press: requires machine — not in your equipment list"
+            ],
+            "alternatives": [
+              "goblet-squat"
+            ]
+          },
+          "lunge": {
+            "status": "suitable",
+            "reasons": [
+              "Lunge: fits your goal, equipment and experience"
+            ],
+            "alternatives": [
+              "split-squat"
+            ]
+          },
+          "split-squat": {
+            "status": "suitable",
+            "reasons": [
+              "Split Squat: fits your goal, equipment and experience"
+            ],
+            "alternatives": [
+              "goblet-squat"
+            ]
+          },
+          "plank": {
+            "status": "suitable",
+            "reasons": [
+              "Plank: fits your goal, equipment and experience"
+            ],
+            "alternatives": [
+              "dead-bug"
+            ]
+          },
+          "dead-bug": {
+            "status": "suitable",
+            "reasons": [
+              "Dead Bug: fits your goal, equipment and experience"
+            ],
+            "alternatives": []
+          },
+          "farmer-carry": {
+            "status": "adapt",
+            "reasons": [
+              "Farmer Carry: requires dumbbell — not in your equipment list"
+            ],
+            "alternatives": []
+          }
+        },
+        "safety": {
+          "limitationsApplied": 0,
+          "restrictedCategoriesApplied": 0,
+          "reviewRequired": false
+        },
+        "catalogVersion": "exercise-catalog.v1",
+        "ruleVersion": "suitability.v1",
+        "status": "draft"
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "wp-schema-strict",
+      "target": "workoutPlan",
+      "clinical": false,
+      "expect": "pass",
+      "failures": [],
+      "note": "The workout_plan provider schema stays strict-mode compatible (additionalProperties=false, required==props at every level).",
+      "output": {
+        "plan": {
+          "days": [
+            {
+              "weekday": "wed",
+              "focus": "",
+              "warmup": [],
+              "cooldown": [],
+              "exercises": [
+                {
+                  "exerciseId": "push-up",
+                  "sets": 2,
+                  "reps": "10",
+                  "restSec": 60,
+                  "why": "x"
+                }
+              ]
+            }
+          ],
+          "summary": ""
+        },
+        "warnings": [],
+        "suitability": {
+          "bench-press": {
+            "status": "adapt",
+            "reasons": [
+              "Bench Press: requires barbell/bench — not in your equipment list"
+            ],
+            "alternatives": [
+              "push-up",
+              "db-floor-press"
+            ]
+          },
+          "db-floor-press": {
+            "status": "adapt",
+            "reasons": [
+              "Dumbbell Floor Press: requires dumbbell — not in your equipment list"
+            ],
+            "alternatives": [
+              "push-up"
+            ]
+          },
+          "squat": {
+            "status": "adapt",
+            "reasons": [
+              "Barbell Squat: requires barbell/rack — not in your equipment list"
+            ],
+            "alternatives": [
+              "goblet-squat",
+              "leg-press"
+            ]
+          },
+          "goblet-squat": {
+            "status": "adapt",
+            "reasons": [
+              "Goblet Squat: requires dumbbell — not in your equipment list"
+            ],
+            "alternatives": [
+              "leg-press",
+              "box-squat"
+            ]
+          },
+          "box-squat": {
+            "status": "adapt",
+            "reasons": [
+              "Box Squat: requires box — not in your equipment list"
+            ],
+            "alternatives": [
+              "chair-squat"
+            ]
+          },
+          "chair-squat": {
+            "status": "adapt",
+            "reasons": [
+              "Sit-to-Stand: requires chair — not in your equipment list"
+            ],
+            "alternatives": []
+          },
+          "deadlift": {
+            "status": "adapt",
+            "reasons": [
+              "Deadlift: requires barbell — not in your equipment list"
+            ],
+            "alternatives": [
+              "rdl-dumbbell",
+              "glute-bridge"
+            ]
+          },
+          "rdl-dumbbell": {
+            "status": "adapt",
+            "reasons": [
+              "Dumbbell Romanian Deadlift: requires dumbbell — not in your equipment list"
+            ],
+            "alternatives": [
+              "glute-bridge"
+            ]
+          },
+          "glute-bridge": {
+            "status": "suitable",
+            "reasons": [
+              "Glute Bridge: fits your goal, equipment and experience"
+            ],
+            "alternatives": []
+          },
+          "overhead-press": {
+            "status": "adapt",
+            "reasons": [
+              "Overhead Press: requires barbell — not in your equipment list"
+            ],
+            "alternatives": [
+              "seated-db-press",
+              "band-press"
+            ]
+          },
+          "seated-db-press": {
+            "status": "adapt",
+            "reasons": [
+              "Seated Dumbbell Press: requires dumbbell/bench — not in your equipment list"
+            ],
+            "alternatives": [
+              "band-press"
+            ]
+          },
+          "band-press": {
+            "status": "adapt",
+            "reasons": [
+              "Band Shoulder Press: requires band — not in your equipment list"
+            ],
+            "alternatives": []
+          },
+          "barbell-row": {
+            "status": "adapt",
+            "reasons": [
+              "Barbell Row: requires barbell — not in your equipment list"
+            ],
+            "alternatives": [
+              "db-row",
+              "band-row"
+            ]
+          },
+          "db-row": {
+            "status": "adapt",
+            "reasons": [
+              "Dumbbell Row: requires dumbbell/bench — not in your equipment list"
+            ],
+            "alternatives": [
+              "band-row"
+            ]
+          },
+          "band-row": {
+            "status": "adapt",
+            "reasons": [
+              "Band Row: requires band — not in your equipment list"
+            ],
+            "alternatives": []
+          },
+          "pull-up": {
+            "status": "adapt",
+            "reasons": [
+              "Pull-Up: requires pullup-bar — not in your equipment list"
+            ],
+            "alternatives": [
+              "lat-pulldown",
+              "band-pulldown"
+            ]
+          },
+          "lat-pulldown": {
+            "status": "adapt",
+            "reasons": [
+              "Lat Pulldown: requires machine — not in your equipment list"
+            ],
+            "alternatives": [
+              "band-pulldown"
+            ]
+          },
+          "band-pulldown": {
+            "status": "adapt",
+            "reasons": [
+              "Band Pulldown: requires band — not in your equipment list"
+            ],
+            "alternatives": []
+          },
+          "push-up": {
+            "status": "suitable",
+            "reasons": [
+              "Push-Up: fits your goal, equipment and experience"
+            ],
+            "alternatives": [
+              "incline-push-up",
+              "knee-push-up"
+            ]
+          },
+          "incline-push-up": {
+            "status": "adapt",
+            "reasons": [
+              "Incline Push-Up: requires box — not in your equipment list"
+            ],
+            "alternatives": [
+              "knee-push-up"
+            ]
+          },
+          "knee-push-up": {
+            "status": "suitable",
+            "reasons": [
+              "Knee Push-Up: fits your goal, equipment and experience"
+            ],
+            "alternatives": []
+          },
+          "leg-press": {
+            "status": "adapt",
+            "reasons": [
+              "Leg Press: requires machine — not in your equipment list"
+            ],
+            "alternatives": [
+              "goblet-squat"
+            ]
+          },
+          "lunge": {
+            "status": "suitable",
+            "reasons": [
+              "Lunge: fits your goal, equipment and experience"
+            ],
+            "alternatives": [
+              "split-squat"
+            ]
+          },
+          "split-squat": {
+            "status": "suitable",
+            "reasons": [
+              "Split Squat: fits your goal, equipment and experience"
+            ],
+            "alternatives": [
+              "goblet-squat"
+            ]
+          },
+          "plank": {
+            "status": "suitable",
+            "reasons": [
+              "Plank: fits your goal, equipment and experience"
+            ],
+            "alternatives": [
+              "dead-bug"
+            ]
+          },
+          "dead-bug": {
+            "status": "suitable",
+            "reasons": [
+              "Dead Bug: fits your goal, equipment and experience"
+            ],
+            "alternatives": []
+          },
+          "farmer-carry": {
+            "status": "adapt",
+            "reasons": [
+              "Farmer Carry: requires dumbbell — not in your equipment list"
+            ],
+            "alternatives": []
+          }
+        },
+        "safety": {
+          "limitationsApplied": 0,
+          "restrictedCategoriesApplied": 0,
+          "reviewRequired": false
+        },
+        "catalogVersion": "exercise-catalog.v1",
+        "ruleVersion": "suitability.v1",
+        "status": "draft"
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "nr-live-rule-blocks",
+      "target": "nutritionSuggest",
+      "clinical": true,
+      "expect": "pass",
+      "failures": [],
+      "note": "An ACTIVATED BLOCK rule (APPROVED + activeAt) must fire — positive control for rule gating.",
+      "output": {
+        "items": [
+          {
+            "recipeId": "rec-plain",
+            "recipeName": "Plain Rice Bowl",
+            "cuisine": "home",
+            "perServing": {
+              "calories": 400,
+              "proteinG": 12,
+              "carbsG": 60,
+              "fatG": 6,
+              "fiberG": 2
+            },
+            "completeness": "COMPLETE_FROM_REVIEWED_INPUTS",
+            "reviewStatus": "SYSTEM",
+            "score": 0,
+            "why": [
+              "Fits your remaining logged intake today."
+            ],
+            "warnings": [],
+            "education": []
+          }
+        ],
+        "aiPersonalized": false,
+        "rejectedCount": 1,
+        "context": {
+          "remaining": {
+            "calories": null,
+            "proteinG": null,
+            "fiberG": null
+          },
+          "loggedCompleteness": "partial-window",
+          "constraintsApplied": {
+            "allergens": 0,
+            "reviewedRules": 1
+          }
+        },
+        "disclaimer": "Suggestions use logged intake and reviewed rules only. Missing nutrients are unknown, not zero. Not medical advice."
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "nr-unactivated-rule-must-not-fire",
+      "target": "nutritionSuggest",
+      "clinical": true,
+      "expect": "pass",
+      "failures": [],
+      "note": "Governance contract: APPROVED-but-never-activated rule (activeAt null) must NOT constrain suggestions. Fails on pre-fix code (bare reviewStatus check).",
+      "output": {
+        "items": [
+          {
+            "recipeId": "rec-salty",
+            "recipeName": "Salted Broth",
+            "cuisine": "soup",
+            "perServing": {
+              "calories": 300,
+              "proteinG": 10,
+              "carbsG": 40,
+              "fatG": 8,
+              "fiberG": 3
+            },
+            "completeness": "COMPLETE_FROM_REVIEWED_INPUTS",
+            "reviewStatus": "SYSTEM",
+            "score": 0,
+            "why": [
+              "Fits your remaining logged intake today."
+            ],
+            "warnings": [],
+            "education": []
+          }
+        ],
+        "aiPersonalized": false,
+        "rejectedCount": 0,
+        "context": {
+          "remaining": {
+            "calories": null,
+            "proteinG": null,
+            "fiberG": null
+          },
+          "loggedCompleteness": "partial-window",
+          "constraintsApplied": {
+            "allergens": 0,
+            "reviewedRules": 0
+          }
+        },
+        "disclaimer": "Suggestions use logged intake and reviewed rules only. Missing nutrients are unknown, not zero. Not medical advice."
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "nr-deactivated-rule-must-not-fire",
+      "target": "nutritionSuggest",
+      "clinical": true,
+      "expect": "pass",
+      "failures": [],
+      "note": "A deactivated rule (APPROVED + retiredAt set — reviewStatus unchanged by deactivate) must NOT keep constraining suggestions.",
+      "output": {
+        "items": [
+          {
+            "recipeId": "rec-salty",
+            "recipeName": "Salted Broth",
+            "cuisine": "soup",
+            "perServing": {
+              "calories": 300,
+              "proteinG": 10,
+              "carbsG": 40,
+              "fatG": 8,
+              "fiberG": 3
+            },
+            "completeness": "COMPLETE_FROM_REVIEWED_INPUTS",
+            "reviewStatus": "SYSTEM",
+            "score": 0,
+            "why": [
+              "Fits your remaining logged intake today."
+            ],
+            "warnings": [],
+            "education": []
+          }
+        ],
+        "aiPersonalized": false,
+        "rejectedCount": 0,
+        "context": {
+          "remaining": {
+            "calories": null,
+            "proteinG": null,
+            "fiberG": null
+          },
+          "loggedCompleteness": "partial-window",
+          "constraintsApplied": {
+            "allergens": 0,
+            "reviewedRules": 0
+          }
+        },
+        "disclaimer": "Suggestions use logged intake and reviewed rules only. Missing nutrients are unknown, not zero. Not medical advice."
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "nr-allergen-excluded",
+      "target": "nutritionSuggest",
+      "clinical": true,
+      "expect": "pass",
+      "failures": [],
+      "note": "Recorded allergy must exclude matching recipes regardless of AI path.",
+      "output": {
+        "items": [
+          {
+            "recipeId": "rec-plain",
+            "recipeName": "Plain Rice Bowl",
+            "cuisine": "home",
+            "perServing": {
+              "calories": 400,
+              "proteinG": 12,
+              "carbsG": 60,
+              "fatG": 6,
+              "fiberG": 2
+            },
+            "completeness": "COMPLETE_FROM_REVIEWED_INPUTS",
+            "reviewStatus": "SYSTEM",
+            "score": 0,
+            "why": [
+              "Fits your remaining logged intake today."
+            ],
+            "warnings": [],
+            "education": []
+          }
+        ],
+        "aiPersonalized": false,
+        "rejectedCount": 1,
+        "context": {
+          "remaining": {
+            "calories": null,
+            "proteinG": null,
+            "fiberG": null
+          },
+          "loggedCompleteness": "partial-window",
+          "constraintsApplied": {
+            "allergens": 1,
+            "reviewedRules": 0
+          }
+        },
+        "disclaimer": "Suggestions use logged intake and reviewed rules only. Missing nutrients are unknown, not zero. Not medical advice."
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "chat-medical-claim-detector",
+      "target": "fitnessReply",
+      "clinical": true,
+      "expect": "violation_detected",
+      "failures": [
+        "noMedicalAdviceTerms: medical/prescription phrasing detected in output"
+      ],
+      "note": "Detector self-check: a provider reply containing prescription-style language MUST be flagged by the medical-claim heuristic. Passes only when the detector fires.",
+      "output": {
+        "topic": "injury",
+        "answer": "You should take ibuprofen 400mg twice daily and stop squatting; that will fix the inflammation."
+      },
+      "verdict": "DETECTED"
+    }
+  ]
+}
