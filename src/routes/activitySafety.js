@@ -366,15 +366,20 @@ router.patch('/symptoms/:id', requireFeature('activity_safety_engine'), safetyWr
   } catch (err) { res.status(500).json({ error: 'symptom_update_failed', detail: err.message }); }
 });
 
-router.delete('/restrictions/:id', requireFeature('activity_safety_engine'), async (req, res) => {
+router.delete('/restrictions/:id', requireFeature('activity_safety_engine'), loadUserRoles, async (req, res) => {
   try {
     const prisma = getPrisma();
     const existing = await prisma.userActivityRestriction.findFirst({ where: { id: req.params.id, userId: uid(req) } });
     if (!existing) return res.status(404).json({ error: 'not_found' });
+    const roles = (req.userRoles || []).map((r) => String(r).toLowerCase());
+    const isClinician = roles.includes('clinician') || roles.includes('admin');
+    if (existing.source === 'clinician_documented' && !isClinician) {
+      return res.status(403).json({ error: 'clinician-directed restrictions cannot be deleted here — contact your clinician; deletion never implies medical clearance', code: 'CLINICIAN_LOCKED' });
+    }
     if (existing.source === 'clinician_documented') {
       await prisma.userActivityRestriction.update({
         where: { id: existing.id },
-        data: { status: 'superseded', resolvedAt: new Date(), resolvedBy: 'user_deleted' },
+        data: { status: 'superseded', resolvedAt: new Date(), resolvedBy: 'clinician_deleted' },
       });
       await invalidateSafetyAdvice(prisma, uid(req), 'restriction_deleted').catch(() => null);
       return res.json({ deleted: true, mode: 'superseded' }); // audit trail kept
@@ -520,10 +525,22 @@ function validateRestrictionInput(b, { partial = false } = {}) {
   return errors;
 }
 
+// Restriction management needs role awareness (clinician provenance/locks).
+// req.userRoles is normally populated only inside rbac.js middleware, which
+// these routes do not mount — without this loader the clinician positive path
+// was unreachable in production. Lookup failure fails closed (empty roles).
+async function loadUserRoles(req, _res, next) {
+  try {
+    const rows = await getPrisma().userRole.findMany({ where: { userId: uid(req), active: true }, include: { role: true } });
+    req.userRoles = (rows || []).map((ur) => ur.role && ur.role.name).filter(Boolean);
+  } catch { req.userRoles = req.userRoles || []; }
+  next();
+}
+
 // POST /restrictions — create. source is server-normalized: anything the user
 // submits beyond self_reported/user_preference is rejected unless the caller
 // actually holds a clinician role (never client-asserted).
-router.post('/restrictions', requireFeature('activity_safety_engine'), safetyWriteLimiter, async (req, res) => {
+router.post('/restrictions', requireFeature('activity_safety_engine'), safetyWriteLimiter, loadUserRoles, async (req, res) => {
   try {
     const b = body(req);
     const errors = validateRestrictionInput(b);
@@ -541,9 +558,18 @@ router.post('/restrictions', requireFeature('activity_safety_engine'), safetyWri
         return res.status(400).json({ error: 'unknown restriction source', code: 'INVALID_RESTRICTION' });
       }
     }
-    const row = await getPrisma().userActivityRestriction.create({
+    const prisma = getPrisma();
+    const userId = uid(req);
+    const norm = (arr) => [...new Set((arr || []).map(String))].sort();
+    const active = await prisma.userActivityRestriction.findMany({ where: { userId, status: 'active' } }).catch(() => []);
+    const dupe = (active || []).find((r) =>
+      r.severity === (b.severity || 'prohibited') &&
+      JSON.stringify(norm(r.categories)) === JSON.stringify(norm(b.categories)) &&
+      JSON.stringify(norm(r.bodyRegions)) === JSON.stringify(norm(Array.isArray(b.bodyRegions) ? b.bodyRegions : [])));
+    if (dupe) return res.status(200).json({ restriction: dupe, duplicate: true }); // idempotent retry — one row
+    const row = await prisma.userActivityRestriction.create({
       data: {
-        userId: uid(req),
+        userId,
         categories: b.categories,
         bodyRegions: Array.isArray(b.bodyRegions) ? b.bodyRegions.slice(0, 20).map((s) => String(s).slice(0, 60)) : [],
         severity: b.severity || 'prohibited',
@@ -572,7 +598,7 @@ router.get('/restrictions', requireFeature('activity_safety_engine'), async (req
 
 // PATCH /restrictions/:id — owner-scoped update. Clinician-documented rows are
 // protected: non-clinicians cannot silently edit or deactivate them.
-router.patch('/restrictions/:id', requireFeature('activity_safety_engine'), safetyWriteLimiter, async (req, res) => {
+router.patch('/restrictions/:id', requireFeature('activity_safety_engine'), safetyWriteLimiter, loadUserRoles, async (req, res) => {
   try {
     const prisma = getPrisma();
     const existing = await prisma.userActivityRestriction.findFirst({ where: { id: String(req.params.id), userId: uid(req) } });
@@ -602,7 +628,7 @@ router.patch('/restrictions/:id', requireFeature('activity_safety_engine'), safe
 // POST /restrictions/:id/resolve — explicit lifecycle transition with
 // provenance. Resolution is a user action, never a medical clearance: the
 // engine's expired/resolved semantics are unaffected.
-router.post('/restrictions/:id/resolve', requireFeature('activity_safety_engine'), safetyWriteLimiter, async (req, res) => {
+router.post('/restrictions/:id/resolve', requireFeature('activity_safety_engine'), safetyWriteLimiter, loadUserRoles, async (req, res) => {
   try {
     const prisma = getPrisma();
     const existing = await prisma.userActivityRestriction.findFirst({ where: { id: String(req.params.id), userId: uid(req) } });

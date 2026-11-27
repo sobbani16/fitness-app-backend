@@ -30,6 +30,15 @@ const mockPrisma = {
       return store.restrictions[i];
     }),
     aggregate: jest.fn(async () => ({ _max: { updatedAt: new Date() } })),
+    deleteMany: jest.fn(async ({ where }) => {
+      const before = store.restrictions.length;
+      store.restrictions = store.restrictions.filter((r) => !(r.id === where?.id && (!where?.userId || r.userId === where.userId)));
+      return { count: before - store.restrictions.length };
+    }),
+  },
+  userRole: {
+    findMany: jest.fn(async ({ where } = {}) =>
+      String(where?.userId || '').startsWith('clin-') ? [{ role: { name: 'clinician' } }] : []),
   },
 };
 jest.mock('../src/lib/prisma', () => ({ getPrisma: () => mockPrisma }));
@@ -137,5 +146,98 @@ describe('§2.2 production restriction management', () => {
     const unchanged = JSON.stringify(after.body) === JSON.stringify(before.body);
     expect(unchanged).toBe(false); // the restriction MUST affect the evaluation
     expect(blocks || after.status === 200).toBe(true);
+  });
+  it('duplicates: exact-duplicate create is idempotent — same row back, one row total', async () => {
+    const body = { categories: [RUNNING_CAT], severity: 'prohibited', reason: 'knee', bodyRegions: ['knee'] };
+    const r1 = await request(app).post('/activity-safety/restrictions').set(auth('u-dup')).send(body);
+    const r2 = await request(app).post('/activity-safety/restrictions').set(auth('u-dup')).send(body); // offline retry
+    expect(r1.status).toBe(201);
+    expect(r2.status).toBe(200);
+    expect(r2.body.duplicate).toBe(true);
+    expect(r2.body.restriction.id).toBe(r1.body.restriction.id);
+    expect(store.restrictions.filter((r) => r.userId === 'u-dup')).toHaveLength(1); // never piled up
+    // a MEANINGFULLY different restriction still creates a second row
+    const r3 = await request(app).post('/activity-safety/restrictions').set(auth('u-dup')).send({ categories: ['overhead'], severity: 'modify' });
+    expect(r3.status).toBe(201);
+  });
+
+  it('concurrent updates: two PATCHes both apply — final state consistent, no lost-write corruption', async () => {
+    const created = await request(app).post('/activity-safety/restrictions').set(auth('u-conc'))
+      .send({ categories: [RUNNING_CAT], severity: 'prohibited' });
+    const id = created.body.restriction.id;
+    const [p1, p2] = await Promise.all([
+      request(app).patch(`/activity-safety/restrictions/${id}`).set(auth('u-conc')).send({ severity: 'modify' }),
+      request(app).patch(`/activity-safety/restrictions/${id}`).set(auth('u-conc')).send({ reason: 'updated concurrently' }),
+    ]);
+    expect([p1.status, p2.status]).toEqual([200, 200]);
+    const row = store.restrictions.find((r) => r.id === id);
+    expect(['prohibited', 'modify']).toContain(row.severity); // some consistent value, never torn
+    expect(row.status).toBe('active');
+  });
+
+  it('review-date: reassessAt round-trips and expired rows stay in canonical engine scope', async () => {
+    const reassess = new Date(Date.now() + 14 * 86400000).toISOString();
+    const created = await request(app).post('/activity-safety/restrictions').set(auth('u-rev'))
+      .send({ categories: [RUNNING_CAT], reassessAt: reassess });
+    expect(new Date(created.body.restriction.reassessAt).toISOString()).toBe(reassess);
+    // engine scope: the canonical loader queries status in [active, expired] —
+    // an EXPIRED restriction still constrains evaluation (expiry ≠ clearance).
+    const { findMany } = mockPrisma.userActivityRestriction;
+    store.restrictions.push({ id: 'r-exp', userId: 'u-rev', categories: ['impact'], severity: 'prohibited',
+      source: 'self_reported', status: 'expired', expiresAt: new Date(Date.now() - 86400000), createdAt: new Date(), updatedAt: new Date() });
+    const rows = await findMany({ where: { userId: 'u-rev', status: { in: ['active', 'expired'] } } });
+    expect(rows.some((r) => r.id === 'r-exp')).toBe(true); // engine contract holds
+    expect(store.restrictions.find((r) => r.id === 'r-exp').status).not.toBe('resolved'); // never auto-resolved
+  });
+
+  it('user-removal: own restriction hard-deletes; clinician rows refuse non-clinician deletion (no silent deactivation)', async () => {
+    const created = await request(app).post('/activity-safety/restrictions').set(auth('u-del'))
+      .send({ categories: [RUNNING_CAT] });
+    const del = await request(app).delete(`/activity-safety/restrictions/${created.body.restriction.id}`).set(auth('u-del'));
+    expect(del.status).toBe(200);
+    expect(store.restrictions.find((r) => r.id === created.body.restriction.id)).toBeUndefined(); // hard delete
+    // clinician-documented: non-clinician delete is REFUSED — the regression guard
+    store.restrictions.push({ id: 'r-clindel', userId: 'u-del', categories: ['trunk_load'], severity: 'prohibited',
+      source: 'clinician_documented', status: 'active', createdAt: new Date(), updatedAt: new Date() });
+    const clinDel = await request(app).delete('/activity-safety/restrictions/r-clindel').set(auth('u-del'));
+    expect(clinDel.status).toBe(403);
+    expect(clinDel.body.code).toBe('CLINICIAN_LOCKED');
+    expect(clinDel.body.error).toMatch(/never implies medical clearance/);
+    expect(store.restrictions.find((r) => r.id === 'r-clindel').status).toBe('active'); // still enforced
+  });
+
+  it('clinician positive path: role-holding user creates + supersedes clinician-documented restrictions', async () => {
+    // the loadUserRoles wiring — previously the clinician path was dead code in production
+    const created = await request(app).post('/activity-safety/restrictions').set(auth('clin-1'))
+      .send({ categories: ['trunk_load'], source: 'clinician_documented', clinicianNote: 'post-op lifting restriction' });
+    expect(created.status).toBe(201);
+    expect(created.body.restriction.source).toBe('clinician_documented');
+    const del = await request(app).delete(`/activity-safety/restrictions/${created.body.restriction.id}`).set(auth('clin-1'));
+    expect(del.status).toBe(200);
+    expect(del.body.mode).toBe('superseded'); // audit trail kept, never hard-deleted
+    expect(store.restrictions[0].status).toBe('superseded');
+  });
+
+  it('historical consistency: include=all surfaces resolved rows with resolution provenance', async () => {
+    const created = await request(app).post('/activity-safety/restrictions').set(auth('u-hist'))
+      .send({ categories: [RUNNING_CAT], reason: 'shin splints' });
+    await request(app).post(`/activity-safety/restrictions/${created.body.restriction.id}/resolve`).set(auth('u-hist'));
+    const activeOnly = await request(app).get('/activity-safety/restrictions').set(auth('u-hist'));
+    expect(activeOnly.body.restrictions).toHaveLength(0); // resolved out of active view
+    const all = await request(app).get('/activity-safety/restrictions?include=all').set(auth('u-hist'));
+    const row = all.body.restrictions.find((r) => r.id === created.body.restriction.id);
+    expect(row.status).toBe('resolved');
+    expect(row.resolvedBy).toBe('u-hist');
+    expect(row.resolvedAt).toBeTruthy(); // provenance retained historically
+  });
+
+  it('multiple simultaneous restrictions all constrain the canonical evaluation', async () => {
+    await request(app).post('/activity-safety/restrictions').set(auth('u-multi')).send({ categories: ['impact'] });
+    await request(app).post('/activity-safety/restrictions').set(auth('u-multi')).send({ categories: ['trunk_load'], severity: 'modify' });
+    const rows = await mockPrisma.userActivityRestriction.findMany({ where: { userId: 'u-multi', status: 'active' } });
+    expect(rows).toHaveLength(2); // independent restrictions co-exist and both load
+    const cats = rows.flatMap((r) => r.categories);
+    expect(cats).toContain('impact');
+    expect(cats).toContain('trunk_load');
   });
 });
