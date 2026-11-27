@@ -41,6 +41,14 @@ function loadCatalogRows(catalogPath) {
     seen.add(id);
     out.push({ raw, id, name });
   }
+  // Defect fix (empty-normalized-catalog false pass): a nonempty JSON array
+  // whose entries all normalize away (blank names, punctuation-only names,
+  // missing names) must NOT trivially pass coverage — the check would compare
+  // zero ids against committed files and report success for a meaningless
+  // catalog. Fail before any coverage comparison or draft write.
+  if (!out.length) {
+    throw new Error(`catalog at ${catalogPath} contains ${rows.length} entries but none normalize to a usable exercise id (blank/punctuation-only/missing names) — fix the catalog source; refusing to check coverage or write drafts against it`);
+  }
   return { rows: out, catalogDuplicates: dupes };
 }
 

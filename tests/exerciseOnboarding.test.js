@@ -113,6 +113,33 @@ describe('§33 coverage check', () => {
     expect(res.stderr + res.stdout).toMatch(/duplicate ids in catalog source: dup-curl/);
   });
 
+test('malformed catalog (entries normalize to no usable ids) fails before coverage or draft writes', () => {
+    const rows = [row('Kappa Curl')];
+    const { dir } = fixtureCatalog([]);
+    const { outDir } = seedCommitted(dir, rows);
+    const cat = path.join(dir, 'catalog.json');
+    fs.writeFileSync(cat, JSON.stringify(rows));
+    run(['--drafts', `--catalog=${cat}`, `--out=${outDir}`, '--fixed-date=2026-01-01T00:00:00.000Z']);
+    const invBefore = fs.readFileSync(path.join(outDir, 'exercise-inventory.json'), 'utf8');
+    const profBefore = fs.readFileSync(path.join(outDir, 'exercise-profiles.v1.json'), 'utf8');
+
+    // entries that all normalize away: punctuation-only, blank, missing name
+    const malformed = path.join(dir, 'malformed.json');
+    fs.writeFileSync(malformed, JSON.stringify([{ name: '!!!', primaryMuscles: [] }, { name: '   ' }, { noName: true }]));
+
+    const checkRes = run(['--check', `--catalog=${malformed}`, `--out=${outDir}`]);
+    expect(checkRes.code).toBe(1);
+    expect(checkRes.stderr + checkRes.stdout).toMatch(/none normalize to a usable exercise id/);
+
+    const draftRes = run(['--drafts', `--catalog=${malformed}`, `--out=${outDir}`, '--fixed-date=2026-01-01T00:00:00.000Z']);
+    expect(draftRes.code).toBe(1);
+    expect(draftRes.stderr + draftRes.stdout).toMatch(/none normalize to a usable exercise id/);
+
+    // neither command may mutate the committed artifacts
+    expect(fs.readFileSync(path.join(outDir, 'exercise-inventory.json'), 'utf8')).toBe(invBefore);
+    expect(fs.readFileSync(path.join(outDir, 'exercise-profiles.v1.json'), 'utf8')).toBe(profBefore);
+  });
+
   test('real committed inventory covers the real vendored catalog', () => {
     const res = run(['--check', `--out=${REAL_INV}`]);
     expect(res.code).toBe(0);
