@@ -245,10 +245,12 @@ router.post('/days/:dayOfWeek/confirm', async (req, res) => {
     if (!userId) return res.status(400).json({ error: 'x-user-id required' });
     const { planId } = req.body || {};
     if (!planId) return res.status(400).json({ error: 'planId required' });
-    const state = await confirmDay(planId, Number(req.params.dayOfWeek), userId);
+    const state = await confirmDay(planId, Number(req.params.dayOfWeek), userId, {
+      acknowledgeUnknownAllergens: req.body?.acknowledgeUnknownAllergens === true,
+    });
     res.json(state);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(err.status || 400).json({ error: err.message, code: err.code, ...(err.details || {}) });
   }
 });
 
