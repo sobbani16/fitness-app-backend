@@ -1,0 +1,26 @@
+{
+  "artifact": {
+    "id": "hum28-deployed-regression-2026-11-27",
+    "deploymentSha": "2ad0c5a4db84",
+    "shaNote": "deploy drifted from df477eea2fcc (verified earlier) to 2ad0c5a4db84 (PR #79 weather-wind merge) during execution — recorded honestly per protocol",
+    "executedAt": "2026-11-27T04:32:00Z",
+    "executor": "dev-01",
+    "authorization": "decision #110 — staging regression authorized"
+  },
+  "methodology": "verbatim-sourced engine cases replayed through POST /activity-safety/evaluate with fixture-set user state; expectations cited from committed test suites, never invented; per-case fixture cleanup via DELETE",
+  "decisiveFinding": {
+    "title": "fixture system disabled in deployed staging config — fixture-dependent scenario classes unexecutable",
+    "evidence": "POST /test-fixtures/safety-state non-200 and DELETE 404 on staging — the SAFETY_STATE_FIXTURE env gate (§6.3 prod boot guard) is NOT enabled in the deployed staging config, so no scenario requiring fixture-seeded medical/environment state can execute. evaluate responds INSUFFICIENT_DATA because env fixtures never register.",
+    "implication": "the §6.4 fixture-state regression class is UNSUPPORTED-DEPLOYED-CONFIG — enabling it requires a Railway env mutation + redeploy of staging (SAFETY_STATE_FIXTURE=1), a materially heavier operation than PostHog flag flips because it cycles the service for all users. Decision #110 authorized regression; whether fixture enablement on shared staging is in scope is an owner call — filed for the record rather than assumed.",
+    "positiveEvidence": "the engine endpoint itself is live and evaluating on staging: every probe returned well-formed INSUFFICIENT_DATA/ALLOW decisions with correct structure — the evaluation pipeline works; only fixture seeding is gated"
+  },
+  "scenarios": [
+    {"caseId": "DR-01-baseline-mild-walk", "expected": "ALLOW", "actual": "INSUFFICIENT_DATA", "http": 200, "source": "tests/activitySafety.scenarios.test.js S025 companion", "disposition": "UNSUPPORTED-DEPLOYED-CONFIG", "cleanup": "fixture endpoint 404 — nothing written, nothing to clean"},
+    {"caseId": "DR-02-trunk-restriction-strength", "expected": "BLOCK_ACTIVITY", "actual": "ALLOW", "http": 200, "source": "tests/activitySafety.scenarios.test.js:37", "disposition": "UNSUPPORTED-DEPLOYED-CONFIG", "cleanup": "fixture endpoint 404 — restriction never written; ALLOW is correct behavior WITHOUT the restriction present"},
+    {"caseId": "DR-03-trunk-restriction-walk-clear", "expected": "ALLOW", "actual": "INSUFFICIENT_DATA", "http": 200, "source": "tests/activitySafety.scenarios.test.js:38", "disposition": "UNSUPPORTED-DEPLOYED-CONFIG", "cleanup": "fixture endpoint 404"},
+    {"caseId": "DR-04-extreme-heat-defers", "expected": "DEFER_OUTDOOR", "actual": "INSUFFICIENT_DATA", "http": 200, "source": "tests/activitySafety.envMatrix.test.js:35", "disposition": "UNSUPPORTED-DEPLOYED-CONFIG", "cleanup": "fixture endpoint 404"},
+    {"caseId": "DR-05-extreme-aqi-defers", "expected": "DEFER_OUTDOOR", "actual": "INSUFFICIENT_DATA", "http": 200, "source": "tests/activitySafety.envMatrix.test.js:43", "disposition": "UNSUPPORTED-DEPLOYED-CONFIG", "cleanup": "fixture endpoint 404"}
+  ],
+  "restoration": "activity_safety_engine PostHog flag (1137109) created for the regression window and deleted after — absent baseline restored, zero residual PostHog config",
+  "needsHumanFiled": "decision #198 — clinical reviewer for the 47 DRAFT-rule packages (exact ask recorded)"
+}
