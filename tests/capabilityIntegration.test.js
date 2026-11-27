@@ -11,6 +11,7 @@ const mockPrisma = {
   macroGoal: { findUnique: jest.fn(), upsert: jest.fn() },
   goalHistory: { updateMany: jest.fn(), create: jest.fn(), findMany: jest.fn() },
   foodLog: { findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn() },
+  ingredient: { findUnique: jest.fn() },
 };
 jest.mock('../src/lib/prisma', () => ({ getPrisma: () => mockPrisma }));
 jest.mock('../src/services/nutrients/foodIntelligence', () => ({ safe: async (fn) => { try { return await fn(); } catch { return null; } }, ingredient: async () => ({ ok: true }), profilesForIngredient: async () => [] }));
@@ -74,5 +75,34 @@ describe('K08 — detectDuplicateLog wired into POST /food-logs', () => {
     const res = await request(app).post('/food-logs').send(logBody);
     expect(res.status).toBe(201);
     expect(res.body.duplicateWarning).toBeNull();
+  });
+});
+
+describe('HUM-P6-004 — serving-path portion guard', () => {
+  const ING = { id: 'ing-1', name: 'Test grain', source: 'test', catalogId: null, catalog: null, servings: [{ id: 'sv-big', label: 'bowl', grams: 500, estimated: false, sourceRecord: null }] };
+
+  it('servingId × count exceeding the 100000 g cap → 400 (same bound as direct quantityG)', async () => {
+    mockPrisma.ingredient.findUnique.mockResolvedValue(ING);
+    const res = await request(app).post('/food-logs').send({
+      id: 'meal-big', foodName: 'Absurd portion', ingredientId: 'ing-1',
+      servingId: 'sv-big', servingCount: 1000, // 500 g × 1000 = 500000 g
+      quantityG: 500, calories: 0, proteinG: 0, carbsG: 0, fatG: 0, fiberG: 0,
+      loggedAt: new Date().toISOString(),
+    });
+    expect(res.status).toBe(400);
+    expect(mockPrisma.foodLog.create).not.toHaveBeenCalled();
+  });
+
+  it('servingId × count inside the cap still persists the catalog-derived grams', async () => {
+    mockPrisma.ingredient.findUnique.mockResolvedValue(ING);
+    const res = await request(app).post('/food-logs').send({
+      id: 'meal-ok', foodName: 'Normal portion', ingredientId: 'ing-1',
+      servingId: 'sv-big', servingCount: 2, // 1000 g — under the cap
+      quantityG: 500, calories: 0, proteinG: 0, carbsG: 0, fatG: 0, fiberG: 0,
+      loggedAt: new Date().toISOString(),
+    });
+    expect(res.status).toBe(201);
+    expect(mockPrisma.foodLog.create).toHaveBeenCalled();
+    expect(mockPrisma.foodLog.create.mock.calls[0][0].data.quantityG).toBe(1000);
   });
 });
