@@ -23,6 +23,7 @@
 
 const { FEATURES, KEYS, envOverrideName } = require('../../config/featureRegistry');
 const provider = require('./provider');
+const { resolvePersonProperties } = require('./personProperties');
 
 const CACHE_TTL_MS = process.env.FF_CACHE_TTL_MS !== undefined
   ? Number(process.env.FF_CACHE_TTL_MS)
@@ -100,7 +101,12 @@ function resolveKey(key, providerFlags, aiShutdown, resolved, visiting, userId) 
 async function getProviderFlags(userId) {
   if (provider.providerName() !== 'posthog') return {};
   try {
-    return await provider.fetchProviderFlags(userId);
+    // Resolve targeting properties INSIDE this path so the lookup rides the
+    // per-user evaluation cache — it can only run on a cache miss, never per
+    // request. resolvePersonProperties never throws; worst case is evaluation
+    // without properties (targeted conditions cannot match, fail-closed).
+    const personProperties = await resolvePersonProperties(userId);
+    return await provider.fetchProviderFlags(userId, personProperties);
   } catch (err) {
     lastProviderErrorAt = Date.now();
     lastProviderError = err.message;

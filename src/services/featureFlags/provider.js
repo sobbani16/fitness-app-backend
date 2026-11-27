@@ -37,9 +37,16 @@ function getClient() {
  * evaluated as enabled for this distinct_id (targeting + rollout already
  * applied server-side by PostHog). Throws on provider failure — the caller
  * decides the fallback policy.
+ *
+ * `personProperties` MUST reach the evaluation request: posthog-node v5
+ * evaluates release conditions only against properties supplied in the
+ * options object — getAllFlags(distinctId, { personProperties }). The legacy
+ * positional form getAllFlags(id, {}, {}) silently evaluates with zero
+ * person properties (the third argument is dropped entirely), which left
+ * every property-targeted flag permanently false (pc-HUM-28 defect #329).
  */
-async function fetchProviderFlags(userId) {
-  const flags = await getClient().getAllFlags(String(userId), {}, {});
+async function fetchProviderFlags(userId, personProperties = {}) {
+  const flags = await getClient().getAllFlags(String(userId), { personProperties });
   const out = {};
   for (const [key, value] of Object.entries(flags || {})) {
     out[key] = value === true || (typeof value === 'string' && value !== 'false');
