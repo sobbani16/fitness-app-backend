@@ -418,12 +418,64 @@ async function alternatives(userId, { ingredientText = '', category, limit = 5 }
 }
 
 // Add-to-log through the existing FoodLog pipeline with source provenance.
-async function logScannedFood(userId, { productName, servingG, servingLabel, servingVolumeMl, servingUnit, massSource, nutrients = {}, mealType = 'meal', barcode }) {
-  if (!productName || !Number.isFinite(Number(servingG)) || Number(servingG) <= 0 || Number(servingG) > 5000) {
-    const e = new Error('productName and servingG (1-5000) required'); e.status = 400; throw e;
+async function logScannedFood(userId, { productName, servingG, servingLabel, servingVolumeMl, servingUnit, massSource, nutrients = {}, mealType = 'meal', barcode, servingSizeMl }) {
+  const volMlIn = Number.isFinite(Number(servingVolumeMl)) && Number(servingVolumeMl) > 0 && Number(servingVolumeMl) <= 5000 ? Number(servingVolumeMl) : null;
+  const hasG = Number.isFinite(Number(servingG)) && Number(servingG) > 0 && Number(servingG) <= 5000;
+  if (!productName || (!hasG && !volMlIn)) {
+    const e = new Error('productName and servingG (1-5000) or servingVolumeMl required'); e.status = 400; throw e;
   }
+
+  // Volume-native path: a serving declared in milliliters whose nutrition was
+  // declared FOR THAT VOLUME serving is legitimate per-volume evidence — the
+  // manufacturer told us the nutrition of a volume-quantified serving, so no
+  // mass conversion is ever needed. Mass stays honestly null. Without that
+  // evidence (e.g. nutrition declared per 100 g only) a volume log would
+  // fabricate nutrition — rejected with zero writes.
+  if (!hasG) {
+    let unit = servingUnit, refMl = Number.isFinite(Number(servingSizeMl)) ? Number(servingSizeMl) : null, perServing = pickNutrients(nutrients), derivedFrom = 'client';
+    if (barcode) {
+      const code = String(barcode).replace(/\D/g, '');
+      const row = await prisma.barcodeProduct.findUnique({ where: { barcode: code } }).catch(() => null);
+      if (row) {
+        // Provenance flows from the cached lookup row — never client-asserted.
+        const meta = row.nutrients || {};
+        unit = meta.servingUnit ?? row.servingUnit ?? unit;
+        refMl = Number.isFinite(Number(meta.servingSizeMl ?? row.servingSizeMl)) ? Number(meta.servingSizeMl ?? row.servingSizeMl) : refMl;
+        perServing = pickNutrients(meta);
+        derivedFrom = 'barcode-cache';
+      }
+    }
+    const volumeDeclared = unit === 'ml' && Number.isFinite(refMl) && refMl > 0 && Number.isFinite(perServing.calories);
+    if (!volumeDeclared) {
+      const e = new Error('volume_nutrition_basis_required'); e.status = 400; throw e;
+    }
+    const factor = volMlIn / refMl;
+    const scaled = Object.fromEntries(Object.entries(perServing).map(([k, v]) => [k, Number.isFinite(v) ? Math.round(v * factor * 100) / 100 : v]));
+    const saved = await prisma.foodLog.create({ data: {
+      userId, foodName: String(productName).slice(0, 300), quantityG: null,
+      quantityMl: volMlIn, quantityUnit: 'ml',
+      calories: scaled.calories ?? 0, proteinG: scaled.proteinG ?? 0, carbsG: scaled.carbsG ?? 0,
+      fatG: scaled.fatG ?? 0, fiberG: scaled.fiberG ?? null,
+      mealType: String(mealType).slice(0, 30),
+      nutritionSnapshot: { loggedSource: 'food-intel', barcode: barcode || null, perServing, reviewRecommended: !barcode,
+        nutrientUnknowns: require('./nutrientCompleteness').computeUnknowns(scaled),
+        selectedServing: typeof servingLabel === 'string' && servingLabel.trim() ? servingLabel.slice(0, 200) : null,
+        servingGrams: null, servingCount: Math.round(factor * 1000) / 1000,
+        // The nutrition basis is honestly per-volume: the label declared
+        // nutrition for a volume-quantified serving. Never a mass conversion.
+        nutritionBasis: 'PER_100_ML',
+        basisEvidence: 'manufacturer-volume-serving-declaration',
+        basisDerivedFrom: derivedFrom,
+        declaredServingMl: refMl,
+        servingVolumeMl: volMlIn,
+        servingUnit: 'ml',
+        massSource: null },
+    } });
+    return saved;
+  }
+
   const g = Number(servingG);
-  const volMl = Number.isFinite(Number(servingVolumeMl)) && Number(servingVolumeMl) > 0 && Number(servingVolumeMl) <= 5000 ? Number(servingVolumeMl) : null;
+  const volMl = volMlIn;
   // nutrient values are per serving — scale by grams relative to serving size.
   // Restrict to the known nutrient map so client/provenance keys can't leak
   // into perServing snapshots or be mistaken for nutrients.
