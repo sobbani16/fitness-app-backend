@@ -101,12 +101,64 @@ def train_model(cfg, train_samples):
             threshold += lr * (y - pred) * 0.01
     return {"architecture": cfg["architecture"], "params": {"threshold": round(threshold, 8)}}
 
-def evaluate(model, samples):
+def _predict(model, s):
+    """Prediction + confidence proxy: normalized distance from the decision
+    threshold. Real architectures emit calibrated probabilities — the metric
+    shapes below are the contract they must fill."""
+    threshold = model["params"]["threshold"]
+    x = sum(s["seq"]) / len(s["seq"])
+    pred = 1 if x > threshold else 0
+    conf = min(1.0, abs(x - threshold) * 4)
+    return pred, conf
+
+def evaluate(model, samples, abstain_below=0.25):
+    """§20 recognition metrics: accuracy, per-class precision/recall/F1, macro
+    F1, confusion matrix — plus confidence-derived abstention rate and
+    unknown-rejection rate (the fraction of low-confidence inputs the system
+    refuses to label). Everything deterministic — no wallclock, no randomness."""
     if not samples:
         return {"accuracy": None, "n": 0}
-    threshold = model["params"]["threshold"]
-    correct = sum(1 for s in samples if (1 if sum(s["seq"]) / len(s["seq"]) > threshold else 0) == s["label"])
-    return {"accuracy": round(correct / len(samples), 6), "n": len(samples)}
+    labels = sorted({s["label"] for s in samples})
+    confusion = {str(a): {str(b): 0 for b in labels} for a in labels}
+    correct = 0
+    abstained = 0
+    rejected_correctly = 0
+    low_conf_total = 0
+    per_class = {}
+    for s in samples:
+        pred, conf = _predict(model, s)
+        confusion[str(s["label"])][str(pred)] += 1
+        if pred == s["label"]:
+            correct += 1
+        if conf < abstain_below:
+            abstained += 1
+            low_conf_total += 1
+            if pred != s["label"]:
+                rejected_correctly += 1
+    n = len(samples)
+    f1s = []
+    for c in labels:
+        tp = confusion[str(c)][str(c)]
+        fp = sum(confusion[str(o)][str(c)] for o in labels if o != c)
+        fn = sum(confusion[str(c)][str(o)] for o in labels if o != c)
+        prec = tp / (tp + fp) if (tp + fp) else 0.0
+        rec = tp / (tp + fn) if (tp + fn) else 0.0
+        f1 = 2 * prec * rec / (prec + rec) if (prec + rec) else 0.0
+        f1s.append(f1)
+        per_class[str(c)] = {"precision": round(prec, 6), "recall": round(rec, 6), "f1": round(f1, 6), "support": sum(confusion[str(c)].values())}
+    return {
+        "accuracy": round(correct / n, 6),
+        "n": n,
+        "macroF1": round(sum(f1s) / len(f1s), 6) if f1s else None,
+        "perClass": per_class,
+        "confusionMatrix": confusion,
+        "abstentionRate": round(abstained / n, 6),
+        "unknownRejection": {
+            "threshold": abstain_below,
+            "lowConfidenceFraction": round(low_conf_total / n, 6),
+            "note": "confidence is a distance proxy in the deterministic baseline — real architectures emit calibrated probabilities",
+        },
+    }
 
 def checkpoint_manifest(cfg, model, train_eval, heldout_eval):
     blob = json.dumps(model, sort_keys=True).encode()

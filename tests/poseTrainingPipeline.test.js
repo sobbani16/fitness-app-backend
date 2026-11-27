@@ -195,3 +195,30 @@ describe('artifact integrity (§42)', () => {
     expect(verify(a + '.missing', shaOf(a)).exit).toBe(2);
   });
 });
+
+it('§20: evaluation emits the recognition-metric contract — macroF1, per-class, confusion, abstention, unknown-rejection', () => {
+  const a = tmpOut('s20a'), b = tmpOut('s20b');
+  runPipeline(CFG, a);
+  runPipeline(CFG, b);
+  const m = JSON.parse(fs.readFileSync(a, 'utf8'));
+  const h = m.manifest.evaluation.heldout;
+  expect(typeof h.macroF1).toBe('number');
+  expect(h.perClass).toBeDefined();
+  for (const k of Object.keys(h.perClass)) {
+    expect(h.perClass[k]).toMatchObject({ precision: expect.any(Number), recall: expect.any(Number), f1: expect.any(Number), support: expect.any(Number) });
+  }
+  // confusion matrix is square over the label set and row-sums to support
+  const labels = Object.keys(h.confusionMatrix);
+  for (const row of labels) {
+    expect(Object.keys(h.confusionMatrix[row]).sort()).toEqual(labels.slice().sort());
+    const rowSum = Object.values(h.confusionMatrix[row]).reduce((a, b) => a + b, 0);
+    expect(rowSum).toBe(h.perClass[row].support);
+  }
+  expect(h.abstentionRate).toBeGreaterThanOrEqual(0);
+  expect(h.abstentionRate).toBeLessThanOrEqual(1);
+  expect(h.unknownRejection).toMatchObject({ threshold: expect.any(Number), lowConfidenceFraction: expect.any(Number) });
+  // determinism: metrics identical across independent runs
+  const m2 = JSON.parse(fs.readFileSync(b, 'utf8'));
+  expect(m2.manifest.evaluation.heldout.macroF1).toBe(h.macroF1);
+  expect(m2.manifest.evaluation.heldout.confusionMatrix).toEqual(h.confusionMatrix);
+});
