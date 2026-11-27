@@ -175,3 +175,28 @@ describe('§33 import-time identity validation — zero writes on malformed cata
     expect(res.imported).toBe(1);
   });
 });
+
+describe('§33 CLI catalog validation before metadata overlay', () => {
+  const { execFileSync } = require('node:child_process');
+  const SCRIPT = path.join(__dirname, '../scripts/import-exercises.js');
+  const runCli = (args) => {
+    try {
+      const out = execFileSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 30000 });
+      return { code: 0, stdout: out, stderr: '' };
+    } catch (e) {
+      return { code: e.status, stdout: e.stdout || '', stderr: e.stderr || '' };
+    }
+  };
+  test('valid row followed by null — nonzero exit naming row 2, no TypeError, before any write', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'exo-cli-'));
+    const cat = path.join(dir, 'catalog.json');
+    fs.writeFileSync(cat, JSON.stringify([row(`${PREFIX}cli valid`), null]));
+    const res = runCli(['--catalog=' + cat]);
+    expect(res.code).not.toBe(0);
+    const out = res.stderr + res.stdout;
+    expect(out).toMatch(/row 2\b/);
+    expect(out).toMatch(/malformed entries/);
+    expect(out).not.toMatch(/TypeError/);
+    expect(out).toMatch(/aborted before any writes/);
+  });
+});

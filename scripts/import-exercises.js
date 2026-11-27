@@ -103,6 +103,14 @@ async function importCatalog(prisma, rows, opts = {}) {
 
 async function main() {
   const rows = JSON.parse(fs.readFileSync(DATA, 'utf8'));
+  // Validate the complete catalog BEFORE the metadata overlay reads any row —
+  // a malformed identity must abort the CLI with actionable positions, not a
+  // TypeError deep inside overlay access, and before any write of any kind.
+  const invalid = validateIds(rows);
+  if (invalid.length) {
+    const shown = invalid.slice(0, 20).join('; ');
+    throw new Error(`catalog has ${invalid.length} malformed entries — ${shown}${invalid.length > 20 ? ` (+${invalid.length - 20} more)` : ''}. Fix or remove the source rows; import aborted before any writes`);
+  }
   // Verified/provenance-tracked overlay for upstream-null metadata (Phase 19
   // Workstream A). Source file stays pristine; patch entries cite the
   // source-internal convention used for each inferred value.
