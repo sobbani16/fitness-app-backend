@@ -70,9 +70,23 @@ router.get('/score-v2', wrap(async (req) => {
   // Per-user MacroGoal beats generic FDA-DV references; ±20% band matches
   // computeDay's "within target counts as met" tolerance. calorieFloor stays
   // null until a reviewed low-intake policy lands (open decision G4).
-  const goals = await prisma.macroGoal.findUnique({ where: { userId }, select: { caloriesTarget: true, proteinTarget: true, carbsTarget: true, fatTarget: true, fiberTarget: true, waterMlTarget: true, source: true } }).catch(() => null);
+  const goals = await prisma.macroGoal.findUnique({ where: { userId }, select: { caloriesTarget: true, proteinTarget: true, carbsTarget: true, fatTarget: true, fiberTarget: true, fiberTargetBasis: true, waterMlTarget: true, source: true } }).catch(() => null);
+  // HUM-P6-009: ONE authoritative fiber target. The raw stored MacroGoal.fiberTarget
+  // is a hardcoded seed default (30) in the common path — using it directly made
+  // the dashboard disagree with Leo's authoritative formula (e.g. 2200 kcal → 31).
+  // resolveFiberTarget is the single source of truth: it preserves clinician and
+  // custom overrides (basis-aware) and otherwise computes the same value every
+  // other fiber consumer shows. Dashboard and assistant now agree by construction.
+  const { resolveFiberTarget } = require('../services/fiber/targets');
+  const [userRow, conditionRows] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { dateOfBirth: true, gender: true } }).catch(() => null),
+    prisma.userHealthCondition.findMany({ where: { userId, active: true }, include: { condition: { select: { name: true } } } }).catch(() => []),
+  ]);
+  const authoritativeFiber = goals
+    ? resolveFiberTarget({ dateOfBirth: userRow?.dateOfBirth, gender: userRow?.gender, macroGoal: goals, conditionNames: (conditionRows || []).map((c) => c.condition?.name).filter(Boolean) }).targetG
+    : null;
   const targets = goals ? {
-    proteinG: goals.proteinTarget, carbsG: goals.carbsTarget, fatG: goals.fatTarget, fiberG: goals.fiberTarget,
+    proteinG: goals.proteinTarget, carbsG: goals.carbsTarget, fatG: goals.fatTarget, fiberG: authoritativeFiber,
     caloriesMin: goals.caloriesTarget * 0.8, caloriesMax: goals.caloriesTarget * 1.2,
   } : {};
   const [status, workouts, sleeps, waters] = await Promise.all([

@@ -133,3 +133,30 @@ describe('Daily Progress V2', () => {
     expect(r.components.find((c) => c.key === 'sleep').status).toBe('INSUFFICIENT_DATA');
   });
 });
+
+describe('HUM-P6-009 — dashboard fiber target agrees with the authoritative calc', () => {
+  it('stored seed default 30 must NOT leak when the formula says 31', async () => {
+    // 2200 kcal × 14g/1000kcal = 30.8 → 31 by the ONE authoritative rounding.
+    const { resolveFiberTarget } = require('../src/services/fiber/targets');
+    const t = resolveFiberTarget({
+      dateOfBirth: new Date('1990-01-01'), gender: 'female',
+      macroGoal: { caloriesTarget: 2200, fiberTarget: 30, fiberTargetBasis: null },
+      conditionNames: [],
+    });
+    expect(t.targetG).toBe(31); // authoritative — dashboard must show this, not the stored 30
+    expect(t.basis).toBe('formula_adult');
+  });
+  it('clinician and custom overrides are preserved over the formula', () => {
+    const { resolveFiberTarget } = require('../src/services/fiber/targets');
+    const clinician = resolveFiberTarget({ dateOfBirth: new Date('1990-01-01'), gender: 'female', macroGoal: { caloriesTarget: 2200, fiberTarget: 25, fiberTargetBasis: 'clinician' }, conditionNames: [] });
+    expect(clinician.targetG).toBe(25); // override wins — never overwritten by the formula
+    const custom = resolveFiberTarget({ dateOfBirth: new Date('1990-01-01'), gender: 'female', macroGoal: { caloriesTarget: 2200, fiberTarget: 33, fiberTargetBasis: 'custom' }, conditionNames: [] });
+    expect(custom.targetG).toBe(33);
+  });
+  it('score-v2 source uses resolveFiberTarget, not the raw stored value', () => {
+    const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '../src/routes/dailyProgress.js'), 'utf8');
+    expect(src).toMatch(/resolveFiberTarget/);
+    expect(src).toMatch(/authoritativeFiber/);
+    expect(src).not.toMatch(/fiberG: goals\.fiberTarget/);
+  });
+});
