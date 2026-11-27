@@ -1,0 +1,1236 @@
+{
+  "version": "draft-rule-review-v1",
+  "generated": "2026-11-25T10:58:24.419Z",
+  "source": "data/imports/humai_supplement_research_seed_v1.json:safety_rules_draft",
+  "classification": "CLINICAL_REVIEW_REQUIRED",
+  "disclaimer": "All rules remain DRAFT (approved=false, reviewStatus!=PUBLISHED) and never fire. This packet is review input, not activation.",
+  "totals": {
+    "rules": 47,
+    "engineEvaluatable": 16,
+    "engineUnevaluatable": 31
+  },
+  "rules": [
+    {
+      "index": 0,
+      "provenance": {
+        "sourceId": "ODS-D",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/VitaminD-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "vitamin-d",
+        "triggerType": "DOSE_TOTAL",
+        "triggerValue": "ALL_D_SOURCES",
+        "action": "TOTAL_EXPOSURE_CHECK",
+        "consumerWarning": "Sum vitamin D2, D3 and combination products; excess can cause hypercalcemia.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "per-ingredient dose totals across the user's stack — composition data required",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 1,
+      "provenance": {
+        "sourceId": "ODS-D",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/VitaminD-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "vitamin-d",
+        "triggerType": "CONDITION",
+        "triggerValue": "HYPERCALCEMIA_OR_KIDNEY_DISORDER",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "Do not auto-recommend vitamin D regimens in calcium disorders or significant kidney disease.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "recorded user health conditions (loaded by safetyEngine)",
+      "engineEvaluatableToday": true,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 2,
+      "provenance": {
+        "sourceId": "ODS-A",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/VitaminA-Consumer/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "vitamin-a",
+        "triggerType": "LIFE_STAGE",
+        "triggerValue": "PREGNANT_OR_TRYING",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "High-dose preformed vitamin A can cause birth defects; evaluate prenatal formulation.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "recorded life-stage conditions (pregnancy/lactation patterns)",
+      "engineEvaluatableToday": true,
+      "userImpact": "unchecked rule could miss a severe harm (contraindicated use)",
+      "severity": "CRITICAL",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 3,
+      "provenance": {
+        "sourceId": "ODS-A",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/VitaminA-Consumer/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "vitamin-a",
+        "triggerType": "LIFESTYLE",
+        "triggerValue": "SMOKING_OR_ASBESTOS_EXPOSURE",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "High-dose beta-carotene supplements have been associated with increased lung cancer risk in smokers/former smokers.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "user lifestyle factors (smoking/occupational exposure) — no such profile field",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 4,
+      "provenance": {
+        "sourceId": "ODS-K",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/VitaminK-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "vitamin-k",
+        "triggerType": "MEDICATION",
+        "triggerValue": "WARFARIN_OR_VKA",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "Maintain consistent vitamin K intake and consult prescribing team; do not advise avoiding all vitamin K.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "user medication list — NOT loaded by safetyEngine (no medication surface exists)",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a severe harm (contraindicated use)",
+      "severity": "CRITICAL",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 5,
+      "provenance": {
+        "sourceId": "ODS-IRON",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Iron-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "iron",
+        "triggerType": "MEDICATION",
+        "triggerValue": "LEVOTHYROXINE",
+        "action": "SEPARATION_CHECK",
+        "consumerWarning": "Iron supplements can impair levothyroxine absorption; many labels advise separation by 4 hours.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": 4
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "user medication list — NOT loaded by safetyEngine (no medication surface exists)",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 6,
+      "provenance": {
+        "sourceId": "ODS-CALCIUM",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Calcium-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "calcium",
+        "triggerType": "MEDICATION",
+        "triggerValue": "LEVOTHYROXINE",
+        "action": "SEPARATION_CHECK",
+        "consumerWarning": "Calcium carbonate can impair levothyroxine absorption; labeling advises at least 4 hours separation.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": 4
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "user medication list — NOT loaded by safetyEngine (no medication surface exists)",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 7,
+      "provenance": {
+        "sourceId": "ODS-IRON",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Iron-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "iron",
+        "triggerType": "OTHER_SUPPLEMENT",
+        "triggerValue": "CALCIUM",
+        "action": "SEPARATION_REVIEW",
+        "consumerWarning": "Calcium can reduce iron absorption; review taking them at different times.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "full supplement stack cross-reference (loaded links)",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a moderate-risk advisory",
+      "severity": "MODERATE",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 8,
+      "provenance": {
+        "sourceId": "ODS-IRON",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Iron-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "iron",
+        "triggerType": "FOOD",
+        "triggerValue": "COFFEE_TEA_DAIRY",
+        "action": "MEAL_CONTEXT_WARNING",
+        "consumerWarning": "Tea/coffee and some co-ingested foods may reduce nonheme iron absorption.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "recent food log context — not loaded by safetyEngine",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a moderate-risk advisory",
+      "severity": "MODERATE",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 9,
+      "provenance": {
+        "sourceId": "ODS-IRON",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Iron-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "iron",
+        "triggerType": "CONDITION",
+        "triggerValue": "HEMOCHROMATOSIS_OR_IRON_OVERLOAD",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "Extra iron can be harmful; do not suggest iron without indication.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "recorded user health conditions (loaded by safetyEngine)",
+      "engineEvaluatableToday": true,
+      "userImpact": "unchecked rule could miss a severe harm (contraindicated use)",
+      "severity": "CRITICAL",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 10,
+      "provenance": {
+        "sourceId": "ODS-IRON",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Iron-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "iron",
+        "triggerType": "DOSE_TOTAL",
+        "triggerValue": "IRON_MULTIVITAMIN_COMBINATION",
+        "action": "TOTAL_EXPOSURE_CHECK",
+        "consumerWarning": "Sum elemental iron from prenatal, multivitamin and stand-alone products.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "per-ingredient dose totals across the user's stack — composition data required",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 11,
+      "provenance": {
+        "sourceId": "ODS-MAG",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Magnesium-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "magnesium",
+        "triggerType": "CONDITION",
+        "triggerValue": "SIGNIFICANT_KIDNEY_DISEASE",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "Reduced renal excretion raises magnesium toxicity risk.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "recorded user health conditions (loaded by safetyEngine)",
+      "engineEvaluatableToday": true,
+      "userImpact": "unchecked rule could miss a severe harm (contraindicated use)",
+      "severity": "CRITICAL",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 12,
+      "provenance": {
+        "sourceId": "ODS-MAG",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Magnesium-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "magnesium",
+        "triggerType": "MEDICATION",
+        "triggerValue": "TETRACYCLINE_OR_FLUOROQUINOLONE",
+        "action": "LABEL_SEPARATION",
+        "consumerWarning": "Supplemental magnesium can impair absorption of certain antibiotics; use medication-specific separation.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "user medication list — NOT loaded by safetyEngine (no medication surface exists)",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 13,
+      "provenance": {
+        "sourceId": "ODS-CALCIUM",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Calcium-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "calcium",
+        "triggerType": "MEDICATION",
+        "triggerValue": "CERTAIN_ANTIBIOTICS",
+        "action": "LABEL_SEPARATION",
+        "consumerWarning": "Calcium can bind certain antibiotics; timing depends on exact drug label.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "user medication list — NOT loaded by safetyEngine (no medication surface exists)",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 14,
+      "provenance": {
+        "sourceId": "ODS-INDEX",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/list-all/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "zinc",
+        "triggerType": "MEDICATION",
+        "triggerValue": "CERTAIN_ANTIBIOTICS",
+        "action": "LABEL_SEPARATION",
+        "consumerWarning": "Zinc can reduce absorption of some antibiotics; follow drug-specific instructions.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "user medication list — NOT loaded by safetyEngine (no medication surface exists)",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 15,
+      "provenance": {
+        "sourceId": "ODS-INDEX",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/list-all/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "zinc",
+        "triggerType": "DOSE_TOTAL",
+        "triggerValue": "HIGH_ZINC",
+        "action": "TOTAL_EXPOSURE_CHECK",
+        "consumerWarning": "Chronic excess zinc may cause copper deficiency and neurological/hematologic effects.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "per-ingredient dose totals across the user's stack — composition data required",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 16,
+      "provenance": {
+        "sourceId": "ODS-INDEX",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/list-all/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "potassium",
+        "triggerType": "CONDITION",
+        "triggerValue": "KIDNEY_DISEASE",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "Potassium products can cause dangerous hyperkalemia in renal impairment.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "recorded user health conditions (loaded by safetyEngine)",
+      "engineEvaluatableToday": true,
+      "userImpact": "unchecked rule could miss a severe harm (contraindicated use)",
+      "severity": "CRITICAL",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 17,
+      "provenance": {
+        "sourceId": "ODS-INDEX",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/list-all/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "potassium",
+        "triggerType": "MEDICATION",
+        "triggerValue": "ACE_ARB_POTASSIUM_SPARING",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "Some blood-pressure and diuretic drugs can increase potassium; avoid automatic potassium advice.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "user medication list — NOT loaded by safetyEngine (no medication surface exists)",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a severe harm (contraindicated use)",
+      "severity": "CRITICAL",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 18,
+      "provenance": {
+        "sourceId": "ODS-IODINE",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Iodine-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "iodine",
+        "triggerType": "CONDITION",
+        "triggerValue": "THYROID_DISEASE",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "Both excess and deficiency iodine can worsen thyroid function; label quantity matters.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "recorded user health conditions (loaded by safetyEngine)",
+      "engineEvaluatableToday": true,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 19,
+      "provenance": {
+        "sourceId": "ODS-IODINE",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Iodine-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "iodine",
+        "triggerType": "PRODUCT_COMPOSITION",
+        "triggerValue": "KELP_SEA_MOSS",
+        "action": "REQUIRE_PRODUCT_LABEL",
+        "consumerWarning": "Seaweed supplements may contain highly variable amounts of iodine.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "full strain/species-level product composition — not in schema",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 20,
+      "provenance": {
+        "sourceId": "ODS-SELENIUM",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Selenium-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "selenium",
+        "triggerType": "DOSE_TOTAL",
+        "triggerValue": "HIGH_SELENIUM",
+        "action": "TOTAL_EXPOSURE_CHECK",
+        "consumerWarning": "Too much selenium can cause hair/nail and neurologic toxicity.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "per-ingredient dose totals across the user's stack — composition data required",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 21,
+      "provenance": {
+        "sourceId": "ODS-B6",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/VitaminB6-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "vitamin-b6",
+        "triggerType": "DOSE_TOTAL",
+        "triggerValue": "HIGH_B6",
+        "action": "TOTAL_EXPOSURE_CHECK",
+        "consumerWarning": "Chronic excess supplemental B6 can cause sensory neuropathy.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "per-ingredient dose totals across the user's stack — composition data required",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 22,
+      "provenance": {
+        "sourceId": "ODS-BIOTIN",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Biotin-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "biotin",
+        "triggerType": "LAB_TEST",
+        "triggerValue": "TROPONIN_THYROID_IMMUNOASSAY",
+        "action": "LAB_DISCLOSURE_WARNING",
+        "consumerWarning": "High-dose biotin can interfere with some troponin and hormone immunoassays; disclose to testing team.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "lab result records — no lab surface exists",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a severe harm (contraindicated use)",
+      "severity": "CRITICAL",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 23,
+      "provenance": {
+        "sourceId": "ODS-E",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/VitaminE-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "vitamin-e",
+        "triggerType": "MEDICATION",
+        "triggerValue": "WARFARIN_ANTIPLATELET",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "High supplemental vitamin E may increase bleeding risk with anticoagulants or antiplatelet drugs.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "user medication list — NOT loaded by safetyEngine (no medication surface exists)",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 24,
+      "provenance": {
+        "sourceId": "ODS-OMEGA",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Omega3FattyAcids-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "omega3",
+        "triggerType": "MEDICATION",
+        "triggerValue": "ANTICOAGULANT",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "Review high-dose omega-3 products and drug regimen; bleeding-risk implications depend on dose and context.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "user medication list — NOT loaded by safetyEngine (no medication surface exists)",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a moderate-risk advisory",
+      "severity": "MODERATE",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 25,
+      "provenance": {
+        "sourceId": "ODS-OMEGA",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Omega3FattyAcids-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "omega3",
+        "triggerType": "DOSE_TOTAL",
+        "triggerValue": "MULTIPLE_OMEGA_PRODUCTS",
+        "action": "TOTAL_EXPOSURE_CHECK",
+        "consumerWarning": "Avoid double-counting fish oil, algae oil, krill, cod-liver oil or EPA/DHA blends.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "per-ingredient dose totals across the user's stack — composition data required",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 26,
+      "provenance": {
+        "sourceId": "ODS-OMEGA",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Omega3FattyAcids-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "omega3",
+        "triggerType": "ALLERGY",
+        "triggerValue": "FISH_SHELLFISH",
+        "action": "REQUIRE_PRODUCT_LABEL",
+        "consumerWarning": "Check product source: fish oil and krill oil may pose relevant allergy risks.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "recorded user allergies (loaded by safetyEngine)",
+      "engineEvaluatableToday": true,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 27,
+      "provenance": {
+        "sourceId": "ODS-PREG",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Pregnancy-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "prenatal",
+        "triggerType": "LIFE_STAGE",
+        "triggerValue": "PREGNANT_OR_TRYING",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "Folic acid, iron, iodine and other needs are life-stage specific; confirm composition with prenatal care team.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "recorded life-stage conditions (pregnancy/lactation patterns)",
+      "engineEvaluatableToday": true,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 28,
+      "provenance": {
+        "sourceId": "ODS-INDEX",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/list-all/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "supplement-fat-soluble",
+        "triggerType": "DOSE_TOTAL",
+        "triggerValue": "VITAMINS_A_D_E_K",
+        "action": "TOTAL_EXPOSURE_CHECK",
+        "consumerWarning": "Check multiple overlapping products and upper limits; no blanket dose recommendations.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "per-ingredient dose totals across the user's stack — composition data required",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 29,
+      "provenance": {
+        "sourceId": "ODS-PROBIO",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Probiotics-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "probiotic",
+        "triggerType": "CONDITION",
+        "triggerValue": "IMMUNOCOMPROMISED_OR_CENTRAL_LINE",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "Certain live-microorganism supplements pose extra risks for severely ill or immunocompromised patients.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "recorded user health conditions (loaded by safetyEngine)",
+      "engineEvaluatableToday": true,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 30,
+      "provenance": {
+        "sourceId": "ODS-PROBIO",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Probiotics-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "probiotic",
+        "triggerType": "PRODUCT_COMPOSITION",
+        "triggerValue": "GENUS_SPECIES_STRAIN_CFU",
+        "action": "REQUIRE_PRODUCT_LABEL",
+        "consumerWarning": "Require strain designation, viable CFU, expiration and storage details for benefit claims.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "full strain/species-level product composition — not in schema",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a moderate-risk advisory",
+      "severity": "MODERATE",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 31,
+      "provenance": {
+        "sourceId": "MEDLINE-PSY",
+        "sourceUrl": "https://medlineplus.gov/druginfo/meds/a601104.html"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "psyllium",
+        "triggerType": "ADMINISTRATION",
+        "triggerValue": "INADEQUATE_WATER_OR_SWALLOWING_RISK",
+        "action": "REQUIRE_ADMIN_INSTRUCTIONS",
+        "consumerWarning": "Psyllium requires sufficient liquid and is unsuitable for some swallowing/obstruction risks.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "dosage-form/administration metadata on the product",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 32,
+      "provenance": {
+        "sourceId": "NCCIH-ASH",
+        "sourceUrl": "https://www.nccih.nih.gov/health/ashwagandha"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "ashwagandha",
+        "triggerType": "CONDITION",
+        "triggerValue": "PREGNANCY_THYROID_LIVER",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "Ashwagandha can interact with thyroid/immune medicines and has pregnancy/liver concerns.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "recorded user health conditions (loaded by safetyEngine)",
+      "engineEvaluatableToday": true,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 33,
+      "provenance": {
+        "sourceId": "NCCIH-MEL",
+        "sourceUrl": "https://www.nccih.nih.gov/health/melatonin-what-you-need-to-know"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "melatonin",
+        "triggerType": "AGE_GROUP",
+        "triggerValue": "CHILDREN_AND_ADOLESCENTS",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "Do not promote routine pediatric melatonin schedules; special safety and ingestion concerns.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "user date of birth → age band — user row not loaded by safetyEngine",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 34,
+      "provenance": {
+        "sourceId": "NCCIH-MEL",
+        "sourceUrl": "https://www.nccih.nih.gov/health/melatonin-what-you-need-to-know"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "melatonin",
+        "triggerType": "MEDICATION",
+        "triggerValue": "SEDATIVE_DRUGS",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "Sedation may add to other sedatives; review timing and context.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "user medication list — NOT loaded by safetyEngine (no medication surface exists)",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 35,
+      "provenance": {
+        "sourceId": "ODS-PERFORMANCE",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/ExerciseAndAthleticPerformance-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "caffeine",
+        "triggerType": "OTHER_SUPPLEMENT",
+        "triggerValue": "PRE_WORKOUT_GUARANA",
+        "action": "TOTAL_EXPOSURE_CHECK",
+        "consumerWarning": "Total caffeine from drinks, pre-workouts and guarana must be counted together.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "full supplement stack cross-reference (loaded links)",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 36,
+      "provenance": {
+        "sourceId": "ODS-PERFORMANCE",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/ExerciseAndAthleticPerformance-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "caffeine",
+        "triggerType": "CONDITION",
+        "triggerValue": "ARRHYTHMIA_ANXIETY_SLEEP_PREGNANCY",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "Stimulant use may be inappropriate for some conditions and life stages.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "recorded user health conditions (loaded by safetyEngine)",
+      "engineEvaluatableToday": true,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 37,
+      "provenance": {
+        "sourceId": "NCCIH-GREEN",
+        "sourceUrl": "https://www.nccih.nih.gov/health/green-tea"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "green tea extract (EGCG)",
+        "triggerType": "CONDITION",
+        "triggerValue": "LIVER_DISEASE",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "Concentrated green-tea extracts have been linked to liver injury; do not suggest automatically.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "recorded user health conditions (loaded by safetyEngine)",
+      "engineEvaluatableToday": true,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 38,
+      "provenance": {
+        "sourceId": "NCCIH-STJOHN",
+        "sourceUrl": "https://www.nccih.nih.gov/health/st-johns-wort"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "st. john's wort",
+        "triggerType": "MEDICATION",
+        "triggerValue": "ANTIDEPRESSANT_BIRTH_CONTROL_TRANSPLANT",
+        "action": "NO_AUTO_RECOMMEND",
+        "consumerWarning": "Strong interactions may reduce drug effectiveness or increase serotonin toxicity.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "user medication list — NOT loaded by safetyEngine (no medication surface exists)",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a severe harm (contraindicated use)",
+      "severity": "CRITICAL",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 39,
+      "provenance": {
+        "sourceId": "NCCIH-KAVA",
+        "sourceUrl": "https://www.nccih.nih.gov/health/kava"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "kava",
+        "triggerType": "CONDITION",
+        "triggerValue": "LIVER_DISEASE_OR_SEDATIVES",
+        "action": "NO_AUTO_RECOMMEND",
+        "consumerWarning": "Serious liver injury and sedative effects have been reported with kava products.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "recorded user health conditions (loaded by safetyEngine)",
+      "engineEvaluatableToday": true,
+      "userImpact": "unchecked rule could miss a severe harm (contraindicated use)",
+      "severity": "CRITICAL",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 40,
+      "provenance": {
+        "sourceId": "NCCIH-RED",
+        "sourceUrl": "https://www.nccih.nih.gov/health/red-yeast-rice"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "red yeast rice",
+        "triggerType": "MEDICATION",
+        "triggerValue": "STATIN_OR_LIVER_DISEASE",
+        "action": "NO_AUTO_RECOMMEND",
+        "consumerWarning": "May contain statin-like monacolin K; muscle/liver/kidney risks and regulatory concerns.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "user medication list — NOT loaded by safetyEngine (no medication surface exists)",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a severe harm (contraindicated use)",
+      "severity": "CRITICAL",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 41,
+      "provenance": {
+        "sourceId": "NCCIH-BERBERINE",
+        "sourceUrl": "https://www.nccih.nih.gov/health/diabetes-and-dietary-supplements-what-you-need-to-know"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "berberine",
+        "triggerType": "LIFE_STAGE",
+        "triggerValue": "PREGNANCY_OR_BREASTFEEDING",
+        "action": "NO_AUTO_RECOMMEND",
+        "consumerWarning": "Avoid automated berberine advice during pregnancy, breastfeeding or for infants.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "recorded life-stage conditions (pregnancy/lactation patterns)",
+      "engineEvaluatableToday": true,
+      "userImpact": "unchecked rule could miss a severe harm (contraindicated use)",
+      "severity": "CRITICAL",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 42,
+      "provenance": {
+        "sourceId": "NCCIH-BERBERINE",
+        "sourceUrl": "https://www.nccih.nih.gov/health/diabetes-and-dietary-supplements-what-you-need-to-know"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "berberine",
+        "triggerType": "MEDICATION",
+        "triggerValue": "GLUCOSE_LOWERING_DRUGS",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "May alter glucose responses and interact with medications; clinician review required.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "user medication list — NOT loaded by safetyEngine (no medication surface exists)",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 43,
+      "provenance": {
+        "sourceId": "NCCIH-GLUC",
+        "sourceUrl": "https://www.nccih.nih.gov/health/glucosamine-and-chondroitin-for-osteoarthritis-what-you-need-to-know"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "glucosamine / chondroitin",
+        "triggerType": "MEDICATION",
+        "triggerValue": "WARFARIN",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "Possible bleeding interaction with warfarin; review existing therapy.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "user medication list — NOT loaded by safetyEngine (no medication surface exists)",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 44,
+      "provenance": {
+        "sourceId": "ODS-PREG",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Pregnancy-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "cod liver oil",
+        "triggerType": "LIFE_STAGE",
+        "triggerValue": "PREGNANCY",
+        "action": "REFER_CLINICIAN",
+        "consumerWarning": "Cod liver oil may contain preformed vitamin A; require label and prenatal review.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "recorded life-stage conditions (pregnancy/lactation patterns)",
+      "engineEvaluatableToday": true,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 45,
+      "provenance": {
+        "sourceId": "ODS-IODINE",
+        "sourceUrl": "https://ods.od.nih.gov/factsheets/Iodine-HealthProfessional/"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "sea moss (Irish moss)",
+        "triggerType": "CONDITION",
+        "triggerValue": "THYROID_DISEASE",
+        "action": "REQUIRE_PRODUCT_LABEL",
+        "consumerWarning": "Check iodine and contaminants; no blanket 'thyroid-support' claims.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "recorded user health conditions (loaded by safetyEngine)",
+      "engineEvaluatableToday": true,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    },
+    {
+      "index": 46,
+      "provenance": {
+        "sourceId": "FDA",
+        "sourceUrl": "https://www.fda.gov/food/dietary-supplements/information-consumers-using-dietary-supplements"
+      },
+      "intendedBehavior": {
+        "ingredientOrFamily": "shilajit",
+        "triggerType": "PRODUCT_QUALITY",
+        "triggerValue": "METAL_CONTAMINATION",
+        "action": "NO_AUTO_RECOMMEND",
+        "consumerWarning": "Potential heavy-metal contamination; require reputable testing and safety review.",
+        "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+        "minSeparationHours": null
+      },
+      "reviewStatus": {
+        "approved": false,
+        "requiresReviewerSignoff": true,
+        "current": "DRAFT"
+      },
+      "runtimeRequirements": "third-party purity/contamination data per product — not in schema",
+      "engineEvaluatableToday": false,
+      "userImpact": "unchecked rule could miss a clinically meaningful interaction",
+      "severity": "HIGH",
+      "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass."
+    }
+  ]
+}
