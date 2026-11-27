@@ -99,3 +99,45 @@ behavior; the chat suppression flag "does not weaken recorded restrictions"
   holder — separation of duties working as designed.
 - Whether the same-actor review→approve convenience should be tightened
   (spec question, not a defect).
+
+## 4. Planner-offline increment (dev-04, 2026-11-26) — §10/§11/§5 verification
+
+Ran on branch continuation of `humai/dev-07/pc-HUM-37-gating-audit` (merge head `7d46966`).
+
+### §10 scenario validation — evidence state confirmed, no promotion
+- Generator rerun: `node scripts/build-scenario-fixtures.js` → exactly
+  `{executable: 72, blocked_not_implemented: 48}` — reproducible, no count
+  inflation. The 7 engineering-pending (A08 A09 H04 H06 L03 L04 L05) and 8
+  clinical packages (H01 H02 H03 H05 H07 D02 E04 G04) all remain
+  `blocked_not_implemented` with async-evidence notes; each carries the exact
+  missing reviewer-approved assert. **No scenario promoted** — reviewer
+  approval is a human act; this increment deliberately changes nothing there.
+- Async evidence suites green: `asyncScenarios` + `scenarioFixtures` → 83
+  passed / 48 todo (todo = the pending scenarios, honestly tracked).
+- New regression `tests/safetyGating.invariants.test.js` pins: all 15 remain
+  unpromoted, generator totals reproducible (72/48/120), no executable fixture
+  lacks assertion predicates, registry never seeds `approved`.
+
+### §11 Smart Fiber — fail-closed verified
+- `fiber_supplement_suggestions_enabled`/`fiber_ai_enabled`/`fiber_voice_enabled`
+  default OFF; endpoints refuse (non-200) when unenabled; flag service resolves
+  disabled with no env/DB row. Regression-pinned. Supplement/AI/voice and
+  condition personalization remain OFF — no production flag changes made.
+
+### §5 allergy support — consumer enforcement invariant
+- Weekly diet generator confirmed allergen-aware (`userAllergy` load + rule
+  constraint path) and pinned by regression; detailed behavior in
+  `recipeConstraints` (green). The open PR #14 lead (weekly-plan day
+  confirmation) remains a separate review item — not closed by this audit.
+
+### Verification totals this increment
+- `clinicalRuleWorkflow` + `recipeConstraints` + `activitySafety.scenarioMatrix`:
+  3,873 passed, 0 failed.
+- `safetyGating.invariants`: 6/6.
+- `asyncScenarios` + `scenarioFixtures`: 83 passed / 48 todo.
+
+### Remaining human-gated items (unchanged, exact asks)
+1. F5 legacy `/admin/clinical-rules` path decision — product/owner.
+2. 7 engineering scenarios: authorized-reviewer decisions using existing
+   reviewer-decision records (evidence prepared; review is human).
+3. 8 clinical packages: qualified professional review — never self-approved.
