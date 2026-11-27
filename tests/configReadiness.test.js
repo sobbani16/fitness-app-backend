@@ -3,7 +3,7 @@
 const { rows, shapeValid } = require('../scripts/config-readiness');
 
 const BASE = {
-  DATABASE_URL: 'postgresql://u:p@h:5432/db',
+  DATABASE_URL: 'postgresql://dbhost:5432/dbname',
   AUTH_LINK_SECRET: 'a'.repeat(32),
   RESEND_API_KEY: 're_' + 'x'.repeat(20),
 };
@@ -41,7 +41,7 @@ describe('value-safety — the cardinal rule', () => {
     expect(serialized).not.toContain(evil);
     expect(serialized).not.toContain('x'.repeat(32));
     expect(serialized).not.toContain('not-a-url');
-    expect(serialized).not.toContain('postgresql://u:p@h');
+    expect(serialized).not.toContain('postgresql://dbhost');
   });
 
   it('predictable secrets are detected by shape without echoing them', () => {
