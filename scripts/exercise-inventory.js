@@ -15,7 +15,252 @@ const { FAMILIES } = require('../src/services/exercise/taxonomy');
 
 const OUT_DIR = path.join(__dirname, '..', 'docs', 'exercise-intelligence');
 
+// ---------------------------------------------------------------------------
+// §33 onboarding — read-only coverage check + deterministic draft generation.
+// Identity conventions reuse scripts/import-exercises.js: id = slugify(name),
+// dedupe by id, invalid/duplicate rows skipped. The check compares the
+// independent exercise catalog (vendored data/exercises.json or an explicitly
+// provisioned disposable catalog via --catalog=) against the COMMITTED
+// inventory + profiles — CI proves every imported exercise has a draft
+// intelligence profile without needing a database.
+const { slugify, canonicalMuscle, canonicalEquipment } = require('../src/services/muscles');
+
+// Shared source-identity validation (§33): reject malformed rows BEFORE any
+// coverage comparison, artifact write, or import write. Returns 1-indexed
+// "row N: reason" strings — empty array means all identities are valid.
+function validateExerciseIdentityRows(rows) {
+  const invalid = [];
+  rows.forEach((raw, i) => {
+    const pos = `row ${i + 1}`;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) { invalid.push(`${pos}: not an object`); return; }
+    if (!('name' in raw) || raw.name == null) { invalid.push(`${pos}: missing name`); return; }
+    if (typeof raw.name !== 'string') { invalid.push(`${pos}: non-string name`); return; }
+    if (!raw.name.trim()) { invalid.push(`${pos}: blank name`); return; }
+    if (!slugify(raw.name.trim())) { invalid.push(`${pos}: punctuation-only name — no usable exercise identity`); }
+  });
+  return invalid;
+}
+
+function loadCatalogRows(catalogPath) {
+  const rows = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new Error(`catalog at ${catalogPath} is empty or not an array — refusing to check coverage against an empty catalog`);
+  }
+  // Reject malformed source identities BEFORE any coverage comparison or
+  // artifact write: a mixed catalog must not silently drop invalid rows and
+  // pass on the valid subset — that would certify coverage for exercises the
+  // source never actually defined. Row positions are 1-indexed as in the file.
+  const invalid = validateExerciseIdentityRows(rows);
+  if (invalid.length) {
+    const shown = invalid.slice(0, 20).join('; ');
+    const more = invalid.length > 20 ? ` (+${invalid.length - 20} more)` : '';
+    throw new Error(`catalog at ${catalogPath} has ${invalid.length} malformed ${invalid.length === 1 ? 'entry' : 'entries'} — ${shown}${more}. Fix the source rows or remove them; refusing to check coverage or write drafts against a partial catalog`);
+  }
+  const seen = new Set();
+  const out = [];
+  const dupes = [];
+  for (const raw of rows) {
+    const name = String(raw.name || '').trim();
+    const id = slugify(name);
+    if (!name || !id) continue;
+    if (seen.has(id)) { dupes.push(id); continue; }
+    seen.add(id);
+    out.push({ raw, id, name });
+  }
+  // Defect fix (empty-normalized-catalog false pass): a nonempty JSON array
+  // whose entries all normalize away (blank names, punctuation-only names,
+  // missing names) must NOT trivially pass coverage — the check would compare
+  // zero ids against committed files and report success for a meaningless
+  // catalog. Fail before any coverage comparison or draft write.
+  if (!out.length) {
+    throw new Error(`catalog at ${catalogPath} contains ${rows.length} entries but none normalize to a usable exercise id (blank/punctuation-only/missing names) — fix the catalog source; refusing to check coverage or write drafts against it`);
+  }
+  return { rows: out, catalogDuplicates: dupes };
+}
+
+// vendored free-exercise-db row -> exercise-like object buildProfile accepts
+function rowToExercise({ raw, id, name }) {
+  const primary = [...new Set((raw.primaryMuscles || []).flatMap(canonicalMuscle))];
+  const secondary = [...new Set((raw.secondaryMuscles || []).flatMap(canonicalMuscle))].filter((m) => !primary.includes(m));
+  return {
+    id, normalizedName: id, name,
+    level: raw.level || null, force: raw.force || null, mechanic: raw.mechanic || null,
+    equipment: raw.equipment || null,
+    appEquipment: [...new Set([raw.equipment].filter(Boolean).map(canonicalEquipment))],
+    category: raw.category || null, instructions: raw.instructions || [],
+    source: 'free-exercise-db', sourceId: raw.id || null, reviewStatus: null,
+    muscles: [...primary.map((muscle) => ({ muscle, role: 'primary' })), ...secondary.map((muscle) => ({ muscle, role: 'secondary' }))],
+  };
+}
+
+function loadCommitted(outDir) {
+  const invPath = path.join(outDir, 'exercise-inventory.json');
+  const profPath = path.join(outDir, 'exercise-profiles.v1.json');
+  if (!fs.existsSync(invPath) || !fs.existsSync(profPath)) {
+    throw new Error(`committed inventory/profiles missing in ${outDir} — run the generator first`);
+  }
+  const inv = JSON.parse(fs.readFileSync(invPath, 'utf8'));
+  const prof = JSON.parse(fs.readFileSync(profPath, 'utf8'));
+  return { inv, prof, invPath, profPath };
+}
+
+function coverageDiff(catalog, committed) {
+  // Persisted-ID aware lookup: a legacy row may persist under an id that
+  // differs from its normalized slug. A catalog exercise is covered when the
+  // committed inventory carries an entry whose id OR normalizedName equals
+  // the catalog slug — and the profile is keyed by that entry's persisted id.
+  // Ambiguity (slug matches one entry's id but a DIFFERENT entry's
+  // normalizedName) is a hard failure — never silently accept either.
+  const entries = committed.inv.exercises || [];
+  const profIds = new Set((committed.prof.profiles || []).map((p) => p.exerciseId));
+  const missingInventory = [];
+  const missingProfiles = [];
+  const ambiguous = [];
+  for (const r of catalog.rows) {
+    const byId = entries.filter((e) => e.id === r.id);
+    const byNorm = entries.filter((e) => e.normalizedName === r.id);
+    const matched = new Set([...byId, ...byNorm].map((e) => e.id));
+    if (matched.size > 1) { ambiguous.push(`${r.id} -> [${[...matched].join(', ')}]`); continue; }
+    if (!matched.size) { missingInventory.push(r.id); continue; }
+    const persistedId = [...matched][0];
+    if (!profIds.has(persistedId)) missingProfiles.push(`${r.id} (persisted as ${persistedId})`);
+  }
+  const invSeen = new Set(); const invDupes = [];
+  for (const e of (committed.inv.exercises || [])) { if (invSeen.has(e.id)) invDupes.push(e.id); invSeen.add(e.id); }
+  const profSeen = new Set(); const profDupes = [];
+  for (const p of (committed.prof.profiles || [])) { if (profSeen.has(p.exerciseId)) profDupes.push(p.exerciseId); profSeen.add(p.exerciseId); }
+  return { missingInventory, missingProfiles, invDupes, profDupes, ambiguous };
+}
+
+
+/**
+ * Stage a deterministic draft profile + coverage entry for one imported
+ * exercise. Idempotent: existing profiles are never overwritten — reviewed
+ * profiles are preserved untouched, existing drafts make retries no-ops.
+ * Writes docs/exercise-intelligence/drafts/<id>.json (review artifact keyed
+ * by exercise ID) and merges the coverage entry into the committed
+ * inventory/profile files. Returns { staged, reason }.
+ */
+function stageExerciseDraft(ex, outDir, opts = {}) {
+  const stamp = opts.fixedDate || new Date().toISOString();
+  const committed = loadCommitted(outDir);
+  const profiles = [...(committed.prof.profiles || [])];
+  const invExercises = [...(committed.inv.exercises || [])];
+  const existing = profiles.find((p) => p.exerciseId === ex.id);
+  if (existing) {
+    return { staged: false, reason: existing.validation?.profileReviewStatus === 'auto_generated_unreviewed' ? 'draft_exists' : 'reviewed_profile_preserved' };
+  }
+  const profile = buildProfile(ex);
+  profile.generatedAt = stamp;
+  profiles.push(profile);
+  profiles.sort((a, b) => a.exerciseId.localeCompare(b.exerciseId));
+  if (!invExercises.some((e) => e.id === ex.id)) {
+    invExercises.push({
+      id: ex.id, name: ex.name, normalizedName: ex.normalizedName,
+      level: ex.level, force: ex.force, mechanic: ex.mechanic,
+      equipment: ex.equipment, appEquipment: ex.appEquipment, category: ex.category,
+      instructionCount: (ex.instructions || []).length,
+      primaryMuscles: profile.identity.primaryMuscles, secondaryMuscles: profile.identity.secondaryMuscles,
+      source: ex.source, sourceId: ex.sourceId || null, reviewStatus: ex.reviewStatus,
+      movementFamily: profile.classification.family, movementSubtype: profile.classification.subtype,
+      taxonomyRule: profile.classification.ruleId, classified: profile.classification.classified,
+      capabilityLevel: profile.capability.level,
+    });
+    invExercises.sort((a, b) => a.id.localeCompare(b.id));
+  }
+  fs.writeFileSync(committed.invPath, JSON.stringify({ generatedAt: stamp, count: invExercises.length, exercises: invExercises }, null, 1));
+  fs.writeFileSync(committed.profPath, JSON.stringify({ profileVersion: PROFILE_VERSION, generatedAt: stamp, count: profiles.length, honesty: 'no profile claims ML validation; capability levels derive from evidence — all Level 0 manual tracking today; §33 drafts are auto-generated and unreviewed', profiles }, null, 1));
+  const draftsDir = path.join(outDir, 'drafts');
+  fs.mkdirSync(draftsDir, { recursive: true });
+  const evidenceGaps = [
+    ...(profile.classification.classified ? [] : ['movement-family unclassified — taxonomy review needed']),
+    'profile unreviewed — human review required before any capability beyond manual tracking',
+    'no training data, no validated rep counting or form observation',
+  ];
+  fs.writeFileSync(path.join(draftsDir, `${ex.id}.json`), JSON.stringify({
+    exerciseId: ex.id, reviewStatus: 'pending_review', generatedAt: stamp,
+    capabilityLevel: 0, tracking: 'manual_only',
+    validatedCapabilities: [], evidenceGaps, profile,
+  }, null, 1));
+  return { staged: true, reason: 'drafted', classified: profile.classification.classified };
+}
+
+async function checkMode(catalogPath, outDir) {
+  const catalog = loadCatalogRows(catalogPath);
+  const committed = loadCommitted(outDir);
+  const diff = coverageDiff(catalog, committed);
+  const failures = [];
+  if (catalog.catalogDuplicates.length) failures.push(`duplicate ids in catalog source: ${catalog.catalogDuplicates.join(', ')}`);
+  if (diff.missingInventory.length) failures.push(`catalog exercises missing from committed inventory: ${diff.missingInventory.join(', ')} — run: node scripts/exercise-inventory.js --drafts`);
+  if (diff.missingProfiles.length) failures.push(`catalog exercises missing a draft intelligence profile: ${diff.missingProfiles.join(', ')} — run: node scripts/exercise-inventory.js --drafts`);
+  if (diff.ambiguous && diff.ambiguous.length) failures.push(`ambiguous coverage — catalog slug maps to multiple persisted entries, resolve identity before trusting drafts: ${diff.ambiguous.join('; ')}`);
+  if (diff.invDupes.length) failures.push(`duplicate ids in committed inventory: ${diff.invDupes.join(', ')}`);
+  if (diff.profDupes.length) failures.push(`duplicate ids in committed profiles: ${diff.profDupes.join(', ')}`);
+  console.log(JSON.stringify({ mode: 'check', catalogRows: catalog.rows.length, committedInventory: (committed.inv.exercises || []).length, committedProfiles: (committed.prof.profiles || []).length, missingInventory: diff.missingInventory.length, missingProfiles: diff.missingProfiles.length, failures: failures.length }, null, 1));
+  if (failures.length) { console.error(`COVERAGE CHECK FAILED:\n - ${failures.join('\n - ')}`); process.exit(1); }
+  console.log('coverage check passed — every catalog exercise has committed inventory + draft profile coverage');
+}
+
+async function draftsMode(catalogPath, outDir, fixedDate) {
+  const catalog = loadCatalogRows(catalogPath);
+  const committed = loadCommitted(outDir);
+  const diff = coverageDiff(catalog, committed);
+  const missingIds = [...new Set([...diff.missingInventory, ...diff.missingProfiles])];
+  if (!missingIds.length) { console.log('no missing exercises — nothing to draft'); return; }
+  const stamp = fixedDate || new Date().toISOString();
+  const byId = new Map(catalog.rows.map((r) => [r.id, r]));
+  const invExercises = [...(committed.inv.exercises || [])];
+  const profiles = [...(committed.prof.profiles || [])];
+  const invSeen = new Set(invExercises.map((e) => e.id));
+  const profSeen = new Set(profiles.map((p) => p.exerciseId));
+  const drafted = [];
+  for (const id of missingIds.sort()) {
+    const row = byId.get(id);
+    if (!row) continue;
+    const ex = rowToExercise(row);
+    const profile = buildProfile(ex);
+    // §33: a draft never claims validation — capability stays Level 0 manual,
+    // review state explicit, coverage gaps surfaced.
+    profile.generatedAt = stamp;
+    if (!profSeen.has(id)) { profiles.push(profile); profSeen.add(id); }
+    if (!invSeen.has(id)) {
+      invExercises.push({
+        id: ex.id, name: ex.name, normalizedName: ex.normalizedName,
+        level: ex.level, force: ex.force, mechanic: ex.mechanic,
+        equipment: ex.equipment, appEquipment: ex.appEquipment, category: ex.category,
+        instructionCount: (ex.instructions || []).length,
+        primaryMuscles: profile.identity.primaryMuscles, secondaryMuscles: profile.identity.secondaryMuscles,
+        source: ex.source, sourceId: ex.sourceId || null, reviewStatus: ex.reviewStatus,
+        movementFamily: profile.classification.family, movementSubtype: profile.classification.subtype,
+        taxonomyRule: profile.classification.ruleId, classified: profile.classification.classified,
+        capabilityLevel: profile.capability.level,
+      });
+      invSeen.add(id);
+    }
+    drafted.push({ id, family: profile.classification.family, classified: profile.classification.classified, reviewStatus: profile.validation.profileReviewStatus, capabilityLevel: profile.capability.level });
+  }
+  // deterministic ordering — same input catalog produces byte-stable arrays
+  invExercises.sort((a, b) => a.id.localeCompare(b.id));
+  profiles.sort((a, b) => a.exerciseId.localeCompare(b.exerciseId));
+  fs.writeFileSync(committed.invPath, JSON.stringify({ generatedAt: stamp, count: invExercises.length, exercises: invExercises }, null, 1));
+  fs.writeFileSync(committed.profPath, JSON.stringify({ profileVersion: PROFILE_VERSION, generatedAt: stamp, count: profiles.length, honesty: 'no profile claims ML validation; capability levels derive from evidence — all Level 0 manual tracking today; §33 drafts are auto-generated and unreviewed', profiles }, null, 1));
+  const gaps = drafted.filter((d) => !d.classified).map((d) => d.id);
+  console.log(JSON.stringify({ mode: 'drafts', drafted: drafted.length, ids: drafted.map((d) => d.id), reviewRequired: drafted.length, unclassifiedCoverageGaps: gaps, capabilityLevel: '0 — manual tracking only, no validation claims' }, null, 1));
+  console.log(`draft profiles written for ${drafted.length} exercise(s) — ALL require human review before any capability beyond manual tracking`);
+}
+
+
 async function main() {
+  const modeArg = process.argv.find((a) => a.startsWith('--mode='));
+  const catalogArg = process.argv.find((a) => a.startsWith('--catalog='));
+  const outArg = process.argv.find((a) => a.startsWith('--out='));
+  const fixedDateArg = process.argv.find((a) => a.startsWith('--fixed-date='));
+  const catalogPath = catalogArg ? catalogArg.split('=').slice(1).join('=') : path.join(__dirname, '..', 'data', 'exercises.json');
+  const outDir = outArg ? outArg.split('=').slice(1).join('=') : path.join(__dirname, '..', 'docs', 'exercise-intelligence');
+  if (process.argv.includes('--check')) return checkMode(catalogPath, outDir);
+  if (process.argv.includes('--drafts')) return draftsMode(catalogPath, outDir, fixedDateArg ? fixedDateArg.split('=').slice(1).join('=') : null);
+  void modeArg;
+
   const prisma = getPrisma();
   const exercises = await prisma.exercise.findMany({ include: { muscles: true }, orderBy: { id: 'asc' } });
   await prisma.$disconnect();
@@ -112,4 +357,6 @@ No exercise is marked ML/camera validated: there is no pose pipeline, no validat
   console.log('inventory + profiles written to docs/exercise-intelligence/ — integrity checks passed');
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });
+
+module.exports = { stageExerciseDraft, loadCatalogRows, rowToExercise, coverageDiff, loadCommitted, validateExerciseIdentityRows };

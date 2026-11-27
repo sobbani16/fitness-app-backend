@@ -17,6 +17,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  exercise-profile-coverage:
+    # §33 onboarding gate — proves every vendored catalog exercise has a
+    # committed inventory entry + draft intelligence profile. DB-independent:
+    # uses the vendored data/exercises.json (nonempty by construction) and the
+    # checked-in docs/exercise-intelligence files read-only.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Exercise intelligence profile coverage check
+        run: node scripts/exercise-inventory.js --check
+
   jest:
     runs-on: ubuntu-latest
     timeout-minutes: 25
