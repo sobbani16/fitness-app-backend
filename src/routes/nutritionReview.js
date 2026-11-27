@@ -68,13 +68,13 @@ router.post('/:id/decision', REVIEW, wrap(async (req, res) => {
     }
   }
 
-  audit.log({
+  await audit.log({
     actorId: reviewer,
     action: `nutritionProfile.${decision.toLowerCase().replace('_', '-')}`,
     entityType: 'IngredientNutritionProfile', entityId: p.id,
     beforeData: { verifiedAt: p.verifiedAt },
     afterData: { decision, justification: justification.trim(), sourceDataset: p.sourceDataset, sourceFoodId: p.sourceFoodId },
-  }).catch(() => {});
+  });
   const profile = await prisma.ingredientNutritionProfile.findUnique({ where: { id: p.id }, include: { nutrients: true } });
   res.json({ profile, decision, decidedBy: reviewer });
 }));
@@ -93,11 +93,11 @@ router.post('/:id/revoke', REVIEW, wrap(async (req, res) => {
     data: { verifiedAt: null },
   });
   if (count === 0) return res.status(409).json({ error: 'concurrent decision — state changed, reload' });
-  audit.log({
-    userId: actor(req), action: 'nutritionProfile.revoke',
+  await audit.log({
+    actorId: actor(req), action: 'nutritionProfile.revoke',
     entityType: 'IngredientNutritionProfile', entityId: p.id,
     beforeData: { verifiedAt: p.verifiedAt }, afterData: { verifiedAt: null, justification: justification.trim() },
-  }).catch(() => {});
+  });
   res.json({ profile: await prisma.ingredientNutritionProfile.findUnique({ where: { id: p.id } }), decision: 'REVOKE' });
 }));
 
