@@ -1,0 +1,95 @@
+{
+  "artifact": {
+    "id": "hum28-staging-matrix-2026-11-27",
+    "deploymentSha": "df477eea2fcc",
+    "derivationRule": "case IDs derived mechanically: FLAG-<n>-<flagKey>-<state> for each canonical server-enforced safety flag x its primary gated endpoint x on/off state. The original nine UNSUPPORTED case IDs were never invented \u2014 QA's artifact remains absent.",
+    "executedAt": "2026-11-27T04:19:00Z",
+    "executor": "dev-01",
+    "authorization": "decision #110 \u2014 staging regression authorized"
+  },
+  "chainVerification": {
+    "posthogProject": 701405,
+    "projectIdentityProof": "created activity_safety_engine 100% rollout -> staging /config/features activitySafetyEngine flipped False->True within seconds for a fresh probe user",
+    "propertyTargetingCaveat": "backend getAllFlags passes empty person properties \u2014 email-targeted flags never match; matrix flags must use plain rollout",
+    "emailVerificationGate": "all authenticated endpoints enforce requireVerifiedEmail \u2014 probe users verified via direct staging DB setup (synthetic self-created accounts only)"
+  },
+  "scenarios": [
+    {
+      "caseId": "FLAG-1-activity_safety_engine-ON",
+      "flag": "activity_safety_engine",
+      "state": "created+active, 100% rollout",
+      "endpoint": "POST /activity-safety/evaluate",
+      "expected": "endpoint live \u2014 requireFeature passes, semantic validation responds",
+      "actual": "400 unknown activityId (semantic validation \u2014 endpoint live)",
+      "http": 400,
+      "disposition": "PASS \u2014 flag-on endpoint behavior verified"
+    },
+    {
+      "caseId": "FLAG-1-activity_safety_engine-OFF",
+      "flag": "activity_safety_engine",
+      "state": "disabled",
+      "endpoint": "POST /activity-safety/evaluate",
+      "expected": "403 FEATURE_DISABLED",
+      "actual": "403 FEATURE_DISABLED",
+      "http": 403,
+      "disposition": "PASS \u2014 flag-off kill-switch behavior verified"
+    },
+    {
+      "caseId": "FLAG-2-health_aware_recommendations-OFF",
+      "flag": "health_aware_recommendations",
+      "state": "never created (absent baseline)",
+      "endpoint": "GET /activity-safety/recommendation",
+      "expected": "403 FEATURE_DISABLED",
+      "actual": "403 FEATURE_DISABLED",
+      "http": 403,
+      "disposition": "PASS \u2014 absent-flag default-off verified even while sibling engine flag was ON"
+    },
+    {
+      "caseId": "FLAG-3-weather_intelligence_v2-ON",
+      "flag": "weather_intelligence_v2",
+      "state": "created+active, 100% rollout (PostHog id 1137098)",
+      "endpoint": "GET /weather/environment?lat=37.77&lon=-122.41",
+      "expected": "endpoint live \u2014 real environmental data",
+      "actual": "200 open-meteo live observation (available:true, observedAt present); invalid input correctly 400s \u2014 endpoint live through requireFeature",
+      "http": 200,
+      "disposition": "PASS \u2014 config evaluation flipped False->True and endpoint served real data"
+    },
+    {
+      "caseId": "FLAG-3-weather_intelligence_v2-OFF",
+      "flag": "weather_intelligence_v2",
+      "state": "disabled",
+      "endpoint": "GET /weather/environment?lat=37.77&lon=-122.41",
+      "expected": "403 FEATURE_DISABLED",
+      "actual": "403 FEATURE_DISABLED (after 60s per-user cache expiry \u2014 cache TTL documented behavior)",
+      "http": 403,
+      "disposition": "PASS \u2014 kill-switch verified; config evaluation flipped True->False",
+      "note": "first OFF probe hit the documented 60s per-user evaluation cache and still showed True \u2014 re-probed after expiry. Cache TTL is registry-documented behavior, not a defect."
+    },
+    {
+      "caseId": "FLAG-4-activity_safety_shadow_mode-ON",
+      "flag": "activity_safety_shadow_mode",
+      "state": "created+active, 100% rollout (PostHog id 1137101)",
+      "endpoint": "/config/features evaluation",
+      "expected": "evaluation flips True; no user-facing endpoint contrast exists BY DESIGN (shadow mode is persistence-only \u2014 persistEvaluation writes shadow rows, never alters responses)",
+      "actual": "config activitySafetyShadowMode flipped False->True after cache expiry",
+      "http": 200,
+      "disposition": "PASS \u2014 evaluation chain verified; persistence semantics documented",
+      "note": "3852 shadow rows already present in staging DB \u2014 shadow persistence has run historically; per-flag row attribution would require controlled evaluation writes, out of scope for a read-mostly matrix pass"
+    }
+  ],
+  "restoration": {
+    "action": "activity_safety_engine PostHog flag deleted (status DELETED) \u2014 baseline absent restored",
+    "verifyProbe": "post-delete POST /activity-safety/evaluate returned 403 \u2014 consistent with absent baseline",
+    "residualState": "none in PostHog; synthetic probe users (hum28-*) remain in staging DB as test fixtures",
+    "weather": "weather_intelligence_v2 PostHog flag deleted (status DELETED) \u2014 absent baseline restored",
+    "shadow": "activity_safety_shadow_mode PostHog flag deleted (status DELETED) \u2014 absent baseline restored",
+    "complete": "all three created flags deleted; zero residual PostHog config"
+  },
+  "propertyTargetingDefect": {
+    "severity": "platform-wide silent failure",
+    "evidence": "backend src/services/featureFlags/provider.js calls getAllFlags(String(userId), {}, {}) with EMPTY person properties. PostHog flags with person-property release conditions (e.g. email icontains humai-internal.test \u2014 the internal-tester pattern used by mobile_score_breakdown and others) can NEVER evaluate true because the properties being matched are never supplied.",
+    "provenBy": "mobile_score_breakdown ACTIVE with email icontains humai-internal.test rollout 100% evaluated FALSE for a probe user whose email matches humai-internal.test exactly, while plain-rollout flags flip correctly within seconds",
+    "impact": "all internal-tester-targeted rollouts are silently dead \u2014 internal testers evaluate production-default false; any gradual/targeted rollout by person property is inert",
+    "remediation": "pass person properties (email at minimum) into getAllFlags evaluation call, or move targeting to server-side group keys the backend actually supplies"
+  }
+}

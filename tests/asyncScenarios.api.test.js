@@ -25,7 +25,7 @@ const food = (userId, n, over = {}) => prisma.foodLog.create({ data: { userId, m
 const as = (u) => ({ 'x-user-id': u.id });
 
 beforeAll(() => {
-  if (!/fitness_test/.test(process.env.DATABASE_URL || '')) throw new Error('api runner must target fitness_test');
+  if (!require('./testDbUrl').isPositiveTestDatabase(process.env.DATABASE_URL || '').ok) throw new Error('api runner must target a positively-identified local test database');
   ['leo_progress_enabled', 'activity_safety_engine', 'health_aware_recommendations']
     .forEach((k) => { process.env[envOverrideName(k)] = 'true'; });
   flags.resetCache();

@@ -46,7 +46,10 @@ beforeAll(async () => {
   ingAmb = await prisma.ingredient.create({ data: { name: `${S} ambiguous bread`, normalizedName: `${S} ambiguous bread`, caloriesPer100g: 265, proteinPer100g: 9, carbsPer100g: 49, fatPer100g: 3.2, source: 'test-fixture' } });
   // Referenced control: normal catalog row with a live user link.
   ingCtrl = await prisma.ingredient.create({ data: { name: `${S} control oats`, normalizedName: `${S} control oats`, caloriesPer100g: 389, proteinPer100g: 16.9, carbsPer100g: 66.3, fatPer100g: 6.9, source: 'usda' } });
-  const u = await prisma.user.findFirst({ select: { id: true } });
+  // Self-contained means SELF-contained: seed our own control user rather
+  // than borrowing whatever happens to be in the database — a correctly
+  // migration-provisioned test database starts empty of user data.
+  const u = await prisma.user.create({ data: { email: `${S}-ctrl@test.fixture` }, select: { id: true } });
   ctrlUserId = u.id;
   await prisma.userIngredient.create({ data: { userId: ctrlUserId, ingredientId: ingCtrl.id } });
 });
@@ -58,6 +61,7 @@ afterAll(async () => {
   await step(() => prisma.ruleEvidence.deleteMany({ where: { id: { in: [evOwned, evBadCode, evBadNotes, evWrongOrg, evRef].map(r => r.id) } } }));
   await step(() => prisma.userIngredient.deleteMany({ where: { userId: ctrlUserId, ingredientId: ingCtrl.id } }));
   await step(() => prisma.ingredient.deleteMany({ where: { id: { in: [ingAmb.id, ingCtrl.id] } } }));
+  await step(() => prisma.user.delete({ where: { id: ctrlUserId } }));
   fs.rmSync(REPORT, { force: true });
 });
 
