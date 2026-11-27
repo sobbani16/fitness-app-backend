@@ -256,3 +256,18 @@ weekly-plan ×2; injury painLevel; symptom no-idempotency; benign-ALLOW engine c
 
 ### Battery re-run at audit time
 tests/contracts 108/108 + apiContract/releaseMechanics 11/11 at `39a291f` — reproducibility confirmed byte-exact.
+
+## 2026-11-27 — §013 fiber deep-contract pins (pc-HUM-63, milestone 9)
+
+Coverage-map gap analysis corrected the planner assumption: fiberSummary already pinned
+/fiber/daily; foodLogCreate already pinned portion paths (LEGACY+CANDIDATE); safetyRecommend
+already pinned the recommendations wire. Genuine gaps filled in `tests/contracts/fiberDeep.contract.test.js` (9 tests):
+
+- **flag-off degradation** — the fiber card family's explicit requirement, previously unpinned anywhere: flags OFF → 403 FEATURE_DISABLED uniformly across /daily + /target, zero partial-data leakage.
+- **NEW FINDING — hybrid error envelope**: FEATURE_DISABLED responses carry nested `error.code=FEATURE_DISABLED` AND flat `code=FORBIDDEN` (global handler wrap) simultaneously — two code paths with DIFFERENT semantics. Mobile consumers reading `body.code` vs `body.error.code` see different values. Cross-surface inconsistency filed for owner decision (align envelope or document consumer guidance).
+- **/fiber/target + /fiber/trend shapes** pinned: formula fallback with no macroGoal, 401 envelope, empty-history trend never 500s.
+- **input validation**: targetG 150 → 400 strict (never clamped); empty body → documented reset-to-default path (fiberTarget 30, basis null) — probed 500 initially but verified as mock artifact, corrected-mock proof 200. additive-not-breaking confirmed for old clients.
+
+Full contract suite: **130/130 green** (121 prior + 9 new, zero regressions) — verified with `TEST_DATABASE_URL` explicitly exported.
+
+**Harness-trap evidence (new variant)**: initial full-suite run showed safetySurfaceContract 13/13 failing with `table public.User does not exist` — root cause: **this worktree has no `.env` file at all** (only `.env.example`), so absent an exported TEST_DATABASE_URL prisma connects to the postgres default database, which has no schema. Distinct from the pc-HUM-38 seed-script trap variant (right var, wrong consumer) — this one is the worktree-bootstrapping gap: fresh worktrees need TEST_DATABASE_URL exported or a local `.env`. No code regression existed; the suite was never broken. Documented per the never-hide-failure discipline.
