@@ -22,7 +22,7 @@ const food = (userId, n, over) => prisma.foodLog.create({ data: { userId, mealTy
 const symptom = (userId, n, over = {}) => prisma.userSymptomReport.create({ data: { userId, symptoms: over.symptoms || ['nausea'], severity: over.severity || 'mild', context: over.context || 'after_activity', persistence: over.persistence || null, status: over.status || 'active', source: 'manual', reportedAt: day(n), ...over } });
 const expect2 = (id) => manifest.scenarios.find((s) => s.id === id).expected;
 
-beforeAll(() => { if (!/fitness_test/.test(process.env.DATABASE_URL || '')) throw new Error('async runner must target fitness_test'); });
+beforeAll(() => { if (!require('./testDbUrl').isPositiveTestDatabase(process.env.DATABASE_URL || '').ok) throw new Error('async runner must target a positively-identified local test database'); });
 afterAll(async () => {
   for (const model of ['foodLog', 'weightEntry', 'workoutSession', 'dailySteps', 'sleepLog', 'macroGoal', 'goalHistory', 'userSymptomReport', 'dailyScoreSnapshot']) await prisma[model].deleteMany({ where: { userId: { in: ids } } }).catch(() => {});
   await prisma.user.deleteMany({ where: { id: { in: ids } } }).catch(() => {});
