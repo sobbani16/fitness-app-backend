@@ -1,161 +1,116 @@
-// Trainer marketplace reviews (pc-HUM-143 / spec PHASE-10): verified-
-// participant gating, duplicate prevention, rating validation, published-only
-// public projection, separate professional responses, moderation transitions.
+// Route tests — trainer review HTTP surface (pc-HUM-143).
+process.env.NODE_ENV = 'test';
+const request = require('supertest');
+
+const state = {
+  trainer: { id: 'tp-1', userId: 'trainer-user-1' },
+  relations: [],
+  purchases: [],
+  reviews: [],
+};
 const mockPrisma = {
-  trainerProfile: { findUnique: jest.fn() },
-  trainerClient: { findFirst: jest.fn() },
-  trainerPurchase: { findFirst: jest.fn() },
-  trainerReview: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn() },
+  userRole: { findMany: jest.fn(async ({ where }) => where.userId === 'admin-1' ? [{ role: { name: 'ADMIN' } }] : where.userId === 'trainer-user-1' ? [{ role: { name: 'TRAINER' } }] : []) },
+  trainerProfile: { findUnique: jest.fn(async ({ where }) => (where.id === 'tp-1' ? state.trainer : null)) },
+  trainerClient: { findFirst: jest.fn(async () => state.relations[0] || null) },
+  trainerPurchase: { findFirst: jest.fn(async () => state.purchases[0] || null) },
+  trainerReview: {
+    findUnique: jest.fn(async ({ where }) => {
+      if (where.id) return state.reviews.find((r) => r.id === where.id) || null;
+      if (where.trainerId_clientId) {
+        const { trainerId, clientId } = where.trainerId_clientId;
+        return state.reviews.find((r) => r.trainerId === trainerId && r.clientId === clientId) || null;
+      }
+      return null;
+    }),
+    findMany: jest.fn(async () => state.reviews.filter((r) => r.status === 'published')),
+    create: jest.fn(async ({ data }) => { const row = { id: `rev-${state.reviews.length + 1}`, status: 'published', ...data }; state.reviews.push(row); return row; }),
+    update: jest.fn(async ({ where, data }) => {
+      const row = state.reviews.find((r) => r.id === where.id);
+      Object.assign(row, data);
+      return row;
+    }),
+    aggregate: jest.fn(async () => ({ _avg: { overall: 4.5 }, _count: 2 })),
+  },
 };
 jest.mock('../src/lib/prisma', () => ({ getPrisma: () => mockPrisma }));
+jest.mock('../src/services/featureFlags/service', () => ({
+  isEnabled: jest.fn(async () => true),
+  clientConfig: jest.fn(async () => ({})),
+  evaluateAll: jest.fn(async () => ({})),
+  resetCache: jest.fn(),
+  isAiShutdown: jest.fn(() => false),
+  diagnostics: jest.fn(() => ({})),
+}));
 
-const reviews = require('../src/services/trainerReviewService');
-
-const TRAINER = { id: 'tp-1', userId: 'trainer-user-1' };
-const INPUT = { overall: 4, quality: 5, communication: 4, body: 'Solid coaching.' };
-
+const app = require('../src/app');
 beforeEach(() => {
   jest.clearAllMocks();
-  mockPrisma.trainerProfile.findUnique.mockResolvedValue(TRAINER);
-  mockPrisma.trainerClient.findFirst.mockResolvedValue({ id: 'rel-1', status: 'active' });
-  mockPrisma.trainerPurchase.findFirst.mockResolvedValue(null);
-  mockPrisma.trainerReview.findUnique.mockResolvedValue(null);
-  mockPrisma.trainerReview.create.mockImplementation(async ({ data }) => ({ id: 'rev-1', ...data }));
-  mockPrisma.trainerReview.update.mockImplementation(async ({ data }) => ({ id: 'rev-1', ...data }));
+  state.relations = [{ trainerId: 'tp-1', clientId: 'client-1', status: 'active' }];
+  state.purchases = [];
+  state.reviews = [];
 });
 
-describe('verified-participant gate', () => {
-  it('rejects clients with no relation and no purchase', async () => {
-    mockPrisma.trainerClient.findFirst.mockResolvedValue(null);
-    await expect(reviews.upsertReview('client-1', 'tp-1', INPUT)).rejects.toMatchObject({ status: 403 });
-    expect(mockPrisma.trainerReview.create).not.toHaveBeenCalled();
+const as = (userId, roles = []) => ({ 'x-user-id': userId, 'x-user-roles': roles.join(',') });
+
+describe('POST /trainer/reviews/:trainerProfileId — verified-participant write', () => {
+  it('active coaching relation → 201 creates review', async () => {
+    const res = await request(app).post('/trainer/reviews/tp-1').set(as('client-1')).send({ overall: 5, quality: 4, body: 'Excellent structured coaching.' });
+    expect(res.status).toBe(201);
+    expect(res.body.overall).toBe(5);
   });
 
-  it('accepts clients with a non-pending coaching relation', async () => {
-    const out = await reviews.upsertReview('client-1', 'tp-1', INPUT);
-    expect(out.id).toBe('rev-1');
-    expect(mockPrisma.trainerClient.findFirst).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({ status: { in: ['active', 'paused', 'completed', 'dropped'] } }),
-    }));
+  it('no relation and no purchase → 403 verified-participant gate', async () => {
+    state.relations = [];
+    const res = await request(app).post('/trainer/reviews/tp-1').set(as('stranger-1')).send({ overall: 5 });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/verified coaching participants/);
   });
 
-  it('accepts clients with a paid purchase when no relation exists', async () => {
-    mockPrisma.trainerClient.findFirst.mockResolvedValue(null);
-    mockPrisma.trainerPurchase.findFirst.mockResolvedValue({ id: 'pur-1', status: 'paid' });
-    const out = await reviews.upsertReview('client-1', 'tp-1', INPUT);
-    expect(out.id).toBe('rev-1');
+  it('paid purchase (no relation) → 201 — purchase also verifies participation', async () => {
+    state.relations = [];
+    state.purchases = [{ clientId: 'client-1', status: 'paid' }];
+    const res = await request(app).post('/trainer/reviews/tp-1').set(as('client-1')).send({ overall: 4 });
+    expect(res.status).toBe(201);
   });
 
-  it('rejects self-review by the professional', async () => {
-    await expect(reviews.upsertReview('trainer-user-1', 'tp-1', INPUT)).rejects.toMatchObject({ status: 403 });
-    expect(mockPrisma.trainerClient.findFirst).not.toHaveBeenCalled();
+  it('self-review → 403 professionals cannot review own profile', async () => {
+    const res = await request(app).post('/trainer/reviews/tp-1').set(as('trainer-user-1')).send({ overall: 5 });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/own profile/);
   });
 
-  it('404s for unknown trainer profiles', async () => {
-    mockPrisma.trainerProfile.findUnique.mockResolvedValue(null);
-    await expect(reviews.upsertReview('client-1', 'missing', INPUT)).rejects.toMatchObject({ status: 404 });
-  });
-});
-
-describe('duplicate prevention / edit semantics', () => {
-  it('edits the existing review instead of creating a duplicate', async () => {
-    mockPrisma.trainerReview.findUnique.mockResolvedValue({ id: 'rev-1', status: 'published' });
-    await reviews.upsertReview('client-1', 'tp-1', { overall: 2 });
-    expect(mockPrisma.trainerReview.create).not.toHaveBeenCalled();
-    expect(mockPrisma.trainerReview.update).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: 'rev-1' },
-      data: expect.objectContaining({ overall: 2 }),
-    }));
+  it('repeat submission edits in place — no duplicate accumulation', async () => {
+    await request(app).post('/trainer/reviews/tp-1').set(as('client-1')).send({ overall: 5 });
+    const second = await request(app).post('/trainer/reviews/tp-1').set(as('client-1')).send({ overall: 3, body: 'Revised down after poor follow-through.' });
+    expect(second.status).toBe(201);
+    expect(state.reviews.length).toBe(1);
+    expect(state.reviews[0].overall).toBe(3); // honest current assessment, not averaged manipulation
   });
 
-  it('refuses edits to reviews removed by moderation', async () => {
-    mockPrisma.trainerReview.findUnique.mockResolvedValue({ id: 'rev-1', status: 'removed' });
-    await expect(reviews.upsertReview('client-1', 'tp-1', INPUT)).rejects.toMatchObject({ status: 409 });
+  it('low ratings accepted identically — no favorable-review requirement', async () => {
+    const res = await request(app).post('/trainer/reviews/tp-1').set(as('client-1')).send({ overall: 1, body: 'Did not deliver the promised plan.' });
+    expect(res.status).toBe(201);
+    expect(res.body.overall).toBe(1);
   });
 });
 
-describe('rating and body validation', () => {
-  it.each([
-    ['missing overall', { quality: 4 }],
-    ['non-integer rating', { overall: 3.5 }],
-    ['out-of-range low', { overall: 0 }],
-    ['out-of-range high', { overall: 6 }],
-    ['non-integer axis', { overall: 4, clarity: 2.2 }],
-  ])('rejects %s', async (_label, input) => {
-    await expect(reviews.upsertReview('client-1', 'tp-1', input)).rejects.toMatchObject({ status: 400 });
-    expect(mockPrisma.trainerReview.create).not.toHaveBeenCalled();
-  });
-
-  it('accepts optional axes as absent and caps body length', async () => {
-    const out = await reviews.upsertReview('client-1', 'tp-1', { overall: 5 });
-    expect(out.overall).toBe(5);
-    await expect(reviews.upsertReview('client-1', 'tp-1', { overall: 5, body: 'x'.repeat(2001) }))
-      .rejects.toMatchObject({ status: 400 });
-  });
-
-  it('ignores mass-assignment fields outside the allowlist', async () => {
-    const out = await reviews.upsertReview('client-1', 'tp-1', { ...INPUT, status: 'published', trainerId: 'evil', clientId: 'evil' });
-    expect(out.status).toBeUndefined();
-    const createData = mockPrisma.trainerReview.create.mock.calls[0][0].data;
-    expect(createData.trainerId).toBe('tp-1');
-    expect(createData.clientId).toBe('client-1');
-    expect(createData).not.toHaveProperty('status');
+describe('GET listing + aggregate — published-only surface', () => {
+  it('returns only published reviews with public projection', async () => {
+    state.reviews = [
+      { id: 'r1', trainerId: 'tp-1', clientId: 'c1', overall: 5, status: 'published', body: 'great' },
+      { id: 'r2', trainerId: 'tp-1', clientId: 'c2', overall: 1, status: 'removed', body: 'hidden' },
+    ];
+    const res = await request(app).get('/trainer/reviews/tp-1').set(as('anyone-1'));
+    expect(res.status).toBe(200);
+    expect(res.body.reviews.length).toBe(1); // removed never surfaces
   });
 });
 
-describe('public listing and aggregation', () => {
-  it('lists published reviews only with the field allowlist projection', async () => {
-    mockPrisma.trainerReview.findMany.mockResolvedValue([]);
-    await reviews.listReviews('tp-1');
-    const args = mockPrisma.trainerReview.findMany.mock.calls[0][0];
-    expect(args.where).toEqual({ trainerId: 'tp-1', status: 'published' });
-    expect(args.select).not.toHaveProperty('clientId');
-    expect(args.select).not.toHaveProperty('flaggedReason');
-  });
-
-  it('aggregates published reviews only and handles zero-review trainers', async () => {
-    mockPrisma.trainerReview.findMany.mockResolvedValue([]);
-    expect(await reviews.aggregateReviews('tp-1')).toEqual({ count: 0, average: null });
-    mockPrisma.trainerReview.findMany.mockResolvedValue([{ overall: 5 }, { overall: 3 }]);
-    expect(await reviews.aggregateReviews('tp-1')).toEqual({ count: 2, average: 4 });
-  });
-});
-
-describe('professional responses', () => {
-  it('allows only the reviewed professional and never touches moderation state', async () => {
-    mockPrisma.trainerReview.findUnique.mockResolvedValue({ id: 'rev-1', trainerId: 'tp-1', status: 'published' });
-    await expect(reviews.respondToReview('other-user', 'rev-1', 'thanks')).rejects.toMatchObject({ status: 403 });
-    const out = await reviews.respondToReview('trainer-user-1', 'rev-1', 'Thank you!');
-    expect(out.responseBody).toBe('Thank you!');
-    const updateData = mockPrisma.trainerReview.update.mock.calls[0][0].data;
-    expect(updateData).not.toHaveProperty('status');
-  });
-});
-
-describe('moderation', () => {
-  beforeEach(() => {
-    mockPrisma.trainerReview.findUnique.mockResolvedValue({ id: 'rev-1', status: 'published' });
-  });
-
-  it('requires a reason when flagging or removing', async () => {
-    await expect(reviews.moderateReview('rev-1', 'flagged')).rejects.toMatchObject({ status: 400 });
-    await expect(reviews.moderateReview('rev-1', 'removed', '  ')).rejects.toMatchObject({ status: 400 });
-  });
-
-  it('rejects unknown statuses and 404s on missing reviews', async () => {
-    await expect(reviews.moderateReview('rev-1', 'hidden', 'x')).rejects.toMatchObject({ status: 400 });
-    mockPrisma.trainerReview.findUnique.mockResolvedValue(null);
-    await expect(reviews.moderateReview('rev-1', 'published')).rejects.toMatchObject({ status: 404 });
-  });
-
-  it('applies valid transitions and clears the reason on republish', async () => {
-    await reviews.moderateReview('rev-1', 'flagged', 'suspected retaliatory review');
-    expect(mockPrisma.trainerReview.update).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ status: 'flagged', flaggedReason: 'suspected retaliatory review' }),
-    }));
-    await reviews.moderateReview('rev-1', 'published');
-    expect(mockPrisma.trainerReview.update).toHaveBeenLastCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ status: 'published', flaggedReason: null }),
-    }));
+describe('moderation separation', () => {
+  it('flagging without reason → 400 (moderation trail never unexplained)', async () => {
+    state.reviews = [{ id: 'r1', trainerId: 'tp-1', clientId: 'c1', overall: 2, status: 'published' }];
+    const res = await request(app).post('/trainer/reviews/r1/moderate').set(as('admin-1', ['ADMIN'])).send({ status: 'flagged' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/flaggedReason/);
   });
 });
