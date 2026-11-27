@@ -65,9 +65,23 @@ it('groups logs into their local day with confirmed/unknown semantics preserved'
   const res = await request(app).get('/fiber/trend?days=2').set('x-user-id', 'user-a');
   expect(res.status).toBe(200);
   expect(res.body.days).toEqual([
-    { date: yesterday, confirmedG: 12, targetG: 28, unknownMeals: 1, mealsLogged: 3 },
-    { date: today, confirmedG: 10, targetG: 28, unknownMeals: 0, mealsLogged: 1 },
+    { date: yesterday, confirmedG: 12, estimatedG: 0, targetG: 28, unknownMeals: 1, mealsLogged: 3 },
+    { date: today, confirmedG: 10, estimatedG: 0, targetG: 28, unknownMeals: 0, mealsLogged: 1 },
   ]);
+});
+
+it('estimated fiber surfaces as its own class — an all-estimated day is never indistinguishable from a zero-fiber day', async () => {
+  const today = new Date().toISOString().slice(0, 10);
+  mockStore.foodLogs = [
+        log(`${today}T09:00:00Z`, 6, { nutritionSnapshot: { loggedSource: 'ai-estimate' } }), // estimate-provenance per ESTIMATED_SOURCE_RE
+    log(`${today}T13:00:00Z`, 8), // confirmed
+  ];
+  const res = await request(app).get('/fiber/trend?days=1').set('x-user-id', 'user-a');
+  const day = res.body.days[0];
+  expect(day.estimatedG).toBe(6); // estimated class reported separately
+  expect(day.confirmedG).toBe(8); // confirmed unaffected
+  // consistency with the canonical engine: both classes are visible, neither masks the other
+  expect(day.confirmedG + day.estimatedG).toBe(14);
 });
 
 it('does not count a log toward a day boundary it does not belong to', async () => {

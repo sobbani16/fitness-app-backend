@@ -98,19 +98,23 @@ router.get('/trend', requireFeature('fiber_daily_goal_enabled'), async (req, res
       where: { userId, loggedAt: { gte: first.startUtc, lt: last.endUtc } },
       select: { fiberG: true, loggedAt: true, nutritionSnapshot: true },
     });
-    const byDay = new Map(dayList.map((d) => [d, { confirmed: 0, unknown: 0, meals: 0 }]));
+    const byDay = new Map(dayList.map((d) => [d, { confirmed: 0, estimated: 0, unknown: 0, meals: 0 }]));
     for (const l of logs) {
       const bucket = byDay.get(dayKey(l.loggedAt, tz));
       if (!bucket) continue;
       bucket.meals += 1;
       const st = fiberStateOf(l);
+      // Estimated fiber is data too — the canonical engine reports it as its
+      // own class. Dropping it here made an all-estimated day indistinguishable
+      // from a zero-fiber day, contradicting the daily surface.
       if (st === 'confirmed') bucket.confirmed += l.fiberG;
+      else if (st === 'estimated') bucket.estimated += l.fiberG;
       else if (st === 'unknown') bucket.unknown += 1;
     }
     res.json({
       days: dayList.map((day) => {
         const b = byDay.get(day);
-        return { date: day, confirmedG: Math.round(b.confirmed * 10) / 10, targetG: target.targetG, unknownMeals: b.unknown, mealsLogged: b.meals };
+        return { date: day, confirmedG: Math.round(b.confirmed * 10) / 10, estimatedG: Math.round(b.estimated * 10) / 10, targetG: target.targetG, unknownMeals: b.unknown, mealsLogged: b.meals };
       }),
       timezone: tz,
     });
