@@ -61,9 +61,9 @@ describe('CLI contract', () => {
     // apply refuses non-local hosts — the env guard is structural, not documentation
     expect(src).toMatch(/REFUSING to apply against non-local database/);
     expect(src).toMatch(/localhost\|127/);
-    // verified-after-apply re-reads each written row
-    expect(src).toMatch(/VERIFIED/);
-    expect(src).toMatch(/VERIFY-FAIL/);
+    // verified-after-apply: post-commit read-back per row; APPLIED emitted only after confirmation
+    expect(src).toMatch(/post-commit verification failed/);
+    expect(src).toMatch(/\(verified\)/);
     // HELD semantics: unresolved lines exclude the recipe from the apply set
     expect(src).toMatch(/held/);
     // rollback SQL is printed for every write
@@ -83,5 +83,13 @@ describe('CLI contract', () => {
     const src = require('node:fs').readFileSync(SCRIPT, 'utf8');
     expect(src).not.toMatch(/invent|estimate.*density|volume/i);
     expect(src).toMatch(/cooked basis needed/);
+  });
+});
+
+describe('zero-delta exclusion hardening', () => {
+  it('already-correct rows never enter a candidate plan — reapply is a true no-op', () => {
+    const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '../scripts/fiber-recipe-reconcile.js'), 'utf8');
+    expect(src).toMatch(/ALREADY CORRECT — excluded from plan/);
+    expect(src).toMatch(/computedAfter === entry\.expectedBefore/);
   });
 });

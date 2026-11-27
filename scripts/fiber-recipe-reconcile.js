@@ -329,15 +329,6 @@ async function main() {
     }
     const applied = await applyClassified(p, classified, log);
     console.log(`\nApplied ${applied.length} row(s); ${noop.length} no-op, ${held.length} held (unresolved lines — never written).`);
-  // Verified-after-apply: re-read every written row and confirm the stored
-  // value matches the computation — unverifiable reconciliation is not reconciled.
-  let verifyFailed = false;
-  for (const r of changed) {
-    const stored = await p.recipe.findUnique({ where: { id: r.id }, select: { fiberG: true } });
-    if (stored?.fiberG !== r.after) { verifyFailed = true; console.error(`VERIFY-FAIL ${r.name}: stored=${stored?.fiberG} expected=${r.after}`); }
-    else console.log(`VERIFIED ${r.name}: stored=${stored.fiberG}`);
-  }
-  if (verifyFailed) { console.error('Verification failed — investigate before trusting this apply.'); process.exitCode = 3; }
     console.log('Rollback (run manually to revert):');
     applied.forEach((r) => console.log(`  UPDATE "Recipe" SET "fiberG" = ${r.before} WHERE id = '${r.id}';`));
     await p.$disconnect();
@@ -357,6 +348,12 @@ async function main() {
     entry.parts.forEach((x) => console.log(`     ${x}`));
     if (!entry.isSystem) { console.log('     EXCLUDED — not a SYSTEM recipe'); continue; }
     if (entry.unresolved.length) { console.log(`     HELD — unresolved lines (excluded): ${entry.unresolved.join(', ')}`); continue; }
+    if (entry.computedAfter === entry.expectedBefore) {
+      // Already-correct rows never enter the plan — including them makes every
+      // reapply a useless rewrite and dilutes the review with no-op rows.
+      console.log('     ALREADY CORRECT — excluded from plan (nothing to reconcile)');
+      continue;
+    }
     candidates.push(entry);
     console.log(`     UPDATE "Recipe" SET "fiberG" = ${entry.computedAfter} WHERE id = '${entry.id}';`);
     console.log(`     ROLLBACK: UPDATE "Recipe" SET "fiberG" = ${entry.expectedBefore} WHERE id = '${entry.id}';`);
