@@ -12,8 +12,22 @@ const safety = require('../services/activitySafety');
 const { fetchEnvironment, markStale } = require('../services/environmentService');
 const { SYMPTOMS_URGENT, ACTIVITY_CATEGORIES } = require('../services/activitySafety/constants');
 const { invalidateSafetyAdvice } = require('../services/activitySafety/recommendationSafety');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
+
+// Injury/symptom writes are the abuse + churn vector: burst reports could
+// invalidate safety advice repeatedly or spam injury records. 30/min/user —
+// tighter than the global apiLimiter, same pattern as conversations sends.
+const safetyWriteLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: Number(process.env.SAFETY_WRITE_RATE_LIMIT || 30),
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator: (req) => req.userId || req.headers['x-user-id'] || ipKeyGenerator(req.ip),
+  skip: () => process.env.NODE_ENV === 'test',
+});
 
 const router = express.Router();
+router.__safetyWriteLimiter = safetyWriteLimiter;
 
 const body = req => (req.body && typeof req.body === 'object' ? req.body : {});
 const num = v => { const n = Number(v); return Number.isFinite(n) ? n : null; };
@@ -125,7 +139,7 @@ function emergencyCopy(region) {
 // POST /activity-safety/symptoms {symptoms:[codes], severity?, context?, notes?, region?}
 // Capture a self-reported symptom. Urgent codes return escalation guidance —
 // deterministic templates, no diagnosis.
-router.post('/symptoms', requireFeature('activity_safety_engine'), async (req, res) => {
+router.post('/symptoms', requireFeature('activity_safety_engine'), safetyWriteLimiter, async (req, res) => {
   try {
     const prisma = getPrisma();
     const b = body(req);
@@ -161,7 +175,7 @@ router.post('/symptoms', requireFeature('activity_safety_engine'), async (req, r
 
 // POST /activity-safety/injuries — self-reported injury; engine sees it on the
 // next evaluation automatically (inputsStamp changes → cached evals invalid).
-router.post('/injuries', requireFeature('activity_safety_engine'), async (req, res) => {
+router.post('/injuries', requireFeature('activity_safety_engine'), safetyWriteLimiter, async (req, res) => {
   try {
     const prisma = getPrisma();
     const b = body(req);
@@ -283,7 +297,7 @@ router.get('/profile', requireFeature('activity_safety_engine'), async (req, res
 // DELETE endpoints — retention hygiene (P-1). User-scoped only; self-reported
 // rows hard-delete. Clinician-documented restrictions soft-delete to
 // 'superseded' so the restriction audit trail survives user removal.
-router.delete('/injuries/:id', requireFeature('activity_safety_engine'), async (req, res) => {
+router.delete('/injuries/:id', requireFeature('activity_safety_engine'), safetyWriteLimiter, async (req, res) => {
   try {
     const prisma = getPrisma();
     const row = await prisma.userInjury.deleteMany({ where: { id: req.params.id, userId: uid(req) } });
@@ -308,7 +322,7 @@ router.get('/symptoms', requireFeature('activity_safety_engine'), async (req, re
   } catch (err) { res.status(500).json({ error: 'symptom_list_failed', detail: err.message }); }
 });
 
-router.delete('/symptoms/:id', requireFeature('activity_safety_engine'), async (req, res) => {
+router.delete('/symptoms/:id', requireFeature('activity_safety_engine'), safetyWriteLimiter, async (req, res) => {
   try {
     const prisma = getPrisma();
     const row = await prisma.userSymptomReport.deleteMany({ where: { id: req.params.id, userId: uid(req) } });
@@ -321,7 +335,7 @@ router.delete('/symptoms/:id', requireFeature('activity_safety_engine'), async (
 // PATCH /activity-safety/symptoms/:id — owner-scoped correction of an existing
 // report (severity, context, persistence, notes, or symptom codes). Immutable:
 // reportedAt + userId. Edits re-trigger safety-advice invalidation.
-router.patch('/symptoms/:id', requireFeature('activity_safety_engine'), async (req, res) => {
+router.patch('/symptoms/:id', requireFeature('activity_safety_engine'), safetyWriteLimiter, async (req, res) => {
   try {
     const prisma = getPrisma();
     const b = body(req);
@@ -335,22 +349,37 @@ router.patch('/symptoms/:id', requireFeature('activity_safety_engine'), async (r
     if (b.context !== undefined) data.context = ['at_rest', 'during_activity', 'after_activity', 'unspecified'].includes(b.context) ? b.context : 'unspecified';
     if (b.persistence !== undefined) data.persistence = ['resolving', 'persistent', 'worsening'].includes(b.persistence) ? b.persistence : null;
     if (!Object.keys(data).length) return res.status(400).json({ error: 'no editable fields provided' });
-    const row = await prisma.userSymptomReport.updateMany({ where: { id: req.params.id, userId: uid(req) }, data });
+    // optimistic concurrency: clients may pass the version they read; a stale
+    // write then matches nothing and surfaces 409 instead of silently
+    // clobbering a concurrent update (§4/§8 concurrent-write guard).
+    const expectedV = num(b.version);
+    const where = { id: req.params.id, userId: uid(req) };
+    if (expectedV !== null) { where.version = expectedV; data.version = { increment: 1 }; }
+    const row = await prisma.userSymptomReport.updateMany({ where, data });
+    if (!row.count && expectedV !== null) {
+      const current = await prisma.userSymptomReport.findFirst({ where: { id: req.params.id, userId: uid(req) }, select: { version: true } });
+      if (current) return res.status(409).json({ error: 'stale_version', detail: 'Record changed since you read it — re-fetch and retry.', currentVersion: current.version });
+    }
     if (!row.count) return res.status(404).json({ error: 'not_found' });
     await invalidateSafetyAdvice(prisma, uid(req), 'symptom_updated').catch(() => null);
     res.json({ updated: true });
   } catch (err) { res.status(500).json({ error: 'symptom_update_failed', detail: err.message }); }
 });
 
-router.delete('/restrictions/:id', requireFeature('activity_safety_engine'), async (req, res) => {
+router.delete('/restrictions/:id', requireFeature('activity_safety_engine'), loadUserRoles, async (req, res) => {
   try {
     const prisma = getPrisma();
     const existing = await prisma.userActivityRestriction.findFirst({ where: { id: req.params.id, userId: uid(req) } });
     if (!existing) return res.status(404).json({ error: 'not_found' });
+    const roles = (req.userRoles || []).map((r) => String(r).toLowerCase());
+    const isClinician = roles.includes('clinician') || roles.includes('admin');
+    if (existing.source === 'clinician_documented' && !isClinician) {
+      return res.status(403).json({ error: 'clinician-directed restrictions cannot be deleted here — contact your clinician; deletion never implies medical clearance', code: 'CLINICIAN_LOCKED' });
+    }
     if (existing.source === 'clinician_documented') {
       await prisma.userActivityRestriction.update({
         where: { id: existing.id },
-        data: { status: 'superseded', resolvedAt: new Date(), resolvedBy: 'user_deleted' },
+        data: { status: 'superseded', resolvedAt: new Date(), resolvedBy: 'clinician_deleted' },
       });
       await invalidateSafetyAdvice(prisma, uid(req), 'restriction_deleted').catch(() => null);
       return res.json({ deleted: true, mode: 'superseded' }); // audit trail kept
@@ -377,19 +406,22 @@ router.delete('/feedback/:id', requireFeature('activity_safety_engine'), async (
 // ignored so clients can't believe a safety-relevant change took effect when
 // it didn't. Clinician-documented restriction fields are locked for self-edits:
 // overriding them requires a clinician-documented update flow, not a PATCH.
+// clearanceRecordedAt/clearanceNote are clinician-attested — a self-report
+// PATCH must never write them at all (Resolve ≠ clearance), so they are
+// excluded from INJURY_EDITABLE, not merely locked on clinician rows.
 const INJURY_TYPES = new Set(['sprain','fracture','strain','tendinopathy','dislocation','contusion','post_surgical','undiagnosed_pain','other']);
 const INJURY_STATUSES = new Set(['current','recovering','resolved']);
 const INJURY_LATERALITY = new Set(['left','right','bilateral','na']);
 const WB_RESTRICTIONS = new Set(['non_weight_bearing','partial','as_tolerated','full']);
-const INJURY_EDITABLE = new Set(['status','type','laterality','painLevel','weightBearingRestriction','rangeOfMotionRestriction','prohibitedCategories','rehabInstructions','notes','expectedReassessmentAt','clearanceRecordedAt','clearanceNote']);
+const INJURY_EDITABLE = new Set(['status','type','laterality','painLevel','weightBearingRestriction','rangeOfMotionRestriction','prohibitedCategories','rehabInstructions','notes','expectedReassessmentAt']);
 const CLINICIAN_LOCKED = new Set(['weightBearingRestriction','rangeOfMotionRestriction','prohibitedCategories','clearanceRecordedAt','clearanceNote']);
 
-router.patch('/injuries/:id', requireFeature('activity_safety_engine'), async (req, res) => {
+router.patch('/injuries/:id', requireFeature('activity_safety_engine'), safetyWriteLimiter, async (req, res) => {
   try {
     const prisma = getPrisma();
     const b = body(req);
     const keys = Object.keys(b);
-    const unsupported = keys.filter(k => !INJURY_EDITABLE.has(k));
+    const unsupported = keys.filter(k => k !== 'version' && !INJURY_EDITABLE.has(k));
     if (unsupported.length) return res.status(400).json({ error: 'unsupported_fields', unsupported, editable: [...INJURY_EDITABLE] });
 
     const bad = (field, detail) => res.status(400).json({ error: 'invalid_field', field, detail });
@@ -437,13 +469,6 @@ router.patch('/injuries/:id', requireFeature('activity_safety_engine'), async (r
       if (b.expectedReassessmentAt !== null && Number.isNaN(d.getTime())) return bad('expectedReassessmentAt', 'must be an ISO date or null');
       data.expectedReassessmentAt = d;
     }
-    if (b.clearanceRecordedAt !== undefined || b.clearanceNote !== undefined) {
-      if (!b.clearanceRecordedAt || !b.clearanceNote) return bad('clearance', 'clearanceRecordedAt and clearanceNote must be provided together');
-      const d = new Date(b.clearanceRecordedAt);
-      if (Number.isNaN(d.getTime())) return bad('clearanceRecordedAt', 'must be an ISO date');
-      data.clearanceRecordedAt = d;
-      data.clearanceNote = String(b.clearanceNote).slice(0, 500);
-    }
     if (!Object.keys(data).length) return res.status(400).json({ error: 'no_editable_fields', editable: [...INJURY_EDITABLE] });
 
     const existing = await prisma.userInjury.findFirst({ where: { id: req.params.id, userId: uid(req) }, select: { source: true } });
@@ -453,11 +478,174 @@ router.patch('/injuries/:id', requireFeature('activity_safety_engine'), async (r
       if (locked.length) return res.status(409).json({ error: 'clinician_fields_locked', locked, detail: 'These restriction fields were recorded from clinician guidance and cannot be changed by self-report. Ask your clinician for an updated note.' });
     }
 
-    const row = await prisma.userInjury.updateMany({ where: { id: req.params.id, userId: uid(req) }, data });
+    const expectedV = num(b.version);
+    const where = { id: req.params.id, userId: uid(req) };
+    if (expectedV !== null) { where.version = expectedV; data.version = { increment: 1 }; }
+    const row = await prisma.userInjury.updateMany({ where, data });
+    if (!row.count && expectedV !== null) {
+      const current = await prisma.userInjury.findFirst({ where: { id: req.params.id, userId: uid(req) }, select: { version: true } });
+      if (current) return res.status(409).json({ error: 'stale_version', detail: 'Record changed since you read it — re-fetch and retry.', currentVersion: current.version });
+    }
     if (!row.count) return res.status(404).json({ error: 'not_found' });
     await invalidateSafetyAdvice(prisma, uid(req), 'injury_updated').catch(() => null);
     res.json({ updated: true });
   } catch (err) { res.status(500).json({ error: 'injury_update_failed', detail: err.message }); }
+});
+
+
+// ── §2.2 Decision-#125: production restriction management ──────────────────
+// Restrictions were previously seeded-only. These endpoints make them
+// user-manageable through the REAL production path. Provenance rules are
+// server-authoritative: a client can never assert clinician provenance, and
+// a trainer role can never create medically-verified restrictions. Expiry of
+// any restriction NEVER implies medical clearance — the engine keeps expired
+// rows in scope (see services/activitySafety/context.js).
+
+const VALID_CATEGORIES = new Set(Object.values(ACTIVITY_CATEGORIES));
+const RESTRICTION_SOURCES_USER = new Set(['self_reported', 'user_preference']);
+
+function validateRestrictionInput(b, { partial = false } = {}) {
+  const errors = [];
+  const cats = b.categories;
+  if (!partial || cats !== undefined) {
+    if (!Array.isArray(cats) || cats.length === 0) errors.push('categories must be a non-empty array');
+    else if (cats.some((k) => !VALID_CATEGORIES.has(k))) errors.push('categories contain unknown activity category keys');
+  }
+  if (!partial || b.severity !== undefined) {
+    if (b.severity !== undefined && !['prohibited', 'modify'].includes(b.severity)) errors.push('severity must be prohibited|modify');
+  }
+  if (!partial || b.expiresAt !== undefined) {
+    if (b.expiresAt != null) {
+      const d = new Date(b.expiresAt);
+      if (Number.isNaN(d.getTime())) errors.push('expiresAt must be a valid date');
+      else if (!partial && d <= new Date()) errors.push('expiresAt must be in the future for a new restriction');
+    }
+  }
+  if (b.reassessAt != null && Number.isNaN(new Date(b.reassessAt).getTime())) errors.push('reassessAt must be a valid date');
+  return errors;
+}
+
+// Restriction management needs role awareness (clinician provenance/locks).
+// req.userRoles is normally populated only inside rbac.js middleware, which
+// these routes do not mount — without this loader the clinician positive path
+// was unreachable in production. Lookup failure fails closed (empty roles).
+async function loadUserRoles(req, _res, next) {
+  try {
+    const rows = await getPrisma().userRole.findMany({ where: { userId: uid(req), active: true }, include: { role: true } });
+    req.userRoles = (rows || []).map((ur) => ur.role && ur.role.name).filter(Boolean);
+  } catch { req.userRoles = req.userRoles || []; }
+  next();
+}
+
+// POST /restrictions — create. source is server-normalized: anything the user
+// submits beyond self_reported/user_preference is rejected unless the caller
+// actually holds a clinician role (never client-asserted).
+router.post('/restrictions', requireFeature('activity_safety_engine'), safetyWriteLimiter, loadUserRoles, async (req, res) => {
+  try {
+    const b = body(req);
+    const errors = validateRestrictionInput(b);
+    if (errors.length) return res.status(400).json({ error: errors.join('; '), code: 'INVALID_RESTRICTION' });
+    let source = 'self_reported';
+    if (b.source !== undefined) {
+      if (RESTRICTION_SOURCES_USER.has(b.source)) source = b.source;
+      else if (b.source === 'clinician_documented') {
+        const roles = (req.userRoles || []).map((r) => String(r).toLowerCase());
+        if (!roles.includes('clinician') && !roles.includes('admin')) {
+          return res.status(403).json({ error: 'clinician provenance cannot be client-asserted', code: 'PROVENANCE_FORBIDDEN' });
+        }
+        source = 'clinician_documented';
+      } else {
+        return res.status(400).json({ error: 'unknown restriction source', code: 'INVALID_RESTRICTION' });
+      }
+    }
+    const prisma = getPrisma();
+    const userId = uid(req);
+    const norm = (arr) => [...new Set((arr || []).map(String))].sort();
+    const active = await prisma.userActivityRestriction.findMany({ where: { userId, status: 'active' } }).catch(() => []);
+    const dupe = (active || []).find((r) =>
+      r.severity === (b.severity || 'prohibited') &&
+      JSON.stringify(norm(r.categories)) === JSON.stringify(norm(b.categories)) &&
+      JSON.stringify(norm(r.bodyRegions)) === JSON.stringify(norm(Array.isArray(b.bodyRegions) ? b.bodyRegions : [])));
+    if (dupe) return res.status(200).json({ restriction: dupe, duplicate: true }); // idempotent retry — one row
+    const row = await prisma.userActivityRestriction.create({
+      data: {
+        userId,
+        categories: b.categories,
+        bodyRegions: Array.isArray(b.bodyRegions) ? b.bodyRegions.slice(0, 20).map((s) => String(s).slice(0, 60)) : [],
+        severity: b.severity || 'prohibited',
+        reason: typeof b.reason === 'string' ? b.reason.slice(0, 400) : null,
+        source,
+        clinicianNote: source === 'clinician_documented' && typeof b.clinicianNote === 'string' ? b.clinicianNote.slice(0, 800) : null,
+        documentedAt: source === 'clinician_documented' ? new Date() : null,
+        expiresAt: b.expiresAt ? new Date(b.expiresAt) : null, // null = indefinite
+        reassessAt: b.reassessAt ? new Date(b.reassessAt) : null,
+      },
+    });
+    await invalidateSafetyAdvice(uid(req)).catch(() => {});
+    res.status(201).json({ restriction: row });
+  } catch (e) { res.status(500).json({ error: 'restriction create failed', code: 'INTERNAL' }); }
+});
+
+// GET /restrictions — active by default; ?include=all returns history.
+router.get('/restrictions', requireFeature('activity_safety_engine'), async (req, res) => {
+  try {
+    const where = { userId: uid(req) };
+    if (req.query.include !== 'all') where.status = 'active';
+    const rows = await getPrisma().userActivityRestriction.findMany({ where, orderBy: { createdAt: 'desc' } });
+    res.json({ restrictions: rows });
+  } catch (e) { res.status(500).json({ error: 'restriction list failed', code: 'INTERNAL' }); }
+});
+
+// PATCH /restrictions/:id — owner-scoped update. Clinician-documented rows are
+// protected: non-clinicians cannot silently edit or deactivate them.
+router.patch('/restrictions/:id', requireFeature('activity_safety_engine'), safetyWriteLimiter, loadUserRoles, async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const existing = await prisma.userActivityRestriction.findFirst({ where: { id: String(req.params.id), userId: uid(req) } });
+    if (!existing) return res.status(404).json({ error: 'restriction not found', code: 'NOT_FOUND' });
+    const roles = (req.userRoles || []).map((r) => String(r).toLowerCase());
+    const isClinician = roles.includes('clinician') || roles.includes('admin');
+    if (existing.source === 'clinician_documented' && !isClinician) {
+      return res.status(403).json({ error: 'clinician-directed restrictions cannot be modified here — contact your clinician', code: 'CLINICIAN_LOCKED' });
+    }
+    const b = body(req);
+    const errors = validateRestrictionInput(b, { partial: true });
+    if (errors.length) return res.status(400).json({ error: errors.join('; '), code: 'INVALID_RESTRICTION' });
+    const data = {};
+    if (b.categories !== undefined) data.categories = b.categories;
+    if (b.bodyRegions !== undefined) data.bodyRegions = Array.isArray(b.bodyRegions) ? b.bodyRegions.slice(0, 20).map((s) => String(s).slice(0, 60)) : [];
+    if (b.severity !== undefined) data.severity = b.severity;
+    if (b.reason !== undefined) data.reason = typeof b.reason === 'string' ? b.reason.slice(0, 400) : null;
+    if (b.expiresAt !== undefined) data.expiresAt = b.expiresAt ? new Date(b.expiresAt) : null;
+    if (b.reassessAt !== undefined) data.reassessAt = b.reassessAt ? new Date(b.reassessAt) : null;
+    if (!Object.keys(data).length) return res.status(400).json({ error: 'no updatable fields supplied', code: 'INVALID_RESTRICTION' });
+    const row = await prisma.userActivityRestriction.update({ where: { id: existing.id }, data });
+    await invalidateSafetyAdvice(uid(req)).catch(() => {});
+    res.json({ restriction: row });
+  } catch (e) { res.status(500).json({ error: 'restriction update failed', code: 'INTERNAL' }); }
+});
+
+// POST /restrictions/:id/resolve — explicit lifecycle transition with
+// provenance. Resolution is a user action, never a medical clearance: the
+// engine's expired/resolved semantics are unaffected.
+router.post('/restrictions/:id/resolve', requireFeature('activity_safety_engine'), safetyWriteLimiter, loadUserRoles, async (req, res) => {
+  try {
+    const prisma = getPrisma();
+    const existing = await prisma.userActivityRestriction.findFirst({ where: { id: String(req.params.id), userId: uid(req) } });
+    if (!existing) return res.status(404).json({ error: 'restriction not found', code: 'NOT_FOUND' });
+    if (existing.status !== 'active') return res.status(409).json({ error: 'restriction is not active', code: 'NOT_ACTIVE' });
+    const roles = (req.userRoles || []).map((r) => String(r).toLowerCase());
+    const isClinician = roles.includes('clinician') || roles.includes('admin');
+    if (existing.source === 'clinician_documented' && !isClinician) {
+      return res.status(403).json({ error: 'clinician-directed restrictions cannot be self-resolved — expiry or self-resolution never implies medical clearance', code: 'CLINICIAN_LOCKED' });
+    }
+    const row = await prisma.userActivityRestriction.update({
+      where: { id: existing.id },
+      data: { status: 'resolved', resolvedAt: new Date(), resolvedBy: uid(req) },
+    });
+    await invalidateSafetyAdvice(uid(req)).catch(() => {});
+    res.json({ restriction: row });
+  } catch (e) { res.status(500).json({ error: 'restriction resolve failed', code: 'INTERNAL' }); }
 });
 
 module.exports = router;

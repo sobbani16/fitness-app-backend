@@ -44,6 +44,22 @@ beforeEach(() => {
   GATED_KEYS.forEach(k => setFlag(k, 'true'));
 });
 
+describe('safety-write rate limiter coverage', () => {
+  const stack = require('../src/routes/activitySafety').stack.filter(l => l.route);
+  const layers = (m, p) => stack.find(l => l.route.path === p && l.route.methods[m])?.route.stack.length;
+  it.each([
+    ['post', '/symptoms'], ['post', '/injuries'], ['patch', '/injuries/:id'],
+    ['patch', '/symptoms/:id'], ['delete', '/injuries/:id'], ['delete', '/symptoms/:id'],
+  ])('%s %s mounts the write limiter', (m, p) => {
+    expect(layers(m, p)).toBe(3); // requireFeature + safetyWriteLimiter + handler
+  });
+  it.each([
+    ['get', '/injuries'], ['get', '/symptoms'], ['get', '/recommendation'], ['get', '/profile'],
+  ])('%s %s has no write limiter', (m, p) => {
+    expect(layers(m, p)).toBe(2);
+  });
+});
+
 describe('flag gating', () => {
   test('disabled engine → 403 FEATURE_DISABLED on all activity-safety routes', async () => {
     setFlag('activity_safety_engine', 'false');
@@ -295,11 +311,15 @@ describe('PATCH /activity-safety/injuries/:id — validation and clinician lock'
       data: expect.objectContaining({ status: 'current', resolvedAt: null }),
     }));
   });
-  test('clearance fields require both values together', async () => {
-    const res = await request(app).patch('/activity-safety/injuries/inj-1').set('x-user-id', 'u1').send({ clearanceRecordedAt: '2026-01-01' });
-    expect(res.status).toBe(400);
-    const ok = await request(app).patch('/activity-safety/injuries/inj-1').set('x-user-id', 'u1').send({ clearanceRecordedAt: '2026-01-01', clearanceNote: 'cleared by physio' });
-    expect(ok.status).toBe(200);
+  test('clearance fields are clinician-attested — self-report PATCH cannot write them', async () => {
+    // Resolve ≠ clearance: a self-reported injury must not fabricate a
+    // clinician clearance record via PATCH, single field or both.
+    const single = await request(app).patch('/activity-safety/injuries/inj-1').set('x-user-id', 'u1').send({ clearanceRecordedAt: '2026-01-01' });
+    expect(single.status).toBe(400); expect(single.body.error).toBe('unsupported_fields');
+    const both = await request(app).patch('/activity-safety/injuries/inj-1').set('x-user-id', 'u1').send({ clearanceRecordedAt: '2026-01-01', clearanceNote: 'cleared by physio' });
+    expect(both.status).toBe(400); expect(both.body.error).toBe('unsupported_fields');
+    expect(both.body.unsupported).toEqual(expect.arrayContaining(['clearanceRecordedAt', 'clearanceNote']));
+    expect(mockPrisma.userInjury.updateMany).not.toHaveBeenCalled();
   });
   test('clinician-documented injury: restriction fields locked → 409, status still editable', async () => {
     mockPrisma.userInjury.findFirst.mockResolvedValueOnce({ source: 'clinician_documented' });
@@ -339,6 +359,9 @@ describe('GET /activity-safety/injuries — management list', () => {
     expect(self.clinicianDocumented).toBe(false);
     expect(self.lockedFields).toEqual([]);
     expect(self.editableFields).toContain('weightBearingRestriction');
+    // Clinician-attested fields are never advertised as self-editable.
+    expect(self.editableFields).not.toContain('clearanceRecordedAt');
+    expect(self.editableFields).not.toContain('clearanceNote');
   });
   test('empty list → 200 with empty array', async () => {
     const res = await request(app).get('/activity-safety/injuries').set('x-user-id', 'u1');

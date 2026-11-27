@@ -4099,6 +4099,7 @@ model UserActivityProfile {
 model UserInjury {
   id     String @id @default(uuid())
   userId String
+  version  Int    @default(1)
 
   type       String // 'sprain'|'fracture'|'strain'|'tendinopathy'|'dislocation'|'contusion'|'post_surgical'|'undiagnosed_pain'|'other'
   bodyPart   String // normalized region key: ankle|knee|hip|lower_back|shoulder|wrist|foot|achilles|neck|hand|elbow|leg|arm|pelvis
@@ -4188,6 +4189,7 @@ model UserActivityRestriction {
 model UserSymptomReport {
   id     String @id @default(uuid())
   userId String
+  version  Int    @default(1)
 
   // codes: chest_pain|chest_pressure|dizziness|syncope|dyspnea_unusual|
   // palpitations|severe_pain|joint_instability|fever|abnormal_weakness|
