@@ -12,6 +12,7 @@
 //   - Food-first ordering everywhere; supplement mentions carry education.
 
 const { getPrisma } = require('../../lib/prisma');
+const { readStoredComposition } = require('./storedComposition');
 const { dailyFiber } = require('./dailyEngine');
 const { sequenceMeal, mixedDishIn } = require('./sequencing');
 const { weeklyReview } = require('./weeklyReview');
@@ -147,8 +148,8 @@ async function sequenceAnswer(prisma, userId, message) {
     orderBy: { loggedAt: 'desc' },
     select: { foodName: true, nutritionSnapshot: true },
   });
-  const comps = log?.nutritionSnapshot?.components;
-  if (!Array.isArray(comps) || !comps.length) {
+  const read = readStoredComposition(log?.nutritionSnapshot);
+  if (read.error) {
     return 'Scan or log a meal with separate components first, and I can suggest an eating order. Mixed dishes like biryani don’t get a forced sequence.';
   }
   // Fail-closed parity with POST /fiber/sequence: both flags must be enabled,
@@ -165,7 +166,7 @@ async function sequenceAnswer(prisma, userId, message) {
     ]);
     if (!intelligenceOn || !sequencingOn) return UNAVAILABLE;
   } catch { return UNAVAILABLE; }
-  const items = comps.flatMap((c) => (Array.isArray(c.ingredients) && c.ingredients.length ? c.ingredients : [{ name: c.foodName, amountG: null }]).map((i) => ({ name: i.name || c.foodName, amountG: i.amountG ?? null })));
+  const items = read.items;
   let exclusion;
   try {
     exclusion = await require('./exclusionContext').loadExclusionContext(prisma, userId);

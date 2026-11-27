@@ -204,3 +204,58 @@ it('POST /fiber/sequence fails closed when allergy lookup fails — no order, no
     mockStore.foodPrefs = [];
   });
 });
+
+describe('stored composition parity — pc-HUM-207', () => {
+  beforeEach(() => { mockFlags.fiber_meal_sequencing_enabled = true; mockFlags.fiber_intelligence_enabled = true; mockStore.failAllergies = false; mockStore.failPrefs = false; });
+  const seed = (components) => {
+    mockStore.foodLogs = [{ id: 'log-saved', userId: USER, foodName: 'lunch', nutritionSnapshot: { components } }];
+  };
+
+  test('PR #61 direct format — one step per component, mixed dish never decomposed', async () => {
+    seed([{ foodName: 'chicken biryani', amountG: 350 }, { foodName: 'side salad', amountG: 120 }]);
+    const res = await request(app).post('/fiber/sequence').set('x-user-id', USER).send({ foodLogId: 'log-saved' });
+    expect(res.status).toBe(200);
+    const steps = (res.body.order || []).map((o) => o.component);
+    expect(steps).toHaveLength(2);
+    expect(steps).toContain('chicken biryani');
+    expect(steps).toContain('side salad');
+  });
+
+  test('legacy photo snapshot with nested recipe ingredients — dish stays ONE item', async () => {
+    seed([
+      { foodName: 'chicken biryani', amountG: null, ingredients: [{ name: 'basmati rice', amountG: 200 }, { name: 'chicken thigh', amountG: 150 }] },
+      { foodName: 'raita side', amountG: 80 },
+    ]);
+    const res = await request(app).post('/fiber/sequence').set('x-user-id', USER).send({ foodLogId: 'log-saved' });
+    expect(res.status).toBe(200);
+    const steps = (res.body.order || []).map((o) => o.component);
+    expect(steps).toHaveLength(2); // nested ingredients NEVER surface as separate steps
+    expect(steps).not.toContain('basmati rice');
+    expect(steps).not.toContain('chicken thigh');
+    expect(steps).toContain('chicken biryani');
+  });
+
+  test('saved and entered representations yield identical orders when equivalent', async () => {
+    const comps = [{ foodName: 'grilled paneer', amountG: 150 }, { foodName: 'spinach side', amountG: 100 }];
+    seed(comps);
+    const saved = await request(app).post('/fiber/sequence').set('x-user-id', USER).send({ foodLogId: 'log-saved' });
+    const entered = await request(app).post('/fiber/sequence').set('x-user-id', USER).send({ items: comps.map((c) => ({ name: c.foodName, amountG: c.amountG })) });
+    expect(saved.status).toBe(200);
+    expect(entered.status).toBe(200);
+    expect((saved.body.order || []).map((o) => o.component)).toEqual((entered.body.order || []).map((o) => o.component));
+  });
+
+  test('unusable and over-limit compositions rejected without partial guidance', async () => {
+    seed([{ foodName: '', amountG: 100 }, { foodName: 'ok', amountG: 50 }]);
+    let res = await request(app).post('/fiber/sequence').set('x-user-id', USER).send({ foodLogId: 'log-saved' });
+    expect(res.status).toBe(422);
+    expect(res.body.order).toBeUndefined();
+    seed(Array.from({ length: 21 }, (_, i) => ({ foodName: `f${i}`, amountG: 10 })));
+    res = await request(app).post('/fiber/sequence').set('x-user-id', USER).send({ foodLogId: 'log-saved' });
+    expect(res.status).toBe(422);
+    seed([{ foodName: 'bad', amountG: 99999 }]);
+    res = await request(app).post('/fiber/sequence').set('x-user-id', USER).send({ foodLogId: 'log-saved' });
+    expect(res.status).toBe(422);
+    mockStore.foodLogs = [];
+  });
+});

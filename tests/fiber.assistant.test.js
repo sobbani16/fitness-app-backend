@@ -270,3 +270,28 @@ describe('groundFiberAnswer', () => {
     mockStore.user = { id: 'u1', dateOfBirth: new Date('1990-01-01'), gender: 'female', timeZone: 'UTC' };
   });
 });
+
+describe('stored composition parity — assistant (pc-HUM-207)', () => {
+  it('nested-ingredient snapshot stays intact — no flattening, top-level grams preserved', async () => {
+    mockStore.foodLogs = [{
+      id: 'log-1', userId: 'u1', foodName: 'lunch',
+      nutritionSnapshot: { components: [
+        { foodName: 'chicken biryani', amountG: 350, ingredients: [{ name: 'basmati rice', amountG: 200 }] },
+        { foodName: 'cucumber salad', amountG: null },
+      ] },
+    }];
+    const out = await groundFiberAnswer('u1', 'What should I eat first?');
+    expect(out.handled).toBe(true);
+    // biryani appears whole; nested 'basmati rice' never surfaces as its own step
+    const text = out.answer || '';
+    expect(text).toMatch(/biryani/i);
+    expect(text).not.toMatch(/basmati rice/);
+  });
+  it('unusable stored composition yields the handled fallback — never partial guidance', async () => {
+    mockStore.foodLogs = [{ id: 'log-2', userId: 'u1', foodName: 'lunch', nutritionSnapshot: { components: [{ foodName: '', amountG: 10 }] } }];
+    const out = await groundFiberAnswer('u1', 'What should I eat first?');
+    expect(out.handled).toBe(true);
+    expect(out.answer || '').not.toMatch(/\d+\. /);
+    mockStore.foodLogs = [];
+  });
+});

@@ -9,6 +9,7 @@ const { resolveZone, dayKey, dayRangeUtc } = require('../services/localDay');
 const { resolveFiberTarget } = require('../services/fiber/targets');
 const { dailyFiber, fiberStateOf } = require('../services/fiber/dailyEngine');
 const { sequenceMeal } = require('../services/fiber/sequencing');
+const { readStoredComposition } = require('../services/fiber/storedComposition');
 const { evaluateFiberSupplement, confirmCheck } = require('../services/fiber/supplementCheck');
 
 const router = express.Router();
@@ -155,9 +156,10 @@ router.post('/sequence', requireFeature('fiber_meal_sequencing_enabled'), async 
     if (!items && typeof req.body?.foodLogId === 'string') {
       const log = await prisma.foodLog.findFirst({ where: { id: req.body.foodLogId, userId }, select: { nutritionSnapshot: true } });
       if (!log) throw httpError(404, 'Meal not found');
-      const comps = log.nutritionSnapshot?.components;
-      if (!Array.isArray(comps) || !comps.length) throw httpError(422, 'That meal has no recorded components to sequence.');
-      items = comps.flatMap((c) => (Array.isArray(c.ingredients) && c.ingredients.length ? c.ingredients : [{ name: c.foodName, amountG: null }]).map((i) => ({ name: i.name || c.foodName, amountG: i.amountG ?? null })));
+      const read = readStoredComposition(log.nutritionSnapshot);
+      if (read.error === 'no_components') throw httpError(422, 'That meal has no recorded components to sequence.');
+      if (read.error) throw httpError(422, 'That meal’s saved composition is unusable — log it again with explicit foods.');
+      items = read.items;
     }
     if (!items?.length) throw httpError(400, 'Provide items[] or foodLogId.');
     for (const it of items) {
