@@ -305,6 +305,15 @@ router.post('/commands/execute', wrap(async (req, res) => {
         break;
       }
       case 'LOG_FOOD': {
+        // Allergen awareness for CONSUMED food (log != recommend): the log always
+        // persists accurately — consumption is a fact and blocking it would falsify
+        // the record. When the ingredient matches a caller allergy the result carries
+        // explicit safety info instead. Lookup failure must never block logging.
+        let allergenTerms = [];
+        try {
+          const rows = await prisma.userAllergy.findMany({ where: { userId }, select: { allergy: { select: { name: true } } } });
+          allergenTerms = (rows || []).map((r) => String(r.allergy?.name || '').toLowerCase()).filter(Boolean);
+        } catch { allergenTerms = []; }
         for (const [i, item] of (a.entities.items || []).entries()) {
           const grams = Number(item.grams);
           const ing = item.ingredientId ? await prisma.ingredient.findUnique({ where: { id: String(item.ingredientId) } }) : await resolveIngredient(prisma, item.name);
@@ -338,7 +347,7 @@ router.post('/commands/execute', wrap(async (req, res) => {
             }
           }
           if (!n && gramsUsed) n = await ingredientNutrition.calculate(ing.id, { grams: gramsUsed });
-          if (!n || !Number.isFinite(gramsUsed) || gramsUsed <= 0 || gramsUsed > 10000) {
+          if (!n || !Number.isFinite(gramsUsed) || gramsUsed <= 0 || gramsUsed > 5000) {
             results.push({ intent: a.intent, status: 'skipped', reason: `${item.name}: needs a gram amount or a recognized serving` }); continue;
           }
           // dayOffset (e.g. -1 for "yesterday") back-dates loggedAt rather than
@@ -354,7 +363,10 @@ router.post('/commands/execute', wrap(async (req, res) => {
             nutritionSnapshot: { loggedSource: 'voice', grams: gramsUsed, calculated: n.nutrition, nutrientUnknowns: require('../services/nutrientCompleteness').computeUnknowns(n.nutrition), ...(servingMeta || {}) },
           } });
           created.push({ kind: 'foodLog', id: saved.id });
-          results.push({ intent: a.intent, status: 'saved', detail: `${gramsUsed}g ${ing.name} → ${a.entities.mealType || 'meal'}` });
+          const ingLower = String(ing.name || '').toLowerCase();
+          const allergenHit = allergenTerms.find((term) => term.length >= 3 && ingLower.includes(term));
+          results.push({ intent: a.intent, status: 'saved', detail: `${gramsUsed}g ${ing.name} → ${a.entities.mealType || 'meal'}`,
+            ...(allergenHit ? { allergenCaution: { matched: allergenHit, note: `Logged accurately as consumed. This food matches your recorded "${allergenHit}" allergy — review reactions with your clinician; this is not medical advice.` } } : {}) });
         }
         break;
       }
