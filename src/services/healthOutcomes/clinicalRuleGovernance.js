@@ -70,8 +70,12 @@ async function transition(prisma, { tableKey, ruleId, action, actorId, actorRole
   if (action === 'approve') { data.reviewedBy = actorId; data.reviewedAt = new Date(); }
   if (action === 'retire') data.retiredAt = new Date();
   if (action === 'review' && reviewDueAt) data.reviewDueAt = new Date(reviewDueAt);
-  const updated = await prisma[table.model].update({ where: { id: rule.id }, data });
-  const event = await recordEvent(prisma, { ruleTable: table.model, ruleId: rule.id, ruleCode: rule[table.codeField], fromStatus: rule.reviewStatus, toStatus: t.to, action, actorId, actorRole, notes, diff: { reviewStatus: [rule.reviewStatus, t.to] } });
+  // Update + event commit atomically — a crash between them would be a silent
+  // status change, violating the no-silent-path invariant.
+  const [updated, event] = await prisma.$transaction((tx) => Promise.all([
+    tx[table.model].update({ where: { id: rule.id }, data }),
+    recordEvent(tx, { ruleTable: table.model, ruleId: rule.id, ruleCode: rule[table.codeField], fromStatus: rule.reviewStatus, toStatus: t.to, action, actorId, actorRole, notes, diff: { reviewStatus: [rule.reviewStatus, t.to] } }),
+  ]));
   return { rule: updated, event };
 }
 
@@ -83,16 +87,20 @@ async function activate(prisma, { tableKey, ruleId, actorId, actorRole, notes, e
   const data = { activeAt: new Date(), activatedBy: actorId, retiredAt: null };
   if (expiresAt) data.expiresAt = new Date(expiresAt);
   if (reviewDueAt) data.reviewDueAt = new Date(reviewDueAt);
-  const updated = await prisma[t.model].update({ where: { id: rule.id }, data });
-  const event = await recordEvent(prisma, { ruleTable: t.model, ruleId: rule.id, ruleCode: rule[t.codeField], fromStatus: 'APPROVED', toStatus: 'ACTIVATED', action: 'activate', actorId, actorRole, notes, diff: { activeAt: [null, updated.activeAt] } });
+  const [updated, event] = await prisma.$transaction((tx) => Promise.all([
+    tx[t.model].update({ where: { id: rule.id }, data }),
+    recordEvent(tx, { ruleTable: t.model, ruleId: rule.id, ruleCode: rule[t.codeField], fromStatus: 'APPROVED', toStatus: 'ACTIVATED', action: 'activate', actorId, actorRole, notes, diff: { activeAt: [null, data.activeAt] } }),
+  ]));
   return { rule: updated, event };
 }
 
 async function deactivateNow(prisma, { tableKey, ruleId, actorId, actorRole, notes }) {
   const { t, rule } = await getRule(prisma, tableKey, ruleId);
   if (rule.retiredAt || !rule.activeAt) throw httpError(409, 'Rule is not active.');
-  const updated = await prisma[t.model].update({ where: { id: rule.id }, data: { retiredAt: new Date() } });
-  const event = await recordEvent(prisma, { ruleTable: t.model, ruleId: rule.id, ruleCode: rule[t.codeField], fromStatus: 'ACTIVATED', toStatus: 'DEACTIVATED', action: 'deactivate', actorId, actorRole, notes });
+  const [updated, event] = await prisma.$transaction((tx) => Promise.all([
+    tx[t.model].update({ where: { id: rule.id }, data: { retiredAt: new Date() } }),
+    recordEvent(tx, { ruleTable: t.model, ruleId: rule.id, ruleCode: rule[t.codeField], fromStatus: 'ACTIVATED', toStatus: 'DEACTIVATED', action: 'deactivate', actorId, actorRole, notes }),
+  ]));
   return { rule: updated, event };
 }
 
