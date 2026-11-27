@@ -55,10 +55,23 @@ async function createSession(userId, body) {
   const startedAt = body.startedAt ? new Date(body.startedAt) : null;
   if (!startedAt || Number.isNaN(startedAt.getTime())) throw err(400, 'valid startedAt is required');
 
+  // Idempotency: a client-generated op id makes retry/offline-sync redelivery
+  // a no-op returning the existing session — never a duplicate workout.
+  const clientOpId = typeof body.clientOpId === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(body.clientOpId)
+    ? body.clientOpId : null;
+  if (body.clientOpId != null && !clientOpId) throw err(400, 'clientOpId must be ≤100 chars of [a-zA-Z0-9_-]');
+  if (clientOpId) {
+    const existing = await getPrisma().coachingSession.findUnique({ where: { clientOpId } });
+    if (existing) {
+      if (existing.userId !== userId) throw err(409, 'clientOpId conflict');
+      return { stored: true, session: existing, deduplicated: true };
+    }
+  }
   const session = await getPrisma().coachingSession.create({
     data: {
       userId,
       exerciseId,
+      clientOpId,
       startedAt,
       endedAt: optionalDate(body.endedAt, 'endedAt'),
       devicePlatform: String(body.devicePlatform || '').slice(0, 16) || null,

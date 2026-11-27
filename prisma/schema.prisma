@@ -345,6 +345,10 @@ model ExerciseIntelligenceProfile {
 model CoachingSession {
   id String @id @default(uuid())
 
+  // Client-generated idempotency key — retry/offline sync can never duplicate
+  // the session (same pattern as food logs). Null for legacy rows.
+  clientOpId String? @unique
+
   userId String
 
   exerciseId String
