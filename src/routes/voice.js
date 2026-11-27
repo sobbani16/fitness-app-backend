@@ -254,7 +254,7 @@ router.post('/interpret', voiceEnabled, wrap(async (req, res) => {
 // POST /voice/commands/execute — { commandId, transcript, actions[] }.
 // Idempotent on commandId. Executes via existing models only; nothing here
 // trusts an ID that wasn't re-verified server-side.
-router.post('/commands/execute', wrap(async (req, res) => {
+router.post('/commands/execute', voiceEnabled, wrap(async (req, res) => {
   const userId = uid(req);
   const { commandId, transcript, actions } = req.body || {};
   if (!userId) throw httpError(401, 'Sign in required.');
@@ -596,6 +596,8 @@ router.post('/commands/execute', wrap(async (req, res) => {
 }));
 
 // POST /voice/commands/undo — reverse a command's writes within 15 minutes.
+// Undo is deliberately NOT flag-gated: it only revokes effects of commands
+// already executed — remediation must survive the kill switch.
 router.post('/commands/undo', wrap(async (req, res) => {
   const userId = uid(req);
   const { commandId } = req.body || {};
