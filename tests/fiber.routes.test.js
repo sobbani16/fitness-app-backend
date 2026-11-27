@@ -13,8 +13,8 @@ jest.mock('../src/lib/prisma', () => ({
     user: { findUnique: async () => mockStore.user },
     macroGoal: { findUnique: async () => mockStore.macroGoal, upsert: async ({ create }) => create },
     userHealthCondition: { findMany: async () => mockStore.conditions },
-    userAllergy: { findMany: async () => mockStore.allergies },
-    foodPreference: { findMany: async () => mockStore.foodPrefs },
+    userAllergy: { findMany: async () => { if (mockStore.failAllergies) throw new Error('injected allergy lookup failure'); return mockStore.allergies; } },
+    foodPreference: { findMany: async () => { if (mockStore.failPrefs) throw new Error('injected preference lookup failure'); return mockStore.foodPrefs; } },
     foodLog: { findMany: async () => { mockStore.foodLogFindManyCalls = (mockStore.foodLogFindManyCalls || 0) + 1; return mockStore.foodLogs; }, findFirst: async ({ where }) => mockStore.foodLogs.find((l) => l.id === where.id && l.userId === where.userId) || null },
     userRole: { findFirst: async ({ where }) => (mockStore.roles || []).some((r) => where.role.name.in.includes(r)) ? { id: 'r1' } : null },
     supplementLog: { findMany: async () => mockStore.suppLogs },
@@ -154,5 +154,53 @@ describe('response contracts', () => {
     const hit = res.body.days.find((d) => d.confirmedG === 4);
     expect(hit).toBeTruthy();
     expect(hit.mealsLogged).toBe(1);
+  });
+it('POST /fiber/sequence fails closed when allergy lookup fails — no order, no addition, no raw error', async () => {
+    mockStore.failAllergies = true;
+    const res = await request(app).post('/fiber/sequence').set('x-user-id', USER)
+      .send({ items: [{ name: 'white rice, cooked', amountG: 200 }, { name: 'grilled chicken', amountG: 120 }] });
+    expect(res.status).toBe(503);
+    expect(res.body.order).toBeUndefined();
+    expect(res.body.suggestedAddition).toBeUndefined();
+    expect(JSON.stringify(res.body)).not.toMatch(/injected allergy lookup failure/);
+    expect(res.body.error).toMatch(/unavailable|try again/i);
+    mockStore.failAllergies = false;
+  });
+
+  it('POST /fiber/sequence fails closed when preference lookup fails', async () => {
+    mockStore.failPrefs = true;
+    const res = await request(app).post('/fiber/sequence').set('x-user-id', USER)
+      .send({ items: [{ name: 'white rice, cooked', amountG: 200 }, { name: 'grilled chicken', amountG: 120 }] });
+    expect(res.status).toBe(503);
+    expect(res.body.order).toBeUndefined();
+    expect(JSON.stringify(res.body)).not.toMatch(/injected preference lookup failure/);
+    mockStore.failPrefs = false;
+  });
+
+  it('POST /fiber/sequence fails closed for owned foodLogId lookups too', async () => {
+    mockStore.foodLogs = [{ id: 'log-seq', userId: USER, nutritionSnapshot: { components: [{ foodName: 'white rice', ingredients: [{ name: 'white rice', amountG: 200 }] }, { foodName: 'grilled chicken', ingredients: [{ name: 'grilled chicken', amountG: 120 }] }] } }];
+    mockStore.failAllergies = true;
+    const res = await request(app).post('/fiber/sequence').set('x-user-id', USER).send({ foodLogId: 'log-seq' });
+    expect(res.status).toBe(503);
+    expect(res.body.order).toBeUndefined();
+    mockStore.failAllergies = false;
+    mockStore.foodLogs = [];
+  });
+
+  it('empty allergy/preference profile control: sequence succeeds and applies no exclusions', async () => {
+    mockStore.allergies = []; mockStore.foodPrefs = [];
+    const res = await request(app).post('/fiber/sequence').set('x-user-id', USER)
+      .send({ items: [{ name: 'white rice, cooked', amountG: 200 }, { name: 'grilled chicken', amountG: 120 }] });
+    expect(res.status).toBe(200);
+    expect(res.body.order.length).toBe(2);
+  });
+
+  it('recorded exclusions reach the suggestion engine when lookups succeed', async () => {
+    mockStore.foodPrefs = [{ foodName: 'broccoli' }];
+    const res = await request(app).post('/fiber/sequence').set('x-user-id', USER)
+      .send({ items: [{ name: 'white rice, cooked', amountG: 200 }, { name: 'grilled chicken', amountG: 120 }] });
+    expect(res.status).toBe(200);
+    if (res.body.suggestedAddition) expect(res.body.suggestedAddition.food).not.toMatch(/broccoli/i);
+    mockStore.foodPrefs = [];
   });
 });
