@@ -17,6 +17,7 @@ const SEED = [
   { key: 'pasta', name: `${P} pasta cooked`, catName: `${P} pasta cooked`, aliases: ['pasta', 'spaghetti'], c: 158, p: 5.8, cb: 31, f: 0.9, fb: 1.8 },
   { key: 'cheese', name: `${P} cheddar cheese`, catName: `${P} cheddar cheese`, aliases: ['cheese'], c: 403, p: 25, cb: 1.3, f: 33, fb: 0 },
   { key: 'salad', name: `${P} mixed salad`, catName: `${P} mixed salad leaves`, aliases: ['salad', 'side salad'], c: 20, p: 1.2, cb: 3.5, f: 0.2, fb: 1.8 },
+  { key: 'drylentil', name: `${P} Lentils, dry`, catName: `${P} lentils dry`, aliases: ['dry lentils'], c: 352, p: 25, cb: 63, f: 1, fb: 11 },
 ];
 const ids = {};
 beforeAll(async () => {
@@ -119,5 +120,45 @@ describe('evidence-language honesty', () => {
     expect(flat).toContain('not guaranteed');
     expect(flat).toContain('context-dependent');
     expect(flat).toContain('optional suggestion, not a prescription');
+  });
+});
+
+describe('dry-weight density never becomes consumed grams (scope verification)', () => {
+  test('dry-basis catalog rows never compute fiberG for a cooked portion — unknown, not invented', async () => {
+    const r = await sequenceMeal([
+      { name: 'dry lentils', amountG: 150 },
+      { name: 'rice', amountG: 200 },
+    ]);
+    const lentil = r.order.find((o) => /lentil/i.test(o.component));
+    expect(lentil.fiberBasis).toBe('dry_weight');
+    expect(lentil.fiberG).toBeNull(); // 11 g/100 g dry never multiplied into a cooked portion
+    expect(lentil.knownFiber).toBe(false);
+    expect((r.explanation || []).join(' ')).toMatch(/dry-weight/i);
+  });
+});
+
+describe('density vs portion contribution are separate (scope verification)', () => {
+  test('a negligible 5 g high-fiber garnish must not lead the meal on density alone', async () => {
+    const r = await sequenceMeal([
+      { name: 'coriander leaves', amountG: 5 }, // dense per-100g, trivial portion
+      { name: 'rice', amountG: 200 },
+      { name: 'chicken', amountG: 120 },
+    ]);
+    const garnishIdx = r.order.findIndex((o) => /coriander/.test(o.component));
+    // a 5 g garnish contributes ~0.1 g fiber — it must never rank as the
+    // meal's meaningful fiber-first component purely on per-100g density
+    expect(garnishIdx).toBeGreaterThan(0);
+  });
+});
+
+describe('allergy/restriction-aware suggestions (scope verification)', () => {
+  test('suggested addition never contains a caller allergen', async () => {
+    const rNoCtx = await sequenceMeal([{ name: 'chicken', amountG: 120 }, { name: 'rice', amountG: 200 }]);
+    const rAllergic = await sequenceMeal([{ name: 'chicken', amountG: 120 }, { name: 'rice', amountG: 200 }], { allergenTerms: new Set(['peanut']) });
+    const expl = (rAllergic.explanation || []).join(' ');
+    expect(expl).not.toMatch(/peanut/i);
+    // both are food-first practical additions when present — never supplements or medical products
+    const explNo = (rNoCtx.explanation || []).join(' ');
+    if (/consider adding/i.test(explNo)) expect(explNo).toMatch(/side|food|such as/i);
   });
 });
