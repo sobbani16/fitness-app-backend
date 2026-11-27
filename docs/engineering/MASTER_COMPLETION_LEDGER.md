@@ -271,3 +271,20 @@ already pinned the recommendations wire. Genuine gaps filled in `tests/contracts
 Full contract suite: **130/130 green** (121 prior + 9 new, zero regressions) — verified with `TEST_DATABASE_URL` explicitly exported.
 
 **Harness-trap evidence (new variant)**: initial full-suite run showed safetySurfaceContract 13/13 failing with `table public.User does not exist` — root cause: **this worktree has no `.env` file at all** (only `.env.example`), so absent an exported TEST_DATABASE_URL prisma connects to the postgres default database, which has no schema. Distinct from the pc-HUM-38 seed-script trap variant (right var, wrong consumer) — this one is the worktree-bootstrapping gap: fresh worktrees need TEST_DATABASE_URL exported or a local `.env`. No code regression existed; the suite was never broken. Documented per the never-hide-failure discipline.
+
+## 2026-11-27 — release mechanics: guards wired into CI + silent-pass defect fixed (pc-HUM-63, milestone 10)
+
+Inventory: 4 release guards exist — check-migrations, check-contract-additivity, check-release-head, check-deployment. Before this increment: **zero wired in any workflow** (documentation-only enforcement).
+
+### Discrimination verification (a guard that can't fail is not a guard)
+- check-migrations: pass exit 0 (70 migrations clean); fail-condition proven on scratch — duplicate-timestamp collision detected with clear message. DISCRIMINATES.
+- check-release-head: no-args exit 2 (usage); wrong-SHA exit 1 with explicit mismatch message; correct-SHA-but-dirty-tree exit 1 ("release evidence must be tree-clean") — the tree-clean check caught this session's own uncommitted changes, positive live evidence. DISCRIMINATES. Not CI-wired: it is a merge-time guard requiring a tested-SHA input with no merge-trigger context in the PR workflow — wiring it with synthetic inputs would be theater. Documented as the release-coordination tool.
+- check-contract-additivity: **DEFECT FOUND + FIXED** — `loadAt` returned null for BOTH unresolvable-ref AND file-absent, and null meant trivial-pass. An unresolvable base (shallow clone, missing fetch, typo) silently passed forever — green theater by design. Fixed: ref-unresolvable now fails closed (exit 1, explicit message); file-absent-at-resolved-ref remains legitimate first-introduction pass. Verified both directions live: `nonexistent-ref` → exit 1 "Failing closed"; `origin/main` → exit 0 (manifest genuinely absent on main — this branch introduces it).
+- check-deployment: requires live DB+env context — remains a deploy-pipeline tool, honestly not CI-wired here (the test workflow's ephemeral DB would exercise only its shallowest path).
+
+### CI wiring (test.yml)
+- checkout now `fetch-depth: 0` — the additivity guard diffs against origin/main and shallow clones fail closed (the fix working as intended).
+- Two zero-input guards wired adjacent to the existing contract-manifest step: migration ordering integrity + contract additivity. YAML parse-validated; exact command sequence executed locally in workflow order — both exit 0 on current state with correct messages.
+- Before→after: wired guards 0/4 → 2/4 CI-enforced, 1/4 merge-time tooling (release-head), 1/4 deploy-context tooling (check-deployment) — the split documented honestly rather than force-wired.
+
+Regression: contract suite **130/130** (TEST_DATABASE_URL exported per the documented worktree trap).

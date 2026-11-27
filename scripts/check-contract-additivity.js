@@ -14,8 +14,16 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 
 function loadAt(rev) {
+  // Discriminate failure classes — a guard that cannot fail is not a guard:
+  // 1. ref itself unresolvable (shallow clone, missing fetch, typo) → throw: infra failure must FAIL the gate
+  // 2. ref resolves but manifest absent → null: legitimate first-introduction, trivially passes
   try {
-    return JSON.parse(execSync(`git show ${rev}:contracts/api-contract.json`, { cwd: ROOT, encoding: 'utf8' }));
+    execSync(`git rev-parse --verify ${rev}`, { cwd: ROOT, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+  } catch {
+    throw new Error(`base ref ${rev} unresolvable — cannot verify additivity (shallow clone? missing fetch?). Failing closed.`);
+  }
+  try {
+    return JSON.parse(execSync(`git show ${rev}:contracts/api-contract.json`, { cwd: ROOT, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }));
   } catch { return null; }
 }
 
@@ -36,7 +44,13 @@ function checkAdditivity(base = 'origin/main') {
 if (require.main === module) {
   const baseIdx = process.argv.indexOf('--base');
   const base = baseIdx !== -1 ? process.argv[baseIdx + 1] : 'origin/main';
-  const r = checkAdditivity(base);
+  let r;
+  try {
+    r = checkAdditivity(base);
+  } catch (err) {
+    console.log(`FAIL: ${err.message}`);
+    process.exit(1);
+  }
   console.log(r.note || `vs ${base}: +${r.added} added, ${r.removed} removed`);
   for (const p of r.problems) console.log(`FAIL: ${p}`);
   if (r.ok && !r.note) console.log('contract evolution is additive — backcompat preserved');
