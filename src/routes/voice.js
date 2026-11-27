@@ -113,7 +113,7 @@ const INTENT_SCHEMA = {
       properties: {
         intent: { type: 'string', enum: VOICE_INTENTS }, segment: { type: 'string' },
         exerciseName: NULLABLE_STR, sets: NULLABLE, reps: NULLABLE, weight: NULLABLE, weightUnit: NULLABLE_STR,
-        amountMl: NULLABLE, mealType: NULLABLE_STR, name: NULLABLE_STR, mood: NULLABLE_STR, energy: NULLABLE, stress: NULLABLE,
+        amountMl: NULLABLE, mealType: NULLABLE_STR, name: NULLABLE_STR, mood: NULLABLE_STR, energy: NULLABLE, stress: NULLABLE, dateHint: NULLABLE_STR,
         items: {
           type: 'array', items: {
             type: 'object', additionalProperties: false,
@@ -122,13 +122,13 @@ const INTENT_SCHEMA = {
           },
         },
       },
-      required: ['intent', 'segment', 'exerciseName', 'sets', 'reps', 'weight', 'weightUnit', 'amountMl', 'mealType', 'name', 'items', 'mood', 'energy', 'stress'],
+      required: ['intent', 'segment', 'exerciseName', 'sets', 'reps', 'weight', 'weightUnit', 'amountMl', 'mealType', 'name', 'items', 'mood', 'energy', 'stress', 'dateHint'],
     },
   },
 };
 const INTENT_INSTRUCTIONS = `You convert short voice commands from a fitness logging app into structured actions, one action per numbered input segment.
 Intents: LOG_EXERCISE_SET (add sets/reps/weight of an exercise), LOG_FOOD (food items; split every distinct food), LOG_WATER (water amount), MARK_SUPPLEMENT_TAKEN, UPDATE_EXERCISE_SET (change the most recent set), START_WORKOUT, COMPLETE_WORKOUT, LOG_MOOD (record how the user feels: mood one of very_low|low|neutral|good|very_good, energy 1-5, stress 1-5), START_BREATHING_EXERCISE (open the breathing exercise), SHOW_MOOD_TRENDS (open mood trends/insights), CREATE_REFLECTION_REMINDER (enable the optional evening reflection reminder in Mind preferences), ASK_FIBER (a question about dietary fiber, fiber in foods, or fiber supplements — informational only, never a logging action), UNDO_ACTION, CANCEL_COMMAND, UNKNOWN_INTENT (not a logging command).
-Rules: never invent IDs or foods not mentioned; keep weightUnit as "lbs" or "kg"; water amounts in ml; food grams only when the user gives a weight (e.g. "150 g"); household measures go in unit with quantity (e.g. "2 slices" -> quantity 2, unit "slice"); unknown or non-command speech -> UNKNOWN_INTENT. Output exactly one action per input segment, in order, echoing the segment text.`;
+Rules: never invent IDs or foods not mentioned; keep weightUnit as "lbs" or "kg"; water amounts in ml; food grams only when the user gives a weight (e.g. "150 g"); household measures go in unit with quantity (e.g. "2 slices" -> quantity 2, unit "slice"); when the user names a relative day put it in dateHint exactly as a lowercase keyword (yesterday for the previous day, today for today); omit dateHint (null) when no day is mentioned; unknown or non-command speech -> UNKNOWN_INTENT. Output exactly one action per input segment, in order, echoing the segment text.`;
 
 const numOrNull = v => Number.isFinite(Number(v)) && v !== null ? Number(v) : null;
 
@@ -346,11 +346,20 @@ router.post('/commands/execute', wrap(async (req, res) => {
           // inferred beyond the spoken offset.
           const dayOffset = Number.isFinite(Number(a.entities.dayOffset)) ? Math.max(-7, Math.min(0, Math.trunc(Number(a.entities.dayOffset)))) : 0;
           const loggedAt = dayOffset ? new Date(Date.now() + dayOffset * 86400000) : undefined;
+          // Relative-day resolution is strictly server-side: only a fixed
+          // allowlist of keywords is honored, anything else falls back to now
+          // — the model can never inject an arbitrary date, and a missing or
+          // unrecognized hint never blocks the log.
+          const DAY_MS = 24 * 60 * 60 * 1000;
+          const hint = String(a.entities.dateHint || '').toLowerCase().trim();
+          const foodDayOff = hint === 'yesterday' ? -1 : hint === 'today' ? 0 : null;
+          const foodLoggedAt = foodDayOff != null ? new Date(Date.now() + foodDayOff * DAY_MS) : undefined;
           const saved = await prisma.foodLog.create({ data: {
             id: `voice-${commandId}-${i}`, userId, foodName: item.name.slice(0, 300),
             quantityG: gramsUsed, calories: n.nutrition.calories ?? 0, proteinG: n.nutrition.proteinG ?? 0,
             carbsG: n.nutrition.carbsG ?? 0, fatG: n.nutrition.fatG ?? 0, fiberG: n.nutrition.fiberG ?? null,
-            mealType: String(a.entities.mealType || 'meal').slice(0, 30), ingredientId: ing.id, ...(loggedAt ? { loggedAt } : {}),
+            mealType: String(a.entities.mealType || 'meal').slice(0, 30), ingredientId: ing.id,
+            ...(foodLoggedAt ? { loggedAt: foodLoggedAt } : {}), ...(loggedAt ? { loggedAt } : {}),
             nutritionSnapshot: { loggedSource: 'voice', grams: gramsUsed, calculated: n.nutrition, nutrientUnknowns: require('../services/nutrientCompleteness').computeUnknowns(n.nutrition), ...(servingMeta || {}) },
           } });
           created.push({ kind: 'foodLog', id: saved.id });
