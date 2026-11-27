@@ -6,6 +6,7 @@ const express = require('express');
 
 const mockBev = () => ({
   id: 'i-bev', name: 'Orange juice (per-100ml declared)', source: 'usda', densityGPerMl: null,
+  sourceMetadata: { nutritionBasis: 'PER_100_ML' },
   caloriesPer100g: 42, proteinPer100g: 0.7, carbsPer100g: 10, fatPer100g: 0.2, fiberPer100g: 0.2,
   catalog: null, servings: [{ id: 'sv-330', label: '1 can (330 ml)', grams: 0, ml: 330, estimated: false, sourceRecord: {} }],
 });

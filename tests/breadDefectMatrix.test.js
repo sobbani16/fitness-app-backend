@@ -65,6 +65,33 @@ const { calculate } = require('../src/services/ingredientNutrition');
     expect(byGrams.nutrition.calories).toBeCloseTo(byServing.nutrition.calories, 2);
   });
 
+  it('DOCUMENTED CASE: whole wheat bread — 1 slice = 32 g, 2 slices = 64 g, 247 kcal/100g → 158.08 kcal internally', async () => {
+    // the literal A2 numbers: the exact per-100g reference (247 kcal) scaled by
+    // the verified 32 g slice conversion, doubled for two slices. Uses the
+    // documented record values as a hermetic fixture.
+    const p = getPrisma();
+    const ww = await p.ingredient.create({
+      data: {
+        name: 'matrix whole wheat bread ready', normalizedName: 'matrix whole wheat bread ready',
+        caloriesPer100g: 247, proteinPer100g: 13, carbsPer100g: 41, fatPer100g: 3.4, fiberPer100g: 7,
+        servings: { create: [{ id: 'matrix-ww-slice', label: '1 slice', grams: 32, sourceRecord: { matrix: true } }] },
+      },
+      include: { servings: true },
+    });
+    try {
+      const one = await calculate(ww.id, { servingId: 'matrix-ww-slice', count: 1 });
+      expect(one.grams).toBeCloseTo(32, 4); // verified 32 g conversion, not a sibling
+      expect(one.nutrition.calories).toBeCloseTo(247 * 0.32, 2); // 79.04 kcal per slice
+      const two = await calculate(ww.id, { servingId: 'matrix-ww-slice', count: 2 });
+      expect(two.grams).toBeCloseTo(64, 4); // 2 slices = 64 g exactly
+      expect(two.nutrition.calories).toBeCloseTo(158.08, 2); // the documented internal value
+      // rounding for display is a client concern; the backend value is exact
+    } finally {
+      await p.ingredientServing.deleteMany({ where: { ingredientId: ww.id } }).catch(() => null);
+      await p.ingredient.delete({ where: { id: ww.id } }).catch(() => null);
+    }
+  });
+
   it('no-quantity errors instead of fabricating', async () => {
     await expect(calculate(bread.id, {})).rejects.toThrow();
   });

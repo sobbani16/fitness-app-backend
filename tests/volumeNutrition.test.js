@@ -44,14 +44,23 @@ it('explicit volumeMl converts with density', async () => {
 });
 
 it('volume without density resolves volume-natively — mass null, NEVER fabricated (decision #144/#155)', async () => {
-  const r1 = await calculate('i-oil', { servingId: 'sv-cup', count: 1 }, db(OIL_NO_DENSITY));
+  // the volume-native contract applies to VOLUME-DECLARED products only —
+  // the beverage carries the per-100ml provenance declaration.
+  const r1 = await calculate('i-bev', { volumeMl: 240 }, db(BEVERAGE));
   expect(r1.grams).toBeNull(); // unknown mass — never 1ml=1g
   expect(r1.volumeMl).toBe(240);
   expect(r1.nutritionBasis).toBe('PER_100_ML');
-  expect(r1.nutrition.calories).toBeCloseTo(61 * 2.4, 1); // declared basis × volume
-  const r2 = await calculate('i-oil', { volumeMl: 50 }, db(OIL_NO_DENSITY));
+  expect(r1.nutrition.calories).toBeCloseTo(42 * 2.4, 1); // declared basis × volume
+  const r2 = await calculate('i-bev', { volumeMl: 50 }, db(BEVERAGE));
   expect(r2.grams).toBeNull();
-  expect(r2.nutrition.calories).toBeCloseTo(61 * 0.5, 1);
+  expect(r2.nutrition.calories).toBeCloseTo(42 * 0.5, 1);
+});
+
+it('GUARD: volume input on a MASS-DECLARED food without density refuses — never fabricated nutrition (A2 bread regression)', async () => {
+  // oil's canonical nutrients are per-100g with no volume declaration: scaling
+  // them by volume would fabricate nutrition. The A2 matrix caught exactly
+  // this regression on bread — the guard is the fix.
+  await expect(calculate('i-oil', { volumeMl: 240 }, db(OIL_NO_DENSITY))).rejects.toMatchObject({ status: 400, message: 'volume_requires_density' });
 });
 
 it('never applies a 1ml=1g implicit fallback', async () => {
@@ -73,6 +82,7 @@ it('rejects invalid volumes', async () => {
 // current resolver ACTUALLY does — baseline evidence, not the fix.
 const BEVERAGE = {
   id: 'i-bev', name: 'Orange juice (per-100ml declared)', source: 'usda', densityGPerMl: null,
+  sourceMetadata: { nutritionBasis: 'PER_100_ML' },
   caloriesPer100g: 42, proteinPer100g: 0.7, carbsPer100g: 10, fatPer100g: 0.2, fiberPer100g: 0.2,
   catalog: null, servings: [
     { id: 'sv-330', label: '1 can (330 ml)', grams: 0, ml: 330, estimated: false, sourceRecord: {} },

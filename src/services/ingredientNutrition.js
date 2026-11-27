@@ -28,7 +28,16 @@ async function calculate(id,{grams,servingId,count=1,volumeMl}={},db=getPrisma()
  // without documented density is NEVER mass-converted (never 1ml=1g). Nutrition
  // scales by the declared per-100mL basis through the approved pure helper;
  // mass stays honestly null.
+ // CONTRACT GUARD (A2 bread regression): the canonical nutrient fields are
+ // per-100g unless provenance explicitly declares a volume basis. Without that
+ // declaration, scaling them by volume would fabricate nutrition — refuse
+ // exactly as before. Evidence accepted: sourceRecord/sourceMetadata
+ // nutritionBasis 'PER_100_ML', or a barcode-derived servingUnit 'ml' with
+ // volume-declared nutrition.
  if(volumeNative){
+  const sr=(item.catalog&&item.catalog.sourceRecord)||item.sourceMetadata||{};
+  const volumeDeclared=sr.nutritionBasis==='PER_100_ML'||(sr.servingUnit==='ml'&&sr.volumeDeclaredNutrition===true);
+  if(!volumeDeclared)throw httpError(400,'volume_requires_density');
   const declared={basis:'PER_100_ML',nutrients:fromIngredient(item)};
   const out=require('./nutrition').calculateDeclared(declared,{volumeMl:volumeNative.volumeMl});
   return {nutrition:out.nutrition,grams:null,volumeMl:volumeNative.volumeMl,nutritionBasis:'PER_100_ML',serving:serving?{id:serving.id,label:serving.label,grams:serving.grams,ml:serving.ml??null,count,estimated:serving.estimated,source:serving.sourceRecord}:null,densityGPerMl:null,provenance:{...provenance(item),nutritionBasis:'PER_100_ML',conversion:'volume-native: declared per-100mL × ml/100 — mass unknown (no documented density)',calculation:out.calculation}};
