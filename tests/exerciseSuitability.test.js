@@ -49,6 +49,31 @@ describe('suitability rules', () => {
     expect(r.status).toBe('review');
     expect(r.reasons[0]).toMatch(/review/i);
   });
+  it('back limitation (pc-HUM-7 F1): spinal-loading lifts adapt, gentle alternatives stay available', () => {
+    // 'back' is emitted by deriveLimitations for back/spine/neck/rib/abdomen
+    // injuries and modify-severity TRUNK_LOAD restrictions — it must not be a
+    // dead token returning 'suitable' for trunk-loading exercises.
+    const back = { ...gymGoer, limitations: ['back'] };
+    expect(classify('deadlift', back).status).not.toBe('suitable');
+    expect(classify('rdl-dumbbell', back).status).not.toBe('suitable');
+    expect(classify('barbell-row', back).status).not.toBe('suitable');
+    expect(classify('farmer-carry', back).status).not.toBe('suitable');
+    // the low-load alternatives a back-limited plan can still use
+    expect(classify('glute-bridge', back).status).toBe('suitable');
+    expect(classify('bench-press', back).status).toBe('suitable');
+    expect(classify('db-row', back).status).toBe('suitable');
+    expect(classify('dead-bug', back).status).toBe('suitable');
+  });
+  it('end-to-end: deriveLimitations back injury → classify constrains the deadlift', () => {
+    const { deriveLimitations } = require('../src/services/activitySafety/gate');
+    const { limitations } = deriveLimitations({ injuries: [{ bodyPart: 'lower_back', type: 'strain' }] });
+    expect(limitations).toContain('back');
+    const { limitations: rLimit } = deriveLimitations({ restrictions: [{ status: 'active', severity: 'modify', categories: ['trunk_load'] }] });
+    expect(rLimit).toContain('back');
+    for (const lim of [limitations, rLimit]) {
+      expect(classify('deadlift', { ...gymGoer, limitations: lim }).status).not.toBe('suitable');
+    }
+  });
   it('balance limitation adapts high-balance moves', () => {
     const r = classify('lunge', { experience: 'intermediate', equipment: ['bodyweight'], limitations: ['balance'] });
     expect(r.status).toBe('adapt');
