@@ -68,6 +68,7 @@ describe('evaluation precedence (env provider)', () => {
   });
 
   test('results cached per user', async () => {
+    process.env.FF_CACHE_TTL_MS = '60000'; // opt in — global test default is TTL=0
     await flags.evaluateAll('u-cache');
     setEnv('ai_coach', 'false');
     expect(await flags.isEnabled('ai_coach', 'u-cache')).toBe(true); // cached

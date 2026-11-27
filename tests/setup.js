@@ -35,7 +35,24 @@ process.env.AUTH_TEST_BYPASS = 'true';
 // suites keep their previous behavior. Flag-specific tests override per-case
 // and call featureFlags.resetCache() between assertions.
 process.env.FEATURE_FLAGS_PROVIDER = 'env';
+// §12 FF cache isolation: TTL must be zero in tests. The service reads
+// FF_CACHE_TTL_MS once at module load; resetCache() alone cannot close the
+// flake vector because an in-flight flag resolution can re-populate the cache
+// AFTER the per-test reset — a stale flag-off resolution then poisons the next
+// test sharing the userId key (order/timing-dependent 403/404-vs-401 flakes).
+// With TTL=0 the service never writes cache entries at all.
+process.env.FF_CACHE_TTL_MS = '0';
 const { KEYS, FEATURES, envOverrideName } = require('../src/config/featureRegistry');
 // Control-plane and medical-group flags are NOT auto-enabled: they must be
 // explicitly turned on per-test, mirroring production governance.
 for (const key of KEYS) if (FEATURES[key].class !== 'control' && FEATURES[key].group !== 'medical') process.env[envOverrideName(key)] = 'true';
+
+// Pristine-env baseline: module registries reset per test FILE but process.env
+// is shared across all files in the worker. Test files mutate env at module
+// level / in hooks / in tests, and jest's sequencer orders files differently
+// run-to-run — so mutations leak into whichever file happens to run next,
+// producing order-dependent 403/404-vs-401 flakes. Snapshot the bootstrap
+// state once (first file to run); setupAfterEnv restores it at every file end.
+if (!globalThis.__PRISTINE_ENV_SNAPSHOT) {
+  globalThis.__PRISTINE_ENV_SNAPSHOT = { ...process.env };
+}
