@@ -348,6 +348,12 @@ async function main() {
     entry.parts.forEach((x) => console.log(`     ${x}`));
     if (!entry.isSystem) { console.log('     EXCLUDED — not a SYSTEM recipe'); continue; }
     if (entry.unresolved.length) { console.log(`     HELD — unresolved lines (excluded): ${entry.unresolved.join(', ')}`); continue; }
+    if (entry.computedAfter === entry.expectedBefore) {
+      // Already-correct rows never enter the plan — including them makes every
+      // reapply a useless rewrite and dilutes the review with no-op rows.
+      console.log('     ALREADY CORRECT — excluded from plan (nothing to reconcile)');
+      continue;
+    }
     candidates.push(entry);
     console.log(`     UPDATE "Recipe" SET "fiberG" = ${entry.computedAfter} WHERE id = '${entry.id}';`);
     console.log(`     ROLLBACK: UPDATE "Recipe" SET "fiberG" = ${entry.expectedBefore} WHERE id = '${entry.id}';`);
