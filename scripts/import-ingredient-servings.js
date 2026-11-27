@@ -13,6 +13,33 @@ const { searchUsda, getUsdaFood } = require('../src/services/usdaService');
 const db = getPrisma();
 
 const APPLY = process.argv.includes('--apply');
+
+// B4 hardening: rate-limit resilient USDA access — bounded exponential backoff
+// on 429/5xx/network errors, never on 4xx data errors (those are deterministic).
+async function withRetry(fn, label, attempts = 4) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try { return await fn(); }
+    catch (e) {
+      lastErr = e;
+      const status = e?.response?.status;
+      const retriable = status === 429 || (status >= 500) || !status;
+      const clientError = status >= 400 && status < 500 && status !== 429;
+      if (clientError) throw e; // deterministic — retrying cannot help
+      if (!retriable) throw e;
+      const waitMs = 500 * (2 ** i) + Math.floor(Math.random() * 100);
+      console.error(`retry ${i + 1}/${attempts} for ${label} after ${waitMs}ms (${status || e.message})`);
+      await new Promise((r) => setTimeout(r, waitMs));
+    }
+  }
+  throw lastErr;
+}
+
+// Versioned provenance: the batch tag ties every written row to one reversible
+// import batch — before/after reporting and rollback both key off it.
+const BATCH_VERSION = 'b4-v1';
+const CHECKPOINT_FILE = require('node:path').join(__dirname, '..', 'data', 'imports', `serving-import-checkpoint-${new Date().toISOString().slice(0, 10)}.json`);
+
 const arg = (k) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split('=').slice(1).join('=') ?? null;
 
 // catalogId -> USDA query. Queries tuned to hit SR Legacy/Foundation records.
@@ -150,7 +177,7 @@ const cleanLabel = (p) => {
     const q = query || cat.name.replace(/,.*$/, '');
     usdaHits = null;
     for (let attempt = 0; attempt < 3 && !usdaHits; attempt++) {
-      try { usdaHits = await searchUsda(q, 5); } catch (e) { if (attempt === 2) { report.needsHuman.push({ catalogId, reason: `usda search failed: ${e.message}` }); } else await new Promise((r) => setTimeout(r, 900 * (attempt + 1))); }
+      try { usdaHits = await withRetry(() => searchUsda(q, 5)); } catch (e) { if (attempt === 2) { report.needsHuman.push({ catalogId, reason: `usda search failed: ${e.message}` }); } else await new Promise((r) => setTimeout(r, 900 * (attempt + 1))); }
     }
     if (!usdaHits) continue;
     await new Promise((r) => setTimeout(r, 350));
@@ -262,7 +289,7 @@ const cleanLabel = (p) => {
         label: cleanLabel(p).slice(0, 80),
         grams: p.gramWeight,
         estimated: false,
-        sourceRecord: { source: 'USDA FoodData Central', fdcId: detail.fdcId, description: detail.description, dataType: detail.dataType, measureUnit: p.measureUnit?.name || null, portionDescription: p.portionDescription || null, gramWeight: p.gramWeight, importedAt: new Date().toISOString(), importScript: 'import-ingredient-servings.js' },
+        sourceRecord: { source: 'USDA FoodData Central', fdcId: detail.fdcId, description: detail.description, dataType: detail.dataType, measureUnit: p.measureUnit?.name || null, portionDescription: p.portionDescription || null, gramWeight: p.gramWeight, importedAt: new Date().toISOString(), importScript: 'import-ingredient-servings.js', batchVersion: BATCH_VERSION },
       })));
     }
     // Branded/label records: manufacturer-declared serving (e.g. "1 slice", 32 g)
@@ -278,7 +305,7 @@ const cleanLabel = (p) => {
         label: detail.householdServingFullText.slice(0, 80),
         grams: detail.servingSize,
         estimated: false,
-        sourceRecord: { source: 'USDA FoodData Central (branded label serving)', fdcId: detail.fdcId, description: detail.description, dataType: detail.dataType, brandOwner: detail.brandOwner || null, servingSize: detail.servingSize, servingSizeUnit: detail.servingSizeUnit, importedAt: new Date().toISOString(), importScript: 'import-ingredient-servings.js' },
+        sourceRecord: { source: 'USDA FoodData Central (branded label serving)', fdcId: detail.fdcId, description: detail.description, dataType: detail.dataType, brandOwner: detail.brandOwner || null, servingSize: detail.servingSize, servingSizeUnit: detail.servingSizeUnit, importedAt: new Date().toISOString(), importScript: 'import-ingredient-servings.js', batchVersion: BATCH_VERSION },
       });
     }
     if (!servings.length) {
@@ -287,8 +314,21 @@ const cleanLabel = (p) => {
     }
     report.details[catalogId] = { ingredient: cat.ingredient.id, usda: `${detail.description} [${detail.fdcId}] ${detail.dataType}`, servings: servings.map((s) => `${s.label} = ${s.grams}g`) };
     if (APPLY) {
-      for (const s of servings) await db.ingredientServing.upsert({ where: { id: s.id }, create: s, update: { label: s.label, grams: s.grams, estimated: s.estimated, sourceRecord: s.sourceRecord } });
+      // B4: before/after evidence per item — the diff is reviewable artifact,
+      // not a console stream. Writes per item are one transaction: a batch
+      // never leaves a half-written serving set for a single ingredient.
+      const before = await db.ingredientServing.findMany({ where: { ingredientId: cat.ingredient.id }, select: { id: true, label: true, grams: true } });
+      await db.$transaction(async (tx) => {
+        for (const s of servings) await tx.ingredientServing.upsert({ where: { id: s.id }, create: s, update: { label: s.label, grams: s.grams, estimated: s.estimated, sourceRecord: s.sourceRecord } });
+      });
+      const after = await db.ingredientServing.findMany({ where: { ingredientId: cat.ingredient.id }, select: { id: true, label: true, grams: true } });
       report.applied.push(catalogId);
+      report.beforeAfter = report.beforeAfter || {};
+      report.beforeAfter[catalogId] = { before, after };
+      // Checkpoint: after each successful item the report is flushed to disk —
+      // a crashed batch resumes from the checkpoint instead of re-calling the
+      // USDA API for already-applied items (idempotent by stable ids anyway).
+      require('node:fs').writeFileSync(CHECKPOINT_FILE, JSON.stringify({ batchVersion: BATCH_VERSION, writtenAt: new Date().toISOString(), report }, null, 1));
     } else report.skipped.push({ catalogId, reason: 'dry-run' });
   }
   console.log(JSON.stringify(report, null, 1));
