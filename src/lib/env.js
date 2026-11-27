@@ -78,7 +78,37 @@ const SECRET_RULES = [
   { name: 'PAYMENTS_WEBHOOK_SECRET', enabled: () => process.env.PAYMENTS_PROVIDER && process.env.PAYMENTS_PROVIDER !== 'mock', note: 'provider webhook verification (commerce only)' },
   { name: 'OPENAI_API_KEY', enabled: () => process.env.AI_ENABLED === 'true', note: 'AI features' },
   { name: 'RESEND_API_KEY', enabled: () => true, note: 'transactional email' },
+  // Capability/signing secrets — each independently derivable from the master,
+  // so an unset dedicated var is only a warning IF a master exists; with no
+  // master at all in production, requiredSecret() already throws at module
+  // load. These rules make the readiness command enumerate the full surface.
+  { name: 'DOC_URL_SECRET', enabled: () => false, note: 'signed document URLs (derivable from master)' },
+  { name: 'VIDEO_TOKEN_SECRET', enabled: () => false, note: 'video session tokens (derivable from master)' },
+  { name: 'VIEW_AS_SECRET', enabled: () => false, note: 'support view-as tokens (derivable from master)' },
+  { name: 'FORM_CHECK_SECRET', enabled: () => false, note: 'form-check signing (derivable from master)' },
 ];
+
+/**
+ * CORS validation: contradictory config fails safe. Production with NO
+ * CORS_ORIGINS means cross-origin browser access is impossible — that is the
+ * safe default, reported as a warning not an error (native clients unaffected).
+ * A wildcard '*' in production is a contradiction of the credentialed-api
+ * security model and is reported as missing/invalid — fail safe.
+ */
+function validateCors(env = process.env) {
+  const raw = env.CORS_ORIGINS || '';
+  const origins = raw.split(',').map((s) => s.trim()).filter(Boolean);
+  const problems = [];
+  if (isProduction() && origins.includes('*')) {
+    problems.push('CORS_ORIGINS contains wildcard * — contradicts credentialed-api model in production');
+  }
+  for (const o of origins) {
+    if (o !== '*' && !/^https?:\/\/[a-zA-Z0-9.-]+(:\d+)?$/.test(o)) {
+      problems.push(`CORS_ORIGINS entry malformed (must be scheme://host[:port])`);
+    }
+  }
+  return { ok: problems.length === 0, problems, configured: origins.length > 0 };
+}
 
 /**
  * Returns { ok, missing[], warnings[] } of variable names only. In production a
@@ -99,4 +129,4 @@ function validateConfig(env = process.env) {
   return { ok: missing.length === 0, missing, warnings };
 }
 
-module.exports = { environmentName, isProduction, isStaging, isPredictable, requiredSecret, validateConfig };
+module.exports = { environmentName, isProduction, isStaging, isPredictable, requiredSecret, validateConfig, validateCors };
