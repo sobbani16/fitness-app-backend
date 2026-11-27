@@ -16,8 +16,9 @@ jest.mock('../src/lib/prisma', () => ({
   getPrisma: () => ({
     ingredient: { findUnique: async ({ where }) => (where.id === 'i-bev' ? mockBev() : where.id === 'i-bev-d' ? mockBevD() : null) },
     foodLog: {
-      findUnique: async () => null,
+      findUnique: async ({ where }) => creates.find((r) => r.id === where.id) || null,
       findFirst: async () => null,
+      findMany: async ({ where } = {}) => creates.filter((r) => r.userId === where?.userId),
       create: async ({ data }) => { creates.push(data); return { id: data.id, ...data }; },
     },
   }),
@@ -77,5 +78,63 @@ describe('POST /foodLogs volume baseline (Workstream C evidence)', () => {
     const schema = require('fs').readFileSync(require('path').join(__dirname, '../prisma/schema.prisma'), 'utf8');
     const foodLogBlock = schema.slice(schema.indexOf('model FoodLog'));
     expect(foodLogBlock.slice(0, 2000)).toMatch(/quantityG\s+Float\?/); // nullable — unknown mass is honestly null (decision #155)
+  });
+});
+
+describe('null-mass API boundary compatibility (decision #155 consumers)', () => {
+  const VOL_BODY = { ingredientId: 'i-bev', foodName: 'Orange juice', volumeMl: 330, calories: 138.6, proteinG: 2.3, carbsG: 33, fatG: 0.7, fiberG: 0.7 };
+
+  it('history returns volume-native rows with native quantity fields and the original snapshot intact', async () => {
+    const created = await post(VOL_BODY);
+    expect(created.status).toBeLessThan(300);
+    const hist = await request(app).get('/foodLogs?date=' + new Date().toISOString().slice(0, 10)).set('x-user-id', 'user-a');
+    expect(hist.status).toBe(200);
+    const row = hist.body.logs.find((l) => l.id === created.body.id);
+    expect(row).toBeTruthy();
+    expect(row.quantityG).toBeNull(); // null survives the read path — never coerced to 0
+    expect(row.quantityMl).toBe(330);
+    expect(row.quantityUnit).toBe('ml');
+    expect(row.calories).toBeCloseTo(138.6, 1);
+    expect(row.nutritionSnapshot.nutritionBasis).toBe('PER_100_ML'); // original snapshot preserved verbatim
+    expect(row.nutritionSnapshot.massUnknown).toBe(true);
+  });
+
+  it('same-ID replay leaves exactly one row and preserves the volume-native snapshot', async () => {
+    const id = 'log-replay-fixed';
+    const r1 = await request(app).post('/foodLogs').send({ id, mealType: 'lunch', loggedAt: new Date().toISOString(), ...VOL_BODY });
+    const r2 = await request(app).post('/foodLogs').send({ id, mealType: 'lunch', loggedAt: new Date().toISOString(), ...VOL_BODY });
+    expect(r1.status).toBeLessThan(300);
+    expect(r2.status).toBe(200); // idempotent replay — no-op, not an error
+    const rows = creates.filter((r) => r.id === id);
+    expect(rows).toHaveLength(1); // exactly one row — the offline-queue retry contract
+    expect(rows[0].nutritionSnapshot.nutritionBasis).toBe('PER_100_ML');
+    expect(rows[0].quantityG).toBeNull();
+  });
+
+  it('snapshot-less 150 g legacy control round-trips with numeric mass intact', async () => {
+    const res = await post({ foodName: 'legacy rice', quantityG: 150, calories: 195, proteinG: 4, carbsG: 42, fatG: 0.5 });
+    expect(res.status).toBeLessThan(300);
+    const row = creates.find((r) => r.foodName === 'legacy rice');
+    expect(row.quantityG).toBe(150); // legacy numeric mass untouched
+    expect(row.quantityMl ?? null).toBeNull();
+    expect(row.nutritionSnapshot.grams).toBe(150);
+  });
+
+  it('portion edits via unsupported PATCH leave the row fully intact — no partial mutation surface', async () => {
+    const created = await post(VOL_BODY);
+    const id = created.body.id;
+    const patch = await request(app).patch(`/foodLogs/${id}`).send({ quantityG: 500, calories: 999 });
+    expect([404, 405]).toContain(patch.status); // no portion-update endpoint exists — documented contract
+    const row = creates.find((r) => r.id === id);
+    expect(row.quantityG).toBeNull(); // untouched
+    expect(row.quantityMl).toBe(330);
+    expect(row.calories).toBeCloseTo(138.6, 1);
+  });
+
+  it('quantityG-direct portion path stays verbatim for legacy clients (documented contract)', async () => {
+    const res = await post({ foodName: 'direct grams', quantityG: 87, calories: 100, proteinG: 5, carbsG: 10, fatG: 3 });
+    expect(res.status).toBeLessThan(300);
+    const row = creates.find((r) => r.foodName === 'direct grams');
+    expect(row.quantityG).toBe(87); // verbatim — never rescaled
   });
 });
