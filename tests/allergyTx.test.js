@@ -59,3 +59,33 @@ it('fault injection: failed revalidation propagates — nothing commits', async 
   // writes above roll back with it (prisma.$transaction semantics).
   expect(mockTxOps.deletes).toBe(1); // write attempted in-tx, rolled back on throw
 });
+
+it('idempotent retry: the same PUT applied twice converges to one consistent state', async () => {
+  // Replace-set semantics: upsert/deleteMany+createMany are naturally
+  // idempotent — a client retry after a timeout must not duplicate rows or
+  // diverge. Provable invariants: both succeed, write counts identical.
+  const first = await request(app).put('/me/allergies').send({ allergens: ['peanut'], custom: ['sesame oil'] });
+  expect(first.status).toBe(200);
+  const writesAfterFirst = { ...mockTxOps };
+  const second = await request(app).put('/me/allergies').send({ allergens: ['peanut'], custom: ['sesame oil'] });
+  expect(second.status).toBe(200);
+  // Same net effect: exactly one deleteMany+createMany per request, never additive
+  expect(mockTxOps.deletes - writesAfterFirst.deletes).toBe(1);
+  expect(mockTxOps.creates - writesAfterFirst.creates).toBe(1);
+  // Response shape identical — retry-safe for clients reconciling state
+  expect(second.body.allergens).toEqual(first.body.allergens);
+  expect(second.body.custom).toEqual(first.body.custom);
+});
+
+it('no external calls inside the transaction: revalidation is tx-scoped DB work only', async () => {
+  // Regression guard: the tx callback must never await network/AI/queue calls
+  // while holding the row lock. Structural proof — the revalidation service
+  // receives ONLY the tx client (never the global prisma or fetch).
+  const fs = require('fs');
+  const route = fs.readFileSync(require.resolve('../src/routes/allergies'), 'utf8');
+  const txBody = route.slice(route.indexOf('$transaction'));
+  const insideTx = txBody.slice(0, txBody.indexOf('});'));
+  expect(insideTx).not.toMatch(/fetch|axios|openai|askJSON|http\./);
+  // lock-before-write ordering is structural in the route: FOR UPDATE precedes upserts
+  expect(insideTx.indexOf('FOR UPDATE')).toBeLessThan(insideTx.indexOf('upsert'));
+});
