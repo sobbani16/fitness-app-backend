@@ -141,3 +141,37 @@ test('persisted ID (differing from derived slug) drives muscles, draft identity,
     expect(profs.profiles.some((p) => p.exerciseId === `${PREFIX}good-row`)).toBe(true);
   });
 });
+
+describe('§33 import-time identity validation — zero writes on malformed catalogs', () => {
+  test('numeric name and null row abort before ANY upsert/muscle/draft write', async () => {
+    const upsert = jest.fn();
+    const prisma = { exercise: { upsert }, exerciseMuscle: { create: jest.fn() } };
+    const rows = [
+      { name: 'Valid Curl', primaryMuscles: ['biceps'] },
+      { name: 42 },
+      null,
+      { name: '!!!' },
+      { noName: true },
+      { name: '  ' },
+    ];
+    await expect(importCatalog(prisma, rows)).rejects.toThrow(/row 2\b/);
+    await expect(importCatalog(prisma, rows)).rejects.toThrow(/row 3\b/);
+    await expect(importCatalog(prisma, rows)).rejects.toThrow(/malformed entries/);
+    expect(upsert).not.toHaveBeenCalled();
+    expect(prisma.exerciseMuscle.create).not.toHaveBeenCalled();
+  });
+  test('positions and reasons are actionable for every malformed class', async () => {
+    const prisma = { exercise: { upsert: jest.fn() }, exerciseMuscle: { create: jest.fn() } };
+    const rows = [{ name: 'Good Row' }, { name: 42 }, null, { name: '!!!' }, { noName: true }, { name: '  ' }, 'str'];
+    let err;
+    try { await importCatalog(prisma, rows); } catch (e) { err = e; }
+    for (const n of [2, 3, 4, 5, 6, 7]) expect(err.message).toMatch(new RegExp(`row ${n}\\b`));
+    expect(err.message).not.toMatch(/row 1\b/);
+    expect(err.message).toMatch(/non-string|not an object|punctuation-only|missing|blank/);
+    expect(prisma.exercise.upsert).not.toHaveBeenCalled();
+  });
+  test('valid catalog control still imports', async () => {
+    const res = await importCatalog(prisma, [row(`${PREFIX}clean control`)], { stageDraft: { outDir: tmpOut(), fixedDate: '2026-01-01T00:00:00.000Z' } });
+    expect(res.imported).toBe(1);
+  });
+});

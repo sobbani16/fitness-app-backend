@@ -25,15 +25,10 @@ const OUT_DIR = path.join(__dirname, '..', 'docs', 'exercise-intelligence');
 // intelligence profile without needing a database.
 const { slugify, canonicalMuscle, canonicalEquipment } = require('../src/services/muscles');
 
-function loadCatalogRows(catalogPath) {
-  const rows = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
-  if (!Array.isArray(rows) || rows.length === 0) {
-    throw new Error(`catalog at ${catalogPath} is empty or not an array — refusing to check coverage against an empty catalog`);
-  }
-  // Reject malformed source identities BEFORE any coverage comparison or
-  // artifact write: a mixed catalog must not silently drop invalid rows and
-  // pass on the valid subset — that would certify coverage for exercises the
-  // source never actually defined. Row positions are 1-indexed as in the file.
+// Shared source-identity validation (§33): reject malformed rows BEFORE any
+// coverage comparison, artifact write, or import write. Returns 1-indexed
+// "row N: reason" strings — empty array means all identities are valid.
+function validateExerciseIdentityRows(rows) {
   const invalid = [];
   rows.forEach((raw, i) => {
     const pos = `row ${i + 1}`;
@@ -43,6 +38,19 @@ function loadCatalogRows(catalogPath) {
     if (!raw.name.trim()) { invalid.push(`${pos}: blank name`); return; }
     if (!slugify(raw.name.trim())) { invalid.push(`${pos}: punctuation-only name — no usable exercise identity`); }
   });
+  return invalid;
+}
+
+function loadCatalogRows(catalogPath) {
+  const rows = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new Error(`catalog at ${catalogPath} is empty or not an array — refusing to check coverage against an empty catalog`);
+  }
+  // Reject malformed source identities BEFORE any coverage comparison or
+  // artifact write: a mixed catalog must not silently drop invalid rows and
+  // pass on the valid subset — that would certify coverage for exercises the
+  // source never actually defined. Row positions are 1-indexed as in the file.
+  const invalid = validateExerciseIdentityRows(rows);
   if (invalid.length) {
     const shown = invalid.slice(0, 20).join('; ');
     const more = invalid.length > 20 ? ` (+${invalid.length - 20} more)` : '';
@@ -351,4 +359,4 @@ No exercise is marked ML/camera validated: there is no pose pipeline, no validat
 
 if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });
 
-module.exports = { stageExerciseDraft, loadCatalogRows, rowToExercise, coverageDiff, loadCommitted };
+module.exports = { stageExerciseDraft, loadCatalogRows, rowToExercise, coverageDiff, loadCommitted, validateExerciseIdentityRows };

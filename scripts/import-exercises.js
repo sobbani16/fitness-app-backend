@@ -2,6 +2,7 @@
 // Source: free-exercise-db (public dataset). Vendored copy at data/exercises.json
 // so re-imports never re-download. Run: node scripts/import-exercises.js
 const fs = require('fs');
+const { validateExerciseIdentityRows: validateIds } = require('./exercise-inventory');
 const path = require('path');
 const { PrismaClient } = require('@prisma/client');
 const { canonicalMuscle, canonicalEquipment, slugify } = require('../src/services/muscles');
@@ -57,7 +58,7 @@ async function importRow(prisma, raw, stageDraft) {
   });
   let draft = null;
   if (stageDraft) {
-    const { stageExerciseDraft } = require('./exercise-inventory');
+    const { stageExerciseDraft, validateExerciseIdentityRows } = require('./exercise-inventory');
     draft = stageExerciseDraft({
       id: pid, normalizedName: persisted.normalizedName || id, name, level: raw.level || null,
       force: raw.force || null, mechanic: raw.mechanic || null,
@@ -71,6 +72,14 @@ async function importRow(prisma, raw, stageDraft) {
 }
 
 async function importCatalog(prisma, rows, opts = {}) {
+  // §33 hardening: validate the COMPLETE catalog before any exercise, muscle or
+  // draft write — a mixed catalog must never partially import then abort.
+  const invalid = validateIds(rows);
+  if (invalid.length) {
+    const shown = invalid.slice(0, 20).join('; ');
+    const more = invalid.length > 20 ? ` (+${invalid.length - 20} more)` : '';
+    throw new Error(`catalog has ${invalid.length} malformed entries — ${shown}${more}. Fix or remove the source rows; import aborted before any writes`);
+  }
   let imported = 0, skipped = 0;
   const drafts = [];
   const seen = new Set();
