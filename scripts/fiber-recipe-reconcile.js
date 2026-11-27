@@ -329,6 +329,15 @@ async function main() {
     }
     const applied = await applyClassified(p, classified, log);
     console.log(`\nApplied ${applied.length} row(s); ${noop.length} no-op, ${held.length} held (unresolved lines — never written).`);
+  // Verified-after-apply: re-read every written row and confirm the stored
+  // value matches the computation — unverifiable reconciliation is not reconciled.
+  let verifyFailed = false;
+  for (const r of changed) {
+    const stored = await p.recipe.findUnique({ where: { id: r.id }, select: { fiberG: true } });
+    if (stored?.fiberG !== r.after) { verifyFailed = true; console.error(`VERIFY-FAIL ${r.name}: stored=${stored?.fiberG} expected=${r.after}`); }
+    else console.log(`VERIFIED ${r.name}: stored=${stored.fiberG}`);
+  }
+  if (verifyFailed) { console.error('Verification failed — investigate before trusting this apply.'); process.exitCode = 3; }
     console.log('Rollback (run manually to revert):');
     applied.forEach((r) => console.log(`  UPDATE "Recipe" SET "fiberG" = ${r.before} WHERE id = '${r.id}';`));
     await p.$disconnect();
