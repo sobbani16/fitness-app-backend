@@ -5,6 +5,7 @@
 // (5) server-side revalidation. Deterministic output works fully without AI.
 const { nutrientStatus } = require('./nutrientStatus');
 const { askJSON, aiEnabled } = require('./aiProvider');
+const { liveRuleWhere } = require('./healthOutcomes/clinicalRuleGovernance');
 const education = require('../../data/foodEducation.json');
 
 const BLOCKED_REVIEW = new Set(['REJECTED']);
@@ -18,7 +19,7 @@ function allergenHits(recipe, allergenNames) {
 async function constraints(prisma, userId) {
   const allergies = await prisma.userAllergy.findMany({ where: { userId }, include: { allergy: true } });
   const allergenNames = allergies.map(a => a.allergy.name.toLowerCase());
-  const conditions = await prisma.userHealthCondition.findMany({ where: { userId, active: true }, include: { condition: { include: { conditionRules: { where: { reviewStatus: 'APPROVED' } } } } } });
+  const conditions = await prisma.userHealthCondition.findMany({ where: { userId, active: true }, include: { condition: { include: { conditionRules: { where: liveRuleWhere() } } } } });
   const rules = [];
   for (const uc of conditions) {
     for (const r of uc.condition?.conditionRules || []) {
