@@ -2,6 +2,7 @@
 // Checks supplements against a user's conditions and timing rules.
 
 const { getPrisma } = require('../../lib/prisma');
+const { liveRuleWhere } = require('../healthOutcomes/clinicalRuleGovernance');
 
 /**
  * Validate a list of supplements against a user's health conditions.
@@ -15,7 +16,7 @@ async function validateSupplements(userId, supplements) {
   // Load user's active conditions.
   const userConditions = await prisma.userHealthCondition.findMany({
     where: { userId, active: true },
-    include: { condition: { include: { conditionRules: { where: { reviewStatus: 'APPROVED' } } } } },
+    include: { condition: { include: { conditionRules: { where: liveRuleWhere() } } } },
   });
 
   // Build condition rules targeting supplements.

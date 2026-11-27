@@ -13,6 +13,10 @@ const LIMITATION_BLOCKS = {
   'balance':     (e) => e.balance === 'high',
   'hip':         (e) => e.mobility === 'hip-hinge' || e.mobility === 'ankle-hip',
   'knee':        (e) => e.pattern === 'single-leg' || e.pattern === 'squat',
+  // Emitted by deriveLimitations for back/spine/neck/rib/abdomen injuries and
+  // modify-severity TRUNK_LOAD restrictions. Blocks spinal-loading patterns;
+  // the catalog's gentle hinges (glute-bridge: mobility 'minimal') stay open.
+  'back':        (e) => e.mobility === 'hip-hinge' || e.pattern === 'carry',
   'floor':       (e) => e.position === 'floor' || e.equipment.includes('floor'),
 };
 

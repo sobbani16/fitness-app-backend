@@ -37,27 +37,49 @@ beforeAll(async () => {
 });
 afterAll(async () => {
   // Fixture cleanup — the shared dev DB keeps rows between runs otherwise.
-  await prisma.recipe.deleteMany({ where: { recipeName: { startsWith: S } } });
-  const conds = await prisma.healthCondition.findMany({ where: { name: { startsWith: S } }, select: { id: true } });
+  // Every step is independent and failure-tolerant: one failing delete must
+  // not strand the rest of this run's rows. The original teardown ran every
+  // delete sequentially, so a single throw aborted all later steps — a
+  // plausible mechanism for the 'Test Fixture' RuleEvidence residue found in
+  // the shared database (NUTR-004).
+  const failures = [];
+  const step = async (name, fn) => { try { await fn(); } catch (e) { failures.push(`${name}: ${e.code || e.message}`); } };
+
+  const conds = await prisma.healthCondition.findMany({ where: { name: { startsWith: S } }, select: { id: true } }).catch(() => []);
   const condIds = conds.map(c => c.id);
-  await prisma.userHealthCondition.deleteMany({ where: { conditionId: { in: condIds } } });
-  await prisma.conditionRule.deleteMany({ where: { conditionId: { in: condIds } } });
-  await prisma.healthCondition.deleteMany({ where: { id: { in: condIds } } });
-  const allergies = await prisma.allergy.findMany({ where: { name: { startsWith: S } }, select: { id: true } });
-  await prisma.userAllergy.deleteMany({ where: { allergyId: { in: allergies.map(a => a.id) } } });
-  await prisma.allergy.deleteMany({ where: { id: { in: allergies.map(a => a.id) } } });
-  await prisma.ingredient.deleteMany({ where: { name: { startsWith: S } } });
-  const testUsers = await prisma.user.findMany({ where: { email: { startsWith: S } }, select: { id: true } });
+  const allergies = await prisma.allergy.findMany({ where: { name: { startsWith: S } }, select: { id: true } }).catch(() => []);
+  const testUsers = await prisma.user.findMany({ where: { email: { startsWith: S } }, select: { id: true } }).catch(() => []);
   const uids = testUsers.map(u => u.id);
-  await prisma.foodLog.deleteMany({ where: { userId: { in: uids } } });
-  await prisma.foodPreference.deleteMany({ where: { userId: { in: uids } } });
-  await prisma.userPlanningPreferences.deleteMany({ where: { userId: { in: uids } } });
-  await prisma.userHealthCondition.deleteMany({ where: { userId: { in: uids } } });
-  await prisma.userAllergy.deleteMany({ where: { userId: { in: uids } } });
-  // Users may still own other rows (meal plans, nutritionist profiles) —
-  // delete what we can, leave stragglers as report-only residue.
-  await prisma.user.deleteMany({ where: { id: { in: uids } } }).catch(() => null);
-  await prisma.ruleEvidence.deleteMany({ where: { code: { startsWith: S } } });
+  const recipeIds = (await prisma.recipe.findMany({ where: { recipeName: { startsWith: S } }, select: { id: true } }).catch(() => [])).map(r => r.id);
+
+  // Dependents before parents; RuleEvidence early — ConditionRule.evidenceSourceId
+  // is the only FK into it and S-scoped rules go first.
+  await step('conditionRules', () => prisma.conditionRule.deleteMany({ where: { conditionId: { in: condIds } } }));
+  await step('ruleEvidence', () => prisma.ruleEvidence.deleteMany({ where: { code: { startsWith: S } } }));
+  await step('userHealthConditions-byCond', () => prisma.userHealthCondition.deleteMany({ where: { conditionId: { in: condIds } } }));
+  await step('healthConditions', () => prisma.healthCondition.deleteMany({ where: { id: { in: condIds } } }));
+  await step('userAllergies-byAllergy', () => prisma.userAllergy.deleteMany({ where: { allergyId: { in: allergies.map(a => a.id) } } }));
+  await step('allergies', () => prisma.allergy.deleteMany({ where: { id: { in: allergies.map(a => a.id) } } }));
+  await step('ingredients', () => prisma.ingredient.deleteMany({ where: { name: { startsWith: S } } }));
+  await step('foodLogs', () => prisma.foodLog.deleteMany({ where: { userId: { in: uids } } }));
+  await step('foodPreferences', () => prisma.foodPreference.deleteMany({ where: { userId: { in: uids } } }));
+  await step('planningPrefs', () => prisma.userPlanningPreferences.deleteMany({ where: { userId: { in: uids } } }));
+  await step('userHealthConditions-byUser', () => prisma.userHealthCondition.deleteMany({ where: { userId: { in: uids } } }));
+  await step('userAllergies-byUser', () => prisma.userAllergy.deleteMany({ where: { userId: { in: uids } } }));
+  await step('recipeEngagements', () => prisma.recipeEngagement.deleteMany({ where: { recipeId: { in: recipeIds } } }));
+  await step('recipes', () => prisma.recipe.deleteMany({ where: { id: { in: recipeIds } } }));
+  // Nutritionist/meal-plan chain blocks user deletion (NUTR-004 residual leak):
+  // mealPlanItem → mealPlan → nutritionistProfile, dependents before parents.
+  const profiles = await prisma.nutritionistProfile.findMany({ where: { userId: { in: uids } }, select: { id: true } }).catch(() => []);
+  const profileIds = profiles.map(pr => pr.id);
+  const plans = await prisma.mealPlan.findMany({ where: { OR: [{ nutritionistId: { in: profileIds } }, { clientId: { in: uids } }] }, select: { id: true } }).catch(() => []);
+  const planIds = plans.map(pl => pl.id);
+  await step('mealPlanItems', () => prisma.mealPlanItem.deleteMany({ where: { mealPlanId: { in: planIds } } }));
+  await step('mealPlans', () => prisma.mealPlan.deleteMany({ where: { id: { in: planIds } } }));
+  await step('nutritionistClients', () => prisma.nutritionistClient.deleteMany({ where: { OR: [{ nutritionistId: { in: profileIds } }, { clientId: { in: uids } }] } }));
+  await step('nutritionistProfiles', () => prisma.nutritionistProfile.deleteMany({ where: { id: { in: profileIds } } }));
+  await step('users', () => prisma.user.deleteMany({ where: { id: { in: uids } } }));
+  if (failures.length) console.warn(`[mealSuggest teardown] cleanup step failures: ${failures.join('; ')}`);
 });
 const auth = id => ({ 'x-user-id': id });
 
