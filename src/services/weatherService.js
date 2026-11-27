@@ -11,7 +11,7 @@ async function fetchWeather(lat, lon) {
   if (!isFiniteNumber(lat) || !isFiniteNumber(lon)) {
     throw new Error('lat and lon must be finite numbers');
   }
-  const url = `${OPEN_METEO_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,weather_code`;
+  const url = `${OPEN_METEO_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m`;
   const res = await _fetch(url);
   if (!res.ok) throw new Error(`weather fetch failed: ${res.status}`);
   const data = await res.json();
@@ -23,9 +23,25 @@ async function fetchWeather(lat, lon) {
     tempC: isFinite(tempC) ? tempC : null,
     precipitation: precip,
     weatherCode: isFinite(code) ? code : null,
+    windSpeedKmh: normalizeWind(cur.wind_speed_10m),
+    windGustsKmh: normalizeWind(cur.wind_gusts_10m),
     condition: deriveCondition({ tempC, precip, code }),
     description: describe(code),
   };
+}
+
+// Wind normalization (founder directive 2026-11-27): unavailable provider
+// values must stay UNAVAILABLE — never silently become 0 km/h, because a
+// false calm reading can suppress wind cautions downstream. Explicit null,
+// undefined, missing keys, empty strings and non-numeric garbage all map to
+// null; physically impossible negative speeds are invalid and also map to
+// null. A legitimate measured 0 km/h (dead calm) is preserved as 0 — it is
+// real information, distinct from "no data".
+function normalizeWind(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(v);
+  if (!isFinite(n) || n < 0) return null;
+  return n;
 }
 
 // Mapping rules:
@@ -82,4 +98,4 @@ async function geocodeCity(q) {
     .map(r => ({ name: String(r.name || name), country: r.country ? String(r.country) : undefined, latitude: Number(r.latitude), longitude: Number(r.longitude) }));
 }
 
-module.exports = { fetchWeather, deriveCondition, geocodeCity, setFetch };
+module.exports = { fetchWeather, deriveCondition, normalizeWind, geocodeCity, setFetch };
