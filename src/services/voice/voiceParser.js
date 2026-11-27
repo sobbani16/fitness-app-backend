@@ -205,6 +205,23 @@ function parseSegment(seg, ctx = {}) {
       missing: [m[4] ? null : 'reps'].filter(Boolean), segment: seg, status: 'needs_review' };
   }
 
+  // COPY_MEAL — "same breakfast as yesterday" / "copy yesterday's lunch".
+  // Precedence over generic food logging: no food items are named.
+  let cm = t.match(/^(?:the\s+)?same\s+(breakfast|lunch|dinner|snack|meal)\s+as\s+(yesterday|last\s+\w+day)/) ||
+           t.match(/^copy\s+yesterday(?:'s)?\s+(breakfast|lunch|dinner|snack|meal)/);
+  if (cm) {
+    const mealType = (cm[1] && /^(breakfast|lunch|dinner|snack|meal)$/.test(cm[1])) ? cm[1] : cm[2];
+    return { intent: 'COPY_MEAL', entities: { mealType, dayOffset: -1 }, missing: [], segment: seg, status: 'ready' };
+  }
+
+  // UPDATE_MEAL — "change lunch rice to 200g". Exercise-set updates matched
+  // earlier keep precedence (their pattern is reps-based, not grams).
+  let um = t.match(/^(?:change|update|adjust)\s+(?:(breakfast|lunch|dinner|snack)\s+)?(.+?)\s+to\s+(\d+(?:\.\d+)?)\s*(?:g|grams?)\s*$/) ||
+           t.match(/^(?:change|update|adjust)\s+(?:(breakfast|lunch|dinner|snack)\s+)?(.+?)\s+to\s+(\d+(?:\.\d+)?)\s*(?:g|grams?)\b/);
+  if (um && !/set|rep\b|weight|workout|exercise/.test(um[2])) {
+    return { intent: 'UPDATE_MEAL', entities: { mealType: um[1] || null, foodName: um[2].trim(), grams: +um[3] }, missing: [], segment: seg, status: 'ready' };
+  }
+
   // FOOD — items split on commas / "and"
   if (/log|add|ate|had|eat|meal|breakfast|lunch|dinner|snack|^\d+(?:\.\d+)?\s*(?:g|grams?)\s/.test(t)) {
     const mealType = (t.match(/breakfast|lunch|dinner|snack/) || [])[0] || 'meal';

@@ -101,7 +101,7 @@ router.post('/transcribe', voiceEnabled, wrap(async (req, res) => {
 // AI fallback for segments the deterministic parser can't classify. The model
 // proposes candidate fields only — everything is re-validated and resolved
 // server-side; it can never emit an ID or execute anything.
-const VOICE_INTENTS = ['LOG_EXERCISE_SET', 'LOG_FOOD', 'LOG_WATER', 'MARK_SUPPLEMENT_TAKEN',
+const VOICE_INTENTS = ['LOG_EXERCISE_SET', 'LOG_FOOD', 'COPY_MEAL', 'UPDATE_MEAL', 'LOG_WATER', 'MARK_SUPPLEMENT_TAKEN',
   'UPDATE_EXERCISE_SET', 'START_WORKOUT', 'COMPLETE_WORKOUT', 'LOG_MOOD', 'START_BREATHING_EXERCISE', 'SHOW_MOOD_TRENDS', 'CREATE_REFLECTION_REMINDER', 'ASK_FIBER', 'UNDO_ACTION', 'CANCEL_COMMAND', 'UNKNOWN_INTENT'];
 
 const NULLABLE = { type: ['number', 'null'] };
@@ -127,7 +127,7 @@ const INTENT_SCHEMA = {
   },
 };
 const INTENT_INSTRUCTIONS = `You convert short voice commands from a fitness logging app into structured actions, one action per numbered input segment.
-Intents: LOG_EXERCISE_SET (add sets/reps/weight of an exercise), LOG_FOOD (food items; split every distinct food), LOG_WATER (water amount), MARK_SUPPLEMENT_TAKEN, UPDATE_EXERCISE_SET (change the most recent set), START_WORKOUT, COMPLETE_WORKOUT, LOG_MOOD (record how the user feels: mood one of very_low|low|neutral|good|very_good, energy 1-5, stress 1-5), START_BREATHING_EXERCISE (open the breathing exercise), SHOW_MOOD_TRENDS (open mood trends/insights), CREATE_REFLECTION_REMINDER (enable the optional evening reflection reminder in Mind preferences), ASK_FIBER (a question about dietary fiber, fiber in foods, or fiber supplements — informational only, never a logging action), UNDO_ACTION, CANCEL_COMMAND, UNKNOWN_INTENT (not a logging command).
+Intents: LOG_EXERCISE_SET (add sets/reps/weight of an exercise), LOG_FOOD (food items; split every distinct food), COPY_MEAL (repeat a prior day meal wholesale, e.g. same breakfast as yesterday), UPDATE_MEAL (change portion of an already-logged food, e.g. change lunch rice to 200g), LOG_WATER (water amount), MARK_SUPPLEMENT_TAKEN, UPDATE_EXERCISE_SET (change the most recent set), START_WORKOUT, COMPLETE_WORKOUT, LOG_MOOD (record how the user feels: mood one of very_low|low|neutral|good|very_good, energy 1-5, stress 1-5), START_BREATHING_EXERCISE (open the breathing exercise), SHOW_MOOD_TRENDS (open mood trends/insights), CREATE_REFLECTION_REMINDER (enable the optional evening reflection reminder in Mind preferences), ASK_FIBER (a question about dietary fiber, fiber in foods, or fiber supplements — informational only, never a logging action), UNDO_ACTION, CANCEL_COMMAND, UNKNOWN_INTENT (not a logging command).
 Rules: never invent IDs or foods not mentioned; keep weightUnit as "lbs" or "kg"; water amounts in ml; food grams only when the user gives a weight (e.g. "150 g"); household measures go in unit with quantity (e.g. "2 slices" -> quantity 2, unit "slice"); unknown or non-command speech -> UNKNOWN_INTENT. Output exactly one action per input segment, in order, echoing the segment text.`;
 
 const numOrNull = v => Number.isFinite(Number(v)) && v !== null ? Number(v) : null;
@@ -154,6 +154,8 @@ function aiAction(raw, segment, ctx) {
     missing = [e.exerciseName ? null : 'exercise', e.reps ? null : 'reps'].filter(Boolean);
     ready = Boolean(e.exerciseName && e.reps);
   } else if (intent === 'LOG_WATER') { missing = e.amountMl ? [] : ['amountMl']; ready = Boolean(e.amountMl); }
+  else if (intent === 'COPY_MEAL') { const ok = ['breakfast','lunch','dinner','snack','meal'].includes(e.mealType) && Number.isFinite(e.dayOffset) && e.dayOffset >= -7 && e.dayOffset <= 0; missing = ok ? [] : ['mealType']; ready = ok; }
+  else if (intent === 'UPDATE_MEAL') { const ok = typeof e.foodName === 'string' && e.foodName.trim().length > 0 && Number.isFinite(e.grams) && e.grams > 0 && e.grams <= 20000; missing = ok ? [] : ['foodName or grams']; ready = ok; }
   else if (intent === 'LOG_FOOD') { const okItem = i => i.grams != null || (i.quantity != null && i.quantity > 0); missing = e.items.length ? (e.items.some(i => !okItem(i)) ? ['grams or quantity'] : []) : ['items']; ready = e.items.length > 0 && e.items.every(okItem); }
   else if (intent === 'MARK_SUPPLEMENT_TAKEN') { missing = e.name ? [] : ['name']; ready = Boolean(e.name); }
   else if (intent === 'UPDATE_EXERCISE_SET') { missing = [e.reps ? null : 'reps', ctx.lastSetId ? null : 'set'].filter(Boolean); ready = Boolean(e.reps && ctx.lastSetId); }
@@ -272,6 +274,46 @@ router.post('/commands/execute', wrap(async (req, res) => {
   for (const a of actions) {
     if (a.status !== 'ready') { results.push({ intent: a.intent, status: 'skipped', reason: 'needs_review' }); continue; }
     switch (a.intent) {
+      case 'COPY_MEAL': {
+        const offset = a.entities.dayOffset ?? -1;
+        const src = new Date(); src.setDate(src.getDate() + offset); src.setHours(0, 0, 0, 0);
+        const end = new Date(src); end.setDate(end.getDate() + 1);
+        const rows = await prisma.foodLog.findMany({ where: { userId, mealType: a.entities.mealType, loggedAt: { gte: src, lt: end } } });
+        if (!rows.length) { results.push({ intent: a.intent, status: 'skipped', reason: `no ${a.entities.mealType} logged ${offset === -1 ? 'yesterday' : 'that day'}` }); break; }
+        const todayTag = new Date().toISOString().slice(0, 10);
+        for (const r of rows) {
+          const copyId = `copy-${r.id}-${todayTag}`;
+          const existing = await prisma.foodLog.findUnique({ where: { id: copyId } });
+          if (existing) continue; // replay-safe — retried executes never duplicate
+          await prisma.foodLog.create({ data: {
+            id: copyId, userId, foodName: r.foodName, mealType: r.mealType,
+            quantityG: r.quantityG, calories: r.calories, proteinG: r.proteinG, carbsG: r.carbsG, fatG: r.fatG,
+            fiberG: r.fiberG, ingredientId: r.ingredientId, nutritionSnapshot: r.nutritionSnapshot ?? undefined,
+            loggedAt: new Date(),
+          } });
+        }
+        results.push({ intent: a.intent, status: 'done', detail: `copied ${rows.length} item${rows.length === 1 ? '' : 's'} from ${offset === -1 ? "yesterday's" : 'that'} ${a.entities.mealType}` });
+        break;
+      }
+      case 'UPDATE_MEAL': {
+        const scope = { userId, foodName: { contains: a.entities.foodName.trim(), mode: 'insensitive' } };
+        if (a.entities.mealType) scope.mealType = a.entities.mealType;
+        const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
+        scope.loggedAt = { gte: dayStart };
+        const log = await prisma.foodLog.findFirst({ where: scope, orderBy: { loggedAt: 'desc' } });
+        if (!log) { results.push({ intent: a.intent, status: 'skipped', reason: `no logged ${a.entities.foodName} found today${a.entities.mealType ? ` at ${a.entities.mealType}` : ''}` }); break; }
+        const base = Number(log.quantityG);
+        if (!Number.isFinite(base) || base <= 0) { results.push({ intent: a.intent, status: 'skipped', reason: `${log.foodName} has no gram weight to rescale from` }); break; }
+        const ratio = a.entities.grams / base;
+        const r1 = (v) => (v == null ? null : Math.round(v * ratio * 10) / 10);
+        await prisma.foodLog.update({ where: { id: log.id }, data: {
+          quantityG: a.entities.grams,
+          calories: Math.round((log.calories || 0) * ratio),
+          proteinG: r1(log.proteinG), carbsG: r1(log.carbsG), fatG: r1(log.fatG), fiberG: r1(log.fiberG),
+        } });
+        results.push({ intent: a.intent, status: 'done', detail: `${log.foodName} updated to ${a.entities.grams}g` });
+        break;
+      }
       case 'LOG_WATER': {
         const ml = Math.round(Number(a.entities.amountMl));
         if (!ml || ml <= 0 || ml > 5000) { results.push({ intent: a.intent, status: 'skipped', reason: 'amount out of range' }); break; }
