@@ -85,7 +85,7 @@ const SECRET_RULES = [
   { name: 'DOC_URL_SECRET', enabled: () => false, note: 'signed document URLs (derivable from master)' },
   { name: 'VIDEO_TOKEN_SECRET', enabled: () => false, note: 'video session tokens (derivable from master)' },
   { name: 'VIEW_AS_SECRET', enabled: () => false, note: 'support view-as tokens (derivable from master)' },
-  { name: 'FORM_CHECK_SECRET', enabled: () => false, note: 'form-check signing (derivable from master)' },
+  { name: 'FORM_CHECK_URL_SECRET', enabled: () => false, note: 'form-check signing (derivable from master)' },
 ];
 
 /**
