@@ -1,0 +1,53 @@
+{
+  "artifact": {
+    "id": "hum28-staging-matrix-2026-11-27",
+    "deploymentSha": "df477eea2fcc",
+    "derivationRule": "case IDs derived mechanically: FLAG-<n>-<flagKey>-<state> for each canonical server-enforced safety flag x its primary gated endpoint x on/off state. The original nine UNSUPPORTED case IDs were never invented — QA's artifact remains absent.",
+    "executedAt": "2026-11-27T04:19:00Z",
+    "executor": "dev-01",
+    "authorization": "decision #110 — staging regression authorized"
+  },
+  "chainVerification": {
+    "posthogProject": 701405,
+    "projectIdentityProof": "created activity_safety_engine 100% rollout -> staging /config/features activitySafetyEngine flipped False->True within seconds for a fresh probe user",
+    "propertyTargetingCaveat": "backend getAllFlags passes empty person properties — email-targeted flags never match; matrix flags must use plain rollout",
+    "emailVerificationGate": "all authenticated endpoints enforce requireVerifiedEmail — probe users verified via direct staging DB setup (synthetic self-created accounts only)"
+  },
+  "scenarios": [
+    {
+      "caseId": "FLAG-1-activity_safety_engine-ON",
+      "flag": "activity_safety_engine",
+      "state": "created+active, 100% rollout",
+      "endpoint": "POST /activity-safety/evaluate",
+      "expected": "endpoint live — requireFeature passes, semantic validation responds",
+      "actual": "400 unknown activityId (semantic validation — endpoint live)",
+      "http": 400,
+      "disposition": "PASS — flag-on endpoint behavior verified"
+    },
+    {
+      "caseId": "FLAG-1-activity_safety_engine-OFF",
+      "flag": "activity_safety_engine",
+      "state": "disabled",
+      "endpoint": "POST /activity-safety/evaluate",
+      "expected": "403 FEATURE_DISABLED",
+      "actual": "403 FEATURE_DISABLED",
+      "http": 403,
+      "disposition": "PASS — flag-off kill-switch behavior verified"
+    },
+    {
+      "caseId": "FLAG-2-health_aware_recommendations-OFF",
+      "flag": "health_aware_recommendations",
+      "state": "never created (absent baseline)",
+      "endpoint": "GET /activity-safety/recommendation",
+      "expected": "403 FEATURE_DISABLED",
+      "actual": "403 FEATURE_DISABLED",
+      "http": 403,
+      "disposition": "PASS — absent-flag default-off verified even while sibling engine flag was ON"
+    }
+  ],
+  "restoration": {
+    "action": "activity_safety_engine PostHog flag deleted (status DELETED) — baseline absent restored",
+    "verifyProbe": "post-delete POST /activity-safety/evaluate returned 403 — consistent with absent baseline",
+    "residualState": "none in PostHog; synthetic probe users (hum28-*) remain in staging DB as test fixtures"
+  }
+}
