@@ -80,3 +80,27 @@ Method/path/response `{updated:true}`; editable-fields allowlist (unsupported_fi
 - old mobile wire keys ⊆ candidate INJURY_EDITABLE — forward compatible, no old-client payload rejected as unsupported.
 - baseline error envelope ⊆ candidate envelope — additive validation expansion, no breaking change for well-formed clients in either upgrade order.
 - weekly-plan findings from prior milestones remain OPEN.
+
+
+## 2026-11-26 — symptom submission contract milestone (pc-HUM-63 continuation 4)
+
+**Evidence commit**: this commit. **Harness**: `tests/contracts/symptomSubmit.contract.test.js` — 12/12, real route + real middleware (bypass disabled), synthetic tokens. Combined battery 61/61 across 6 suites.
+
+### Revision pins (rationale)
+- backend candidate `ea17bac` — branch HEAD, tested live
+- backend baseline `625352c` — response keys present at baseline (static extraction, fixture-labeled): envelope stable across the pair
+- mobile pair `f184c99`/`846a88a` — reportSymptoms caller BYTE-IDENTICAL (diff-verified): one wire format serves both generations
+
+### Verified live
+Mobile wire format → 201 with full response shape (reportId/disposition/message/suppressesActivitySuggestions/urgentSymptoms/noDiagnosis); required symptoms array enforced with zero persistence on rejection; code normalization (lowercase/trim/blanks dropped); optional-field defaults (severity null, context unspecified, source manual); urgent-symptom escalation path (disposition/echoed codes/emergency copy); session-only identity (body userId ignored); 401 envelope on missing token with zero persistence.
+
+### Contract observations recorded (app logic unchanged)
+1. **Lenient coercion asymmetry**: unlike injury PATCH strictness, invalid severity/context/persistence do NOT reject — they silently coerce to null/unspecified. Well-formed mobile clients unaffected in either upgrade order; documented as API-surface asymmetry for the contract owner. No user harm path identified (values were invalid input).
+2. **No idempotency on POST /symptoms**: repeat submission creates duplicate rows — no dedupe key exists. Honest retry-behavior documentation: client retry/offline-sync duplicates persist. Recorded as a contract gap candidate adjacent to the offline-queue milestone (LEO-056..058). Owning component: backend route; release-order: backend can add idempotency independently (additive, old clients unaffected).
+3. Symptom codes are free-form strings — no closed-enum validation of the codes themselves beyond urgent-set membership. Noted for the registry-owner.
+
+### Compatibility findings
+Both upgrade orders safe-by-construction on this axis: caller byte-identical across mobile pair, response envelope stable across backend pair. Fixture-labeled where static.
+
+### Open findings register (unchanged)
+weekly-plan acknowledgeUnknown mismatch; weekly-plan details-shape mismatch; injury painLevel null-corruption — all still open pending cross-repo owner decisions. Punitha independent QA due on all milestones.
