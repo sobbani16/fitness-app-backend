@@ -50,7 +50,7 @@ function adjustPortion(labelNutrition, servingSizeG, actualPortionG) {
  * @param {string} ocrText - Raw text from OCR
  * @returns {Promise<object>} extracted nutrition data
  */
-async function extractNutritionFromText(ocrText) {
+async function extractNutritionFromText(ocrText, { userId } = {}) {
   if (!ocrText || !ocrText.trim()) {
     throw new Error('No OCR text provided');
   }
@@ -58,10 +58,14 @@ async function extractNutritionFromText(ocrText) {
   // Try OpenAI extraction if available
   if (process.env.OPENAI_API_KEY) {
     try {
-      const extracted = await extractWithOpenAI(ocrText);
+      const extracted = await extractWithOpenAI(ocrText, userId);
       const literal = extractWithRegex(ocrText);
       return { ...extracted, saturatedFatG:literal.saturatedFatG, transFatG:literal.transFatG, addedSugarG: literal.addedSugarG, allergens: literal.allergens };
     } catch (err) {
+      // Gate errors (shutdown 403, quota 429, AI-off 503) are authoritative —
+      // never silently degrade them to the regex path. Provider errors fall
+      // back as before.
+      if (err.status && [403, 429, 503].includes(err.status)) throw err;
       console.error('OpenAI extraction failed, using regex fallback:', err.message);
     }
   }
@@ -73,9 +77,13 @@ async function extractNutritionFromText(ocrText) {
 /**
  * Extract nutrition using OpenAI GPT.
  */
-async function extractWithOpenAI(ocrText) {
+async function extractWithOpenAI(ocrText, userId) {
+  // Paid provider call — must pass the shared gate (shutdown flag, AI
+  // enabled, per-user quota) like every other OpenAI call in the app.
+  const { gateAICall, recordUsage } = require('./aiProvider');
+  const quotaKey = await gateAICall(userId, 2000);
   const { default: OpenAI } = await import('openai');
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 30000, maxRetries: 0 });
 
   const prompt = `Extract nutrition facts from this food label text. Return ONLY a valid JSON object with these fields:
 {
@@ -104,6 +112,7 @@ ${ocrText}`;
     response_format: { type: 'json_object' },
   });
 
+  recordUsage(quotaKey, completion, 2000);
   const content = completion.choices[0]?.message?.content;
   if (!content) throw new Error('Empty OpenAI response');
 

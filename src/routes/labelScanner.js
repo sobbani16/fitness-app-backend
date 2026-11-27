@@ -27,7 +27,7 @@ router.post('/extract', require('../middleware/requireFeature').requireFeature('
   try {
     const ocrText = text(req.body?.ocrText, 'label text', 20000);
     if (!ocrText?.trim()) throw invalid('Label text is required');
-    res.json({ extracted: await extractNutritionFromText(ocrText) });
+    res.json({ extracted: await extractNutritionFromText(ocrText, { userId: req.userId }) });
   } catch (error) { fail(res, error); }
 });
 // POST /label-scanner/classify — decides food-label vs menu vs unsupported
