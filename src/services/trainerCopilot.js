@@ -73,7 +73,9 @@ async function listClients(trainerUserId) {
 // injury/restriction detail, so trainers see existence flags only ("something
 // is recorded — ask the member"), never the medical content itself.
 async function safetyPresence(clientId) {
-  const g = await safetyGate(getPrisma(), clientId).catch(() => null);
+  const g = await safetyGate(getPrisma(), clientId).catch(() => 'error');
+  if (g === 'error') return { available: false, error: true, detail: null,
+    note: 'Safety records could not be verified — ask the member before changing training.' };
   if (!g || !g.enabled) return { available: false };
   const ctx = g.context || {};
   const restrictionsRecorded = (ctx.restrictions || []).length > 0
@@ -258,4 +260,4 @@ async function clientSuggestions(trainerUserId, clientId) {
   };
 }
 
-module.exports = { listClients, clientSummary, clientSuggestions, DRAFT_LABEL };
+module.exports = { listClients, clientSummary, clientSuggestions, DRAFT_LABEL, safetyPresence };

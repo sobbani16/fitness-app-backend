@@ -128,7 +128,9 @@ async function composeReview(userId, { tz = 'UTC', weekOf = null } = {}) {
   if (daysElapsed >= 4 && mealsLoggedDays === 0) opportunities.push({ text: 'Even one logged meal a day gives you (and your coach) something real to work with.', evidence: 'no meal logs' });
   // Engine gate: never push workouts when the shared verdict can't confirm a
   // compatible activity (urgent symptom, restriction, requested rest, unknown).
-  const pushWorkouts = !gate || gate.activityPushOk !== false;
+  // Fail closed on gate error (null): no workout pushes when the safety
+  // state can't be verified. Flag-off still returns {enabled:false} → pushes ok.
+  const pushWorkouts = gate ? gate.activityPushOk !== false : false;
   if (sessionsPlanned === 0 && pushWorkouts) opportunities.push({ text: 'No workouts were on record this week — even a short planned session builds the pattern.', evidence: 'no workout sessions' });
   if (habitsDone === 0 && habitsSkipped === 0) opportunities.push({ text: 'Picking one tiny habit to track is an easy way to build momentum.', evidence: 'no habits tracked' });
   if (rel && !activePlan) opportunities.push({ text: 'You don\'t have a shared outcome plan yet — your coach can set one up with you.', evidence: 'no outcome plan' });
