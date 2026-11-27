@@ -30,6 +30,24 @@ function loadCatalogRows(catalogPath) {
   if (!Array.isArray(rows) || rows.length === 0) {
     throw new Error(`catalog at ${catalogPath} is empty or not an array — refusing to check coverage against an empty catalog`);
   }
+  // Reject malformed source identities BEFORE any coverage comparison or
+  // artifact write: a mixed catalog must not silently drop invalid rows and
+  // pass on the valid subset — that would certify coverage for exercises the
+  // source never actually defined. Row positions are 1-indexed as in the file.
+  const invalid = [];
+  rows.forEach((raw, i) => {
+    const pos = `row ${i + 1}`;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) { invalid.push(`${pos}: not an object`); return; }
+    if (!('name' in raw) || raw.name == null) { invalid.push(`${pos}: missing name`); return; }
+    if (typeof raw.name !== 'string') { invalid.push(`${pos}: non-string name`); return; }
+    if (!raw.name.trim()) { invalid.push(`${pos}: blank name`); return; }
+    if (!slugify(raw.name.trim())) { invalid.push(`${pos}: punctuation-only name — no usable exercise identity`); }
+  });
+  if (invalid.length) {
+    const shown = invalid.slice(0, 20).join('; ');
+    const more = invalid.length > 20 ? ` (+${invalid.length - 20} more)` : '';
+    throw new Error(`catalog at ${catalogPath} has ${invalid.length} malformed ${invalid.length === 1 ? 'entry' : 'entries'} — ${shown}${more}. Fix the source rows or remove them; refusing to check coverage or write drafts against a partial catalog`);
+  }
   const seen = new Set();
   const out = [];
   const dupes = [];

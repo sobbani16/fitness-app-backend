@@ -129,11 +129,12 @@ test('malformed catalog (entries normalize to no usable ids) fails before covera
 
     const checkRes = run(['--check', `--catalog=${malformed}`, `--out=${outDir}`]);
     expect(checkRes.code).toBe(1);
-    expect(checkRes.stderr + checkRes.stdout).toMatch(/none normalize to a usable exercise id/);
+    expect(checkRes.stderr + checkRes.stdout).toMatch(/malformed entries/);
+    expect(checkRes.stderr + checkRes.stdout).toMatch(/refusing to check coverage or write drafts/);
 
     const draftRes = run(['--drafts', `--catalog=${malformed}`, `--out=${outDir}`, '--fixed-date=2026-01-01T00:00:00.000Z']);
     expect(draftRes.code).toBe(1);
-    expect(draftRes.stderr + draftRes.stdout).toMatch(/none normalize to a usable exercise id/);
+    expect(draftRes.stderr + draftRes.stdout).toMatch(/malformed entries/);
 
     // neither command may mutate the committed artifacts
     expect(fs.readFileSync(path.join(outDir, 'exercise-inventory.json'), 'utf8')).toBe(invBefore);
@@ -145,5 +146,53 @@ test('malformed catalog (entries normalize to no usable ids) fails before covera
     expect(res.code).toBe(0);
     expect(res.stdout).toMatch(/coverage check passed/);
     expect(res.stdout).toMatch(/"catalogRows": [1-9]/); // nonempty catalog exercised
+  });
+});
+
+describe('mixed-catalog malformed identity rejection (pc-HUM-101 hardening)', () => {
+  const mixedRows = [
+    row('Alpha Curl'),      // row 1 — valid
+    { noName: true },       // row 2 — missing name
+    { name: '!!!...' },     // row 3 — punctuation-only
+    null,                   // row 4 — null row
+    'just-a-string',        // row 5 — non-object row
+    { name: 42 },           // row 6 — non-string name
+    { name: '   ' },        // row 7 — blank name
+  ];
+  const seedMixed = () => {
+    const { dir } = fixtureCatalog([]);
+    const { catalogPath, outDir } = seedCommitted(dir, [row('Alpha Curl')]);
+    expect(run(['--drafts', `--catalog=${catalogPath}`, `--out=${outDir}`, '--fixed-date=2026-01-01T00:00:00.000Z']).code).toBe(0);
+    fs.writeFileSync(catalogPath, JSON.stringify(mixedRows));
+    return { catalogPath, outDir };
+  };
+
+  test('--check rejects mixed catalogs with row positions and reasons, exits nonzero', () => {
+    const { catalogPath, outDir } = seedMixed();
+    const res = run(['--check', `--catalog=${catalogPath}`, `--out=${outDir}`]);
+    expect(res.code).not.toBe(0);
+    const out = res.stderr + res.stdout;
+    for (const n of [2, 3, 4, 5, 6, 7]) expect(out).toMatch(new RegExp(`row ${n}\\b`));
+    expect(out).not.toMatch(/row 1\b/);
+    expect(out).toMatch(/missing|non-string|blank|punctuation|not an object/i);
+  });
+
+  test('--drafts rejects the same catalog — artifacts byte-identical, no draft files created', () => {
+    const { catalogPath, outDir } = seedMixed();
+    const invBefore = fs.readFileSync(path.join(outDir, 'exercise-inventory.json'), 'utf8');
+    const profBefore = fs.readFileSync(path.join(outDir, 'exercise-profiles.v1.json'), 'utf8');
+    const filesBefore = fs.readdirSync(outDir).sort();
+    const res = run(['--drafts', `--catalog=${catalogPath}`, `--out=${outDir}`, '--fixed-date=2026-01-01T00:00:00.000Z']);
+    expect(res.code).not.toBe(0);
+    expect(res.stderr + res.stdout).toMatch(/row 2\b/);
+    expect(fs.readFileSync(path.join(outDir, 'exercise-inventory.json'), 'utf8')).toBe(invBefore);
+    expect(fs.readFileSync(path.join(outDir, 'exercise-profiles.v1.json'), 'utf8')).toBe(profBefore);
+    expect(fs.readdirSync(outDir).sort()).toEqual(filesBefore);
+  });
+
+  test('valid-catalog control still passes coverage with exit 0', () => {
+    const res = run(['--check']);
+    expect(res.code).toBe(0);
+    expect(res.stdout + res.stderr).toMatch(/coverage check passed/);
   });
 });
