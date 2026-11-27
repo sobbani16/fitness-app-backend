@@ -170,19 +170,13 @@ router.post('/sequence', requireFeature('fiber_meal_sequencing_enabled'), async 
     // safety contract forbids. Return a sanitized unavailable response; never
     // leak the raw lookup error. sequenceMeal is only called after both reads
     // succeed.
-    let allergies, prefs;
+    let exclusion;
     try {
-      [allergies, prefs] = await Promise.all([
-        prisma.userAllergy.findMany({ where: { userId }, include: { allergy: { select: { name: true } } } }),
-        prisma.foodPreference.findMany({ where: { userId, preference: { in: ['DISLIKE', 'NEVER_RECOMMEND'] } }, select: { foodName: true } }),
-      ]);
+      exclusion = await require('../services/fiber/exclusionContext').loadExclusionContext(prisma, userId);
     } catch {
       throw httpError(503, 'Meal sequencing is temporarily unavailable — please try again.');
     }
-    res.json(await sequenceMeal(items, {
-      allergenTerms: new Set(allergies.map((a) => String(a.allergy?.name || '').toLowerCase()).filter(Boolean)),
-      avoidNames: new Set(prefs.map((p) => p.foodName.toLowerCase())),
-    }));
+    res.json(await sequenceMeal(items, exclusion));
   } catch (e) { next(e); }
 });
 
