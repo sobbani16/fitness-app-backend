@@ -259,4 +259,80 @@ describe('/voice/speak', () => {
       if (prev == null) delete process.env.VOICE_INTERPRET_BUDGET_PER_MIN; else process.env.VOICE_INTERPRET_BUDGET_PER_MIN = prev;
     }
   });
+
+  it('three-intent meal command: mutation verified before dependent protein query and dinner suggestion', async () => {
+    const U3 = 'voice-threemeal-u';
+    const H3 = { 'x-user-id': U3 };
+    await prisma.user.upsert({ where: { id: U3 }, update: {}, create: { id: U3, email: `${U3}@device.local` } });
+    await prisma.foodLog.deleteMany({ where: { userId: U3 } });
+    await prisma.ingredient.upsert({
+      where: { id: 'humai-test-biryani' }, update: {},
+      create: { id: 'humai-test-biryani', normalizedName: 'biryani', name: 'Biryani', caloriesPer100g: 180, proteinPer100g: 6.5, carbsPer100g: 22, fatPer100g: 7, source: 'test' },
+    });
+    const interp = await request(app).post('/voice/interpret').set(H3)
+      .send({ transcript: 'log 150 g biryani, tell remaining protein, suggest dinner' });
+    expect(interp.status).toBe(200);
+    const intents = interp.body.actions.map(x => x.intent);
+    expect(intents).toContain('LOG_FOOD');
+    expect(intents).toContain('ASK_PROTEIN');
+    expect(intents).toContain('SUGGEST_DINNER');
+    const commandId = 'threemeal' + Math.random().toString(36).slice(2, 8);
+    const exec = await request(app).post('/voice/commands/execute').set(H3)
+      .send({ commandId, transcript: 'log 150 g biryani, tell remaining protein, suggest dinner', actions: interp.body.actions });
+    expect([200, 201]).toContain(exec.status);
+    const order = exec.body.result.map(r => r.intent);
+    // mutation executes before both dependents
+    expect(order.indexOf('LOG_FOOD')).toBeLessThan(order.indexOf('ASK_PROTEIN'));
+    expect(order.indexOf('LOG_FOOD')).toBeLessThan(order.indexOf('SUGGEST_DINNER'));
+    // the write saved and verified — dependents are NOT suppressed
+    const food = exec.body.result.find(r => r.intent === 'LOG_FOOD');
+    expect(food.status).toBe('saved');
+    const protein = exec.body.result.find(r => r.intent === 'ASK_PROTEIN');
+    expect(protein.status).not.toBe('suppressed');
+    // verified persistence: the foodLog row exists with the voice id
+    const rows = await prisma.foodLog.findMany({ where: { userId: U3, id: { startsWith: `voice-${commandId}-` } } });
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows[0].foodName.toLowerCase()).toContain('biryani');
+  });
+
+  it('failed write suppresses dependent protein query and dinner suggestion', async () => {
+    const U4 = 'voice-failmeal-u';
+    const H4 = { 'x-user-id': U4 };
+    await prisma.user.upsert({ where: { id: U4 }, update: {}, create: { id: U4, email: `${U4}@device.local` } });
+    const commandId = 'failmeal' + Math.random().toString(36).slice(2, 8);
+    const r = await request(app).post('/voice/commands/execute').set(H4).send({
+      commandId, transcript: 'test',
+      actions: [
+        { intent: 'ASK_PROTEIN', entities: {}, segment: 'tell remaining protein', status: 'ready' },
+        { intent: 'SUGGEST_DINNER', entities: {}, segment: 'suggest dinner', status: 'ready' },
+        { intent: 'LOG_FOOD', entities: { items: [{ name: 'zzz-no-such-food-exists', grams: 100 }] }, segment: 'log zzz food', status: 'ready' },
+      ],
+    });
+    expect([200, 201]).toContain(r.status);
+    const protein = r.body.result.find(x => x.intent === 'ASK_PROTEIN');
+    const dinner = r.body.result.find(x => x.intent === 'SUGGEST_DINNER');
+    expect(protein.status).toBe('suppressed');
+    expect(dinner.status).toBe('suppressed');
+    expect(protein.reason).toMatch(/write|unverified/i);
+  });
+
+  it('clarification-required write pauses dependent execution', async () => {
+    // A write that is not execution-ready must pause dependents — ambiguous
+    // write intent never produces silent dependent answers.
+    const U5 = 'voice-clarify-u';
+    const H5 = { 'x-user-id': U5 };
+    await prisma.user.upsert({ where: { id: U5 }, update: {}, create: { id: U5, email: `${U5}@device.local` } });
+    const commandId = 'clarifymeal' + Math.random().toString(36).slice(2, 8);
+    const r = await request(app).post('/voice/commands/execute').set(H5).send({
+      commandId, transcript: 'test',
+      actions: [
+        { intent: 'LOG_FOOD', entities: { items: [{ name: 'biryani' }] }, segment: 'log biryani', status: 'needs_review' },
+        { intent: 'ASK_PROTEIN', entities: {}, segment: 'tell remaining protein', status: 'ready' },
+      ],
+    });
+    const protein = r.body.result.find(x => x.intent === 'ASK_PROTEIN');
+    expect(protein.status).toBe('suppressed');
+    const rows = await prisma.foodLog.findMany({ where: { userId: U5, id: { startsWith: `voice-${commandId}-` } } });
+    expect(rows).toHaveLength(0); // zero unintended writes
+  });
 });

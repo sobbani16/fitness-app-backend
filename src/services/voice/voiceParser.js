@@ -6,8 +6,11 @@ const num = s => s == null ? null : (NUM[s.toLowerCase()] ?? (Number.isFinite(+s
 const ML = { ml: 1, milliliter: 1, milliliters: 1, l: 1000, liter: 1000, liters: 1000, litre: 1000, litres: 1000, oz: 29.5735, ounce: 29.5735, ounces: 29.5735, cup: 240, cups: 240, glass: 250, glasses: 250 };
 const KG = /(kgs?|kilos?|kilograms?)/i;
 
+// Multi-intent splitting breaks before mutation verbs AND query verbs — a
+// compound "log X, tell Y, suggest Z" must become three segments so the
+// mutation ordering and dependent-suppression semantics can apply per-intent.
 const splitSegments = text =>
-  String(text).split(/;|\.\s+|,\s*(?=\s*(?:and\s+)?(?:add|log|record|start|mark|finish|complete|change|remove|undo|update)\b)|\band then\b/i)
+  String(text).split(/;|\.\s+|,\s*(?=\s*(?:and\s+)?(?:add|log|record|start|mark|finish|complete|change|remove|undo|update|tell|show|suggest|ask)\b)|\band then\b/i)
     .map(s => s.trim().replace(/^(and|then|also|please)\s+/i, '')).filter(Boolean);
 
 // Safety capture — voice-reported injuries and symptoms feed the shared
@@ -116,6 +119,15 @@ function parseSegment(seg, ctx = {}) {
   // SUPPLEMENT taken
   m = t.match(/^mark\s+(?:my\s+)?(.+?)\s*(?:supplement|vitamin|pill|capsule)s?\s+(?:as\s+)?taken/) || t.match(/^took\s+(?:my\s+)?(.+?)\s*(?:supplement|vitamin)s?/);
   if (m) return { intent: 'MARK_SUPPLEMENT_TAKEN', entities: { name: m[1]?.trim() || null }, missing: m[1] ? [] : ['name'], segment: seg, status: 'ready' };
+
+  // PROTEIN question — informational query, never a log.
+  if (/remaining protein|protein (?:left|remaining)|how much protein|protein (?:have i|i've) (?:had|eaten|got)/.test(t))
+    return { intent: 'ASK_PROTEIN', entities: {}, missing: [], segment: seg, status: 'ready' };
+
+  // DINNER suggestion request — a recommendation query, never a log. Must not
+  // fall through to food parsing on the word "dinner".
+  if (/suggest(?:ed)?(?: me)?(?: a)? dinner|dinner (?:suggestion|idea|recommendation)|what (?:should|can|to) (?:i )?(?:eat|have)(?: for)? dinner|dinner\?*$/.test(t) || /^dinner$/.test(t))
+    return { intent: 'SUGGEST_DINNER', entities: {}, missing: [], segment: seg, status: 'ready' };
 
   // UPDATE last set
   m = t.match(/change\s+(?:the\s+|my\s+)?(?:last|previous)\s+set\s+to\s+(\d+)\s*reps?/) ||

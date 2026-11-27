@@ -116,7 +116,7 @@ router.post('/speak', voiceEnabled, wrap(async (req, res) => {
 // proposes candidate fields only — everything is re-validated and resolved
 // server-side; it can never emit an ID or execute anything.
 const VOICE_INTENTS = ['LOG_EXERCISE_SET', 'LOG_FOOD', 'LOG_WATER', 'MARK_SUPPLEMENT_TAKEN',
-  'UPDATE_EXERCISE_SET', 'START_WORKOUT', 'COMPLETE_WORKOUT', 'LOG_MOOD', 'START_BREATHING_EXERCISE', 'SHOW_MOOD_TRENDS', 'CREATE_REFLECTION_REMINDER', 'ASK_FIBER', 'UNDO_ACTION', 'CANCEL_COMMAND', 'UNKNOWN_INTENT'];
+  'UPDATE_EXERCISE_SET', 'START_WORKOUT', 'COMPLETE_WORKOUT', 'LOG_MOOD', 'START_BREATHING_EXERCISE', 'SHOW_MOOD_TRENDS', 'CREATE_REFLECTION_REMINDER', 'ASK_FIBER', 'ASK_PROTEIN', 'SUGGEST_DINNER', 'UNDO_ACTION', 'CANCEL_COMMAND', 'UNKNOWN_INTENT'];
 
 const NULLABLE = { type: ['number', 'null'] };
 const NULLABLE_STR = { type: ['string', 'null'] };
@@ -141,7 +141,7 @@ const INTENT_SCHEMA = {
   },
 };
 const INTENT_INSTRUCTIONS = `You convert short voice commands from a fitness logging app into structured actions, one action per numbered input segment.
-Intents: LOG_EXERCISE_SET (add sets/reps/weight of an exercise), LOG_FOOD (food items; split every distinct food), LOG_WATER (water amount), MARK_SUPPLEMENT_TAKEN, UPDATE_EXERCISE_SET (change the most recent set), START_WORKOUT, COMPLETE_WORKOUT, LOG_MOOD (record how the user feels: mood one of very_low|low|neutral|good|very_good, energy 1-5, stress 1-5), START_BREATHING_EXERCISE (open the breathing exercise), SHOW_MOOD_TRENDS (open mood trends/insights), CREATE_REFLECTION_REMINDER (enable the optional evening reflection reminder in Mind preferences), ASK_FIBER (a question about dietary fiber, fiber in foods, or fiber supplements — informational only, never a logging action), UNDO_ACTION, CANCEL_COMMAND, UNKNOWN_INTENT (not a logging command).
+Intents: LOG_EXERCISE_SET (add sets/reps/weight of an exercise), LOG_FOOD (food items; split every distinct food), LOG_WATER (water amount), MARK_SUPPLEMENT_TAKEN, UPDATE_EXERCISE_SET (change the most recent set), START_WORKOUT, COMPLETE_WORKOUT, LOG_MOOD (record how the user feels: mood one of very_low|low|neutral|good|very_good, energy 1-5, stress 1-5), START_BREATHING_EXERCISE (open the breathing exercise), SHOW_MOOD_TRENDS (open mood trends/insights), CREATE_REFLECTION_REMINDER (enable the optional evening reflection reminder in Mind preferences), ASK_FIBER (a question about dietary fiber, fiber in foods, or fiber supplements — informational only, never a logging action), ASK_PROTEIN (a question about protein intake or remaining protein — informational only), SUGGEST_DINNER (a request to suggest/recommend dinner — a recommendation query, never a logging action), UNDO_ACTION, CANCEL_COMMAND, UNKNOWN_INTENT (not a logging command).
 Rules: never invent IDs or foods not mentioned; keep weightUnit as "lbs" or "kg"; water amounts in ml; food grams only when the user gives a weight (e.g. "150 g"); household measures go in unit with quantity (e.g. "2 slices" -> quantity 2, unit "slice"); unknown or non-command speech -> UNKNOWN_INTENT. Output exactly one action per input segment, in order, echoing the segment text.`;
 
 const numOrNull = v => Number.isFinite(Number(v)) && v !== null ? Number(v) : null;
@@ -172,7 +172,7 @@ function aiAction(raw, segment, ctx) {
   else if (intent === 'MARK_SUPPLEMENT_TAKEN') { missing = e.name ? [] : ['name']; ready = Boolean(e.name); }
   else if (intent === 'UPDATE_EXERCISE_SET') { missing = [e.reps ? null : 'reps', ctx.lastSetId ? null : 'set'].filter(Boolean); ready = Boolean(e.reps && ctx.lastSetId); }
   else if (intent === 'LOG_MOOD') { const ok = ['very_low','low','neutral','good','very_good'].includes(e.mood); missing = ok ? [] : ['mood']; ready = ok; }
-  else if (['START_BREATHING_EXERCISE','SHOW_MOOD_TRENDS','CREATE_REFLECTION_REMINDER','ASK_FIBER'].includes(intent)) { ready = true; }
+  else if (['START_BREATHING_EXERCISE','SHOW_MOOD_TRENDS','CREATE_REFLECTION_REMINDER','ASK_FIBER','ASK_PROTEIN','SUGGEST_DINNER'].includes(intent)) { ready = true; }
   return { intent, entities: e, missing, segment, status: ready ? 'ready' : 'needs_review', source: 'ai' };
 }
 
@@ -323,14 +323,41 @@ router.post('/commands/execute', wrap(async (req, res) => {
   // reads/summaries/recommendations so spoken answers reflect the just-written
   // state ("log X, tell remaining protein" — the answer must include X).
   // Stable sort: relative order within each class is preserved.
-  const QUERY_INTENTS = new Set(['ASK_FIBER', 'SHOW_MOOD_TRENDS']);
+  const QUERY_INTENTS = new Set(['ASK_FIBER', 'ASK_PROTEIN', 'SUGGEST_DINNER', 'SHOW_MOOD_TRENDS']);
   const ordered = [...actions].sort((x, y) => {
     const qx = QUERY_INTENTS.has(x.intent) ? 1 : 0;
     const qy = QUERY_INTENTS.has(y.intent) ? 1 : 0;
     return qx - qy;
   });
+  // Write-outcome tracking for dependent suppression: a query or
+  // recommendation that follows a mutation in the same command must not run
+  // when the write failed or cannot be verified persisted — the answer would
+  // otherwise describe state that was never created.
+  const MUTATION_INTENTS = new Set(['LOG_EXERCISE_SET', 'LOG_FOOD', 'LOG_WATER', 'MARK_SUPPLEMENT_TAKEN',
+    'UPDATE_EXERCISE_SET', 'START_WORKOUT', 'COMPLETE_WORKOUT', 'LOG_MOOD',
+    'START_BREATHING_EXERCISE', 'CREATE_REFLECTION_REMINDER', 'UNDO_ACTION']);
+  let writeFailed = false;
+  let writeVerifyCache = null;
+  async function dependentsAllowed() {
+    if (writeFailed) return { ok: false, reason: 'an earlier write in this command failed — dependent result would describe unverified state' };
+    if (writeVerifyCache) return writeVerifyCache;
+    const foodIds = created.filter(c => c.kind === 'foodLog').map(c => c.id);
+    for (const id of foodIds) {
+      const row = await prisma.foodLog.findUnique({ where: { id } }).catch(() => null);
+      if (!row) {
+        writeVerifyCache = { ok: false, reason: 'food log write could not be verified persisted — dependents suppressed' };
+        return writeVerifyCache;
+      }
+    }
+    writeVerifyCache = { ok: true };
+    return writeVerifyCache;
+  }
+
   for (const a of ordered) {
-    if (a.status !== 'ready') { results.push({ intent: a.intent, status: 'skipped', reason: 'needs_review' }); continue; }
+    if (a.status !== 'ready') {
+      if (MUTATION_INTENTS.has(a.intent)) writeFailed = true;
+      results.push({ intent: a.intent, status: 'skipped', reason: 'needs_review' }); continue;
+    }
     switch (a.intent) {
       case 'LOG_WATER': {
         const ml = Math.round(Number(a.entities.amountMl));
@@ -339,6 +366,46 @@ router.post('/commands/execute', wrap(async (req, res) => {
         created.push({ kind: 'water', id: log.id });
         results.push({ intent: a.intent, status: 'saved', detail: `${ml} ml water logged` });
         break;
+      }
+      case 'ASK_PROTEIN': {
+        const gate = await dependentsAllowed();
+        if (!gate.ok) { results.push({ intent: a.intent, status: 'suppressed', reason: gate.reason }); break; }
+        try {
+          const st = await require('../services/nutrientStatus').nutrientStatus(prisma, userId, { days: 1 });
+          const p = st?.nutrients?.proteinG;
+          const parts = [];
+          if (p && Number.isFinite(p.value) && Number.isFinite(p.reference)) {
+            const rem = Math.max(0, p.reference - p.value);
+            parts.push(`${Math.round(rem)} g protein remaining today (${Math.round(p.value)} of ${Math.round(p.reference)} g logged)`);
+          } else if (p && Number.isFinite(p.value)) {
+            parts.push(`${Math.round(p.value)} g protein logged today`);
+          }
+          if (!parts.length) { results.push({ intent: a.intent, status: 'skipped', reason: 'protein status unavailable — log is incomplete' }); break; }
+          results.push({ intent: a.intent, status: 'answered', detail: parts.join(' ') });
+        } catch {
+          results.push({ intent: a.intent, status: 'skipped', reason: 'protein status unavailable' });
+        }
+        break;
+      }
+      case 'SUGGEST_DINNER': {
+        const gate = await dependentsAllowed();
+        if (!gate.ok) { results.push({ intent: a.intent, status: 'suppressed', reason: gate.reason }); break; }
+        // Fail closed: if constraint-aware suggestion cannot complete (missing
+        // or unreadable safety context), the recommendation is withheld rather
+        // than unverified.
+        try {
+          const { suggestMeals } = require('../services/nutritionRecommendation');
+          const out = await suggestMeals(prisma, userId, { mealType: 'dinner' });
+          const list = (out?.suggestions || out?.meals || out?.recipes || []).slice(0, 3);
+          if (!list.length) { results.push({ intent: a.intent, status: 'skipped', reason: 'no suitable dinner suggestions right now' }); break; }
+          const names = list.map(r => r.recipeName || r.name).filter(Boolean);
+          results.push({ intent: a.intent, status: 'answered', detail: `Dinner ideas: ${names.join(', ')}`, data: { suggestions: names } });
+        } catch {
+          results.push({ intent: a.intent, status: 'suppressed', reason: 'safety context unavailable — dinner recommendation withheld' });
+        }
+        break;
+      }
+      case 'LOG_WATER_BACKFILL': {
       }
       case 'LOG_EXERCISE_SET': {
         const exId = a.entities.exerciseId;
@@ -590,6 +657,11 @@ router.post('/commands/execute', wrap(async (req, res) => {
         break;
       default:
         results.push({ intent: a.intent, status: 'skipped', reason: 'unsupported intent' });
+    }
+    // A mutation that did not save poisons dependents later in the ordering.
+    if (MUTATION_INTENTS.has(a.intent)) {
+      const last = results[results.length - 1];
+      if (last && last.intent === a.intent && last.status !== 'saved' && last.status !== 'acknowledged') writeFailed = true;
     }
   }
 
