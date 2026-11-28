@@ -5,7 +5,7 @@ jest.mock('../src/lib/prisma', () => { const db = {
   productCorrection: { create: jest.fn() },
   barcodeProductUpdateHolder: undefined,
   barcodeProduct: { findUnique: jest.fn(), upsert: jest.fn() },
-  ingredientEvidenceProfile: { count: jest.fn(), upsert: jest.fn(), findFirst: jest.fn(), findMany: jest.fn() },
+  ingredientEvidenceProfile: { count: jest.fn(), upsert: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn(), findFirst: jest.fn(), findMany: jest.fn() },
   userAllergy: { findMany: jest.fn() },
   foodPreference: { findMany: jest.fn() },
   userPlanningPreferences: { findUnique: jest.fn() },
@@ -50,6 +50,38 @@ describe('food intelligence', () => {
     const treat = turmeric.claims.find((c) => /treats inflammatory/i.test(c.claim));
     expect(treat.verdict).toBe('insufficient');
     expect(treat.applicability).toMatch(/culinary/i);
+  });
+
+  test('oats profile no longer claims an unsupported 3-4 g beta-glucan per 40 g', () => {
+    const oats = svc.EVIDENCE_SEED.find((s) => s.ingredientKey === 'oats');
+    expect(oats.summary).not.toMatch(/3-4 g per 40 g/);
+    expect(oats.summary).toMatch(/1-2 g per 40 g/);
+    // The ≥3 g/day authorized claim stays, but the serving implication is honest.
+    expect(oats.claims[0].applicability).toMatch(/60-80 g|oat bran/);
+  });
+
+  test('seed governance: new profiles seed as NEEDS_REVIEW, never auto-APPROVED', async () => {
+    prisma.ingredientEvidenceProfile.findUnique.mockResolvedValue(null);
+    prisma.ingredientEvidenceProfile.create.mockResolvedValue({});
+    await svc.repairSeeds();
+    expect(prisma.ingredientEvidenceProfile.create).toHaveBeenCalledTimes(svc.EVIDENCE_SEED.length);
+    const created = prisma.ingredientEvidenceProfile.create.mock.calls.map(([c]) => c.data);
+    expect(created.every((d) => d.status === 'NEEDS_REVIEW')).toBe(true);
+  });
+
+  test('seed governance: stale APPROVED content is demoted on repair — corrections never inherit approval', async () => {
+    const oats = svc.EVIDENCE_SEED.find((s) => s.ingredientKey === 'oats');
+    // Stored row carries the OLD unsupported summary, still APPROVED.
+    prisma.ingredientEvidenceProfile.findUnique.mockImplementation(async ({ where: { ingredientKey_version: w } }) =>
+      w.ingredientKey === 'oats'
+        ? { ...oats, summary: 'Whole grain rich in beta-glucan soluble fiber (~3-4 g per 40 g serving).', status: 'APPROVED' }
+        : { ...svc.EVIDENCE_SEED.find((s) => s.ingredientKey === w.ingredientKey), status: 'APPROVED' });
+    prisma.ingredientEvidenceProfile.update.mockResolvedValue({});
+    await svc.repairSeeds();
+    const updates = prisma.ingredientEvidenceProfile.update.mock.calls.map(([c]) => c.data);
+    expect(updates.length).toBe(1);
+    expect(updates[0].status).toBe('NEEDS_REVIEW');
+    expect(updates[0].summary).toMatch(/1-2 g per 40 g/);
   });
 
   test('suitability: allergy is a hard conflict', async () => {

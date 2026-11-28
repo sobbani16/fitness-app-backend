@@ -39,16 +39,16 @@ const EVIDENCE_SEED = [
     ingredientKey: 'ginger', displayName: 'Ginger',
     summary: 'Widely used root spice. Studied mainly for nausea at gram-level doses.',
     claims: [
-      { claim: 'Reduces nausea (pregnancy, motion sickness)', verdict: 'established', applicability: '~1 g/day doses; culinary use may approach this', studyType: 'multiple RCTs + meta-analyses', dose: '0.5-1.5 g/day', limitations: 'Mostly studied for specific nausea types, not general digestion', source: 'Meta-analyses of ginger for nausea and vomiting' },
+      { claim: 'Reduces pregnancy-related nausea', verdict: 'established', applicability: '~1 g/day doses; culinary use may approach this', studyType: 'multiple RCTs + meta-analyses', dose: '0.5-1.5 g/day', limitations: 'Strongest for pregnancy nausea; evidence for motion sickness and general digestion is weaker and mixed', source: 'Meta-analyses of ginger for nausea and vomiting' },
       { claim: 'Boosts metabolism or burns fat', verdict: 'marketing', applicability: 'None', studyType: 'small trials', dose: 'n/a', limitations: 'Effects too small/inconsistent to matter for weight', source: 'Thermogenesis studies' },
     ],
     cautions: [{ text: 'High supplemental doses may interact with anticoagulants.', appliesTo: 'People on blood thinners' }],
   },
   {
     ingredientKey: 'oats', displayName: 'Oats / beta-glucan',
-    summary: 'Whole grain rich in beta-glucan soluble fiber (~3-4 g per 40 g serving).',
+    summary: 'Whole grain containing beta-glucan soluble fiber (~3-5% of dry weight — roughly 1-2 g per 40 g serving, varying by product).',
     claims: [
-      { claim: 'Lowers LDL cholesterol', verdict: 'established', applicability: 'At ≥3 g beta-glucan/day — roughly a daily bowl of oats', studyType: 'RCT meta-analyses; FDA/EFSA-authorized claim', dose: '≥3 g beta-glucan/day', limitations: 'Effect is modest (~5%); many oat products contain less fiber after processing', source: 'FDA/EFSA authorized health claim; meta-analyses' },
+      { claim: 'Lowers LDL cholesterol', verdict: 'established', applicability: 'At ≥3 g beta-glucan/day — roughly 60-80 g rolled oats or ~40 g oat bran; a single 40 g serving usually supplies less', studyType: 'RCT meta-analyses; FDA/EFSA-authorized claim', dose: '≥3 g beta-glucan/day', limitations: 'Effect is modest (~5%); beta-glucan content varies by product and processing — never assumed per serving', source: 'FDA/EFSA authorized health claim; meta-analyses' },
       { claim: 'Improves satiety', verdict: 'mixed', applicability: 'Whole oats more than instant/sugared products', studyType: 'small RCTs', dose: 'meal-level', limitations: 'Product formulation matters more than the grain itself', source: 'Satiety trials' },
     ],
     cautions: [{ text: 'Check added sugar in flavored oat products — it can exceed the grain\'s benefit.', appliesTo: 'Packaged oat products' }],
@@ -110,15 +110,38 @@ const EVIDENCE_SEED = [
   },
 ];
 
+// Evidence governance: seeds are DRAFT research content, not pre-approved
+// claims. A profile is created as NEEDS_REVIEW; only a human review step may
+// set APPROVED/ACTIVE (the statuses getEvidence will serve). When stored
+// content differs from the seed — i.e. the seed was corrected since — the
+// row is refreshed AND demoted back to NEEDS_REVIEW: a content change can
+// never inherit an old approval.
+let seedRepairDone = null;
 async function ensureEvidenceSeeded() {
-  const count = await prisma.ingredientEvidenceProfile.count();
-  if (count > 0) return;
+  // Once per process — 10-row repair on every evidence call would be wasteful,
+  // and a deploy restarts the process anyway.
+  if (!seedRepairDone) seedRepairDone = repairSeeds().catch(() => { seedRepairDone = null; });
+  return seedRepairDone;
+}
+async function repairSeeds() {
   for (const p of EVIDENCE_SEED) {
-    await prisma.ingredientEvidenceProfile.upsert({
-      where: { ingredientKey_version: { ingredientKey: p.ingredientKey, version: 1 } },
-      create: { ...p, status: 'APPROVED', reviewedBy: 'humai-editorial', reviewedAt: new Date() },
-      update: {},
-    });
+    const where = { ingredientKey_version: { ingredientKey: p.ingredientKey, version: 1 } };
+    const existing = await prisma.ingredientEvidenceProfile.findUnique({ where });
+    if (!existing) {
+      await prisma.ingredientEvidenceProfile.create({
+        data: { ...p, status: 'NEEDS_REVIEW', reviewedBy: 'humai-editorial-seed', reviewedAt: null },
+      });
+      continue;
+    }
+    const stale = existing.summary !== p.summary
+      || JSON.stringify(existing.claims) !== JSON.stringify(p.claims)
+      || JSON.stringify(existing.cautions) !== JSON.stringify(p.cautions);
+    if (stale && ['APPROVED', 'ACTIVE', 'NEEDS_REVIEW', 'DRAFT'].includes(existing.status)) {
+      await prisma.ingredientEvidenceProfile.update({
+        where,
+        data: { summary: p.summary, claims: p.claims, cautions: p.cautions, status: 'NEEDS_REVIEW', reviewedAt: null },
+      });
+    }
   }
 }
 
@@ -448,4 +471,4 @@ async function logScannedFood(userId, { productName, servingG, servingLabel, ser
 }
 
 module.exports = {
-  correctProduct, toggleFavorite, listFavorites, EVIDENCE_SEED, ensureEvidenceSeeded, resolveBarcode, upsertBarcodeProduct, getEvidence, listEvidence, checkSuitability, scanResult, explainIngredient, alternatives, logScannedFood, parseServingDeclaration, ALIASES };
+  correctProduct, toggleFavorite, listFavorites, EVIDENCE_SEED, ensureEvidenceSeeded, repairSeeds, resolveBarcode, upsertBarcodeProduct, getEvidence, listEvidence, checkSuitability, scanResult, explainIngredient, alternatives, logScannedFood, parseServingDeclaration, ALIASES };

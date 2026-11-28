@@ -1,38 +1,190 @@
 jest.mock('../src/lib/prisma', () => ({ getPrisma: jest.fn() }));
 const { getPrisma } = require('../src/lib/prisma');
-const { getGutHealthSummary, logSymptom, setTolerance } = require('../src/services/gutHealth');
+const { getGutHealthSummary, logSymptom, setTolerance, classifyPlantCategory, plantKeyFor } = require('../src/services/gutHealth');
 
-const day = n => new Date(Date.now() - n * 86400000);
+const day = (n, h = 12) => new Date(Date.now() - n * 86400000 + (h - 12) * 3600000);
 
-function fakeDb({ logs = [], symptoms = [], tolerances = [] } = {}) {
+function fakeDb({ user = {}, macroGoal = null, conditions = [], logs = [], ingredients = [], symptoms = [], tolerances = [], logError = null } = {}) {
   getPrisma.mockReturnValue({
-    foodLog: { findMany: jest.fn(async () => logs) },
+    user: { findUnique: jest.fn(async () => ({ id: 'u1', dateOfBirth: new Date('1990-01-01'), gender: 'female', timeZone: 'UTC', ...user })) },
+    macroGoal: { findUnique: jest.fn(async () => macroGoal) },
+    userHealthCondition: { findMany: jest.fn(async () => conditions) },
+    foodLog: { findMany: jest.fn(async () => { if (logError) throw logError; return logs; }) },
+    ingredient: { findMany: jest.fn(async () => ingredients) },
     gutSymptom: { findMany: jest.fn(async () => symptoms), create: jest.fn(async d => ({ id: 's1', ...d.data })) },
     foodTolerance: { findMany: jest.fn(async () => tolerances), create: jest.fn(async d => ({ id: 't1', ...d.data })) },
   });
 }
 
-describe('gut health intelligence', () => {
-  test('no logs → completeness none, honest fiber null', async () => {
+const log = (over = {}) => ({ id: Math.random().toString(36), foodName: 'food', mealType: 'lunch', quantityG: 100, fiberG: 5, ingredientId: null, nutritionSnapshot: null, loggedAt: day(1), ...over });
+const ing = (id, category, name) => ({ id, normalizedName: name || id, catalog: { id: `cat-${id}`, identityKey: `key-${id}`, normalizedName: name || id, category } });
+
+describe('gut health v2 — fiber', () => {
+  test('no logs → completeness none, honest fiber nulls, personalized target still resolved', async () => {
     fakeDb({});
     const r = await getGutHealthSummary('u1');
     expect(r.completeness).toBe('none');
-    expect(r.fiber.avgPerDayG).toBeNull();
+    expect(r.fiber.avgConfirmedPerLoggedDayG).toBeNull();
+    expect(r.fiber.unknownMeals).toBe(0);
     expect(r.signals).toEqual([]);
   });
 
-  test('low fiber across 5+ logs → low_fiber signal', async () => {
-    fakeDb({ logs: Array.from({ length: 6 }, (_, i) => ({ fiberG: 5, ingredientId: `p${i}`, loggedAt: day(i) })) });
+  test('personalized target: custom MacroGoal target replaces the old hardcoded 30 g', async () => {
+    fakeDb({ macroGoal: { fiberTarget: 22, fiberTargetBasis: 'custom' } });
     const r = await getGutHealthSummary('u1');
-    expect(r.fiber.avgPerDayG).toBe(5);
-    expect(r.signals.find(s => s.key === 'low_fiber')).toBeTruthy();
-    expect(r.plantVariety.distinctIngredients).toBe(6);
+    expect(r.fiber.target.targetG).toBe(22);
+    expect(r.fiber.target.basis).toBe('custom');
   });
 
-  test('adequate fiber + variety → no signals', async () => {
-    fakeDb({ logs: Array.from({ length: 12 }, (_, i) => ({ fiberG: 30, ingredientId: `plant${i}`, loggedAt: day(i % 7) })) });
+  test('personalized target: 14 g/1,000 kcal on calorie target (2000 kcal → 28 g, not 30 g)', async () => {
+    fakeDb({ macroGoal: { caloriesTarget: 2000 } });
     const r = await getGutHealthSummary('u1');
-    expect(r.signals).toEqual([]);
+    expect(r.fiber.target.targetG).toBe(28);
+    expect(r.fiber.target.basis).toBe('formula_adult');
+  });
+
+  test('unknown fiber is not zero: null fiberG counts as unknownMeals, not confirmed 0', async () => {
+    fakeDb({ logs: [log({ fiberG: null }), log({ fiberG: 10 }), log({ fiberG: null })] });
+    const r = await getGutHealthSummary('u1');
+    expect(r.fiber.confirmedG).toBe(10);
+    expect(r.fiber.unknownMeals).toBe(2);
+    expect(r.completeness).toBe('low');
+  });
+
+  test('snapshot-declared unknowns keep stored 0 out of the confirmed total', async () => {
+    fakeDb({ logs: [log({ fiberG: 0, nutritionSnapshot: { nutrientUnknowns: ['fiberG'] } })] });
+    const r = await getGutHealthSummary('u1');
+    expect(r.fiber.confirmedG).toBe(0);
+    expect(r.fiber.unknownMeals).toBe(1);
+  });
+
+  test('low fiber on trustworthy data → low_fiber signal cites the personalized target', async () => {
+    fakeDb({
+      macroGoal: { caloriesTarget: 2000 }, // target 28 g
+      logs: Array.from({ length: 6 }, (_, i) => log({ fiberG: 5, loggedAt: day(i % 5) })),
+    });
+    const r = await getGutHealthSummary('u1');
+    const s = r.signals.find((x) => x.key === 'low_fiber');
+    expect(s).toBeTruthy();
+    expect(s.detail).toContain('28 g');
+  });
+
+  test('mostly-unknown fiber produces thin_fiber_data, not low_fiber', async () => {
+    fakeDb({ logs: Array.from({ length: 5 }, (_, i) => log({ fiberG: null, loggedAt: day(i) })) });
+    const r = await getGutHealthSummary('u1');
+    expect(r.signals.find((s) => s.key === 'low_fiber')).toBeFalsy();
+    expect(r.signals.find((s) => s.key === 'thin_fiber_data')).toBeTruthy();
+  });
+
+  test('database failure propagates — never a fabricated empty summary', async () => {
+    fakeDb({ logError: new Error('connection refused') });
+    await expect(getGutHealthSummary('u1')).rejects.toThrow('connection refused');
+  });
+});
+
+describe('gut health v2 — plant diversity', () => {
+  const mk = () => fakeDb({
+    logs: [
+      log({ ingredientId: 'i-spin', quantityG: 80, foodName: 'spinach curry' }),
+      log({ ingredientId: 'i-chkn', quantityG: 120, foodName: 'chicken curry' }),
+      log({ ingredientId: 'i-egg', quantityG: 60, foodName: 'boiled eggs' }),
+      log({ ingredientId: 'i-milk', quantityG: 200, foodName: 'milk' }),
+      log({ ingredientId: 'i-mystery', quantityG: 50, foodName: 'unknown item' }),
+      log({ ingredientId: null, quantityG: 50, foodName: 'free-text meal' }),
+    ],
+    ingredients: [
+      ing('i-spin', 'Leafy greens', 'spinach'),
+      ing('i-chkn', 'Poultry', 'chicken'),
+      ing('i-egg', 'Eggs', 'egg'),
+      ing('i-milk', 'Dairy', 'milk'),
+      ing('i-mystery', 'Sauces condiments cooking liquids', 'mystery sauce'),
+    ],
+  });
+
+  test('meat, eggs and dairy never count as plant foods', async () => {
+    mk();
+    const r = await getGutHealthSummary('u1');
+    expect(r.plantVariety.distinctPlants).toBe(1);
+    expect(r.plantVariety.plants).toEqual(['spinach']);
+    expect(r.plantVariety.excludedAnimalLogs).toBe(3);
+  });
+
+  test('unclassified ingredients are reported, not assumed plant or animal', async () => {
+    mk();
+    const r = await getGutHealthSummary('u1');
+    expect(r.plantVariety.unclassifiedLogs).toBe(2); // mystery sauce + free-text log
+    expect(r.coverage.unlinkedLogs).toBe(1);
+  });
+
+  test('raw vs cooked variants of the same plant deduplicate to one', async () => {
+    fakeDb({
+      logs: [
+        log({ ingredientId: 'i-spin-raw', quantityG: 50, foodName: 'spinach salad' }),
+        log({ ingredientId: 'i-spin-cooked', quantityG: 80, foodName: 'palak curry' }),
+        log({ ingredientId: 'i-spin-raw', quantityG: 50, foodName: 'spinach salad again' }),
+      ],
+      ingredients: [
+        ing('i-spin-raw', 'Leafy greens', 'spinach raw'),
+        ing('i-spin-cooked', 'Leafy greens', 'spinach cooked'),
+      ],
+    });
+    const r = await getGutHealthSummary('u1');
+    expect(r.plantVariety.distinctPlants).toBe(1);
+    expect(r.plantVariety.countedLogs).toBe(3);
+  });
+
+  test('seasoning amounts below the serving threshold do not inflate diversity', async () => {
+    fakeDb({
+      logs: [log({ ingredientId: 'i-turmeric', quantityG: 1, foodName: 'dal tadka' })],
+      ingredients: [ing('i-turmeric', 'Spices, herbs & aromatics', 'turmeric')],
+    });
+    const r = await getGutHealthSummary('u1');
+    expect(r.plantVariety.distinctPlants).toBe(0);
+    expect(r.plantVariety.belowServingLogs).toBe(1);
+  });
+
+  test('window is 7 local days — logs older than the week do not count', async () => {
+    fakeDb({
+      logs: [
+        log({ ingredientId: 'i-apple', quantityG: 100, foodName: 'apple', loggedAt: day(2) }),
+        log({ ingredientId: 'i-banana', quantityG: 100, foodName: 'banana', loggedAt: day(9) }), // outside window
+      ],
+      ingredients: [ing('i-apple', 'Fruits', 'apple'), ing('i-banana', 'Fruits', 'banana')],
+    });
+    const r = await getGutHealthSummary('u1');
+    expect(r.window.days).toBe(7);
+    expect(r.plantVariety.distinctPlants).toBe(1);
+    expect(r.plantVariety.plants).toEqual(['apple']);
+  });
+
+  test('user timezone drives the local window', async () => {
+    fakeDb({ user: { timeZone: 'Asia/Kolkata' }, logs: [] });
+    const r = await getGutHealthSummary('u1');
+    expect(r.window.timezone).toBe('Asia/Kolkata');
+  });
+});
+
+describe('gut health v2 — fermented occasions + symptoms', () => {
+  test('fermented food names count as occasions, never as verified live cultures', async () => {
+    fakeDb({ logs: [log({ foodName: 'dahi' }), log({ foodName: 'idli with sambar' }), log({ foodName: 'rice' })] });
+    const r = await getGutHealthSummary('u1');
+    expect(r.fermented.occasions).toBe(2);
+    expect(r.fermented.basis).toMatch(/does not verify live cultures/);
+  });
+
+  test('no logged symptoms is reported as unrecorded, not as asymptomatic', async () => {
+    fakeDb({});
+    const r = await getGutHealthSummary('u1');
+    expect(r.symptoms.loggedCount).toBe(0);
+    expect(r.symptoms.note).toMatch(/does not prove absence/);
+  });
+
+  test('category classifier: mixed buckets are unknown, animal wins over plant', () => {
+    expect(classifyPlantCategory('Legumes proteins dairy seafood')).toBe('unknown');
+    expect(classifyPlantCategory('Fish')).toBe('animal');
+    expect(classifyPlantCategory('Leafy greens')).toBe('plant');
+    expect(classifyPlantCategory('')).toBe('unknown');
+    expect(plantKeyFor({ normalizedName: 'spinach cooked' }, null)).toBe('spinach');
   });
 
   test('symptom journal validates + stores; rejects unknown symptom', async () => {
