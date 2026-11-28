@@ -18,7 +18,7 @@ function captureConsole() {
 }
 
 beforeAll(() => {
-  if (!/fitness_test/.test(process.env.DATABASE_URL || '')) throw new Error('must target fitness_test');
+  if (!require('./testDbUrl').isPositiveTestDatabase(process.env.DATABASE_URL || '').ok) throw new Error('must target a positively-identified local test database');
 });
 afterAll(async () => {
   for (const model of ['authSession']) await prisma[model].deleteMany({ where: { userId: { in: ids } } }).catch(() => {});
