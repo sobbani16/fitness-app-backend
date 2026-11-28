@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-28T04:03:52.694Z",
+  "generatedAt": "2026-11-28T04:07:44.421Z",
   "database": {
     "provider": "postgres",
     "database": "fitness_app",
@@ -10,15 +10,15 @@
     "ingredientCatalogEntries": 228,
     "usableCatalogEntries": 228,
     "brandedFormulations": 0,
-    "nutritionProfiles": 142,
-    "verifiedProfiles": 142,
-    "numericProfiles": 142,
-    "verifiedNumericProfiles": 142,
+    "nutritionProfiles": 143,
+    "verifiedProfiles": 143,
+    "numericProfiles": 143,
+    "verifiedNumericProfiles": 143,
     "emptyProfiles": 0,
     "allNullProfiles": 0,
-    "ingredientNutrientRows": 3834,
-    "numericNutrientObservations": 3356,
-    "unknownNutrientObservations": 478,
+    "ingredientNutrientRows": 3861,
+    "numericNutrientObservations": 3380,
+    "unknownNutrientObservations": 481,
     "nutrientDefinitions": 27,
     "recipeComponents": 1714,
     "linkedRecipeComponents": 1659,
@@ -37,16 +37,16 @@
   },
   "coverage": {
     "ingredientsWithAnyProfile": {
-      "count": 142,
-      "pct": 33.3
+      "count": 143,
+      "pct": 33.5
     },
     "ingredientsWithNumericProfile": {
-      "count": 142,
-      "pct": 33.3
+      "count": 143,
+      "pct": 33.5
     },
     "unresolvedIngredients": {
-      "count": 285,
-      "pct": 66.7,
+      "count": 284,
+      "pct": 66.5,
       "definition": "Ingredient with no IngredientNutritionProfile containing a numeric amountPer100g"
     },
     "usableCatalogLinkedToNumericIngredient": {
@@ -81,10 +81,10 @@
       "GENERIC_COMPOSITION": 228
     },
     "profileSources": {
-      "USDA": 142
+      "USDA": 143
     },
     "profilePreparations": {
-      "OTHER": 138,
+      "OTHER": 139,
       "RAW": 3,
       "ROASTED": 1
     },
@@ -98,8 +98,8 @@
       "NEEDS_REVIEW": 10
     },
     "amountPer100gStates": {
-      "numeric": 3356,
-      "unknown": 478
+      "numeric": 3380,
+      "unknown": 481
     }
   },
   "nutrientCoverage": [
@@ -108,30 +108,30 @@
       "name": "Total Carbohydrates",
       "unit": "g",
       "category": "MACRO",
-      "profilesWithNumeric": 142,
-      "numericObservations": 142,
+      "profilesWithNumeric": 143,
+      "numericObservations": 143,
       "unknownObservations": 0,
-      "ingredientsWithNumeric": 142
+      "ingredientsWithNumeric": 143
     },
     {
       "code": "FAT_SATURATED",
       "name": "Saturated Fat",
       "unit": "g",
       "category": "MACRO",
-      "profilesWithNumeric": 141,
-      "numericObservations": 141,
+      "profilesWithNumeric": 142,
+      "numericObservations": 142,
       "unknownObservations": 1,
-      "ingredientsWithNumeric": 141
+      "ingredientsWithNumeric": 142
     },
     {
       "code": "FAT_TOTAL",
       "name": "Total Fat",
       "unit": "g",
       "category": "MACRO",
-      "profilesWithNumeric": 142,
-      "numericObservations": 142,
+      "profilesWithNumeric": 143,
+      "numericObservations": 143,
       "unknownObservations": 0,
-      "ingredientsWithNumeric": 142
+      "ingredientsWithNumeric": 143
     },
     {
       "code": "FAT_TRANS",
@@ -140,7 +140,7 @@
       "category": "MACRO",
       "profilesWithNumeric": 18,
       "numericObservations": 18,
-      "unknownObservations": 124,
+      "unknownObservations": 125,
       "ingredientsWithNumeric": 18
     },
     {
@@ -148,20 +148,20 @@
       "name": "Fiber",
       "unit": "g",
       "category": "MACRO",
-      "profilesWithNumeric": 141,
-      "numericObservations": 141,
+      "profilesWithNumeric": 142,
+      "numericObservations": 142,
       "unknownObservations": 1,
-      "ingredientsWithNumeric": 141
+      "ingredientsWithNumeric": 142
     },
     {
       "code": "PROTEIN",
       "name": "Protein",
       "unit": "g",
       "category": "MACRO",
-      "profilesWithNumeric": 142,
-      "numericObservations": 142,
+      "profilesWithNumeric": 143,
+      "numericObservations": 143,
       "unknownObservations": 0,
-      "ingredientsWithNumeric": 142
+      "ingredientsWithNumeric": 143
     },
     {
       "code": "SUGAR_ADDED",
@@ -170,7 +170,7 @@
       "category": "MACRO",
       "profilesWithNumeric": 0,
       "numericObservations": 0,
-      "unknownObservations": 142,
+      "unknownObservations": 143,
       "ingredientsWithNumeric": 0
     },
     {
@@ -178,20 +178,20 @@
       "name": "Total Sugar",
       "unit": "g",
       "category": "MACRO",
-      "profilesWithNumeric": 135,
-      "numericObservations": 135,
+      "profilesWithNumeric": 136,
+      "numericObservations": 136,
       "unknownObservations": 7,
-      "ingredientsWithNumeric": 135
+      "ingredientsWithNumeric": 136
     },
     {
       "code": "CALCIUM",
       "name": "Calcium",
       "unit": "mg",
       "category": "MINERAL",
-      "profilesWithNumeric": 142,
-      "numericObservations": 142,
+      "profilesWithNumeric": 143,
+      "numericObservations": 143,
       "unknownObservations": 0,
-      "ingredientsWithNumeric": 142
+      "ingredientsWithNumeric": 143
     },
     {
       "code": "IODINE",
@@ -200,7 +200,7 @@
       "category": "MINERAL",
       "profilesWithNumeric": 0,
       "numericObservations": 0,
-      "unknownObservations": 142,
+      "unknownObservations": 143,
       "ingredientsWithNumeric": 0
     },
     {
@@ -208,170 +208,170 @@
       "name": "Iron",
       "unit": "mg",
       "category": "MINERAL",
-      "profilesWithNumeric": 142,
-      "numericObservations": 142,
+      "profilesWithNumeric": 143,
+      "numericObservations": 143,
       "unknownObservations": 0,
-      "ingredientsWithNumeric": 142
+      "ingredientsWithNumeric": 143
     },
     {
       "code": "MAGNESIUM",
       "name": "Magnesium",
       "unit": "mg",
       "category": "MINERAL",
-      "profilesWithNumeric": 140,
-      "numericObservations": 140,
+      "profilesWithNumeric": 141,
+      "numericObservations": 141,
       "unknownObservations": 2,
-      "ingredientsWithNumeric": 140
+      "ingredientsWithNumeric": 141
     },
     {
       "code": "PHOSPHORUS",
       "name": "Phosphorus",
       "unit": "mg",
       "category": "MINERAL",
-      "profilesWithNumeric": 140,
-      "numericObservations": 140,
+      "profilesWithNumeric": 141,
+      "numericObservations": 141,
       "unknownObservations": 2,
-      "ingredientsWithNumeric": 140
+      "ingredientsWithNumeric": 141
     },
     {
       "code": "POTASSIUM",
       "name": "Potassium",
       "unit": "mg",
       "category": "MINERAL",
-      "profilesWithNumeric": 140,
-      "numericObservations": 140,
+      "profilesWithNumeric": 141,
+      "numericObservations": 141,
       "unknownObservations": 2,
-      "ingredientsWithNumeric": 140
+      "ingredientsWithNumeric": 141
     },
     {
       "code": "SELENIUM",
       "name": "Selenium",
       "unit": "mcg",
       "category": "MINERAL",
-      "profilesWithNumeric": 139,
-      "numericObservations": 139,
+      "profilesWithNumeric": 140,
+      "numericObservations": 140,
       "unknownObservations": 3,
-      "ingredientsWithNumeric": 139
+      "ingredientsWithNumeric": 140
     },
     {
       "code": "SODIUM",
       "name": "Sodium",
       "unit": "mg",
       "category": "MINERAL",
-      "profilesWithNumeric": 142,
-      "numericObservations": 142,
+      "profilesWithNumeric": 143,
+      "numericObservations": 143,
       "unknownObservations": 0,
-      "ingredientsWithNumeric": 142
+      "ingredientsWithNumeric": 143
     },
     {
       "code": "ZINC",
       "name": "Zinc",
       "unit": "mg",
       "category": "MINERAL",
-      "profilesWithNumeric": 140,
-      "numericObservations": 140,
+      "profilesWithNumeric": 141,
+      "numericObservations": 141,
       "unknownObservations": 2,
-      "ingredientsWithNumeric": 140
+      "ingredientsWithNumeric": 141
     },
     {
       "code": "FOLATE_TOTAL",
       "name": "Folate (total)",
       "unit": "mcg",
       "category": "VITAMIN",
-      "profilesWithNumeric": 139,
-      "numericObservations": 139,
+      "profilesWithNumeric": 140,
+      "numericObservations": 140,
       "unknownObservations": 3,
-      "ingredientsWithNumeric": 139
+      "ingredientsWithNumeric": 140
     },
     {
       "code": "VITAMIN_A_RAE",
       "name": "Vitamin A (RAE)",
       "unit": "mcg",
       "category": "VITAMIN",
-      "profilesWithNumeric": 139,
-      "numericObservations": 139,
+      "profilesWithNumeric": 140,
+      "numericObservations": 140,
       "unknownObservations": 3,
-      "ingredientsWithNumeric": 139
+      "ingredientsWithNumeric": 140
     },
     {
       "code": "VITAMIN_B12",
       "name": "Vitamin B12",
       "unit": "mcg",
       "category": "VITAMIN",
-      "profilesWithNumeric": 138,
-      "numericObservations": 138,
+      "profilesWithNumeric": 139,
+      "numericObservations": 139,
       "unknownObservations": 4,
-      "ingredientsWithNumeric": 138
+      "ingredientsWithNumeric": 139
     },
     {
       "code": "VITAMIN_B6",
       "name": "Vitamin B6",
       "unit": "mg",
       "category": "VITAMIN",
-      "profilesWithNumeric": 140,
-      "numericObservations": 140,
+      "profilesWithNumeric": 141,
+      "numericObservations": 141,
       "unknownObservations": 2,
-      "ingredientsWithNumeric": 140
+      "ingredientsWithNumeric": 141
     },
     {
       "code": "VITAMIN_C",
       "name": "Vitamin C",
       "unit": "mg",
       "category": "VITAMIN",
-      "profilesWithNumeric": 139,
-      "numericObservations": 139,
+      "profilesWithNumeric": 140,
+      "numericObservations": 140,
       "unknownObservations": 3,
-      "ingredientsWithNumeric": 139
+      "ingredientsWithNumeric": 140
     },
     {
       "code": "VITAMIN_D",
       "name": "Vitamin D (D2 + D3)",
       "unit": "mcg",
       "category": "VITAMIN",
-      "profilesWithNumeric": 125,
-      "numericObservations": 125,
+      "profilesWithNumeric": 126,
+      "numericObservations": 126,
       "unknownObservations": 17,
-      "ingredientsWithNumeric": 125
+      "ingredientsWithNumeric": 126
     },
     {
       "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
       "name": "Vitamin E (alpha-tocopherol)",
       "unit": "mg",
       "category": "VITAMIN",
-      "profilesWithNumeric": 135,
-      "numericObservations": 135,
+      "profilesWithNumeric": 136,
+      "numericObservations": 136,
       "unknownObservations": 7,
-      "ingredientsWithNumeric": 135
+      "ingredientsWithNumeric": 136
     },
     {
       "code": "VITAMIN_K",
       "name": "Vitamin K (phylloquinone)",
       "unit": "mcg",
       "category": "VITAMIN",
-      "profilesWithNumeric": 133,
-      "numericObservations": 133,
+      "profilesWithNumeric": 134,
+      "numericObservations": 134,
       "unknownObservations": 9,
-      "ingredientsWithNumeric": 133
+      "ingredientsWithNumeric": 134
     },
     {
       "code": "CHOLESTEROL",
       "name": "Cholesterol",
       "unit": "mg",
       "category": "OTHER",
-      "profilesWithNumeric": 141,
-      "numericObservations": 141,
+      "profilesWithNumeric": 142,
+      "numericObservations": 142,
       "unknownObservations": 1,
-      "ingredientsWithNumeric": 141
+      "ingredientsWithNumeric": 142
     },
     {
       "code": "ENERGY_KCAL",
       "name": "Calories",
       "unit": "kcal",
       "category": "OTHER",
-      "profilesWithNumeric": 141,
-      "numericObservations": 141,
+      "profilesWithNumeric": 142,
+      "numericObservations": 142,
       "unknownObservations": 1,
-      "ingredientsWithNumeric": 141
+      "ingredientsWithNumeric": 142
     }
   ],
   "reportedCountReconciliation": {
@@ -386,10 +386,10 @@
     },
     "actual": {
       "ingredients": 427,
-      "verifiedProfiles": 142,
-      "profiles": 142,
-      "numericProfiles": 142,
-      "unresolvedIngredients": 285,
+      "verifiedProfiles": 143,
+      "profiles": 143,
+      "numericProfiles": 143,
+      "unresolvedIngredients": 284,
       "nutrientDefinitions": 27
     },
     "note": "A nutrition profile is not an ingredient. A profile containing only null nutrient amounts is still unresolved. An empty profile is not numerical enrichment."
