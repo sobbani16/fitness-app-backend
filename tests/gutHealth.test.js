@@ -4,13 +4,14 @@ const { getGutHealthSummary, logSymptom, setTolerance, classifyPlantCategory, pl
 
 const day = (n, h = 12) => new Date(Date.now() - n * 86400000 + (h - 12) * 3600000);
 
-function fakeDb({ user = {}, macroGoal = null, conditions = [], logs = [], ingredients = [], symptoms = [], tolerances = [], logError = null } = {}) {
+function fakeDb({ user = {}, macroGoal = null, conditions = [], logs = [], ingredients = [], attributes = [], symptoms = [], tolerances = [], logError = null } = {}) {
   getPrisma.mockReturnValue({
     user: { findUnique: jest.fn(async () => ({ id: 'u1', dateOfBirth: new Date('1990-01-01'), gender: 'female', timeZone: 'UTC', ...user })) },
     macroGoal: { findUnique: jest.fn(async () => macroGoal) },
     userHealthCondition: { findMany: jest.fn(async () => conditions) },
     foodLog: { findMany: jest.fn(async () => { if (logError) throw logError; return logs; }) },
     ingredient: { findMany: jest.fn(async () => ingredients) },
+    ingredientAttribute: { findMany: jest.fn(async () => attributes) },
     gutSymptom: { findMany: jest.fn(async () => symptoms), create: jest.fn(async d => ({ id: 's1', ...d.data })) },
     foodTolerance: { findMany: jest.fn(async () => tolerances), create: jest.fn(async d => ({ id: 't1', ...d.data })) },
   });
@@ -66,7 +67,63 @@ describe('gut health v2 — fiber', () => {
     const r = await getGutHealthSummary('u1');
     const s = r.signals.find((x) => x.key === 'low_fiber');
     expect(s).toBeTruthy();
+    expect(s.kind).toBe('intake_opportunity');
     expect(s.detail).toContain('28 g');
+  });
+
+  // §2.1 mandatory: confirmed 8 g + estimated 24 g vs 30 g target — never a
+  // definitive low-fiber conclusion from the confirmed subtotal alone.
+  test('confirmed 8 g + estimated 24 g vs 30 g target → NO low_fiber signal', async () => {
+    fakeDb({
+      macroGoal: { fiberTarget: 30, fiberTargetBasis: 'custom' },
+      logs: Array.from({ length: 4 }, (_, i) => [
+        log({ fiberG: 8, loggedAt: day(i) }),
+        log({ fiberG: 24, loggedAt: day(i), nutritionSnapshot: { loggedSource: 'external estimate' } }),
+      ]).flat(),
+    });
+    const r = await getGutHealthSummary('u1');
+    expect(r.fiber.confirmedG).toBe(32);
+    expect(r.fiber.estimatedG).toBe(96);
+    expect(r.fiber.knownAndEstimatedG).toBe(128);
+    expect(r.signals.find((s) => s.key === 'low_fiber')).toBeFalsy();
+  });
+
+  test('low confirmed AND low combined → low_fiber cites combined basis', async () => {
+    fakeDb({
+      macroGoal: { fiberTarget: 30, fiberTargetBasis: 'custom' },
+      logs: Array.from({ length: 4 }, (_, i) => [
+        log({ fiberG: 5, loggedAt: day(i) }),
+        log({ fiberG: 4, loggedAt: day(i), nutritionSnapshot: { loggedSource: 'ai-estimate' } }),
+      ]).flat(),
+    });
+    const r = await getGutHealthSummary('u1');
+    const s = r.signals.find((x) => x.key === 'low_fiber');
+    expect(s).toBeTruthy();
+    expect(s.basis).toBe('confirmed_plus_estimated');
+  });
+
+  test('all-estimated values still prevent a low-intake conclusion', async () => {
+    fakeDb({
+      macroGoal: { fiberTarget: 30, fiberTargetBasis: 'custom' },
+      logs: Array.from({ length: 4 }, (_, i) => log({ fiberG: 25, loggedAt: day(i), nutritionSnapshot: { loggedSource: 'external estimate' } })),
+    });
+    const r = await getGutHealthSummary('u1');
+    expect(r.fiber.confirmedG).toBe(0);
+    expect(r.fiber.knownAndEstimatedG).toBe(100);
+    expect(r.signals.find((s) => s.key === 'low_fiber')).toBeFalsy();
+  });
+
+  test('measured zero counts as confirmed, never unknown', async () => {
+    fakeDb({ logs: [log({ fiberG: 0, nutritionSnapshot: { calculated: { fiberG: 0 } } })] });
+    const r = await getGutHealthSummary('u1');
+    expect(r.fiber.unknownMeals).toBe(0);
+  });
+
+  test('thin logging coverage is a data-quality signal, not an intake verdict', async () => {
+    fakeDb({ logs: [log({ fiberG: 2, loggedAt: day(1) })] });
+    const r = await getGutHealthSummary('u1');
+    expect(r.signals.find((s) => s.key === 'low_fiber')).toBeFalsy();
+    expect(r.signals.find((s) => s.key === 'thin_log_coverage')).toBeTruthy();
   });
 
   test('mostly-unknown fiber produces thin_fiber_data, not low_fiber', async () => {
@@ -76,9 +133,16 @@ describe('gut health v2 — fiber', () => {
     expect(r.signals.find((s) => s.key === 'thin_fiber_data')).toBeTruthy();
   });
 
-  test('database failure propagates — never a fabricated empty summary', async () => {
+  test('restricted-condition target reaches the summary via resolveFiberTarget', async () => {
+    fakeDb({ conditions: [{ condition: { name: 'Crohn disease' } }] });
+    const r = await getGutHealthSummary('u1');
+    expect(r.fiber.target.basis).toBe('restricted_reference');
+    expect(r.fiber.target.reviewRequired).toBe(true);
+  });
+
+  test('database failure propagates as documented 503, never a fabricated empty summary', async () => {
     fakeDb({ logError: new Error('connection refused') });
-    await expect(getGutHealthSummary('u1')).rejects.toThrow('connection refused');
+    await expect(getGutHealthSummary('u1')).rejects.toMatchObject({ status: 503, publicCode: 'SERVICE_UNAVAILABLE' });
   });
 });
 
@@ -164,12 +228,58 @@ describe('gut health v2 — plant diversity', () => {
   });
 });
 
-describe('gut health v2 — fermented occasions + symptoms', () => {
-  test('fermented food names count as occasions, never as verified live cultures', async () => {
-    fakeDb({ logs: [log({ foodName: 'dahi' }), log({ foodName: 'idli with sambar' }), log({ foodName: 'rice' })] });
+describe('gut health v2 — gut-taxonomy occasions + symptoms', () => {
+  test('fermented catalog identity → verified; name-only match → suspected (never verified live cultures)', async () => {
+    fakeDb({
+      ingredients: [ing(31, 'fermented', 'kimchi'), ing(32, 'Dairy', 'yogurt')],
+      logs: [
+        log({ foodName: 'Kimchi side', ingredientId: 31 }),
+        log({ foodName: 'idli with sambar', ingredientId: 32 }),
+        log({ foodName: 'rice' }),
+      ],
+    });
     const r = await getGutHealthSummary('u1');
-    expect(r.fermented.occasions).toBe(2);
-    expect(r.fermented.basis).toMatch(/does not verify live cultures/);
+    expect(r.gutOccasions.facets.fermented).toBe(2);
+    expect(r.gutOccasions.entries.find((e) => /kimchi/i.test(e.food)).fermentation).toBe('verified');
+    expect(r.gutOccasions.entries.find((e) => /idli/i.test(e.food)).fermentation).toBe('suspected');
+    expect(r.gutOccasions.suspectedFermented).toBe(1);
+    expect(r.gutOccasions.facets.live_culture).toBe(0); // never verified by name alone
+  });
+
+  test('non-fermented dosa variant is not classified fermented', async () => {
+    fakeDb({ logs: [log({ foodName: 'Instant dosa mix' })] });
+    const r = await getGutHealthSummary('u1');
+    expect(r.gutOccasions.facets.fermented).toBe(0);
+  });
+
+  test('duplicate logs of the same food on one day count as a single occasion', async () => {
+    fakeDb({
+      ingredients: [ing(31, 'fermented', 'kimchi')],
+      logs: [log({ foodName: 'Kimchi', ingredientId: 31 }), log({ foodName: 'Kimchi', ingredientId: 31, quantityG: 50 })],
+    });
+    const r = await getGutHealthSummary('u1');
+    expect(r.gutOccasions.facets.fermented).toBe(1);
+    expect(r.gutOccasions.total).toBe(1);
+  });
+
+  test('live_culture attribute surfaces verified live cultures; Unicode names preserved', async () => {
+    fakeDb({
+      ingredients: [ing(33, 'Dairy', 'పెరుగు')],
+      attributes: [{ ingredientId: 33, attribute: 'FERMENTED_LIVE_CULTURES' }],
+      logs: [log({ foodName: 'పెరుగు', ingredientId: 33 })],
+    });
+    const r = await getGutHealthSummary('u1');
+    const e = r.gutOccasions.entries[0];
+    expect(e.liveCultures).toBe('verified');
+    expect(e.food).toBe('పెరుగు');
+    expect(r.gutOccasions.facets.live_culture).toBe(1);
+  });
+
+  test('unresolved identity coverage is a data-quality signal, not a variety verdict', async () => {
+    fakeDb({ logs: Array.from({ length: 6 }, (_, i) => log({ foodName: `mystery ${i}`, loggedAt: day(i % 4), fiberG: null })) });
+    const r = await getGutHealthSummary('u1');
+    expect(r.signals.find((s) => s.key === 'narrow_variety')).toBeFalsy();
+    expect(r.signals.find((s) => s.key === 'thin_identity_coverage')).toBeTruthy();
   });
 
   test('no logged symptoms is reported as unrecorded, not as asymptomatic', async () => {
