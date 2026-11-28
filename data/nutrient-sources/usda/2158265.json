@@ -1,0 +1,568 @@
+{
+  "retrievedAt": "2026-11-28T03:50:59.290Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [
+      {
+        "id": 2382050,
+        "value": 9,
+        "name": "Added Package Weight",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      }
+    ],
+    "foodPortions": [],
+    "fdcId": 2158265,
+    "description": "SHAKSHUKA BREAKFAST BOWL",
+    "publicationDate": "10/28/2021",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1258,
+          "number": "606",
+          "name": "Fatty acids, total saturated",
+          "rank": 9700,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24872896,
+        "amount": 0.62
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1235,
+          "number": "539",
+          "name": "Sugars, added",
+          "rank": 1540,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 73,
+          "code": "LCSL",
+          "description": "Calculated from a less than value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24872893,
+        "amount": 0.4
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24872884,
+        "amount": 12.86
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1087,
+          "number": "301",
+          "name": "Calcium, Ca",
+          "rank": 5300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24872888,
+        "amount": 46
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1292,
+          "number": "645",
+          "name": "Fatty acids, total monounsaturated",
+          "rank": 11400,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24872897,
+        "amount": 3.73
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1257,
+          "number": "605",
+          "name": "Fatty acids, total trans",
+          "rank": 15400,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24872895,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24872883,
+        "amount": 5.81
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1293,
+          "number": "646",
+          "name": "Fatty acids, total polyunsaturated",
+          "rank": 12900,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24872898,
+        "amount": 1.45
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1092,
+          "number": "306",
+          "name": "Potassium, K",
+          "rank": 5700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24872890,
+        "amount": 361
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1079,
+          "number": "291",
+          "name": "Fiber, total dietary",
+          "rank": 1200,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24872887,
+        "amount": 2.5
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1253,
+          "number": "601",
+          "name": "Cholesterol",
+          "rank": 15700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24872894,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24872885,
+        "amount": 120
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24872891,
+        "amount": 357
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24872886,
+        "amount": 2.07
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24872882,
+        "amount": 4.98
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1110,
+          "number": "324",
+          "name": "Vitamin D (D2 + D3), International Units",
+          "rank": 8650,
+          "unitName": "IU"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24872892,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1089,
+          "number": "303",
+          "name": "Iron, Fe",
+          "rank": 5400,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24872889,
+        "amount": 1.29
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "modifiedDate": "5/6/2020",
+    "availableDate": "5/6/2020",
+    "brandOwner": "Pinnacle Foods Group LLC",
+    "brandName": "GARDEIN",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Frozen Breakfast Sandwiches, Biscuits & Meals",
+    "gtinUpc": "842234003408",
+    "householdServingFullText": "1 BOWL",
+    "ingredients": "POTATOES (POTATOES, CANOLA OIL, SALT, SPICE), WATER, TOMATOES (TOMATOES, TOMATO PUREE, SALT), ARTICHOKES, BELL PEPPERS, CANOLA OIL, SOY PROTEIN CONCENTRATE, ONIONS, CONTAINS 2% OR LESS OF: EGG REPLACER (ORGANIC SOYMILK POWDER, MODIFIED CELLULOSE, GELLAN GUM, CELLULOSE, CALCIUM LACTATE, CARRAGEENAN, NATURAL FLAVOR, NUTRITIONAL YEAST, BLACK SALT, BETA-CAROTENE (COLOR)), EXTRA VIRGIN OLIVE OIL, VITAL WHEAT GLUTEN, JALAPENOS, SOY PROTEIN ISOLATE, METHYLCELLULOSE, GARLIC, YEAST EXTRACT, CILANTRO, SPICES, CORN STARCH, ORGANIC CANE SUGAR, POTATO STARCH, SEA SALT, SMOKED PAPRIKA, NATURAL FLAVORS, SALT, PAPRIKA, GARLIC POWDER, MALT EXTRACT (MALTED BARLEY, WATER), ONION POWDER, RED BELL PEPPER FLAKES, ANNATTO (COLOR), OLEORESIN PAPRIKA (COLOR), SPICE EXTRACT.",
+    "marketCountry": "United States",
+    "servingSize": 241,
+    "servingSizeUnit": "g",
+    "packageWeight": "8.5 oz/241 g",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2158265,
+        "description": "SHAKSHUKA BREAKFAST BOWL",
+        "publicationDate": "10/28/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "5/6/2020",
+        "availableDate": "5/6/2020",
+        "brandOwner": "Pinnacle Foods Group LLC",
+        "brandName": "GARDEIN",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Frozen Breakfast Sandwiches, Biscuits & Meals",
+        "gtinUpc": "842234003408",
+        "householdServingFullText": "1 BOWL",
+        "ingredients": "POTATOES (POTATOES, CANOLA OIL, SALT, SPICE), WATER, TOMATOES (TOMATOES, TOMATO PUREE, SALT), ARTICHOKES, BELL PEPPERS, CANOLA OIL, SOY PROTEIN CONCENTRATE, ONIONS, CONTAINS 2% OR LESS OF: EGG REPLACER (ORGANIC SOYMILK POWDER, MODIFIED CELLULOSE, GELLAN GUM, CELLULOSE, CALCIUM LACTATE, CARRAGEENAN, NATURAL FLAVOR, NUTRITIONAL YEAST, BLACK SALT, BETA-CAROTENE (COLOR)), EXTRA VIRGIN OLIVE OIL, VITAL WHEAT GLUTEN, JALAPENOS, SOY PROTEIN ISOLATE, METHYLCELLULOSE, GARLIC, YEAST EXTRACT, CILANTRO, SPICES, CORN STARCH, ORGANIC CANE SUGAR, POTATO STARCH, SEA SALT, SMOKED PAPRIKA, NATURAL FLAVORS, SALT, PAPRIKA, GARLIC POWDER, MALT EXTRACT (MALTED BARLEY, WATER), ONION POWDER, RED BELL PEPPER FLAKES, ANNATTO (COLOR), OLEORESIN PAPRIKA (COLOR), SPICE EXTRACT.",
+        "marketCountry": "United States",
+        "servingSize": 241,
+        "servingSizeUnit": "g",
+        "packageWeight": "8.5 oz/241 g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1723075,
+        "description": "SHAKSHUKA BREAKFAST BOWL",
+        "publicationDate": "3/19/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "5/6/2020",
+        "availableDate": "5/6/2020",
+        "brandOwner": "Pinnacle Foods Group LLC",
+        "brandName": "GARDEIN",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Frozen Breakfast Sandwiches, Biscuits & Meals",
+        "gtinUpc": "842234003408",
+        "householdServingFullText": "1 BOWL",
+        "ingredients": "POTATOES (POTATOES, CANOLA OIL, SALT, SPICE), WATER, TOMATOES (TOMATOES, TOMATO PUREE, SALT), ARTICHOKES, BELL PEPPERS, CANOLA OIL, SOY PROTEIN CONCENTRATE, ONIONS, CONTAINS 2% OR LESS OF: EGG REPLACER (ORGANIC SOYMILK POWDER, MODIFIED CELLULOSE, GELLAN GUM, CELLULOSE, CALCIUM LACTATE, CARRAGEENAN, NATURAL FLAVOR, NUTRITIONAL YEAST, BLACK SALT, BETA-CAROTENE (COLOR)), EXTRA VIRGIN OLIVE OIL, VITAL WHEAT GLUTEN, JALAPENOS, SOY PROTEIN ISOLATE, METHYLCELLULOSE, GARLIC, YEAST EXTRACT, CILANTRO, SPICES, CORN STARCH, ORGANIC CANE SUGAR, POTATO STARCH, SEA SALT, SMOKED PAPRIKA, NATURAL FLAVORS, SALT, PAPRIKA, GARLIC POWDER, MALT EXTRACT (MALTED BARLEY, WATER), ONION POWDER, RED BELL PEPPER FLAKES, ANNATTO (COLOR), OLEORESIN PAPRIKA (COLOR), SPICE EXTRACT.",
+        "marketCountry": "United States",
+        "servingSize": 241,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1430777,
+        "description": "SHAKSHUKA BREAKFAST BOWL",
+        "publicationDate": "2/26/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "5/6/2020",
+        "availableDate": "5/6/2020",
+        "brandOwner": "Pinnacle Foods Group LLC",
+        "brandName": "GARDEIN",
+        "subbrandName": "",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Frozen Breakfast Sandwiches, Biscuits & Meals",
+        "gtinUpc": "842234003408",
+        "householdServingFullText": "1 BOWL",
+        "ingredients": "POTATOES (POTATOES, CANOLA OIL, SALT, SPICE), WATER, TOMATOES (TOMATOES, TOMATO PUREE, SALT), ARTICHOKES, BELL PEPPERS, CANOLA OIL, SOY PROTEIN CONCENTRATE, ONIONS, CONTAINS 2% OR LESS OF: EGG REPLACER (ORGANIC SOYMILK POWDER, MODIFIED CELLULOSE, GELLAN GUM, CELLULOSE, CALCIUM LACTATE, CARRAGEENAN, NATURAL FLAVOR, NUTRITIONAL YEAST, BLACK SALT, BETA-CAROTENE (COLOR)), EXTRA VIRGIN OLIVE OIL, VITAL WHEAT GLUTEN, JALAPENOS, SOY PROTEIN ISOLATE, METHYLCELLULOSE, GARLIC, YEAST EXTRACT, CILANTRO, SPICES, CORN STARCH, ORGANIC CANE SUGAR, POTATO STARCH, SEA SALT, SMOKED PAPRIKA, NATURAL FLAVORS, SALT, PAPRIKA, GARLIC POWDER, MALT EXTRACT (MALTED BARLEY, WATER), ONION POWDER, RED BELL PEPPER FLAKES, ANNATTO (COLOR), OLEORESIN PAPRIKA (COLOR), SPICE EXTRACT.",
+        "marketCountry": "United States",
+        "servingSize": 241,
+        "servingSizeUnit": "g",
+        "packageWeight": "",
+        "notaSignificantSourceOf": ""
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1042345,
+        "description": "SHAKSHUKA BREAKFAST BOWL",
+        "publicationDate": "6/26/2020",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "5/6/2020",
+        "availableDate": "5/6/2020",
+        "brandOwner": "Pinnacle Foods Group LLC",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Frozen Breakfast Sandwiches, Biscuits & Meals",
+        "gtinUpc": "842234003408",
+        "householdServingFullText": "1 BOWL",
+        "ingredients": "POTATOES (POTATOES, CANOLA OIL, SALT, SPICE), WATER, TOMATOES (TOMATOES, TOMATO PUREE, SALT), ARTICHOKES, BELL PEPPERS, CANOLA OIL, SOY PROTEIN CONCENTRATE, ONIONS, CONTAINS 2% OR LESS OF: EGG REPLACER (ORGANIC SOYMILK POWDER, MODIFIED CELLULOSE, GELLAN GUM, CELLULOSE, CALCIUM LACTATE, CARRAGEENAN, NATURAL FLAVOR, NUTRITIONAL YEAST, BLACK SALT, BETA-CAROTENE (COLOR)), EXTRA VIRGIN OLIVE OIL, VITAL WHEAT GLUTEN, JALAPENOS, SOY PROTEIN ISOLATE, METHYLCELLULOSE, GARLIC, YEAST EXTRACT, CILANTRO, SPICES, CORN STARCH, ORGANIC CANE SUGAR, POTATO STARCH, SEA SALT, SMOKED PAPRIKA, NATURAL FLAVORS, SALT, PAPRIKA, GARLIC POWDER, MALT EXTRACT (MALTED BARLEY, WATER), ONION POWDER, RED BELL PEPPER FLAKES, ANNATTO (COLOR), OLEORESIN PAPRIKA (COLOR), SPICE EXTRACT.",
+        "marketCountry": "United States",
+        "servingSize": 241,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "modifiedDate": "4/25/2020",
+        "availableDate": "4/25/2020",
+        "brandOwner": "Pinnacle Foods Group LLC",
+        "dataSource": "LI",
+        "gpcCategoryGroup": "Frozen Breakfast Sandwiches, Biscuits & Meals",
+        "gtinUpc": "842234003408",
+        "householdServingFullText": "1 BOWL",
+        "ingredients": "POTATOES (POTATOES, CANOLA OIL, SALT, SPICE), WATER, TOMATOES (TOMATOES, TOMATO PUREE, SALT), ARTICHOKES, BELL PEPPERS, CANOLA OIL, SOY PROTEIN CONCENTRATE, ONIONS, CONTAINS 2% OR LESS OF: EGG REPLACER (ORGANIC SOYMILK POWDER, MODIFIED CELLULOSE, GELLAN GUM, CELLULOSE, CALCIUM LACTATE, CARRAGEENAN, NATURAL FLAVOR, NUTRITIONAL YEAST, BLACK SALT, BETA-CAROTENE (COLOR)), EXTRA VIRGIN OLIVE OIL, VITAL WHEAT GLUTEN, JALAPENOS, SOY PROTEIN ISOLATE, METHYLCELLULOSE, GARLIC, YEAST EXTRACT, CILANTRO, SPICES, CORN STARCH, ORGANIC CANE SUGAR, POTATO STARCH, SEA SALT, SMOKED PAPRIKA, NATURAL FLAVORS, SALT, PAPRIKA, GARLIC POWDER, MALT EXTRACT (MALTED BARLEY, WATER), ONION POWDER, RED BELL PEPPER FLAKES, ANNATTO (COLOR), OLEORESIN PAPRIKA (COLOR), SPICE EXTRACT.",
+        "marketCountry": "United States",
+        "servingSize": 241,
+        "servingSizeUnit": "g",
+        "fdcId": 949766,
+        "description": "SHAKSHUKA BREAKFAST BOWL",
+        "publicationDate": "5/28/2020",
+        "dataType": "Branded",
+        "foodClass": "Branded"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 14
+      },
+      "saturatedFat": {
+        "value": 1.49
+      },
+      "transFat": {
+        "value": 0
+      },
+      "cholesterol": {
+        "value": 0
+      },
+      "sodium": {
+        "value": 860
+      },
+      "carbohydrates": {
+        "value": 31
+      },
+      "fiber": {
+        "value": 6.02
+      },
+      "sugars": {
+        "value": 4.99
+      },
+      "protein": {
+        "value": 12
+      },
+      "calcium": {
+        "value": 111
+      },
+      "iron": {
+        "value": 3.11
+      },
+      "potassium": {
+        "value": 870
+      },
+      "addedSugar": {
+        "value": 0.964
+      },
+      "calories": {
+        "value": 289
+      }
+    }
+  }
+}

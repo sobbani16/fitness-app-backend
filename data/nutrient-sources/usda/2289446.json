@@ -1,0 +1,527 @@
+{
+  "retrievedAt": "2026-11-28T03:51:06.001Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [
+      {
+        "id": 2569275,
+        "value": 5,
+        "name": "Nutrient Added",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      }
+    ],
+    "foodPortions": [],
+    "fdcId": 2289446,
+    "description": "CHICKEN CURRY",
+    "publicationDate": "5/23/2022",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1087,
+          "number": "301",
+          "name": "Calcium, Ca",
+          "rank": 5300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28130539,
+        "amount": 14
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28130537,
+        "amount": 2.14
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28130541,
+        "amount": 364
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1257,
+          "number": "605",
+          "name": "Fatty acids, total trans",
+          "rank": 15400,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28130545,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1104,
+          "number": "318",
+          "name": "Vitamin A, IU",
+          "rank": 7500,
+          "unitName": "IU"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28130542,
+        "amount": 1071
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28130533,
+        "amount": 13.57
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28130536,
+        "amount": 157
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1162,
+          "number": "401",
+          "name": "Vitamin C, total ascorbic acid",
+          "rank": 6300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28130543,
+        "amount": 2.6
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28130535,
+        "amount": 5
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1089,
+          "number": "303",
+          "name": "Iron, Fe",
+          "rank": 5400,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28130540,
+        "amount": 1.29
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1253,
+          "number": "601",
+          "name": "Cholesterol",
+          "rank": 15700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28130544,
+        "amount": 43
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1079,
+          "number": "291",
+          "name": "Fiber, total dietary",
+          "rank": 1200,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28130538,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1258,
+          "number": "606",
+          "name": "Fatty acids, total saturated",
+          "rank": 9700,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28130546,
+        "amount": 5.71
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 28130534,
+        "amount": 9.29
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "shortDescription": "",
+    "modifiedDate": "8/23/2017",
+    "availableDate": "8/23/2017",
+    "brandOwner": "Ahold USA, Inc. ",
+    "brandName": "AHOLD",
+    "subbrandName": "WORLD MENU",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Poultry, Chicken & Turkey",
+    "gtinUpc": "688267159619",
+    "householdServingFullText": "5 ONZ",
+    "ingredients": "COOKED CHICKEN (CHICKEN MEAT, WATER, CORNSTARCH, KOSHER SALT, DEXTROSE, DEHYDRATED VINEGAR, GARLIC POWDER, ONION POWDER, NATURAL FLAVOR), CURRY SAUCE (COCONUT MILK [COCNUT EXTRACT, WATER, CITRIC ACID {ANTIOXIDANT}, SODIUM METABISULFITE {PRESERVATIVE}], CARROTS, RED BELL PEPPERS, GREEN ONIONS, GINGER PUREE [GINGER], GARLIC, AGAVE [AGAVE SYRUP, AGAVE NECTAR], CURRY PASTE [LEMONGRASS, GARLIC, SHALLOT, SALT, GALANGAL, DRIED RED CHILI, CORIANDER, MACE, TURMERIC, CARDAMOM], CORNSTARCH, DEHYDRATED VINEGAR, TURMERIC, KOSHER SALT, NATURAL FLAVOR).",
+    "marketCountry": "United States",
+    "servingSize": 140,
+    "servingSizeUnit": "g",
+    "packageWeight": "14 oz/397 g",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2289446,
+        "description": "CHICKEN CURRY",
+        "publicationDate": "5/23/2022",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "shortDescription": "",
+        "modifiedDate": "8/23/2017",
+        "availableDate": "8/23/2017",
+        "brandOwner": "Ahold USA, Inc. ",
+        "brandName": "AHOLD",
+        "subbrandName": "WORLD MENU",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Poultry, Chicken & Turkey",
+        "gtinUpc": "688267159619",
+        "householdServingFullText": "5 ONZ",
+        "ingredients": "COOKED CHICKEN (CHICKEN MEAT, WATER, CORNSTARCH, KOSHER SALT, DEXTROSE, DEHYDRATED VINEGAR, GARLIC POWDER, ONION POWDER, NATURAL FLAVOR), CURRY SAUCE (COCONUT MILK [COCNUT EXTRACT, WATER, CITRIC ACID {ANTIOXIDANT}, SODIUM METABISULFITE {PRESERVATIVE}], CARROTS, RED BELL PEPPERS, GREEN ONIONS, GINGER PUREE [GINGER], GARLIC, AGAVE [AGAVE SYRUP, AGAVE NECTAR], CURRY PASTE [LEMONGRASS, GARLIC, SHALLOT, SALT, GALANGAL, DRIED RED CHILI, CORIANDER, MACE, TURMERIC, CARDAMOM], CORNSTARCH, DEHYDRATED VINEGAR, TURMERIC, KOSHER SALT, NATURAL FLAVOR).",
+        "marketCountry": "United States",
+        "servingSize": 140,
+        "servingSizeUnit": "g",
+        "packageWeight": "14 oz/397 g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1894838,
+        "description": "CHICKEN CURRY",
+        "publicationDate": "7/29/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "8/23/2017",
+        "availableDate": "8/23/2017",
+        "brandOwner": "Ahold USA, Inc. ",
+        "brandName": "AHOLD",
+        "subbrandName": "WORLD MENU",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Poultry, Chicken & Turkey",
+        "gtinUpc": "688267159619",
+        "householdServingFullText": "5 ONZ",
+        "ingredients": "COOKED CHICKEN (CHICKEN MEAT, WATER, CORNSTARCH, KOSHER SALT, DEXTROSE, DEHYDRATED VINEGAR, GARLIC POWDER, ONION POWDER, NATURAL FLAVOR), CURRY SAUCE (COCONUT MILK [COCNUT EXTRACT, WATER, CITRIC ACID {ANTIOXIDANT}, SODIUM METABISULFITE {PRESERVATIVE}], CARROTS, RED BELL PEPPERS, GREEN ONIONS, GINGER PUREE [GINGER], GARLIC, AGAVE [AGAVE SYRUP, AGAVE NECTAR], CURRY PASTE [LEMONGRASS, GARLIC, SHALLOT, SALT, GALANGAL, DRIED RED CHILI, CORIANDER, MACE, TURMERIC, CARDAMOM], CORNSTARCH, DEHYDRATED VINEGAR, TURMERIC, KOSHER SALT, NATURAL FLAVOR).",
+        "marketCountry": "United States",
+        "servingSize": 140,
+        "servingSizeUnit": "g",
+        "packageWeight": "14 oz/397 g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1780529,
+        "description": "CHICKEN CURRY",
+        "publicationDate": "6/17/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "8/23/2017",
+        "availableDate": "8/23/2017",
+        "brandOwner": "Ahold USA, Inc. ",
+        "brandName": "AHOLD",
+        "subbrandName": "WORLD MENU",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Poultry, Chicken & Turkey",
+        "gtinUpc": "688267159619",
+        "householdServingFullText": "5 ONZ",
+        "ingredients": "COOKED CHICKEN (CHICKEN MEAT, WATER, CORNSTARCH, KOSHER SALT, DEXTROSE, DEHYDRATED VINEGAR, GARLIC POWDER, ONION POWDER, NATURAL FLAVOR), CURRY SAUCE (COCONUT MILK [COCNUT EXTRACT, WATER, CITRIC ACID {ANTIOXIDANT}, SODIUM METABISULFITE {PRESERVATIVE}], CARROTS, RED BELL PEPPERS, GREEN ONIONS, GINGER PUREE [GINGER], GARLIC, AGAVE [AGAVE SYRUP, AGAVE NECTAR], CURRY PASTE [LEMONGRASS, GARLIC, SHALLOT, SALT, GALANGAL, DRIED RED CHILI, CORIANDER, MACE, TURMERIC, CARDAMOM], CORNSTARCH, DEHYDRATED VINEGAR, TURMERIC, KOSHER SALT, NATURAL FLAVOR).",
+        "marketCountry": "United States",
+        "servingSize": 140,
+        "servingSizeUnit": "g",
+        "packageWeight": "397 g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1559935,
+        "description": "CHICKEN CURRY",
+        "publicationDate": "3/19/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "8/23/2017",
+        "availableDate": "8/23/2017",
+        "brandOwner": "Ahold USA, Inc.",
+        "brandName": "AHOLD",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Poultry, Chicken & Turkey",
+        "gtinUpc": "688267159619",
+        "householdServingFullText": "5 ONZ",
+        "ingredients": "COOKED CHICKEN (CHICKEN MEAT, WATER, CORNSTARCH, KOSHER SALT, DEXTROSE, DEHYDRATED VINEGAR, GARLIC POWDER, ONION POWDER, NATURAL FLAVOR), CURRY SAUCE (COCONUT MILK [COCNUT EXTRACT, WATER, CITRIC ACID {ANTIOXIDANT}, SODIUM METABISULFITE {PRESERVATIVE}], CARROTS, RED BELL PEPPERS, GREEN ONIONS, GINGER PUREE [GINGER], GARLIC, AGAVE [AGAVE SYRUP, AGAVE NECTAR], CURRY PASTE [LEMONGRASS, GARLIC, SHALLOT, SALT, GALANGAL, DRIED RED CHILI, CORIANDER, MACE, TURMERIC, CARDAMOM], CORNSTARCH, DEHYDRATED VINEGAR, TURMERIC, KOSHER SALT, NATURAL FLAVOR).",
+        "marketCountry": "United States",
+        "servingSize": 140,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1267853,
+        "description": "CHICKEN CURRY",
+        "publicationDate": "2/26/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "8/23/2017",
+        "availableDate": "8/23/2017",
+        "brandOwner": "Ahold USA, Inc.",
+        "brandName": "AHOLD",
+        "subbrandName": "",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Poultry, Chicken & Turkey",
+        "gtinUpc": "688267159619",
+        "householdServingFullText": "5 ONZ",
+        "ingredients": "COOKED CHICKEN (CHICKEN MEAT, WATER, CORNSTARCH, KOSHER SALT, DEXTROSE, DEHYDRATED VINEGAR, GARLIC POWDER, ONION POWDER, NATURAL FLAVOR), CURRY SAUCE (COCONUT MILK [COCNUT EXTRACT, WATER, CITRIC ACID {ANTIOXIDANT}, SODIUM METABISULFITE {PRESERVATIVE}], CARROTS, RED BELL PEPPERS, GREEN ONIONS, GINGER PUREE [GINGER], GARLIC, AGAVE [AGAVE SYRUP, AGAVE NECTAR], CURRY PASTE [LEMONGRASS, GARLIC, SHALLOT, SALT, GALANGAL, DRIED RED CHILI, CORIANDER, MACE, TURMERIC, CARDAMOM], CORNSTARCH, DEHYDRATED VINEGAR, TURMERIC, KOSHER SALT, NATURAL FLAVOR).",
+        "marketCountry": "United States",
+        "servingSize": 140,
+        "servingSizeUnit": "g",
+        "packageWeight": "",
+        "notaSignificantSourceOf": ""
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "modifiedDate": "8/23/2017",
+        "availableDate": "8/23/2017",
+        "brandOwner": "Ahold USA, Inc.",
+        "dataSource": "LI",
+        "gpcCategoryGroup": "Poultry, Chicken & Turkey",
+        "gtinUpc": "688267159619",
+        "householdServingFullText": "5 ONZ",
+        "ingredients": "COOKED CHICKEN (CHICKEN MEAT, WATER, CORNSTARCH, KOSHER SALT, DEXTROSE, DEHYDRATED VINEGAR, GARLIC POWDER, ONION POWDER, NATURAL FLAVOR), CURRY SAUCE (COCONUT MILK [COCNUT EXTRACT, WATER, CITRIC ACID {ANTIOXIDANT}, SODIUM METABISULFITE {PRESERVATIVE}], CARROTS, RED BELL PEPPERS, GREEN ONIONS, GINGER PUREE [GINGER], GARLIC, AGAVE [AGAVE SYRUP, AGAVE NECTAR], CURRY PASTE [LEMONGRASS, GARLIC, SHALLOT, SALT, GALANGAL, DRIED RED CHILI, CORIANDER, MACE, TURMERIC, CARDAMOM], CORNSTARCH, DEHYDRATED VINEGAR, TURMERIC, KOSHER SALT, NATURAL FLAVOR).",
+        "marketCountry": "United States",
+        "servingSize": 140,
+        "servingSizeUnit": "g",
+        "fdcId": 464738,
+        "description": "CHICKEN CURRY",
+        "publicationDate": "4/1/2019",
+        "workingFoodId": 45200714,
+        "dataType": "Branded",
+        "foodClass": "Branded"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 13
+      },
+      "saturatedFat": {
+        "value": 7.99
+      },
+      "transFat": {
+        "value": 0
+      },
+      "cholesterol": {
+        "value": 60.2
+      },
+      "sodium": {
+        "value": 510
+      },
+      "carbohydrates": {
+        "value": 7
+      },
+      "fiber": {
+        "value": 0
+      },
+      "sugars": {
+        "value": 3
+      },
+      "protein": {
+        "value": 19
+      },
+      "calcium": {
+        "value": 19.6
+      },
+      "iron": {
+        "value": 1.81
+      },
+      "calories": {
+        "value": 220
+      }
+    }
+  }
+}

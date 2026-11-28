@@ -1,0 +1,477 @@
+{
+  "retrievedAt": "2026-11-28T03:51:03.898Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [
+      {
+        "id": 2203127,
+        "value": 9,
+        "name": "Added Package Weight",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      }
+    ],
+    "foodPortions": [],
+    "fdcId": 2011754,
+    "description": "BREAD",
+    "publicationDate": "10/28/2021",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25236176,
+        "amount": 222
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25236174,
+        "amount": 4.17
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25236177,
+        "amount": 5.56
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1087,
+          "number": "301",
+          "name": "Calcium, Ca",
+          "rank": 5300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25236179,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1079,
+          "number": "291",
+          "name": "Fiber, total dietary",
+          "rank": 1200,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25236178,
+        "amount": 2.8
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1162,
+          "number": "401",
+          "name": "Vitamin C, total ascorbic acid",
+          "rank": 6300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25236183,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1257,
+          "number": "605",
+          "name": "Fatty acids, total trans",
+          "rank": 15400,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25236185,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1104,
+          "number": "318",
+          "name": "Vitamin A, IU",
+          "rank": 7500,
+          "unitName": "IU"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25236182,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1258,
+          "number": "606",
+          "name": "Fatty acids, total saturated",
+          "rank": 9700,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25236186,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25236175,
+        "amount": 44.44
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25236181,
+        "amount": 375
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1089,
+          "number": "303",
+          "name": "Iron, Fe",
+          "rank": 5400,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25236180,
+        "amount": 1
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1253,
+          "number": "601",
+          "name": "Cholesterol",
+          "rank": 15700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25236184,
+        "amount": 28
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25236173,
+        "amount": 5.56
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "modifiedDate": "11/1/2017",
+    "availableDate": "11/1/2017",
+    "brandOwner": "United States Bakery",
+    "brandName": "FRANZ",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Breads & Buns",
+    "gtinUpc": "072220009910",
+    "householdServingFullText": "1 SLICE",
+    "ingredients": "WATER, BROWN RICE FLOUR, TAPIOCA STARCH, TAPIOCA SYRUP, WHOLE GRAIN SORGHUM FLOUR, XANTHAN GUM, WHOLE GRAIN MILLET SEEDS, CONTAINS 2% OR LESS OF EACH OF THE FOLLOWING: WHOLE EGGS, WHOLE GRAIN MILLET FLOUR, WHOLE GRAIN AMARANTH SEED, WHOLE GRAIN TEFF SEEDS, RED QUINOA SEEDS, EXTRA VIRGIN OLIVE OIL, MOLASSES, SALT, CULTURED RICE FLOUR, YEAST, ENZYMES.",
+    "marketCountry": "United States",
+    "servingSize": 36,
+    "servingSizeUnit": "g",
+    "packageWeight": "18 oz/510 g",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2011754,
+        "description": "BREAD",
+        "publicationDate": "10/28/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "11/1/2017",
+        "availableDate": "11/1/2017",
+        "brandOwner": "United States Bakery",
+        "brandName": "FRANZ",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Breads & Buns",
+        "gtinUpc": "072220009910",
+        "householdServingFullText": "1 SLICE",
+        "ingredients": "WATER, BROWN RICE FLOUR, TAPIOCA STARCH, TAPIOCA SYRUP, WHOLE GRAIN SORGHUM FLOUR, XANTHAN GUM, WHOLE GRAIN MILLET SEEDS, CONTAINS 2% OR LESS OF EACH OF THE FOLLOWING: WHOLE EGGS, WHOLE GRAIN MILLET FLOUR, WHOLE GRAIN AMARANTH SEED, WHOLE GRAIN TEFF SEEDS, RED QUINOA SEEDS, EXTRA VIRGIN OLIVE OIL, MOLASSES, SALT, CULTURED RICE FLOUR, YEAST, ENZYMES.",
+        "marketCountry": "United States",
+        "servingSize": 36,
+        "servingSizeUnit": "g",
+        "packageWeight": "18 oz/510 g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1468816,
+        "description": "BREAD",
+        "publicationDate": "3/19/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "11/1/2017",
+        "availableDate": "11/1/2017",
+        "brandOwner": "United States Bakery",
+        "brandName": "FRANZ",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Breads & Buns",
+        "gtinUpc": "072220009910",
+        "householdServingFullText": "1 SLICE",
+        "ingredients": "WATER, BROWN RICE FLOUR, TAPIOCA STARCH, TAPIOCA SYRUP, WHOLE GRAIN SORGHUM FLOUR, XANTHAN GUM, WHOLE GRAIN MILLET SEEDS, CONTAINS 2% OR LESS OF EACH OF THE FOLLOWING: WHOLE EGGS, WHOLE GRAIN MILLET FLOUR, WHOLE GRAIN AMARANTH SEED, WHOLE GRAIN TEFF SEEDS, RED QUINOA SEEDS, EXTRA VIRGIN OLIVE OIL, MOLASSES, SALT, CULTURED RICE FLOUR, YEAST, ENZYMES.",
+        "marketCountry": "United States",
+        "servingSize": 36,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1176791,
+        "description": "BREAD",
+        "publicationDate": "2/26/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "11/1/2017",
+        "availableDate": "11/1/2017",
+        "brandOwner": "United States Bakery",
+        "brandName": "FRANZ",
+        "subbrandName": "",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Breads & Buns",
+        "gtinUpc": "072220009910",
+        "householdServingFullText": "1 SLICE",
+        "ingredients": "WATER, BROWN RICE FLOUR, TAPIOCA STARCH, TAPIOCA SYRUP, WHOLE GRAIN SORGHUM FLOUR, XANTHAN GUM, WHOLE GRAIN MILLET SEEDS, CONTAINS 2% OR LESS OF EACH OF THE FOLLOWING: WHOLE EGGS, WHOLE GRAIN MILLET FLOUR, WHOLE GRAIN AMARANTH SEED, WHOLE GRAIN TEFF SEEDS, RED QUINOA SEEDS, EXTRA VIRGIN OLIVE OIL, MOLASSES, SALT, CULTURED RICE FLOUR, YEAST, ENZYMES.",
+        "marketCountry": "United States",
+        "servingSize": 36,
+        "servingSizeUnit": "g",
+        "packageWeight": "",
+        "notaSignificantSourceOf": ""
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "modifiedDate": "11/1/2017",
+        "availableDate": "11/1/2017",
+        "brandOwner": "United States Bakery",
+        "dataSource": "LI",
+        "gpcCategoryGroup": "Breads & Buns",
+        "gtinUpc": "072220009910",
+        "householdServingFullText": "1 SLICE",
+        "ingredients": "WATER, BROWN RICE FLOUR, TAPIOCA STARCH, TAPIOCA SYRUP, WHOLE GRAIN SORGHUM FLOUR, XANTHAN GUM, WHOLE GRAIN MILLET SEEDS, CONTAINS 2% OR LESS OF EACH OF THE FOLLOWING: WHOLE EGGS, WHOLE GRAIN MILLET FLOUR, WHOLE GRAIN AMARANTH SEED, WHOLE GRAIN TEFF SEEDS, RED QUINOA SEEDS, EXTRA VIRGIN OLIVE OIL, MOLASSES, SALT, CULTURED RICE FLOUR, YEAST, ENZYMES.",
+        "marketCountry": "United States",
+        "servingSize": 36,
+        "servingSizeUnit": "g",
+        "fdcId": 363273,
+        "description": "BREAD",
+        "publicationDate": "4/1/2019",
+        "workingFoodId": 45015048,
+        "dataType": "Branded",
+        "foodClass": "Branded"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 1.5
+      },
+      "saturatedFat": {
+        "value": 0
+      },
+      "transFat": {
+        "value": 0
+      },
+      "cholesterol": {
+        "value": 10.1
+      },
+      "sodium": {
+        "value": 135
+      },
+      "carbohydrates": {
+        "value": 16
+      },
+      "fiber": {
+        "value": 1.01
+      },
+      "sugars": {
+        "value": 2
+      },
+      "protein": {
+        "value": 2
+      },
+      "calcium": {
+        "value": 0
+      },
+      "iron": {
+        "value": 0.36
+      },
+      "calories": {
+        "value": 79.9
+      }
+    }
+  }
+}

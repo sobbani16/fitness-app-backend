@@ -1,0 +1,605 @@
+{
+  "retrievedAt": "2026-11-28T03:51:10.407Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [
+      {
+        "id": 3236456,
+        "value": 5,
+        "name": "Nutrient Added",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      },
+      {
+        "id": 3236457,
+        "value": 6,
+        "name": "Nutrient Removed",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      }
+    ],
+    "foodPortions": [],
+    "fdcId": 2672986,
+    "description": "PAD THAI",
+    "publicationDate": "11/16/2023",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 33576422,
+        "amount": 25.28
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 33576420,
+        "amount": 4.46
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1087,
+          "number": "301",
+          "name": "Calcium, Ca",
+          "rank": 5300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 33576426,
+        "amount": 33
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 33576424,
+        "amount": 8.55
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1253,
+          "number": "601",
+          "name": "Cholesterol",
+          "rank": 15700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 33576432,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 33576421,
+        "amount": 3.72
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1114,
+          "number": "328",
+          "name": "Vitamin D (D2 + D3)",
+          "rank": 8700,
+          "unitName": "µg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 33576430,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 33576429,
+        "amount": 283
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1257,
+          "number": "605",
+          "name": "Fatty acids, total trans",
+          "rank": 15400,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 33576433,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1079,
+          "number": "291",
+          "name": "Fiber, total dietary",
+          "rank": 1200,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 33576425,
+        "amount": 1.1
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 33576423,
+        "amount": 152
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1092,
+          "number": "306",
+          "name": "Potassium, K",
+          "rank": 5700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 33576428,
+        "amount": 134
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1235,
+          "number": "539",
+          "name": "Sugars, added",
+          "rank": 1540,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 33576431,
+        "amount": 7.4
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1089,
+          "number": "303",
+          "name": "Iron, Fe",
+          "rank": 5400,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 33576427,
+        "amount": 1.45
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1258,
+          "number": "606",
+          "name": "Fatty acids, total saturated",
+          "rank": 9700,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 33576434,
+        "amount": 0.56
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "shortDescription": "",
+    "modifiedDate": "11/22/2022",
+    "availableDate": "11/22/2022",
+    "brandOwner": "Amy's Kitchen Inc.",
+    "brandName": "AMY'S",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Frozen Dinners & Entrees",
+    "gtinUpc": "042272009244",
+    "householdServingFullText": "1 tray",
+    "ingredients": "ORGANIC RICE NOODLES (ORGANIC RICE, FILTERED WATER, ORGANIC TAPIOCA STARCH), ORGANIC BROCCOLI, ORGANIC CANE SUGAR, ORGANIC TOFU (FILTERED WATER, ORGANIC SOYBEANS, MAGNESIUM CHLORIDE), FILTERED WATER, ORGANIC CARROTS, ORGANIC GREEN ONIONS, ORGANIC TAMARI (WATER, ORGANIC SOYBEANS, ORGANIC ALCOHOL [TO PRESERVE FRESHNESS], SALT), ORGANIC BROWN RICE VINEGAR, ORGANIC CASHEWS, EXPELLER PRESSED HIGH OLEIC SAFFLOWER AND/OR SUNFLOWER OIL, ORGANIC RED ONIONS. PAPRIKA. SEA SALT. TAMARIND EXTRACT, ORGANIC GARLIC, ORGANIC DISTILLED VINEGAR. BLACK PEPPER.",
+    "marketCountry": "United States",
+    "servingSize": 269,
+    "servingSizeUnit": "GRM",
+    "packageWeight": "9.5 OZ./269 g",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2672986,
+        "description": "PAD THAI",
+        "publicationDate": "11/16/2023",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "shortDescription": "",
+        "modifiedDate": "11/22/2022",
+        "availableDate": "11/22/2022",
+        "brandOwner": "Amy's Kitchen Inc.",
+        "brandName": "AMY'S",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Frozen Dinners & Entrees",
+        "gtinUpc": "042272009244",
+        "householdServingFullText": "1 tray",
+        "ingredients": "ORGANIC RICE NOODLES (ORGANIC RICE, FILTERED WATER, ORGANIC TAPIOCA STARCH), ORGANIC BROCCOLI, ORGANIC CANE SUGAR, ORGANIC TOFU (FILTERED WATER, ORGANIC SOYBEANS, MAGNESIUM CHLORIDE), FILTERED WATER, ORGANIC CARROTS, ORGANIC GREEN ONIONS, ORGANIC TAMARI (WATER, ORGANIC SOYBEANS, ORGANIC ALCOHOL [TO PRESERVE FRESHNESS], SALT), ORGANIC BROWN RICE VINEGAR, ORGANIC CASHEWS, EXPELLER PRESSED HIGH OLEIC SAFFLOWER AND/OR SUNFLOWER OIL, ORGANIC RED ONIONS. PAPRIKA. SEA SALT. TAMARIND EXTRACT, ORGANIC GARLIC, ORGANIC DISTILLED VINEGAR. BLACK PEPPER.",
+        "marketCountry": "United States",
+        "servingSize": 269,
+        "servingSizeUnit": "GRM",
+        "packageWeight": "9.5 OZ./269 g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2411905,
+        "description": "PAD THAI",
+        "publicationDate": "12/22/2022",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "shortDescription": "",
+        "modifiedDate": "11/22/2022",
+        "availableDate": "11/22/2022",
+        "brandOwner": "Amy's Kitchen Inc.",
+        "brandName": "AMY'S",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Frozen Dinners & Entrees",
+        "gtinUpc": "042272009244",
+        "householdServingFullText": "1 tray",
+        "ingredients": "ORGANIC RICE NOODLES (ORGANIC RICE, FILTERED WATER, ORGANIC TAPIOCA STARCH), ORGANIC BROCCOLI, ORGANIC CANE SUGAR, ORGANIC TOFU (FILTERED WATER, ORGANIC SOYBEANS, MAGNESIUM CHLORIDE), FILTERED WATER, ORGANIC CARROTS, ORGANIC GREEN ONIONS, ORGANIC TAMARI (WATER, ORGANIC SOYBEANS, ORGANIC ALCOHOL [TO PRESERVE FRESHNESS], SALT), ORGANIC BROWN RICE VINEGAR, ORGANIC CASHEWS, EXPELLER PRESSED HIGH OLEIC SAFFLOWER AND/OR SUNFLOWER OIL, ORGANIC RED ONIONS. PAPRIKA. SEA SALT. TAMARIND EXTRACT, ORGANIC GARLIC, ORGANIC DISTILLED VINEGAR. BLACK PEPPER.",
+        "marketCountry": "United States",
+        "servingSize": 269,
+        "servingSizeUnit": "g",
+        "packageWeight": "9.5 OZ./269 g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2025380,
+        "description": "PAD THAI",
+        "publicationDate": "10/28/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "1/22/2021",
+        "availableDate": "1/22/2021",
+        "brandOwner": "Amy's Kitchen Inc.",
+        "brandName": "AMY'S",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Frozen Dinners & Entrees",
+        "gtinUpc": "042272009244",
+        "householdServingFullText": "1 tray",
+        "ingredients": "ORGANIC RICE NOODLES (ORGANIC RICE, FILTERED WATER, ORGANIC TAPIOCA STARCH), ORGANIC BROCCOLI, ORGANIC CANE SUGAR, ORGANIC TOFU (FILTERED WATER, ORGANIC SOYBEANS, MAGNESIUM CHLORIDE), FILTERED WATER, ORGANIC CARROTS, ORGANIC GREEN ONIONS, ORGANIC TAMARI (WATER, ORGANIC SOYBEANS, ORGANIC ALCOHOL [TO PRESERVE FRESHNESS], SALT), ORGANIC BROWN RICE VINEGAR, ORGANIC CASHEWS, EXPELLER PRESSED HIGH OLEIC SAFFLOWER AND/OR SUNFLOWER OIL, ORGANIC RED ONIONS, PAPRIKA, SEA SALT, TAMARIND EXTRACT, ORGANIC GARLIC, ORGANIC DISTILLED VINEGAR, BLACK PEPPER.",
+        "marketCountry": "United States",
+        "servingSize": 269,
+        "servingSizeUnit": "g",
+        "packageWeight": "9.5 OZ./269 g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1490950,
+        "description": "PAD THAI",
+        "publicationDate": "3/19/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "1/22/2021",
+        "availableDate": "1/22/2021",
+        "brandOwner": "Amy's Kitchen Inc.",
+        "brandName": "AMY'S",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Frozen Dinners & Entrees",
+        "gtinUpc": "042272009244",
+        "householdServingFullText": "1 tray",
+        "ingredients": "ORGANIC RICE NOODLES (ORGANIC RICE, FILTERED WATER, ORGANIC TAPIOCA STARCH), ORGANIC BROCCOLI, ORGANIC CANE SUGAR, ORGANIC TOFU (FILTERED WATER, ORGANIC SOYBEANS, MAGNESIUM CHLORIDE), FILTERED WATER, ORGANIC CARROTS, ORGANIC GREEN ONIONS, ORGANIC TAMARI (WATER, ORGANIC SOYBEANS, ORGANIC ALCOHOL [TO PRESERVE FRESHNESS], SALT), ORGANIC BROWN RICE VINEGAR, ORGANIC CASHEWS, EXPELLER PRESSED HIGH OLEIC SAFFLOWER AND/OR SUNFLOWER OIL, ORGANIC RED ONIONS, PAPRIKA, SEA SALT, TAMARIND EXTRACT, ORGANIC GARLIC, ORGANIC DISTILLED VINEGAR, BLACK PEPPER.",
+        "marketCountry": "United States",
+        "servingSize": 269,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1198903,
+        "description": "PAD THAI",
+        "publicationDate": "2/26/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "1/22/2021",
+        "availableDate": "1/22/2021",
+        "brandOwner": "Amy's Kitchen Inc.",
+        "brandName": "AMY'S",
+        "subbrandName": "",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Frozen Dinners & Entrees",
+        "gtinUpc": "042272009244",
+        "householdServingFullText": "1 tray",
+        "ingredients": "ORGANIC RICE NOODLES (ORGANIC RICE, FILTERED WATER, ORGANIC TAPIOCA STARCH), ORGANIC BROCCOLI, ORGANIC CANE SUGAR, ORGANIC TOFU (FILTERED WATER, ORGANIC SOYBEANS, MAGNESIUM CHLORIDE), FILTERED WATER, ORGANIC CARROTS, ORGANIC GREEN ONIONS, ORGANIC TAMARI (WATER, ORGANIC SOYBEANS, ORGANIC ALCOHOL [TO PRESERVE FRESHNESS], SALT), ORGANIC BROWN RICE VINEGAR, ORGANIC CASHEWS, EXPELLER PRESSED HIGH OLEIC SAFFLOWER AND/OR SUNFLOWER OIL, ORGANIC RED ONIONS, PAPRIKA, SEA SALT, TAMARIND EXTRACT, ORGANIC GARLIC, ORGANIC DISTILLED VINEGAR, BLACK PEPPER.",
+        "marketCountry": "United States",
+        "servingSize": 269,
+        "servingSizeUnit": "g",
+        "packageWeight": "",
+        "notaSignificantSourceOf": ""
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1108289,
+        "description": "PAD THAI",
+        "publicationDate": "11/13/2020",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "9/23/2020",
+        "availableDate": "9/23/2020",
+        "brandOwner": "Amy's Kitchen Inc.",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Frozen Dinners & Entrees",
+        "gtinUpc": "042272009244",
+        "householdServingFullText": "1 tray",
+        "ingredients": "ORGANIC RICE NOODLES (ORGANIC RICE, FILTERED WATER, ORGANIC TAPIOCA STARCH), ORGANIC BROCCOLI, ORGANIC CANE SUGAR, ORGANIC TOFU (FILTERED WATER, ORGANIC SOYBEANS, MAGNESIUM CHLORIDE), FILTERED WATER, ORGANIC CARROTS, ORGANIC GREEN ONIONS, ORGANIC TAMARI (WATER, ORGANIC SOYBEANS, ORGANIC ALCOHOL [TO PRESERVE FRESHNESS], SALT), ORGANIC BROWN RICE VINEGAR, ORGANIC CASHEWS, EXPELLER PRESSED HIGH OLEIC SAFFLOWER AND/OR SUNFLOWER OIL, ORGANIC RED ONIONS, PAPRIKA, SEA SALT, TAMARIND EXTRACT, ORGANIC GARLIC, ORGANIC DISTILLED VINEGAR, BLACK PEPPER.",
+        "marketCountry": "United States",
+        "servingSize": 269,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1083721,
+        "description": "PAD THAI MADE WITH ORGANIC RICE NOODLES, VEGETABLES & TOFU, PAD THAI",
+        "publicationDate": "9/29/2020",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "8/28/2020",
+        "availableDate": "8/28/2020",
+        "brandOwner": "Amy's Kitchen Inc.",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Frozen Dinners & Entrees",
+        "gtinUpc": "042272009244",
+        "householdServingFullText": "1 tray",
+        "ingredients": "ORGANIC RICE NOODLES (ORGANIC RICE, FILTERED WATER, ORGANIC TAPIOCA STARCH), ORGANIC BROCCOLI, ORGANIC CANE SUGAR, ORGANIC TOFU (FILTERED WATER, ORGANIC SOYBEANS, MAGNESIUM CHLORIDE), FILTERED WATER, ORGANIC CARROTS, ORGANIC GREEN ONIONS, ORGANIC TAMARI (WATER, ORGANIC SOYBEANS, ORGANIC ALCOHOL [TO PRESERVE FRESHNESS], SALT), ORGANIC BROWN RICE VINEGAR, ORGANIC CASHEWS, EXPELLER PRESSED HIGH OLEIC SAFFLOWER AND/OR SUNFLOWER OIL, ORGANIC RED ONIONS, PAPRIKA, SEA SALT, TAMARIND EXTRACT, ORGANIC GARLIC, ORGANIC DISTILLED VINEGAR, BLACK PEPPER.",
+        "marketCountry": "United States",
+        "servingSize": 269,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "modifiedDate": "7/3/2018",
+        "availableDate": "7/3/2018",
+        "brandOwner": "Amy's Kitchen Inc.",
+        "dataSource": "LI",
+        "gpcCategoryGroup": "Frozen Dinners & Entrees",
+        "gtinUpc": "042272009244",
+        "householdServingFullText": "1 ENTREE",
+        "ingredients": "ORGANIC PAD THAI NOODLES (FILTERED WATER, ORGANIC RICE), ORGANIC BROCCOLI, ORGANIC CANE SUGAR, ORGANIC TOFU (FILTERED WATER, ORGANIC SOYBEANS, NIGARI [MAGNESIUM CHLORIDE, A NATURAL FIRMING AGENT]), ORGANIC BROWN RICE VINEGAR, ORGANIC CARROTS, ORGANIC GREEN ONIONS, ORGANIC TAMARI (WATER, ORGANIC SOYBEANS, SALT), ORGANIC CASHEWS, EXPELLER PRESSED HIGH OLEIC SAFFLOWER AND/OR SUNFLOWER OIL, ORGANIC RED ONIONS, PAPRIKA, TAMARIND EXTRACT, SEA SALT, ORGANIC GARLIC, FILTERED WATER, ORGANIC DISTILLED VINEGAR, BLACK PEPPER.",
+        "marketCountry": "United States",
+        "servingSize": 269,
+        "servingSizeUnit": "g",
+        "fdcId": 387849,
+        "description": "THAI PAD THAI",
+        "publicationDate": "4/1/2019",
+        "workingFoodId": 45077114,
+        "dataType": "Branded",
+        "foodClass": "Branded"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 10
+      },
+      "saturatedFat": {
+        "value": 1.51
+      },
+      "transFat": {
+        "value": 0
+      },
+      "cholesterol": {
+        "value": 0
+      },
+      "sodium": {
+        "value": 761
+      },
+      "carbohydrates": {
+        "value": 68
+      },
+      "fiber": {
+        "value": 2.96
+      },
+      "sugars": {
+        "value": 23
+      },
+      "protein": {
+        "value": 12
+      },
+      "vitaminD": {
+        "value": 0
+      },
+      "calcium": {
+        "value": 88.8
+      },
+      "iron": {
+        "value": 3.9
+      },
+      "potassium": {
+        "value": 360
+      },
+      "addedSugar": {
+        "value": 19.9
+      },
+      "calories": {
+        "value": 409
+      }
+    }
+  }
+}

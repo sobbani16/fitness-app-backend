@@ -1,0 +1,252 @@
+{
+  "retrievedAt": "2026-11-28T03:51:10.408Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [],
+    "foodPortions": [],
+    "fdcId": 602137,
+    "description": "SHAKSHUKA BREAKFAST MILD SAUCE, SHAKSHUKA, MILD",
+    "publicationDate": "4/1/2019",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 4129133,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 6140255,
+        "amount": 778
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 6140252,
+        "amount": 3.17
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1079,
+          "number": "291",
+          "name": "Fiber, total dietary",
+          "rank": 1200,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 6140253,
+        "amount": 1.6
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 6140251,
+        "amount": 40
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 6140250,
+        "amount": 7.94
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1089,
+          "number": "303",
+          "name": "Iron, Fe",
+          "rank": 5400,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 6140254,
+        "amount": 0.79
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 73,
+          "code": "LCSL",
+          "description": "Calculated from a less than value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 6406038,
+        "amount": 1.59
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "modifiedDate": "12/7/2018",
+    "availableDate": "12/7/2018",
+    "brandOwner": "COOK HOUSE",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Oriental, Mexican & Ethnic Sauces",
+    "gtinUpc": "4099100002423",
+    "householdServingFullText": "1/4 cup",
+    "ingredients": "TOMATO PUREE (WATER, TOMATO PASTE), DICED TOMATOES IN TOMATO JUICE, RED BELL PEPPERS, TOMATOES (DICED TOMATOES, TOMATO PUREE, SALT), RED CHILI PUREE (RED CHILI PEPPERS, SALT, CITRIC ACID), SALT, DRIED RED BELL PEPPERS, CRUSHED RED PEPPERS, DRIED GARLIC, DRIED ONION, GARLIC, PAPRIKA POWDER, LEMON JUICE CONCENTRATE, CUMIN POWDER, OLIVE OIL.",
+    "marketCountry": "United States",
+    "servingSize": 63,
+    "servingSizeUnit": "g",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 602137,
+        "description": "SHAKSHUKA BREAKFAST MILD SAUCE, SHAKSHUKA, MILD",
+        "publicationDate": "4/1/2019",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "12/7/2018",
+        "availableDate": "12/7/2018",
+        "brandOwner": "COOK HOUSE",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Oriental, Mexican & Ethnic Sauces",
+        "gtinUpc": "4099100002423",
+        "householdServingFullText": "1/4 cup",
+        "ingredients": "TOMATO PUREE (WATER, TOMATO PASTE), DICED TOMATOES IN TOMATO JUICE, RED BELL PEPPERS, TOMATOES (DICED TOMATOES, TOMATO PUREE, SALT), RED CHILI PUREE (RED CHILI PEPPERS, SALT, CITRIC ACID), SALT, DRIED RED BELL PEPPERS, CRUSHED RED PEPPERS, DRIED GARLIC, DRIED ONION, GARLIC, PAPRIKA POWDER, LEMON JUICE CONCENTRATE, CUMIN POWDER, OLIVE OIL.",
+        "marketCountry": "United States",
+        "servingSize": 63,
+        "servingSizeUnit": "g"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 0
+      },
+      "sodium": {
+        "value": 490
+      },
+      "carbohydrates": {
+        "value": 5
+      },
+      "fiber": {
+        "value": 1.01
+      },
+      "sugars": {
+        "value": 2
+      },
+      "protein": {
+        "value": 1
+      },
+      "iron": {
+        "value": 0.498
+      },
+      "calories": {
+        "value": 25.2
+      }
+    }
+  }
+}

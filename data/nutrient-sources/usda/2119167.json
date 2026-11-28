@@ -1,0 +1,558 @@
+{
+  "retrievedAt": "2026-11-28T03:50:59.294Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [
+      {
+        "id": 2327435,
+        "value": 4,
+        "name": "Nutrient Updated",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      },
+      {
+        "id": 2327433,
+        "value": 6,
+        "name": "Nutrient Removed",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      },
+      {
+        "id": 2327434,
+        "value": 9,
+        "name": "Added Package Weight",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      }
+    ],
+    "foodPortions": [],
+    "fdcId": 2119167,
+    "description": "PAD THAI SAUCE, PAD THAI",
+    "publicationDate": "10/28/2021",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1235,
+          "number": "539",
+          "name": "Sugars, added",
+          "rank": 1540,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24636391,
+        "amount": 33.3
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24636385,
+        "amount": 36.67
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24636384,
+        "amount": 283
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1089,
+          "number": "303",
+          "name": "Iron, Fe",
+          "rank": 5400,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24636388,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1258,
+          "number": "606",
+          "name": "Fatty acids, total saturated",
+          "rank": 9700,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24636394,
+        "amount": 1.67
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24636381,
+        "amount": 3.33
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1079,
+          "number": "291",
+          "name": "Fiber, total dietary",
+          "rank": 1200,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24636386,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24636383,
+        "amount": 41.67
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1087,
+          "number": "301",
+          "name": "Calcium, Ca",
+          "rank": 5300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24636387,
+        "amount": 20
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1257,
+          "number": "605",
+          "name": "Fatty acids, total trans",
+          "rank": 15400,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24636393,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1110,
+          "number": "324",
+          "name": "Vitamin D (D2 + D3), International Units",
+          "rank": 8650,
+          "unitName": "IU"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24636390,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24636382,
+        "amount": 7.5
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1253,
+          "number": "601",
+          "name": "Cholesterol",
+          "rank": 15700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24636392,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 24636389,
+        "amount": 1267
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "modifiedDate": "4/20/2020",
+    "availableDate": "4/20/2020",
+    "brandOwner": "Hy-Vee, Inc.",
+    "brandName": "HY-VEE",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Other Cooking Sauces",
+    "gtinUpc": "075450091540",
+    "householdServingFullText": "1/4 cup",
+    "ingredients": "SUGAR, WATER, SOY SAUCE (WATER, WHEAT, SOYBEANS, SALT, SODIUM BENZOATE [PRESERVATIVE]), TOMATO PASTE, DISTILLED VINEGAR, PEANUTS, CANOLA OIL, PEANUT OIL, GARLIC, OYSTER SAUCE (WATER, SUGAR, SALT, OYSTER, MODIFIED CORN STARCH, CARAMEL COLOR), MODIFIED CORN STARCH, TAMARIND, SPICE EXTRACT, SPICE, SODIUM BENZOATE (PRESERVATIVE), XANTHAN GUM, CARAMEL COLOR.",
+    "marketCountry": "United States",
+    "servingSize": 60,
+    "servingSizeUnit": "ml",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2119167,
+        "description": "PAD THAI SAUCE, PAD THAI",
+        "publicationDate": "10/28/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "4/20/2020",
+        "availableDate": "4/20/2020",
+        "brandOwner": "Hy-Vee, Inc.",
+        "brandName": "HY-VEE",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Other Cooking Sauces",
+        "gtinUpc": "075450091540",
+        "householdServingFullText": "1/4 cup",
+        "ingredients": "SUGAR, WATER, SOY SAUCE (WATER, WHEAT, SOYBEANS, SALT, SODIUM BENZOATE [PRESERVATIVE]), TOMATO PASTE, DISTILLED VINEGAR, PEANUTS, CANOLA OIL, PEANUT OIL, GARLIC, OYSTER SAUCE (WATER, SUGAR, SALT, OYSTER, MODIFIED CORN STARCH, CARAMEL COLOR), MODIFIED CORN STARCH, TAMARIND, SPICE EXTRACT, SPICE, SODIUM BENZOATE (PRESERVATIVE), XANTHAN GUM, CARAMEL COLOR.",
+        "marketCountry": "United States",
+        "servingSize": 60,
+        "servingSizeUnit": "ml"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1651756,
+        "description": "PAD THAI SAUCE, PAD THAI",
+        "publicationDate": "3/19/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "4/20/2020",
+        "availableDate": "4/20/2020",
+        "brandOwner": "Hy-Vee, Inc.",
+        "brandName": "HY-VEE",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Other Cooking Sauces",
+        "gtinUpc": "075450091540",
+        "householdServingFullText": "1/4 cup",
+        "ingredients": "SUGAR, WATER, SOY SAUCE (WATER, WHEAT, SOYBEANS, SALT, SODIUM BENZOATE [PRESERVATIVE]), TOMATO PASTE, DISTILLED VINEGAR, PEANUTS, CANOLA OIL, PEANUT OIL, GARLIC, OYSTER SAUCE (WATER, SUGAR, SALT, OYSTER, MODIFIED CORN STARCH, CARAMEL COLOR), MODIFIED CORN STARCH, TAMARIND, SPICE EXTRACT, SPICE, SODIUM BENZOATE (PRESERVATIVE), XANTHAN GUM, CARAMEL COLOR.",
+        "marketCountry": "United States",
+        "servingSize": 60,
+        "servingSizeUnit": "ml"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1359566,
+        "description": "PAD THAI SAUCE, PAD THAI",
+        "publicationDate": "2/26/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "4/20/2020",
+        "availableDate": "4/20/2020",
+        "brandOwner": "Hy-Vee, Inc.",
+        "brandName": "HY-VEE",
+        "subbrandName": "",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Other Cooking Sauces",
+        "gtinUpc": "075450091540",
+        "householdServingFullText": "1/4 cup",
+        "ingredients": "SUGAR, WATER, SOY SAUCE (WATER, WHEAT, SOYBEANS, SALT, SODIUM BENZOATE [PRESERVATIVE]), TOMATO PASTE, DISTILLED VINEGAR, PEANUTS, CANOLA OIL, PEANUT OIL, GARLIC, OYSTER SAUCE (WATER, SUGAR, SALT, OYSTER, MODIFIED CORN STARCH, CARAMEL COLOR), MODIFIED CORN STARCH, TAMARIND, SPICE EXTRACT, SPICE, SODIUM BENZOATE (PRESERVATIVE), XANTHAN GUM, CARAMEL COLOR.",
+        "marketCountry": "United States",
+        "servingSize": 60,
+        "servingSizeUnit": "ml",
+        "packageWeight": "",
+        "notaSignificantSourceOf": ""
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1008681,
+        "description": "PAD THAI SAUCE, PAD THAI",
+        "publicationDate": "6/26/2020",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "4/20/2020",
+        "availableDate": "4/20/2020",
+        "brandOwner": "Hy-Vee, Inc.",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Other Cooking Sauces",
+        "gtinUpc": "075450091540",
+        "householdServingFullText": "1/4 cup",
+        "ingredients": "SUGAR, WATER, SOY SAUCE (WATER, WHEAT, SOYBEANS, SALT, SODIUM BENZOATE [PRESERVATIVE]), TOMATO PASTE, DISTILLED VINEGAR, PEANUTS, CANOLA OIL, PEANUT OIL, GARLIC, OYSTER SAUCE (WATER, SUGAR, SALT, OYSTER, MODIFIED CORN STARCH, CARAMEL COLOR), MODIFIED CORN STARCH, TAMARIND, SPICE EXTRACT, SPICE, SODIUM BENZOATE (PRESERVATIVE), XANTHAN GUM, CARAMEL COLOR.",
+        "marketCountry": "United States",
+        "servingSize": 60,
+        "servingSizeUnit": "ml"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 872832,
+        "description": "PAD THAI SAUCE, PAD THAI",
+        "publicationDate": "5/28/2020",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "4/20/2020",
+        "availableDate": "4/20/2020",
+        "brandOwner": "Hy-Vee, Inc.",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Other Cooking Sauces",
+        "gtinUpc": "075450091540",
+        "householdServingFullText": "1/4 cup",
+        "ingredients": "SUGAR, WATER, SOY SAUCE (WATER, WHEAT, SOYBEANS, SALT, SODIUM BENZOATE [PRESERVATIVE]), TOMATO PASTE, DISTILLED VINEGAR, PEANUTS, CANOLA OIL, PEANUT OIL, GARLIC, OYSTER SAUCE (WATER, SUGAR, SALT, OYSTER, MODIFIED CORN STARCH, CARAMEL COLOR), MODIFIED CORN STARCH, TAMARIND, SPICE EXTRACT, SPICE, SODIUM BENZOATE (PRESERVATIVE), XANTHAN GUM, CARAMEL COLOR.",
+        "marketCountry": "United States",
+        "servingSize": 60,
+        "servingSizeUnit": "ml"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 673100,
+        "description": "PAD THAI SAUCE, PAD THAI",
+        "publicationDate": "12/6/2019",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "6/27/2019",
+        "availableDate": "6/27/2019",
+        "brandOwner": "Hy-Vee, Inc.",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Other Cooking Sauces",
+        "gtinUpc": "075450091540",
+        "householdServingFullText": "1/4 cup",
+        "ingredients": "SUGAR, WATER, SOY SAUCE (WATER, WHEAT, SOYBEANS, SALT, SODIUM BENZOATE [PRESERVATIVE]), TOMATO PASTE, DISTILLED VINEGAR, PEANUTS, CANOLA OIL, PEANUT OIL, GARLIC, OYSTER SAUCE (WATER, SUGAR, SALT, OYSTER, MODIFIED CORN STARCH, CARAMEL COLOR), MODIFIED CORN STARCH, TAMARIND, SPICE EXTRACT, SPICE, SODIUM BENZOATE (PRESERVATIVE), XANTHAN GUM, CARAMEL COLOR.",
+        "marketCountry": "United States",
+        "servingSize": 60,
+        "servingSizeUnit": "ml"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "modifiedDate": "8/11/2018",
+        "availableDate": "8/11/2018",
+        "brandOwner": "Hy-Vee, Inc.",
+        "dataSource": "LI",
+        "gpcCategoryGroup": "Other Cooking Sauces",
+        "gtinUpc": "075450091540",
+        "householdServingFullText": "1/4 cup",
+        "ingredients": "SUGAR, WATER, SOY SAUCE (WATER, WHEAT, SOYBEANS, SALT, SODIUM BENZOATE [PRESERVATIVE]), TOMATO PASTE, DISTILLED VINEGAR, PEANUTS, CANOLA OIL, PEANUT OIL, GARLIC, OYSTER SAUCE (WATER, SUGAR, SALT, OYSTER, MODIFIED CORN STARCH, CARAMEL COLOR), MODIFIED CORN STARCH, TAMARIND, SPICE EXTRACT, SPICE, SODIUM BENZOATE (PRESERVATIVE), XANTHAN GUM, CARAMEL COLOR.",
+        "marketCountry": "United States",
+        "servingSize": 60,
+        "servingSizeUnit": "ml",
+        "fdcId": 564179,
+        "description": "PAD THAI SAUCE",
+        "publicationDate": "4/1/2019",
+        "workingFoodId": 45348535,
+        "dataType": "Branded",
+        "foodClass": "Branded"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 4.5
+      },
+      "saturatedFat": {
+        "value": 1
+      },
+      "transFat": {
+        "value": 0
+      },
+      "cholesterol": {
+        "value": 0
+      },
+      "sodium": {
+        "value": 760
+      },
+      "carbohydrates": {
+        "value": 25
+      },
+      "fiber": {
+        "value": 0
+      },
+      "sugars": {
+        "value": 22
+      },
+      "protein": {
+        "value": 2
+      },
+      "calcium": {
+        "value": 12
+      },
+      "iron": {
+        "value": 0
+      },
+      "addedSugar": {
+        "value": 20
+      },
+      "calories": {
+        "value": 170
+      }
+    }
+  }
+}
