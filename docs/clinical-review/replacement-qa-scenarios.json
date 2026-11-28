@@ -1,0 +1,233 @@
+{
+  "version": "replacement-qa-scenarios-v1",
+  "generated": "2026-11-28T04:17:50.851Z",
+  "recoveryStatus": "ORIGINALS UNRECOVERABLE — documented exhaustive search; these are clearly-labeled replacements, NOT reconstructions. No historical mapping is invented or implied.",
+  "scenarios": [
+    {
+      "replacementCaseId": "SUPP-REPL-01",
+      "replacesOriginalCaseId": "RST-05 (UNRECOVERED — this is a replacement, not a reconstruction)",
+      "exercisesRule": "SUPP-D03",
+      "rule": {
+        "ruleNumber": 3,
+        "ruleId": "SUPP-D03",
+        "severity": "CRITICAL",
+        "ingredientOrFamily": "vitamin-a",
+        "exactRule": {
+          "triggerType": "LIFE_STAGE",
+          "triggerValue": "PREGNANT_OR_TRYING",
+          "action": "REFER_CLINICIAN",
+          "consumerWarning": "High-dose preformed vitamin A can cause birth defects; evaluate prenatal formulation.",
+          "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+          "minSeparationHours": null
+        },
+        "sourceEvidence": {
+          "sourceId": "ODS-A",
+          "sourceUrl": "https://ods.od.nih.gov/factsheets/VitaminA-Consumer/"
+        },
+        "applicablePopulation": "Pregnant, trying-to-conceive, or breastfeeding users",
+        "proposedBehavior": "unchecked rule could miss a severe harm (contraindicated use)",
+        "limitations": [
+          "Engine surface exists, but the rule remains inert (approved=false) until clinical sign-off.",
+          "Draft content — clinical accuracy not yet verified by a qualified reviewer."
+        ],
+        "requiredSpecialty": "Maternal-fetal medicine specialist, obstetric clinician, or prenatal clinical pharmacist",
+        "ruleVersion": "draft-1 (packet draft-rule-review-v1, generated 2026-11-25T10:58:24.419Z)",
+        "engineEvaluatableToday": true,
+        "runtimeRequirements": "recorded life-stage conditions (pregnancy/lactation patterns)",
+        "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass.",
+        "testEvidence": {
+          "inertBehaviorVerified": "tests/supplementIntel.test.js + safety engine suites — DRAFT rules never fire; unevaluatable checks report NOT_CHECKED",
+          "note": "Post-approval activation tests must be written per rule before activation; see reviewer instructions."
+        },
+        "review": {
+          "decision": null,
+          "modifiedText": null,
+          "reviewerName": null,
+          "reviewerCredentials": null,
+          "reviewDate": null,
+          "notes": null
+        }
+      },
+      "category": "LIFE_STAGE / pregnancy — highest-consequence population",
+      "engineEvaluatableToday": true,
+      "syntheticFixture": {
+        "user": "qa.synthetic+<case>@syn.local (synthetic domain only — never a real user)",
+        "profileState": "life-stage condition recorded: pregnancy or trying-to-conceive",
+        "supplementIntake": "product containing preformed vitamin A (retinol) above prenatal-formulation thresholds"
+      },
+      "expectedWhileDraft": "Rule inert: no block, no warning; engine reports the check as NOT_CHECKED. Any behavior otherwise is a defect.",
+      "expectedIfApproved": "REFER_CLINICIAN disposition: user is directed to clinical evaluation of prenatal formulation; automated scheduling/recommendation of the product is suppressed.",
+      "reviewerDispositionAsk": "Confirm whether the expected-if-approved behavior is clinically correct and sufficient, or specify the correct behavior ( MODIFY ). This becomes the QA expected-result definition."
+    },
+    {
+      "replacementCaseId": "SUPP-REPL-02",
+      "replacesOriginalCaseId": "RULE-10 (UNRECOVERED — this is a replacement, not a reconstruction)",
+      "exercisesRule": "SUPP-D05",
+      "rule": {
+        "ruleNumber": 5,
+        "ruleId": "SUPP-D05",
+        "severity": "CRITICAL",
+        "ingredientOrFamily": "vitamin-k",
+        "exactRule": {
+          "triggerType": "MEDICATION",
+          "triggerValue": "WARFARIN_OR_VKA",
+          "action": "REFER_CLINICIAN",
+          "consumerWarning": "Maintain consistent vitamin K intake and consult prescribing team; do not advise avoiding all vitamin K.",
+          "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+          "minSeparationHours": null
+        },
+        "sourceEvidence": {
+          "sourceId": "ODS-K",
+          "sourceUrl": "https://ods.od.nih.gov/factsheets/VitaminK-HealthProfessional/"
+        },
+        "applicablePopulation": "Users taking the named medication class",
+        "proposedBehavior": "unchecked rule could miss a severe harm (contraindicated use)",
+        "limitations": [
+          "Engine cannot evaluate this rule today: user medication list — NOT loaded by safetyEngine (no medication surface exists)",
+          "Until the evaluation surface exists AND the rule is approved, the engine reports it as NOT_CHECKED — never as safe.",
+          "Draft content — clinical accuracy not yet verified by a qualified reviewer."
+        ],
+        "requiredSpecialty": "Clinical pharmacist (primary); prescribing physician co-review for CRITICAL severity",
+        "ruleVersion": "draft-1 (packet draft-rule-review-v1, generated 2026-11-25T10:58:24.419Z)",
+        "engineEvaluatableToday": false,
+        "runtimeRequirements": "user medication list — NOT loaded by safetyEngine (no medication surface exists)",
+        "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass.",
+        "testEvidence": {
+          "inertBehaviorVerified": "tests/supplementIntel.test.js + safety engine suites — DRAFT rules never fire; unevaluatable checks report NOT_CHECKED",
+          "note": "Post-approval activation tests must be written per rule before activation; see reviewer instructions."
+        },
+        "review": {
+          "decision": null,
+          "modifiedText": null,
+          "reviewerName": null,
+          "reviewerCredentials": null,
+          "reviewDate": null,
+          "notes": null
+        }
+      },
+      "category": "MEDICATION / warfarin — most consequential drug-supplement interaction class",
+      "engineEvaluatableToday": false,
+      "syntheticFixture": {
+        "user": "qa.synthetic+<case>@syn.local",
+        "profileState": "medication list contains warfarin or another vitamin-K antagonist",
+        "supplementIntake": "product containing vitamin K"
+      },
+      "expectedWhileDraft": "Rule inert AND engine surface missing: medication list is not loaded by safetyEngine today. Check must report NOT_CHECKED — never implied-safe. Engine must not claim the interaction was evaluated.",
+      "expectedIfApproved": "REFER_CLINICIAN: consistent-intake counseling language (per draft warning — do NOT advise blanket vitamin-K avoidance); prescribing-team consultation directed. Requires the medication evaluation surface (§2 engineering) to exist first.",
+      "reviewerDispositionAsk": "Confirm the counseling posture (consistent intake vs. avoidance) — the draft explicitly warns against advising avoidance; clinical confirmation is required before any user-facing text ships."
+    },
+    {
+      "replacementCaseId": "SUPP-REPL-03",
+      "replacesOriginalCaseId": "RULE-13 (UNRECOVERED — this is a replacement, not a reconstruction)",
+      "exercisesRule": "SUPP-D17",
+      "rule": {
+        "ruleNumber": 17,
+        "ruleId": "SUPP-D17",
+        "severity": "CRITICAL",
+        "ingredientOrFamily": "potassium",
+        "exactRule": {
+          "triggerType": "CONDITION",
+          "triggerValue": "KIDNEY_DISEASE",
+          "action": "REFER_CLINICIAN",
+          "consumerWarning": "Potassium products can cause dangerous hyperkalemia in renal impairment.",
+          "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+          "minSeparationHours": null
+        },
+        "sourceEvidence": {
+          "sourceId": "ODS-INDEX",
+          "sourceUrl": "https://ods.od.nih.gov/factsheets/list-all/"
+        },
+        "applicablePopulation": "Users with the named medical condition(s)",
+        "proposedBehavior": "unchecked rule could miss a severe harm (contraindicated use)",
+        "limitations": [
+          "Engine surface exists, but the rule remains inert (approved=false) until clinical sign-off.",
+          "Draft content — clinical accuracy not yet verified by a qualified reviewer."
+        ],
+        "requiredSpecialty": "Physician specialist in the affected condition domain (nephrology/endocrinology/gastroenterology/hepatology as applicable) — clinical pharmacist acceptable for well-established contraindications",
+        "ruleVersion": "draft-1 (packet draft-rule-review-v1, generated 2026-11-25T10:58:24.419Z)",
+        "engineEvaluatableToday": true,
+        "runtimeRequirements": "recorded user health conditions (loaded by safetyEngine)",
+        "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass.",
+        "testEvidence": {
+          "inertBehaviorVerified": "tests/supplementIntel.test.js + safety engine suites — DRAFT rules never fire; unevaluatable checks report NOT_CHECKED",
+          "note": "Post-approval activation tests must be written per rule before activation; see reviewer instructions."
+        },
+        "review": {
+          "decision": null,
+          "modifiedText": null,
+          "reviewerName": null,
+          "reviewerCredentials": null,
+          "reviewDate": null,
+          "notes": null
+        }
+      },
+      "category": "CONDITION / kidney disease — hyperkalemia risk, life-safety critical",
+      "engineEvaluatableToday": true,
+      "syntheticFixture": {
+        "user": "qa.synthetic+<case>@syn.local",
+        "profileState": "health condition recorded: kidney disease / renal impairment",
+        "supplementIntake": "potassium-containing product"
+      },
+      "expectedWhileDraft": "Rule inert: no block, no warning; check reported NOT_CHECKED.",
+      "expectedIfApproved": "REFER_CLINICIAN: automated potassium advice suppressed; user directed to clinician. No dosage workaround or softened copy may substitute.",
+      "reviewerDispositionAsk": "Confirm severity grading and whether any potassium intake level is ever acceptable to surface without clinician referral in this population."
+    },
+    {
+      "replacementCaseId": "SUPP-REPL-04",
+      "replacesOriginalCaseId": "RULE-14 (UNRECOVERED — this is a replacement, not a reconstruction)",
+      "exercisesRule": "SUPP-D23",
+      "rule": {
+        "ruleNumber": 23,
+        "ruleId": "SUPP-D23",
+        "severity": "CRITICAL",
+        "ingredientOrFamily": "biotin",
+        "exactRule": {
+          "triggerType": "LAB_TEST",
+          "triggerValue": "TROPONIN_THYROID_IMMUNOASSAY",
+          "action": "LAB_DISCLOSURE_WARNING",
+          "consumerWarning": "High-dose biotin can interfere with some troponin and hormone immunoassays; disclose to testing team.",
+          "importantQualification": "Clinical review required before this draft rule can block scheduling or issue a condition-specific warning.",
+          "minSeparationHours": null
+        },
+        "sourceEvidence": {
+          "sourceId": "ODS-BIOTIN",
+          "sourceUrl": "https://ods.od.nih.gov/factsheets/Biotin-HealthProfessional/"
+        },
+        "applicablePopulation": "Users undergoing the named laboratory tests",
+        "proposedBehavior": "unchecked rule could miss a severe harm (contraindicated use)",
+        "limitations": [
+          "Engine cannot evaluate this rule today: lab result records — no lab surface exists",
+          "Until the evaluation surface exists AND the rule is approved, the engine reports it as NOT_CHECKED — never as safe.",
+          "Draft content — clinical accuracy not yet verified by a qualified reviewer."
+        ],
+        "requiredSpecialty": "Laboratory medicine specialist / pathologist, or clinician ordering the affected tests",
+        "ruleVersion": "draft-1 (packet draft-rule-review-v1, generated 2026-11-25T10:58:24.419Z)",
+        "engineEvaluatableToday": false,
+        "runtimeRequirements": "lab result records — no lab surface exists",
+        "fallbackWhileUnreviewed": "Rule is inert — never produces a blocking or personalized warning. If approved while its trigger type is unevaluatable, safetyEngine reports it under rules_not_evaluatable as \"not checked\", never as a silent pass.",
+        "testEvidence": {
+          "inertBehaviorVerified": "tests/supplementIntel.test.js + safety engine suites — DRAFT rules never fire; unevaluatable checks report NOT_CHECKED",
+          "note": "Post-approval activation tests must be written per rule before activation; see reviewer instructions."
+        },
+        "review": {
+          "decision": null,
+          "modifiedText": null,
+          "reviewerName": null,
+          "reviewerCredentials": null,
+          "reviewDate": null,
+          "notes": null
+        }
+      },
+      "category": "LAB_TEST / immunoassay interference — diagnostic-safety class (troponin interference is a recognized cause of misdiagnosis)",
+      "engineEvaluatableToday": false,
+      "syntheticFixture": {
+        "user": "qa.synthetic+<case>@syn.local",
+        "profileState": "user logs or is asked about high-dose biotin intake in a lab-test context",
+        "supplementIntake": "high-dose biotin product"
+      },
+      "expectedWhileDraft": "Rule inert AND no lab surface exists: check reported NOT_CHECKED. No lab-related claim may be made.",
+      "expectedIfApproved": "LAB_DISCLOSURE_WARNING: user is advised to disclose biotin intake to the testing team before troponin/thyroid immunoassays. Requires the lab-context evaluation surface (§2 engineering).",
+      "reviewerDispositionAsk": "Confirm the disclosure-window and interference scope clinically appropriate for user-facing copy."
+    }
+  ]
+}
