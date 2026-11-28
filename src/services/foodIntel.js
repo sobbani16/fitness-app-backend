@@ -111,18 +111,13 @@ const EVIDENCE_SEED = [
 ];
 
 // Evidence governance: seeds are DRAFT research content, not pre-approved
-// claims. A profile is created as NEEDS_REVIEW; only a human review step may
-// set APPROVED/ACTIVE (the statuses getEvidence will serve). When stored
-// content differs from the seed — i.e. the seed was corrected since — the
-// row is refreshed AND demoted back to NEEDS_REVIEW: a content change can
-// never inherit an old approval.
-let seedRepairDone = null;
-async function ensureEvidenceSeeded() {
-  // Once per process — 10-row repair on every evidence call would be wasteful,
-  // and a deploy restarts the process anyway.
-  if (!seedRepairDone) seedRepairDone = repairSeeds().catch(() => { seedRepairDone = null; });
-  return seedRepairDone;
-}
+// claims. Initialization is explicit and controlled — scripts/seed-evidence.js
+// (deploy/QA/bootstrap) is the ONLY path that writes profiles; evidence-read
+// requests NEVER mutate the registry. A profile is created as NEEDS_REVIEW;
+// only a human review step may set APPROVED/ACTIVE (the statuses getEvidence
+// will serve). When stored content differs from the seed — i.e. the seed was
+// corrected since — the row is refreshed AND demoted back to NEEDS_REVIEW:
+// a content change can never inherit an old approval.
 async function repairSeeds() {
   for (const p of EVIDENCE_SEED) {
     const where = { ingredientKey_version: { ingredientKey: p.ingredientKey, version: 1 } };
@@ -264,7 +259,6 @@ async function upsertBarcodeProduct(userId, body) {
 const ALIASES = { haldi: 'turmeric', dalchini: 'cinnamon', 'dal chini': 'cinnamon', adrak: 'ginger', adarak: 'ginger', methi: 'fenugreek', alsi: 'flaxseed', 'flax seed': 'flaxseed', dahi: 'yogurt', curd: 'yogurt', jai: 'oats', 'rolled oats': 'oats', lahsun: 'garlic', 'chia seed': 'chia', sabja: 'chia' };
 
 async function getEvidence(ingredientKey) {
-  await ensureEvidenceSeeded();
   const raw = String(ingredientKey).toLowerCase().trim();
   const profile = await prisma.ingredientEvidenceProfile.findFirst({
     where: { ingredientKey: ALIASES[raw] || raw, status: { in: ['APPROVED', 'ACTIVE'] } },
@@ -280,7 +274,6 @@ async function getEvidence(ingredientKey) {
 }
 
 async function listEvidence() {
-  await ensureEvidenceSeeded();
   return prisma.ingredientEvidenceProfile.findMany({ where: { status: { in: ['APPROVED', 'ACTIVE'] } }, select: { ingredientKey: true, displayName: true, summary: true } });
 }
 
@@ -471,4 +464,4 @@ async function logScannedFood(userId, { productName, servingG, servingLabel, ser
 }
 
 module.exports = {
-  correctProduct, toggleFavorite, listFavorites, EVIDENCE_SEED, ensureEvidenceSeeded, repairSeeds, resolveBarcode, upsertBarcodeProduct, getEvidence, listEvidence, checkSuitability, scanResult, explainIngredient, alternatives, logScannedFood, parseServingDeclaration, ALIASES };
+  correctProduct, toggleFavorite, listFavorites, EVIDENCE_SEED, repairSeeds, resolveBarcode, upsertBarcodeProduct, getEvidence, listEvidence, checkSuitability, scanResult, explainIngredient, alternatives, logScannedFood, parseServingDeclaration, ALIASES };

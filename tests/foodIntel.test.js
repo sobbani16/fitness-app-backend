@@ -45,6 +45,21 @@ describe('food intelligence', () => {
     expect(ev.found).toBe(false);
   });
 
+  test('evidence reads never mutate — no create/update/upsert on the request path', async () => {
+    prisma.ingredientEvidenceProfile.findFirst.mockResolvedValue(null);
+    await svc.getEvidence('cinnamon');
+    await svc.listEvidence();
+    expect(prisma.ingredientEvidenceProfile.create).not.toHaveBeenCalled();
+    expect(prisma.ingredientEvidenceProfile.update).not.toHaveBeenCalled();
+    expect(prisma.ingredientEvidenceProfile.upsert).not.toHaveBeenCalled();
+  });
+
+  test('uninitialized registry stays empty — evidence requires the seed job, not lazy reads', async () => {
+    prisma.ingredientEvidenceProfile.findMany.mockResolvedValue([]);
+    expect(await svc.listEvidence()).toEqual([]);
+    expect(prisma.ingredientEvidenceProfile.create).not.toHaveBeenCalled();
+  });
+
   test('seed profiles avoid supplement→culinary overclaiming', () => {
     const turmeric = svc.EVIDENCE_SEED.find((s) => s.ingredientKey === 'turmeric');
     const treat = turmeric.claims.find((c) => /treats inflammatory/i.test(c.claim));
