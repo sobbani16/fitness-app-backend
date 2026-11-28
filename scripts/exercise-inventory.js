@@ -13,9 +13,11 @@ const { getPrisma } = require('../src/lib/prisma');
 const { buildProfile, PROFILE_VERSION } = require('../src/services/exercise/profiles');
 const { FAMILIES } = require('../src/services/exercise/taxonomy');
 
-const OUT_DIR = path.join(__dirname, '..', 'docs', 'exercise-intelligence');
+// EXERCISE_INTEL_OUT_DIR overrides the output directory (tests write to a tmp dir
+// so regeneration against a test database never dirties the committed artifact).
+const OUT_DIR = process.env.EXERCISE_INTEL_OUT_DIR || path.join(__dirname, '..', 'docs', 'exercise-intelligence');
 
-async function main() {
+async function regenerateArtifacts() {
   const prisma = getPrisma();
   const exercises = await prisma.exercise.findMany({ include: { muscles: true }, orderBy: { id: 'asc' } });
   await prisma.$disconnect();
@@ -108,8 +110,16 @@ No exercise is marked ML/camera validated: there is no pose pipeline, no validat
   fs.writeFileSync(path.join(OUT_DIR, 'EXERCISE_INVENTORY_REPORT.md'), report);
 
   console.log(JSON.stringify({ exercises: inventory.length, profiles: profiles.length, classifiedPct: Number(pct), unclassified: issues.unclassified.length, missingInstructions: issues.missingInstructions.length, noPrimaryMuscle: issues.noPrimaryMuscle.length, families: Object.keys(familyCount).length, failures }, null, 1));
-  if (failures.length) { console.error('INTEGRITY FAILURES:', failures.join('; ')); process.exit(1); }
-  console.log('inventory + profiles written to docs/exercise-intelligence/ — integrity checks passed');
+  if (failures.length) { throw new Error('integrity failures: ' + failures.join('; ')); }
+  return { exercises: inventory.length, profiles: profiles.length, classifiedPct: Number(pct), unclassified: issues.unclassified.length };
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+module.exports = { regenerateArtifacts };
+
+if (require.main === module) {
+  regenerateArtifacts()
+    .then((summary) => {
+      console.log('inventory + profiles written to docs/exercise-intelligence/ — integrity checks passed', JSON.stringify(summary));
+    })
+    .catch((e) => { console.error(e); process.exit(1); });
+}
