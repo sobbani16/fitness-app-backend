@@ -56,7 +56,7 @@ function runCli(args) {
 }
 
 beforeAll(async () => {
-  expect(TEST_DB_URL).toMatch(/fitness_test/i); // hard guard: never run these writes against dev/prod
+  expect(require('./testDbUrl').isPositiveTestDatabase(TEST_DB_URL || '').ok).toBe(true); // hard guard: never run these writes against dev/prod
   await p.recipe.deleteMany({ where: { recipeName: { contains: P } } });
   await p.ingredient.deleteMany({ where: { source: 'n20x-test' } });
   await p.user.deleteMany({ where: { email: { contains: 'n20x' } } });
