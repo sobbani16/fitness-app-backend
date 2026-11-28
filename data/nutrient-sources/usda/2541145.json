@@ -1,0 +1,581 @@
+{
+  "retrievedAt": "2026-11-28T03:51:08.532Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [],
+    "foodPortions": [],
+    "fdcId": 2541145,
+    "description": "PAD THAI FOR TWO, PAD THAI",
+    "publicationDate": "5/25/2023",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1087,
+          "number": "301",
+          "name": "Calcium, Ca",
+          "rank": 5300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31593398,
+        "amount": 25
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1089,
+          "number": "303",
+          "name": "Iron, Fe",
+          "rank": 5400,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31593399,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1258,
+          "number": "606",
+          "name": "Fatty acids, total saturated",
+          "rank": 9700,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31593406,
+        "amount": 0.39
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1257,
+          "number": "605",
+          "name": "Fatty acids, total trans",
+          "rank": 15400,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31593405,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1079,
+          "number": "291",
+          "name": "Fiber, total dietary",
+          "rank": 1200,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31593397,
+        "amount": 1.6
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1092,
+          "number": "306",
+          "name": "Potassium, K",
+          "rank": 5700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31593400,
+        "amount": 578
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31593396,
+        "amount": 15.62
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1110,
+          "number": "324",
+          "name": "Vitamin D (D2 + D3), International Units",
+          "rank": 8650,
+          "unitName": "IU"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31593402,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31593395,
+        "amount": 297
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1253,
+          "number": "601",
+          "name": "Cholesterol",
+          "rank": 15700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31593404,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31593393,
+        "amount": 2.34
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31593394,
+        "amount": 64.84
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1235,
+          "number": "539",
+          "name": "Sugars, added",
+          "rank": 1540,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31593403,
+        "amount": 15.6
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31593401,
+        "amount": 430
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31593392,
+        "amount": 4.69
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "shortDescription": "",
+    "modifiedDate": "4/8/2020",
+    "availableDate": "4/8/2020",
+    "brandOwner": "Andre Prost Inc.",
+    "brandName": "A TASTE OF THAI",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Pasta Dinners",
+    "gtinUpc": "070650800053",
+    "householdServingFullText": "1/2 BOX",
+    "ingredients": "RICE NOODLE INGREDIENTS: (RICE FLOUR, WATER, MODIFIED TAPIOCA STARCH). PAD THAI SAUCE INGREDIENTS: PALM SUGAR, WATER, TAMARIND, SHALLOT, SWEET RADISH (SWEET RADISH, SALT, SUGAR, SODIUM BENZOATE (PRESERVATIVE)), GARLIC, SOYBEAN OIL, POTASSIUM CHLORIDE, MALTODEXTRIN, MISO (SOYBEAN, RICE, SALT), SALT, HYDROLYZED VEGETABLE PROTEIN (SOYBEANS, CORN, MALTODEXTRIN), YEAST EXTRACT, PAPRIKA OLEORESIN, CITRIC ACID, ALPHA-TOCOPHEROL (ANTIOXIDANT), CHILI OLEORESIN.",
+    "marketCountry": "United States",
+    "servingSize": 128,
+    "servingSizeUnit": "GRM",
+    "packageWeight": "9.0 oz/255 g",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2541145,
+        "description": "PAD THAI FOR TWO, PAD THAI",
+        "publicationDate": "5/25/2023",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "shortDescription": "",
+        "modifiedDate": "4/8/2020",
+        "availableDate": "4/8/2020",
+        "brandOwner": "Andre Prost Inc.",
+        "brandName": "A TASTE OF THAI",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Pasta Dinners",
+        "gtinUpc": "070650800053",
+        "householdServingFullText": "1/2 BOX",
+        "ingredients": "RICE NOODLE INGREDIENTS: (RICE FLOUR, WATER, MODIFIED TAPIOCA STARCH). PAD THAI SAUCE INGREDIENTS: PALM SUGAR, WATER, TAMARIND, SHALLOT, SWEET RADISH (SWEET RADISH, SALT, SUGAR, SODIUM BENZOATE (PRESERVATIVE)), GARLIC, SOYBEAN OIL, POTASSIUM CHLORIDE, MALTODEXTRIN, MISO (SOYBEAN, RICE, SALT), SALT, HYDROLYZED VEGETABLE PROTEIN (SOYBEANS, CORN, MALTODEXTRIN), YEAST EXTRACT, PAPRIKA OLEORESIN, CITRIC ACID, ALPHA-TOCOPHEROL (ANTIOXIDANT), CHILI OLEORESIN.",
+        "marketCountry": "United States",
+        "servingSize": 128,
+        "servingSizeUnit": "GRM",
+        "packageWeight": "9.0 oz/255 g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2296998,
+        "description": "PAD THAI FOR TWO, PAD THAI",
+        "publicationDate": "5/23/2022",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "shortDescription": "",
+        "modifiedDate": "4/8/2020",
+        "availableDate": "4/8/2020",
+        "brandOwner": "Andre Prost Inc.",
+        "brandName": "A TASTE OF THAI",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Pasta Dinners",
+        "gtinUpc": "070650800053",
+        "householdServingFullText": "0.5 BOX",
+        "ingredients": "RICE NOODLE INGREDIENTS: (RICE FLOUR, WATER, MODIFIED TAPIOCA STARCH). PAD THAI SAUCE INGREDIENTS: PALM SUGAR, WATER, TAMARIND, SHALLOT, SWEET RADISH (SWEET RADISH, SALT, SUGAR, SODIUM BENZOATE (PRESERVATIVE)), GARLIC, SOYBEAN OIL, POTASSIUM CHLORIDE, MALTODEXTRIN, MISO (SOYBEAN, RICE, SALT), SALT, HYDROLYZED VEGETABLE PROTEIN (SOYBEANS, CORN, MALTODEXTRIN), YEAST EXTRACT, PAPRIKA OLEORESIN, CITRIC ACID, ALPHA-TOCOPHEROL (ANTIOXIDANT), CHILI OLEORESIN.",
+        "marketCountry": "United States",
+        "servingSize": 128,
+        "servingSizeUnit": "g",
+        "packageWeight": "9.0 oz/255 g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2017185,
+        "description": "PAD THAI FOR TWO, PAD THAI",
+        "publicationDate": "10/28/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "4/8/2020",
+        "availableDate": "4/8/2020",
+        "brandOwner": "Andre Prost Inc.",
+        "brandName": "A TASTE OF THAI",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Pasta Dinners",
+        "gtinUpc": "070650800053",
+        "householdServingFullText": "0.5 BOX",
+        "ingredients": "RICE NOODLE INGREDIENTS: (RICE FLOUR, WATER, MODIFIED TAPIOCA STARCH). PAD THAI SAUCE INGREDIENTS: PALM SUGAR, WATER, TAMARIND, SHALLOT, SWEET RADISH (SWEET RADISH, SALT, SUGAR, SODIUM BENZOATE (PRESERVATIVE)), GARLIC, SOYBEAN OIL, POTASSIUM CHLORIDE, MALTODEXTRIN, MISO (SOYBEAN, RICE, SALT), SALT, HYDROLYZED VEGETABLE PROTEIN (SOYBEANS, CORN, MALTODEXTRIN), YEAST EXTRACT, PAPRIKA OLEORESIN, CITRIC ACID, ALPHA-TOCOPHEROL (ANTIOXIDANT), CHILI OLEORESIN.",
+        "marketCountry": "United States",
+        "servingSize": 128,
+        "servingSizeUnit": "g",
+        "packageWeight": "9.0 oz/255 g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1477528,
+        "description": "PAD THAI FOR TWO, PAD THAI",
+        "publicationDate": "3/19/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "4/8/2020",
+        "availableDate": "4/8/2020",
+        "brandOwner": "Andre Prost Inc.",
+        "brandName": "A TASTE OF THAI",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Pasta Dinners",
+        "gtinUpc": "070650800053",
+        "householdServingFullText": "0.5 BOX",
+        "ingredients": "RICE NOODLE INGREDIENTS: (RICE FLOUR, WATER, MODIFIED TAPIOCA STARCH). PAD THAI SAUCE INGREDIENTS: PALM SUGAR, WATER, TAMARIND, SHALLOT, SWEET RADISH (SWEET RADISH, SALT, SUGAR, SODIUM BENZOATE (PRESERVATIVE)), GARLIC, SOYBEAN OIL, POTASSIUM CHLORIDE, MALTODEXTRIN, MISO (SOYBEAN, RICE, SALT), SALT, HYDROLYZED VEGETABLE PROTEIN (SOYBEANS, CORN, MALTODEXTRIN), YEAST EXTRACT, PAPRIKA OLEORESIN, CITRIC ACID, ALPHA-TOCOPHEROL (ANTIOXIDANT), CHILI OLEORESIN.",
+        "marketCountry": "United States",
+        "servingSize": 128,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1185492,
+        "description": "PAD THAI FOR TWO, PAD THAI",
+        "publicationDate": "2/26/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "4/8/2020",
+        "availableDate": "4/8/2020",
+        "brandOwner": "Andre Prost Inc.",
+        "brandName": "A TASTE OF THAI",
+        "subbrandName": "",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Pasta Dinners",
+        "gtinUpc": "070650800053",
+        "householdServingFullText": "0.5 BOX",
+        "ingredients": "RICE NOODLE INGREDIENTS: (RICE FLOUR, WATER, MODIFIED TAPIOCA STARCH). PAD THAI SAUCE INGREDIENTS: PALM SUGAR, WATER, TAMARIND, SHALLOT, SWEET RADISH (SWEET RADISH, SALT, SUGAR, SODIUM BENZOATE (PRESERVATIVE)), GARLIC, SOYBEAN OIL, POTASSIUM CHLORIDE, MALTODEXTRIN, MISO (SOYBEAN, RICE, SALT), SALT, HYDROLYZED VEGETABLE PROTEIN (SOYBEANS, CORN, MALTODEXTRIN), YEAST EXTRACT, PAPRIKA OLEORESIN, CITRIC ACID, ALPHA-TOCOPHEROL (ANTIOXIDANT), CHILI OLEORESIN.",
+        "marketCountry": "United States",
+        "servingSize": 128,
+        "servingSizeUnit": "g",
+        "packageWeight": "",
+        "notaSignificantSourceOf": ""
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1107103,
+        "description": "PAD THAI FOR TWO, PAD THAI",
+        "publicationDate": "11/13/2020",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "4/8/2020",
+        "availableDate": "4/8/2020",
+        "brandOwner": "Andre Prost Inc.",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Pasta Dinners",
+        "gtinUpc": "070650800053",
+        "householdServingFullText": "0.5 BOX",
+        "ingredients": "RICE NOODLE INGREDIENTS: (RICE FLOUR, WATER, MODIFIED TAPIOCA STARCH). PAD THAI SAUCE INGREDIENTS: PALM SUGAR, WATER, TAMARIND, SHALLOT, SWEET RADISH (SWEET RADISH, SALT, SUGAR, SODIUM BENZOATE (PRESERVATIVE)), GARLIC, SOYBEAN OIL, POTASSIUM CHLORIDE, MALTODEXTRIN, MISO (SOYBEAN, RICE, SALT), SALT, HYDROLYZED VEGETABLE PROTEIN (SOYBEANS, CORN, MALTODEXTRIN), YEAST EXTRACT, PAPRIKA OLEORESIN, CITRIC ACID, ALPHA-TOCOPHEROL (ANTIOXIDANT), CHILI OLEORESIN.",
+        "marketCountry": "United States",
+        "servingSize": 128,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 816286,
+        "description": "PAD THAI FOR TWO, PAD THAI",
+        "publicationDate": "5/28/2020",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "4/8/2020",
+        "availableDate": "4/8/2020",
+        "brandOwner": "Andre Prost Inc.",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Pasta Dinners",
+        "gtinUpc": "070650800053",
+        "householdServingFullText": "0.5 BOX",
+        "ingredients": "RICE NOODLE INGREDIENTS: (RICE FLOUR, WATER, MODIFIED TAPIOCA STARCH). PAD THAI SAUCE INGREDIENTS: PALM SUGAR, WATER, TAMARIND, SHALLOT, SWEET RADISH (SWEET RADISH, SALT, SUGAR, SODIUM BENZOATE (PRESERVATIVE)), GARLIC, SOYBEAN OIL, POTASSIUM CHLORIDE, MALTODEXTRIN, MISO (SOYBEAN, RICE, SALT), SALT, HYDROLYZED VEGETABLE PROTEIN (SOYBEANS, CORN, MALTODEXTRIN), YEAST EXTRACT, PAPRIKA OLEORESIN, CITRIC ACID, ALPHA-TOCOPHEROL (ANTIOXIDANT), CHILI OLEORESIN.",
+        "marketCountry": "United States",
+        "servingSize": 128,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "modifiedDate": "3/4/2018",
+        "availableDate": "3/4/2018",
+        "brandOwner": "Andre Prost Inc.",
+        "dataSource": "LI",
+        "gpcCategoryGroup": "All Noodles",
+        "gtinUpc": "070650800053",
+        "householdServingFullText": "0.5 BOX",
+        "ingredients": "RICE NOODLE INGREDIENTS: (RICE FLOUR, WATER, MODIFIED TAPIOCA STARCH)., PAD THAI SAUCE INGREDIENTS: PALM SUGAR, WATER, TAMARIND, SHALLOT, SWEET RADISH (SWEET RADISH, SALT, SUGAR, SODIUM BENZOATE (PRESERVATIVE)), GARLIC, SOYBEAN OIL, POTASSIUM CHLORIDE, MALTODEXTRIN, MISO (SOYBEAN, RICE, SALT), SALT, HYDROLYZED VEGETABLE PROTEIN (SOYBEANS, CORN, MALTODEXTRIN), YEAST EXTRACT, PAPRIKA OLEORESIN, CITRIC ACID, ALPHA-TOCOPHEROL (ANTIOXIDANT), CHILI OLEORESIN.",
+        "marketCountry": "United States",
+        "servingSize": 128,
+        "servingSizeUnit": "g",
+        "fdcId": 373126,
+        "description": "PAD THAI FOR TWO",
+        "publicationDate": "4/1/2019",
+        "workingFoodId": 45034346,
+        "dataType": "Branded",
+        "foodClass": "Branded"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 3
+      },
+      "saturatedFat": {
+        "value": 0.499
+      },
+      "transFat": {
+        "value": 0
+      },
+      "cholesterol": {
+        "value": 0
+      },
+      "sodium": {
+        "value": 550
+      },
+      "carbohydrates": {
+        "value": 83
+      },
+      "fiber": {
+        "value": 2.05
+      },
+      "sugars": {
+        "value": 20
+      },
+      "protein": {
+        "value": 6
+      },
+      "calcium": {
+        "value": 32
+      },
+      "iron": {
+        "value": 0
+      },
+      "potassium": {
+        "value": 740
+      },
+      "addedSugar": {
+        "value": 20
+      },
+      "calories": {
+        "value": 380
+      }
+    }
+  }
+}

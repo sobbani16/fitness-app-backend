@@ -1,0 +1,56 @@
+{
+  "manifest": "food-identity-enrichment-v1",
+  "version": 1,
+  "generatedAt": "2026-11-28",
+  "purpose": "Reproducible, idempotent application of session-4 food-identity enrichments: canonical aliases and reviewed gut-taxonomy attributes. Every entry resolves by canonical identity — safe to re-run; creates no duplicates.",
+  "aliasPatches": [
+    {
+      "catalogNormalizedName": "plain yogurt curd",
+      "aliases": ["dahi", "दही", "perugu", "పెరుగు", "thayir", "தயிர்", "mosaru", "ಮೊಸರು", "doi", "দই", "curd", "plain curd", "plain yogurt"],
+      "rationale": "Dahi/perugu/thayir/mosaru/doi are the same canonical food as plain curd (set cultured yogurt, unstrained) — regional names + native scripts, not distinct identities."
+    }
+  ],
+  "taxonomyAttributes": [
+    {
+      "catalogNormalizedName": "plain yogurt curd",
+      "attributes": ["FERMENTED", "FERMENTED_LIVE_CULTURES"],
+      "evidence": "Set curd is milk inoculated with live starter cultures (Lactobacillus/Lactococcus spp.), consumed unheated. Live-culture status applies to traditionally prepared/unpasteurized curd; heat-treated or long-stored products may differ — viability is preparation-level, documented convention, not strain/CFU-verified.",
+      "reviewState": "UNREVIEWED_BY_SCIENCE_PANEL",
+      "probiotic": false
+    },
+    {
+      "catalogNormalizedName": "kimchi",
+      "attributes": ["FERMENTED", "FERMENTED_LIVE_CULTURES"],
+      "evidence": "Kimchi is a lactic-acid-fermented vegetable preparation typically consumed unheated and unpasteurized. Shelf-stable/pasteurized packaged products may lack viable cultures — flag is conventional-prep level.",
+      "reviewState": "UNREVIEWED_BY_SCIENCE_PANEL",
+      "probiotic": false
+    },
+    {
+      "catalogNormalizedName": "miso paste",
+      "attributes": ["FERMENTED"],
+      "evidence": "Miso is a fermented soybean paste; it is frequently consumed heated (miso soup), so live-culture viability at consumption is preparation-dependent — FERMENTED only, live cultures unknown.",
+      "reviewState": "UNREVIEWED_BY_SCIENCE_PANEL",
+      "probiotic": false
+    },
+    {
+      "catalogNormalizedName": "sauerkraut",
+      "attributes": ["FERMENTED"],
+      "evidence": "Sauerkraut is fermented cabbage, but commercially canned/pasteurized products are heat-treated. Live-culture viability is product-dependent — FERMENTED only, live cultures unknown.",
+      "reviewState": "UNREVIEWED_BY_SCIENCE_PANEL",
+      "probiotic": false
+    }
+  ],
+  "ingredients": [
+    {
+      "name": "Naan",
+      "normalizedName": "naan",
+      "fdcId": "2707613",
+      "source": "usda",
+      "sourceRecord": "data/nutrient-sources/usda/2707613.json",
+      "nutritionBasis": "per 100 g, USDA FNDDS 'Bread, naan' (2707613)",
+      "macrosPer100g": { "calories": 311, "proteinG": 11.1, "carbsG": 50.2, "fatG": 7.28, "fiberG": 5.2 },
+      "note": "Nutrition profile is created by populate-nutrients.js via the fdcId link (EXACT_ID_AND_DESCRIPTION); this manifest creates only the Ingredient row."
+    }
+  ],
+  "expectedCounts": { "aliasPatches": 1, "taxonomyAttributes": 6, "ingredients": 1 }
+}

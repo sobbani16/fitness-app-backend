@@ -1,0 +1,696 @@
+{
+  "retrievedAt": "2026-11-28T03:51:08.533Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [
+      {
+        "id": 3129257,
+        "value": 4,
+        "name": "Nutrient Updated",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      },
+      {
+        "id": 3129256,
+        "value": 6,
+        "name": "Nutrient Removed",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      },
+      {
+        "id": 3129258,
+        "value": 7,
+        "name": "Serving Size",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      },
+      {
+        "id": 3129261,
+        "value": 10,
+        "name": "Added Brand/Sub Brand Information",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      },
+      {
+        "id": 3129255,
+        "value": 5,
+        "name": "Nutrient Added",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      },
+      {
+        "id": 3129260,
+        "value": 9,
+        "name": "Added Package Weight",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      },
+      {
+        "id": 3129259,
+        "value": 3,
+        "name": "Ingredients",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      }
+    ],
+    "foodPortions": [],
+    "fdcId": 2608332,
+    "description": "PAD THAI NOODLE KIT, PAD THAI",
+    "publicationDate": "7/13/2023",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1235,
+          "number": "539",
+          "name": "Sugars, added",
+          "rank": 1540,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32600539,
+        "amount": 13.7
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1258,
+          "number": "606",
+          "name": "Fatty acids, total saturated",
+          "rank": 9700,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32600542,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1253,
+          "number": "601",
+          "name": "Cholesterol",
+          "rank": 15700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32600540,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1092,
+          "number": "306",
+          "name": "Potassium, K",
+          "rank": 5700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32600536,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32600528,
+        "amount": 5.48
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1114,
+          "number": "328",
+          "name": "Vitamin D (D2 + D3)",
+          "rank": 8700,
+          "unitName": "µg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32600538,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32600537,
+        "amount": 493
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32600529,
+        "amount": 1.37
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32600532,
+        "amount": 13.7
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32600530,
+        "amount": 69.86
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1089,
+          "number": "303",
+          "name": "Iron, Fe",
+          "rank": 5400,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32600535,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32600531,
+        "amount": 315
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1257,
+          "number": "605",
+          "name": "Fatty acids, total trans",
+          "rank": 15400,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32600541,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1079,
+          "number": "291",
+          "name": "Fiber, total dietary",
+          "rank": 1200,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 73,
+          "code": "LCSL",
+          "description": "Calculated from a less than value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32600533,
+        "amount": 1.4
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1087,
+          "number": "301",
+          "name": "Calcium, Ca",
+          "rank": 5300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32600534,
+        "amount": 0
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "shortDescription": "",
+    "modifiedDate": "6/27/2023",
+    "availableDate": "6/27/2023",
+    "brandOwner": "Simply Asia Foods, Inc.",
+    "brandName": "THAI KITCHEN",
+    "dataSource": "LI",
+    "brandedFoodCategory": "All Noodles",
+    "gtinUpc": "737628025602",
+    "householdServingFullText": "1/3 package",
+    "ingredients": "NOODLE: RICE, WATER. SAUCE: SUGAR, WATER, TOMATO PASTE, FISH SAUCE [ANCHOVY (FISH), SALT, WATER], GARLIC, RADISH, SOYBEAN OIL, ONIONS, RICE VINEGAR, SALT, MODIFIED CORN STARCH, TAMARIND PASTE, CITRIC ACID (AS PRESERVATIVE), CHILI PEPPER, XANTHAN GUM (THICKENER).",
+    "marketCountry": "United States",
+    "servingSize": 73,
+    "servingSizeUnit": "GRM",
+    "packageWeight": "9 oz/255 g",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2608332,
+        "description": "PAD THAI NOODLE KIT, PAD THAI",
+        "publicationDate": "7/13/2023",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "shortDescription": "",
+        "modifiedDate": "6/27/2023",
+        "availableDate": "6/27/2023",
+        "brandOwner": "Simply Asia Foods, Inc.",
+        "brandName": "THAI KITCHEN",
+        "dataSource": "LI",
+        "brandedFoodCategory": "All Noodles",
+        "gtinUpc": "737628025602",
+        "householdServingFullText": "1/3 package",
+        "ingredients": "NOODLE: RICE, WATER. SAUCE: SUGAR, WATER, TOMATO PASTE, FISH SAUCE [ANCHOVY (FISH), SALT, WATER], GARLIC, RADISH, SOYBEAN OIL, ONIONS, RICE VINEGAR, SALT, MODIFIED CORN STARCH, TAMARIND PASTE, CITRIC ACID (AS PRESERVATIVE), CHILI PEPPER, XANTHAN GUM (THICKENER).",
+        "marketCountry": "United States",
+        "servingSize": 73,
+        "servingSizeUnit": "GRM",
+        "packageWeight": "9 oz/255 g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2417707,
+        "description": "PAD THAI NOODLE KIT, PAD THAI",
+        "publicationDate": "12/22/2022",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "shortDescription": "",
+        "modifiedDate": "1/28/2022",
+        "availableDate": "1/28/2022",
+        "brandOwner": "Simply Asia Foods, Inc.",
+        "brandName": "SIMPLY ASIA",
+        "subbrandName": "THAI KITCHEN",
+        "dataSource": "LI",
+        "brandedFoodCategory": "All Noodles",
+        "gtinUpc": "737628025602",
+        "householdServingFullText": "0.333 package",
+        "ingredients": "NOODLE: RICE, WATER. SAUCE: SUGAR, TOMATO, WATER, RICE VINEGAR, FISH SAUCE (ANCHOVY, SALT, WATER), GARLIC CHIVES, PICKLED RADISH (RADISH, SALT, WATER), SOYBEAN OIL, GARLIC, ONION, MODIFIED CORN STARCH, TAMARIND PASTE (TARTARIC ACID, SUCCINIC ACID, MALIC ACID, TAMARIND SEED GUM, PECTIN), CITRIC ACID, CHILI PEPPER, XANTHAN GUM.",
+        "marketCountry": "United States",
+        "servingSize": 85,
+        "servingSizeUnit": "g",
+        "packageWeight": "9 OZ/255 g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2034549,
+        "description": "MILD PAD THAI NOODLE KIT, MILD",
+        "publicationDate": "10/28/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "4/8/2020",
+        "availableDate": "4/8/2020",
+        "brandOwner": "Simply Asia Foods, Inc.",
+        "brandName": "THAI KITCHEN",
+        "dataSource": "LI",
+        "brandedFoodCategory": "All Noodles",
+        "gtinUpc": "737628025602",
+        "householdServingFullText": "0.333 PACKAGE",
+        "ingredients": "NOODLE: RICE, WATER. SAUCE: SUGAR, TOMATO, WATER, RICE VINEGAR, FISH SAUCE (ANCHOVY, SALT, WATER), GARLIC CHIVES, PICKLED RADISH (RADISH, SALT, WATER), SOYBEAN OIL, GARLIC, ONION, MODIFIED CORN STARCH, TAMARIND PASTE (TARTARIC ACID, SUCCINIC ACID, MALIC ACID, TAMARIND SEED GUM, PECTIN), CITRIC ACID, CHILI PEPPER, XANTHAN GUM.",
+        "marketCountry": "United States",
+        "servingSize": 85,
+        "servingSizeUnit": "g",
+        "packageWeight": "9 oz/255 g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1504903,
+        "description": "MILD PAD THAI NOODLE KIT, MILD",
+        "publicationDate": "3/19/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "4/8/2020",
+        "availableDate": "4/8/2020",
+        "brandOwner": "Simply Asia Foods, Inc.",
+        "brandName": "THAI KITCHEN",
+        "dataSource": "LI",
+        "brandedFoodCategory": "All Noodles",
+        "gtinUpc": "737628025602",
+        "householdServingFullText": "0.333 PACKAGE",
+        "ingredients": "NOODLE: RICE, WATER. SAUCE: SUGAR, TOMATO, WATER, RICE VINEGAR, FISH SAUCE (ANCHOVY, SALT, WATER), GARLIC CHIVES, PICKLED RADISH (RADISH, SALT, WATER), SOYBEAN OIL, GARLIC, ONION, MODIFIED CORN STARCH, TAMARIND PASTE (TARTARIC ACID, SUCCINIC ACID, MALIC ACID, TAMARIND SEED GUM, PECTIN), CITRIC ACID, CHILI PEPPER, XANTHAN GUM.",
+        "marketCountry": "United States",
+        "servingSize": 85,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1212847,
+        "description": "MILD PAD THAI NOODLE KIT, MILD",
+        "publicationDate": "2/26/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "4/8/2020",
+        "availableDate": "4/8/2020",
+        "brandOwner": "Simply Asia Foods, Inc.",
+        "brandName": "THAI KITCHEN",
+        "subbrandName": "",
+        "dataSource": "LI",
+        "brandedFoodCategory": "All Noodles",
+        "gtinUpc": "737628025602",
+        "householdServingFullText": "0.333 PACKAGE",
+        "ingredients": "NOODLE: RICE, WATER. SAUCE: SUGAR, TOMATO, WATER, RICE VINEGAR, FISH SAUCE (ANCHOVY, SALT, WATER), GARLIC CHIVES, PICKLED RADISH (RADISH, SALT, WATER), SOYBEAN OIL, GARLIC, ONION, MODIFIED CORN STARCH, TAMARIND PASTE (TARTARIC ACID, SUCCINIC ACID, MALIC ACID, TAMARIND SEED GUM, PECTIN), CITRIC ACID, CHILI PEPPER, XANTHAN GUM.",
+        "marketCountry": "United States",
+        "servingSize": 85,
+        "servingSizeUnit": "g",
+        "packageWeight": "",
+        "notaSignificantSourceOf": ""
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1109626,
+        "description": "MILD PAD THAI NOODLE KIT, MILD",
+        "publicationDate": "11/13/2020",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "4/8/2020",
+        "availableDate": "4/8/2020",
+        "brandOwner": "Simply Asia Foods, Inc.",
+        "dataSource": "LI",
+        "brandedFoodCategory": "All Noodles",
+        "gtinUpc": "737628025602",
+        "householdServingFullText": "0.333 PACKAGE",
+        "ingredients": "NOODLE: RICE, WATER. SAUCE: SUGAR, TOMATO, WATER, RICE VINEGAR, FISH SAUCE (ANCHOVY, SALT, WATER), GARLIC CHIVES, PICKLED RADISH (RADISH, SALT, WATER), SOYBEAN OIL, GARLIC, ONION, MODIFIED CORN STARCH, TAMARIND PASTE (TARTARIC ACID, SUCCINIC ACID, MALIC ACID, TAMARIND SEED GUM, PECTIN), CITRIC ACID, CHILI PEPPER, XANTHAN GUM.",
+        "marketCountry": "United States",
+        "servingSize": 85,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 826524,
+        "description": "MILD PAD THAI NOODLE KIT, MILD",
+        "publicationDate": "5/28/2020",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "4/8/2020",
+        "availableDate": "4/8/2020",
+        "brandOwner": "Simply Asia Foods, Inc.",
+        "dataSource": "LI",
+        "brandedFoodCategory": "All Noodles",
+        "gtinUpc": "737628025602",
+        "householdServingFullText": "0.333 PACKAGE",
+        "ingredients": "NOODLE: RICE, WATER. SAUCE: SUGAR, TOMATO, WATER, RICE VINEGAR, FISH SAUCE (ANCHOVY, SALT, WATER), GARLIC CHIVES, PICKLED RADISH (RADISH, SALT, WATER), SOYBEAN OIL, GARLIC, ONION, MODIFIED CORN STARCH, TAMARIND PASTE (TARTARIC ACID, SUCCINIC ACID, MALIC ACID, TAMARIND SEED GUM, PECTIN), CITRIC ACID, CHILI PEPPER, XANTHAN GUM.",
+        "marketCountry": "United States",
+        "servingSize": 85,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 794609,
+        "description": "MILD PAD THAI NOODLE KIT",
+        "publicationDate": "4/1/2020",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "2/11/2020",
+        "availableDate": "2/11/2020",
+        "brandOwner": "Simply Asia Foods, Inc.",
+        "dataSource": "LI",
+        "brandedFoodCategory": "All Noodles",
+        "gtinUpc": "737628025602",
+        "householdServingFullText": "0.333 PACKAGE",
+        "ingredients": "NOODLE: RICE, WATER. SAUCE: SUGAR, TOMATO, WATER, RICE VINEGAR, FISH SAUCE (ANCHOVY, SALT, WATER), GARLIC CHIVES, PICKLED RADISH (RADISH, SALT, WATER), SOYBEAN OIL, GARLIC, ONION, MODIFIED CORN STARCH, TAMARIND PASTE (TARTARIC ACID, SUCCINIC ACID, MALIC ACID, TAMARIND SEED GUM, PECTIN), CITRIC ACID, CHILI PEPPER, XANTHAN GUM.",
+        "marketCountry": "United States",
+        "servingSize": 85,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 773036,
+        "description": "MILD PAD THAI NOODLE KIT",
+        "publicationDate": "2/27/2020",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "2/8/2020",
+        "availableDate": "2/8/2020",
+        "brandOwner": "Simply Asia Foods, Inc.",
+        "dataSource": "LI",
+        "brandedFoodCategory": "All Noodles",
+        "gtinUpc": "737628025602",
+        "householdServingFullText": "0.333 PACKAGE",
+        "ingredients": "NOODLE: RICE, WATER. SAUCE: SUGAR, TOMATO, WATER, RICE VINEGAR, FISH SAUCE (ANCHOVY, SALT, WATER), GARLIC CHIVES, PICKLED RADISH (RADISH, SALT, WATER), SOYBEAN OIL, GARLIC, ONION, MODIFIED CORN STARCH, TAMARIND PASTE (TARTARIC ACID, SUCCINIC ACID, MALIC ACID, TAMARIND SEED GUM, PECTIN), CITRIC ACID, CHILI PEPPER, XANTHAN GUM.",
+        "marketCountry": "United States",
+        "servingSize": 85,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "modifiedDate": "7/9/2018",
+        "availableDate": "7/9/2018",
+        "brandOwner": "Simply Asia Foods, Inc.",
+        "dataSource": "LI",
+        "gpcCategoryGroup": "Pizza Mixes & Other Dry Dinners",
+        "gtinUpc": "737628025602",
+        "householdServingFullText": "0.333 PACKAGE",
+        "ingredients": "NOODLE: RICE, WATER. SAUCE: SUGAR, TOMATO, WATER, RICE VINEGAR, FISH SAUCE (ANCHOVY, SALT, WATER), GARLIC CHIVES, PICKLED RADISH (RADISH, SALT, WATER), SOYBEAN OIL, GARLIC, ONION, MODIFIED CORN STARCH, TAMARIND PASTE (TARTARIC ACID, SUCCINIC ACID, MALIC ACID, TAMARIND SEED GUM, PECTIN), CITRIC ACID, CHILI PEPPER, XANTHAN GUM.",
+        "marketCountry": "United States",
+        "servingSize": 85,
+        "servingSizeUnit": "g",
+        "fdcId": 403950,
+        "description": "PAD THAI NOODLE KIT",
+        "publicationDate": "4/1/2019",
+        "workingFoodId": 45107289,
+        "dataType": "Branded",
+        "foodClass": "Branded"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 1
+      },
+      "saturatedFat": {
+        "value": 0
+      },
+      "transFat": {
+        "value": 0
+      },
+      "cholesterol": {
+        "value": 0
+      },
+      "sodium": {
+        "value": 360
+      },
+      "carbohydrates": {
+        "value": 51
+      },
+      "fiber": {
+        "value": 1.02
+      },
+      "sugars": {
+        "value": 10
+      },
+      "protein": {
+        "value": 4
+      },
+      "vitaminD": {
+        "value": 0
+      },
+      "calcium": {
+        "value": 0
+      },
+      "iron": {
+        "value": 0
+      },
+      "potassium": {
+        "value": 0
+      },
+      "addedSugar": {
+        "value": 10
+      },
+      "calories": {
+        "value": 230
+      }
+    }
+  }
+}

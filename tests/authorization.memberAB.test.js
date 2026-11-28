@@ -13,6 +13,11 @@ const { ROLE_PERMISSIONS } = require('../src/config/rbac');
 
 // trainer_paid_coaching/messaging/nutrition depend on this class-'control'
 // flag; tests/setup.js only enables non-control flags.
+// Isolation: jest --runInBand shares process.env across test FILES in a
+// worker. Snapshot every envOverrideName key this file touches and restore
+// after the file completes, so flag overrides cannot leak into later files.
+const envBefore = { ...process.env };
+afterAll(() => { for (const k of Object.keys(process.env)) if (!(k in envBefore)) delete process.env[k]; Object.assign(process.env, envBefore); flags.resetCache(); });
 process.env[envOverrideName('trainer_advanced_features_enabled')] = 'true';
 const setFlag = (k, v) => { process.env[envOverrideName(k)] = v; flags.resetCache(); };
 

@@ -5,7 +5,10 @@ const { getPrisma } = require('../lib/prisma');
 
 const router = express.Router();
 router.use(requireFeature('gut_health'));
-const uid = req => req.user?.id || req.userId || req.headers['x-user-id'];
+// Identity: authenticated req.userId first. The global authenticate
+// middleware always rewrites x-user-id from the verified token — the header
+// fallback only exists for the isolated unit-test bypass, never trusted raw.
+const uid = req => (req.userId || req.headers['x-user-id'] || '').toString().trim();
 
 router.get('/summary', async (req, res, next) => {
   try { res.json(await getGutHealthSummary(uid(req))); } catch (e) { next(e); }

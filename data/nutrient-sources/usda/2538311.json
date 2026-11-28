@@ -1,0 +1,430 @@
+{
+  "retrievedAt": "2026-11-28T03:51:01.562Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [],
+    "foodPortions": [],
+    "fdcId": 2538311,
+    "description": "PANEER TIKKA MASALA, PANEER TIKKA",
+    "publicationDate": "4/27/2023",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1253,
+          "number": "601",
+          "name": "Cholesterol",
+          "rank": 15700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31540700,
+        "amount": 15
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1079,
+          "number": "291",
+          "name": "Fiber, total dietary",
+          "rank": 1200,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31540693,
+        "amount": 0.9
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1089,
+          "number": "303",
+          "name": "Iron, Fe",
+          "rank": 5400,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31540695,
+        "amount": 0.79
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1087,
+          "number": "301",
+          "name": "Calcium, Ca",
+          "rank": 5300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31540694,
+        "amount": 101
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31540691,
+        "amount": 150
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1110,
+          "number": "324",
+          "name": "Vitamin D (D2 + D3), International Units",
+          "rank": 8650,
+          "unitName": "IU"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31540698,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31540690,
+        "amount": 16.74
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1258,
+          "number": "606",
+          "name": "Fatty acids, total saturated",
+          "rank": 9700,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31540702,
+        "amount": 3.52
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31540689,
+        "amount": 7.05
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1092,
+          "number": "306",
+          "name": "Potassium, K",
+          "rank": 5700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31540696,
+        "amount": 84
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1235,
+          "number": "539",
+          "name": "Sugars, added",
+          "rank": 1540,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31540699,
+        "amount": 1.3
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31540692,
+        "amount": 2.2
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31540688,
+        "amount": 4.41
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1257,
+          "number": "605",
+          "name": "Fatty acids, total trans",
+          "rank": 15400,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31540701,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 31540697,
+        "amount": 154
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "shortDescription": "",
+    "modifiedDate": "3/31/2023",
+    "availableDate": "3/31/2023",
+    "brandOwner": "",
+    "brandName": "QUICKLLY",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Other Deli",
+    "gtinUpc": "196852592968",
+    "householdServingFullText": "8 oz",
+    "ingredients": "RICE: WATER, BASMATI RICE, GREEN PEAS, SOYBEAN OIL, SALT. GRAVY: TOMATO (WATER, DICED TOMATO, TOMATO PASTE, TOMATO JUICE, SALT, CALCIUM CHLORIDE, CITRIC ACID), PANEER (INDIAN WHITE SOFT CHEESE), WATER, ONIONS, BUTTER, SOYBEAN OIL, CREAM, SUGAR, GINGER, GARLIC, SPICES, SALT, GREEN CHILI.",
+    "marketCountry": "United States",
+    "servingSize": 227,
+    "servingSizeUnit": "GRM",
+    "packageWeight": "16 oz/454 g",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2538311,
+        "description": "PANEER TIKKA MASALA, PANEER TIKKA",
+        "publicationDate": "4/27/2023",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "shortDescription": "",
+        "modifiedDate": "3/31/2023",
+        "availableDate": "3/31/2023",
+        "brandOwner": "",
+        "brandName": "QUICKLLY",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Other Deli",
+        "gtinUpc": "196852592968",
+        "householdServingFullText": "8 oz",
+        "ingredients": "RICE: WATER, BASMATI RICE, GREEN PEAS, SOYBEAN OIL, SALT. GRAVY: TOMATO (WATER, DICED TOMATO, TOMATO PASTE, TOMATO JUICE, SALT, CALCIUM CHLORIDE, CITRIC ACID), PANEER (INDIAN WHITE SOFT CHEESE), WATER, ONIONS, BUTTER, SOYBEAN OIL, CREAM, SUGAR, GINGER, GARLIC, SPICES, SALT, GREEN CHILI.",
+        "marketCountry": "United States",
+        "servingSize": 227,
+        "servingSizeUnit": "GRM",
+        "packageWeight": "16 oz/454 g"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 16
+      },
+      "saturatedFat": {
+        "value": 7.99
+      },
+      "transFat": {
+        "value": 0
+      },
+      "cholesterol": {
+        "value": 34
+      },
+      "sodium": {
+        "value": 350
+      },
+      "carbohydrates": {
+        "value": 38
+      },
+      "fiber": {
+        "value": 2.04
+      },
+      "sugars": {
+        "value": 4.99
+      },
+      "protein": {
+        "value": 10
+      },
+      "calcium": {
+        "value": 229
+      },
+      "iron": {
+        "value": 1.79
+      },
+      "potassium": {
+        "value": 191
+      },
+      "addedSugar": {
+        "value": 2.95
+      },
+      "calories": {
+        "value": 340
+      }
+    }
+  }
+}

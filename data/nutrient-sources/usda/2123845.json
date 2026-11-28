@@ -1,0 +1,477 @@
+{
+  "retrievedAt": "2026-11-28T03:50:59.292Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [
+      {
+        "id": 2333322,
+        "value": 9,
+        "name": "Added Package Weight",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      }
+    ],
+    "foodPortions": [],
+    "fdcId": 2123845,
+    "description": "CHICKEN TERIYAKI",
+    "publicationDate": "10/28/2021",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1104,
+          "number": "318",
+          "name": "Vitamin A, IU",
+          "rank": 7500,
+          "unitName": "IU"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25134410,
+        "amount": 535
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25134404,
+        "amount": 176
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25134405,
+        "amount": 3.74
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1087,
+          "number": "301",
+          "name": "Calcium, Ca",
+          "rank": 5300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25134407,
+        "amount": 53
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1253,
+          "number": "601",
+          "name": "Cholesterol",
+          "rank": 15700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25134412,
+        "amount": 29
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25134401,
+        "amount": 11.23
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1257,
+          "number": "605",
+          "name": "Fatty acids, total trans",
+          "rank": 15400,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25134413,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1258,
+          "number": "606",
+          "name": "Fatty acids, total saturated",
+          "rank": 9700,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25134414,
+        "amount": 3.74
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1089,
+          "number": "303",
+          "name": "Iron, Fe",
+          "rank": 5400,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25134408,
+        "amount": 1.44
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25134402,
+        "amount": 8.56
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25134409,
+        "amount": 572
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25134403,
+        "amount": 24.6
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1162,
+          "number": "401",
+          "name": "Vitamin C, total ascorbic acid",
+          "rank": 6300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25134411,
+        "amount": 19.3
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1079,
+          "number": "291",
+          "name": "Fiber, total dietary",
+          "rank": 1200,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 25134406,
+        "amount": 1.1
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "modifiedDate": "10/4/2018",
+    "availableDate": "10/4/2018",
+    "brandOwner": "Raybern Foods, Inc.",
+    "brandName": "RAYBERN'S",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Frozen Appetizers & Hors D'oeuvres",
+    "gtinUpc": "766626744406",
+    "householdServingFullText": "1 SANDWICH",
+    "ingredients": "DELI ROLL ([ENRICHED WHEAT FLOUR {WHEAT FLOUR, NIACIN, REDUCED IRON, THIAMINE MONONITRATE, RIBOFLAVIN, FOLIC ACID}, MALTED BARLEY FLOUR], WATER, PALM OIL, SUGAR, EGGS, NONFAT DRY MILK, VITAL WHEAT GLUTEN, DOUGH CONDITIONER [ENRICHED WHEAT FLOUR {NIACIN, REDUCED IRON, THIAMINE MONONITRATE, RIBOFLAVIN, FOLIC ACID}, DATEM, CANOLA OIL, DEXTROSE, ASCORBIC ACID, L-CYSTEINE, ENZYMES], SALT, YEAST, XANTHAN GUM, CALCIUM PROPIONATE [A MOLD INHIBITOR]), COOKED BONELESS CHICKEN WITH RIB MEAT (CHICKEN BREAST MEAT [WITH RIB MEAT], WATER, SEASONING [MALTODEXTRIN, SALT, SPICES, PAPRIKA, DEHYDRATED GARLIC AND ONION, DEXTROSE], YEAST EXTRACT, CARRAGEENAN, SODIUM PHOSPHATE, ONION POWDER, DEXTROSE, GARLIC POWDER), SAUCE (FIRE ROASTED VEGETABLES [ONIONS, RED BELL PEPPERS, GREEN BELL PEPPERS]), SOY SAUCE [WATER, WHEAT, SOYBEANS, SALT], WATER, SUGAR, BROWN SUGAR, MODIFIED FOOD STARCH, SESAME OIL, PINEAPPLE JUICE CONCENTRATE, GINGER PUREE [GINGER, CITRIC ACID], VINEGAR, SALT, DEHYDRATED GARLIC, XANTHAN GUM, ONION POWDER, SPICE) PASTURIZED PROCESS AMERICAN CHEESE (CHEESE [PASTEURIZED MILK, CHEESE CULTURES, SALT, ENZYMES], WATER, CREAM, SODIUM CITRATE, SODIUM PHOSPHATES, SALT, VEGETABLE COLOR).",
+    "marketCountry": "United States",
+    "servingSize": 187,
+    "servingSizeUnit": "g",
+    "packageWeight": "13.2 oz/374 g",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2123845,
+        "description": "CHICKEN TERIYAKI",
+        "publicationDate": "10/28/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "10/4/2018",
+        "availableDate": "10/4/2018",
+        "brandOwner": "Raybern Foods, Inc.",
+        "brandName": "RAYBERN'S",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Frozen Appetizers & Hors D'oeuvres",
+        "gtinUpc": "766626744406",
+        "householdServingFullText": "1 SANDWICH",
+        "ingredients": "DELI ROLL ([ENRICHED WHEAT FLOUR {WHEAT FLOUR, NIACIN, REDUCED IRON, THIAMINE MONONITRATE, RIBOFLAVIN, FOLIC ACID}, MALTED BARLEY FLOUR], WATER, PALM OIL, SUGAR, EGGS, NONFAT DRY MILK, VITAL WHEAT GLUTEN, DOUGH CONDITIONER [ENRICHED WHEAT FLOUR {NIACIN, REDUCED IRON, THIAMINE MONONITRATE, RIBOFLAVIN, FOLIC ACID}, DATEM, CANOLA OIL, DEXTROSE, ASCORBIC ACID, L-CYSTEINE, ENZYMES], SALT, YEAST, XANTHAN GUM, CALCIUM PROPIONATE [A MOLD INHIBITOR]), COOKED BONELESS CHICKEN WITH RIB MEAT (CHICKEN BREAST MEAT [WITH RIB MEAT], WATER, SEASONING [MALTODEXTRIN, SALT, SPICES, PAPRIKA, DEHYDRATED GARLIC AND ONION, DEXTROSE], YEAST EXTRACT, CARRAGEENAN, SODIUM PHOSPHATE, ONION POWDER, DEXTROSE, GARLIC POWDER), SAUCE (FIRE ROASTED VEGETABLES [ONIONS, RED BELL PEPPERS, GREEN BELL PEPPERS]), SOY SAUCE [WATER, WHEAT, SOYBEANS, SALT], WATER, SUGAR, BROWN SUGAR, MODIFIED FOOD STARCH, SESAME OIL, PINEAPPLE JUICE CONCENTRATE, GINGER PUREE [GINGER, CITRIC ACID], VINEGAR, SALT, DEHYDRATED GARLIC, XANTHAN GUM, ONION POWDER, SPICE) PASTURIZED PROCESS AMERICAN CHEESE (CHEESE [PASTEURIZED MILK, CHEESE CULTURES, SALT, ENZYMES], WATER, CREAM, SODIUM CITRATE, SODIUM PHOSPHATES, SALT, VEGETABLE COLOR).",
+        "marketCountry": "United States",
+        "servingSize": 187,
+        "servingSizeUnit": "g",
+        "packageWeight": "13.2 oz/374 g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1660253,
+        "description": "CHICKEN TERIYAKI",
+        "publicationDate": "3/19/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "10/4/2018",
+        "availableDate": "10/4/2018",
+        "brandOwner": "Raybern Foods, Inc.",
+        "brandName": "RAYBERN'S",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Frozen Appetizers & Hors D'oeuvres",
+        "gtinUpc": "766626744406",
+        "householdServingFullText": "1 SANDWICH",
+        "ingredients": "DELI ROLL ([ENRICHED WHEAT FLOUR {WHEAT FLOUR, NIACIN, REDUCED IRON, THIAMINE MONONITRATE, RIBOFLAVIN, FOLIC ACID}, MALTED BARLEY FLOUR], WATER, PALM OIL, SUGAR, EGGS, NONFAT DRY MILK, VITAL WHEAT GLUTEN, DOUGH CONDITIONER [ENRICHED WHEAT FLOUR {NIACIN, REDUCED IRON, THIAMINE MONONITRATE, RIBOFLAVIN, FOLIC ACID}, DATEM, CANOLA OIL, DEXTROSE, ASCORBIC ACID, L-CYSTEINE, ENZYMES], SALT, YEAST, XANTHAN GUM, CALCIUM PROPIONATE [A MOLD INHIBITOR]), COOKED BONELESS CHICKEN WITH RIB MEAT (CHICKEN BREAST MEAT [WITH RIB MEAT], WATER, SEASONING [MALTODEXTRIN, SALT, SPICES, PAPRIKA, DEHYDRATED GARLIC AND ONION, DEXTROSE], YEAST EXTRACT, CARRAGEENAN, SODIUM PHOSPHATE, ONION POWDER, DEXTROSE, GARLIC POWDER), SAUCE (FIRE ROASTED VEGETABLES [ONIONS, RED BELL PEPPERS, GREEN BELL PEPPERS]), SOY SAUCE [WATER, WHEAT, SOYBEANS, SALT], WATER, SUGAR, BROWN SUGAR, MODIFIED FOOD STARCH, SESAME OIL, PINEAPPLE JUICE CONCENTRATE, GINGER PUREE [GINGER, CITRIC ACID], VINEGAR, SALT, DEHYDRATED GARLIC, XANTHAN GUM, ONION POWDER, SPICE) PASTURIZED PROCESS AMERICAN CHEESE (CHEESE [PASTEURIZED MILK, CHEESE CULTURES, SALT, ENZYMES], WATER, CREAM, SODIUM CITRATE, SODIUM PHOSPHATES, SALT, VEGETABLE COLOR).",
+        "marketCountry": "United States",
+        "servingSize": 187,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1368046,
+        "description": "CHICKEN TERIYAKI",
+        "publicationDate": "2/26/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "10/4/2018",
+        "availableDate": "10/4/2018",
+        "brandOwner": "Raybern Foods, Inc.",
+        "brandName": "RAYBERN'S",
+        "subbrandName": "",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Frozen Appetizers & Hors D'oeuvres",
+        "gtinUpc": "766626744406",
+        "householdServingFullText": "1 SANDWICH",
+        "ingredients": "DELI ROLL ([ENRICHED WHEAT FLOUR {WHEAT FLOUR, NIACIN, REDUCED IRON, THIAMINE MONONITRATE, RIBOFLAVIN, FOLIC ACID}, MALTED BARLEY FLOUR], WATER, PALM OIL, SUGAR, EGGS, NONFAT DRY MILK, VITAL WHEAT GLUTEN, DOUGH CONDITIONER [ENRICHED WHEAT FLOUR {NIACIN, REDUCED IRON, THIAMINE MONONITRATE, RIBOFLAVIN, FOLIC ACID}, DATEM, CANOLA OIL, DEXTROSE, ASCORBIC ACID, L-CYSTEINE, ENZYMES], SALT, YEAST, XANTHAN GUM, CALCIUM PROPIONATE [A MOLD INHIBITOR]), COOKED BONELESS CHICKEN WITH RIB MEAT (CHICKEN BREAST MEAT [WITH RIB MEAT], WATER, SEASONING [MALTODEXTRIN, SALT, SPICES, PAPRIKA, DEHYDRATED GARLIC AND ONION, DEXTROSE], YEAST EXTRACT, CARRAGEENAN, SODIUM PHOSPHATE, ONION POWDER, DEXTROSE, GARLIC POWDER), SAUCE (FIRE ROASTED VEGETABLES [ONIONS, RED BELL PEPPERS, GREEN BELL PEPPERS]), SOY SAUCE [WATER, WHEAT, SOYBEANS, SALT], WATER, SUGAR, BROWN SUGAR, MODIFIED FOOD STARCH, SESAME OIL, PINEAPPLE JUICE CONCENTRATE, GINGER PUREE [GINGER, CITRIC ACID], VINEGAR, SALT, DEHYDRATED GARLIC, XANTHAN GUM, ONION POWDER, SPICE) PASTURIZED PROCESS AMERICAN CHEESE (CHEESE [PASTEURIZED MILK, CHEESE CULTURES, SALT, ENZYMES], WATER, CREAM, SODIUM CITRATE, SODIUM PHOSPHATES, SALT, VEGETABLE COLOR).",
+        "marketCountry": "United States",
+        "servingSize": 187,
+        "servingSizeUnit": "g",
+        "packageWeight": "",
+        "notaSignificantSourceOf": ""
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "modifiedDate": "10/4/2018",
+        "availableDate": "10/4/2018",
+        "brandOwner": "Raybern Foods, Inc.",
+        "dataSource": "LI",
+        "gpcCategoryGroup": "Frozen Appetizers & Hors D'oeuvres",
+        "gtinUpc": "766626744406",
+        "householdServingFullText": "1 SANDWICH",
+        "ingredients": "DELI ROLL ([ENRICHED WHEAT FLOUR {WHEAT FLOUR, NIACIN, REDUCED IRON, THIAMINE MONONITRATE, RIBOFLAVIN, FOLIC ACID}, MALTED BARLEY FLOUR], WATER, PALM OIL, SUGAR, EGGS, NONFAT DRY MILK, VITAL WHEAT GLUTEN, DOUGH CONDITIONER [ENRICHED WHEAT FLOUR {NIACIN, REDUCED IRON, THIAMINE MONONITRATE, RIBOFLAVIN, FOLIC ACID}, DATEM, CANOLA OIL, DEXTROSE, ASCORBIC ACID, L-CYSTEINE, ENZYMES], SALT, YEAST, XANTHAN GUM, CALCIUM PROPIONATE [A MOLD INHIBITOR]), COOKED BONELESS CHICKEN WITH RIB MEAT (CHICKEN BREAST MEAT [WITH RIB MEAT], WATER, SEASONING [MALTODEXTRIN, SALT, SPICES, PAPRIKA, DEHYDRATED GARLIC AND ONION, DEXTROSE], YEAST EXTRACT, CARRAGEENAN, SODIUM PHOSPHATE, ONION POWDER, DEXTROSE, GARLIC POWDER), SAUCE (FIRE ROASTED VEGETABLES [ONIONS, RED BELL PEPPERS, GREEN BELL PEPPERS]), SOY SAUCE [WATER, WHEAT, SOYBEANS, SALT], WATER, SUGAR, BROWN SUGAR, MODIFIED FOOD STARCH, SESAME OIL, PINEAPPLE JUICE CONCENTRATE, GINGER PUREE [GINGER, CITRIC ACID], VINEGAR, SALT, DEHYDRATED GARLIC, XANTHAN GUM, ONION POWDER, SPICE) PASTURIZED PROCESS AMERICAN CHEESE (CHEESE [PASTEURIZED MILK, CHEESE CULTURES, SALT, ENZYMES], WATER, CREAM, SODIUM CITRATE, SODIUM PHOSPHATES, SALT, VEGETABLE COLOR).",
+        "marketCountry": "United States",
+        "servingSize": 187,
+        "servingSizeUnit": "g",
+        "fdcId": 574970,
+        "description": "CHICKEN TERIYAKI",
+        "publicationDate": "4/1/2019",
+        "workingFoodId": 45360144,
+        "dataType": "Branded",
+        "foodClass": "Branded"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 16
+      },
+      "saturatedFat": {
+        "value": 6.99
+      },
+      "transFat": {
+        "value": 0
+      },
+      "cholesterol": {
+        "value": 54.2
+      },
+      "sodium": {
+        "value": 1070
+      },
+      "carbohydrates": {
+        "value": 46
+      },
+      "fiber": {
+        "value": 2.06
+      },
+      "sugars": {
+        "value": 6.99
+      },
+      "protein": {
+        "value": 21
+      },
+      "calcium": {
+        "value": 99.1
+      },
+      "iron": {
+        "value": 2.69
+      },
+      "calories": {
+        "value": 329
+      }
+    }
+  }
+}

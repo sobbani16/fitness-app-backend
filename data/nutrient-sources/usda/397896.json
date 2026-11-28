@@ -1,0 +1,396 @@
+{
+  "retrievedAt": "2026-11-28T03:51:03.895Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [],
+    "foodPortions": [],
+    "fdcId": 397896,
+    "description": "HALDIRAM'S, MINUTE KHANA HYDERABADI BIRYANI",
+    "publicationDate": "4/1/2019",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1162,
+          "number": "401",
+          "name": "Vitamin C, total ascorbic acid",
+          "rank": 6300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 3890668,
+        "amount": 4.8
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1089,
+          "number": "303",
+          "name": "Iron, Fe",
+          "rank": 5400,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 3890666,
+        "amount": 1.08
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1087,
+          "number": "301",
+          "name": "Calcium, Ca",
+          "rank": 5300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 3890665,
+        "amount": 20
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1104,
+          "number": "318",
+          "name": "Vitamin A, IU",
+          "rank": 7500,
+          "unitName": "IU"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 3890667,
+        "amount": 1500
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 5733220,
+        "amount": 28
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 5733224,
+        "amount": 550
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 5733222,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1258,
+          "number": "606",
+          "name": "Fatty acids, total saturated",
+          "rank": 9700,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 5733227,
+        "amount": 3
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1079,
+          "number": "291",
+          "name": "Fiber, total dietary",
+          "rank": 1200,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 5733223,
+        "amount": 3
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1253,
+          "number": "601",
+          "name": "Cholesterol",
+          "rank": 15700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 5733225,
+        "amount": 5
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 5733221,
+        "amount": 200
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 5733218,
+        "amount": 3
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 5733219,
+        "amount": 9
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1257,
+          "number": "605",
+          "name": "Fatty acids, total trans",
+          "rank": 15400,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 5733226,
+        "amount": 0
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "modifiedDate": "8/8/2018",
+    "availableDate": "8/8/2018",
+    "brandOwner": "HALDIRAM SNACKS PVT. LTD.",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Flavored Rice Dishes",
+    "gtinUpc": "8904063230959",
+    "householdServingFullText": "0.5 PACK",
+    "ingredients": "RICE (28%), TOMATO (19%), ONION (15%), SUNFLOWER OIL (8%), BEANS (5%), CAULIFLOWER(5%), BUTTER (4%), YOGURT (4%), CARROT(3%), FROZEN PEAS (3%), COCONUT, SALT, GREEN CHILLY, CLARIFIED BUTTER, CORIANDER POWDER, GARLIC, GINGER, TURMERIC POWDER, MINT, RED CHILLY, CINNAMON, CARDAMOM, MACE, CUMIN",
+    "marketCountry": "United States",
+    "servingSize": 100,
+    "servingSizeUnit": "g",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 397896,
+        "description": "HALDIRAM'S, MINUTE KHANA HYDERABADI BIRYANI",
+        "publicationDate": "4/1/2019",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "8/8/2018",
+        "availableDate": "8/8/2018",
+        "brandOwner": "HALDIRAM SNACKS PVT. LTD.",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Flavored Rice Dishes",
+        "gtinUpc": "8904063230959",
+        "householdServingFullText": "0.5 PACK",
+        "ingredients": "RICE (28%), TOMATO (19%), ONION (15%), SUNFLOWER OIL (8%), BEANS (5%), CAULIFLOWER(5%), BUTTER (4%), YOGURT (4%), CARROT(3%), FROZEN PEAS (3%), COCONUT, SALT, GREEN CHILLY, CLARIFIED BUTTER, CORIANDER POWDER, GARLIC, GINGER, TURMERIC POWDER, MINT, RED CHILLY, CINNAMON, CARDAMOM, MACE, CUMIN",
+        "marketCountry": "United States",
+        "servingSize": 100,
+        "servingSizeUnit": "g"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 9
+      },
+      "saturatedFat": {
+        "value": 3
+      },
+      "transFat": {
+        "value": 0
+      },
+      "cholesterol": {
+        "value": 5
+      },
+      "sodium": {
+        "value": 550
+      },
+      "carbohydrates": {
+        "value": 28
+      },
+      "fiber": {
+        "value": 3
+      },
+      "sugars": {
+        "value": 0
+      },
+      "protein": {
+        "value": 3
+      },
+      "calcium": {
+        "value": 20
+      },
+      "iron": {
+        "value": 1.08
+      },
+      "calories": {
+        "value": 200
+      }
+    }
+  }
+}

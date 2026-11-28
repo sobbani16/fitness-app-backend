@@ -1,0 +1,308 @@
+{
+  "retrievedAt": "2026-11-28T03:51:06.009Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [
+      {
+        "id": 2210436,
+        "value": 9,
+        "name": "Added Package Weight",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      }
+    ],
+    "foodPortions": [],
+    "fdcId": 2018086,
+    "description": "PAD THAI SEASONING MIX, PAD THAI",
+    "publicationDate": "10/28/2021",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 26480405,
+        "amount": 286
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 26480406,
+        "amount": 14.29
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 26480404,
+        "amount": 71.43
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 26480403,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 26480402,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 26480407,
+        "amount": 7286
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1235,
+          "number": "539",
+          "name": "Sugars, added",
+          "rank": 1540,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 26480408,
+        "amount": 14.3
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "modifiedDate": "1/7/2021",
+    "availableDate": "1/7/2021",
+    "brandOwner": "Kikkoman Sales USA, Inc.",
+    "brandName": "KIKKOMAN",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Seasoning Mixes, Salts, Marinades & Tenderizers",
+    "gtinUpc": "041390042164",
+    "householdServingFullText": "1 Tbsp",
+    "ingredients": "MALTODEXTRIN, DEHYDRATED SOY SAUCE (SOY SAUCE (WHEAT, SOYBEANS, SALT), MALTODEXTRIN, SALT), SALT, DEXTROSE, TOMATO POWDER, SUGAR, MODIFIED CORN STARCH, SPICES, DEHYDRATED ONION, SHRIMP POWDER, VINEGAR, OYSTER EXTRACT (MOLLUSCAN SHELLFISH), NATURAL FLAVORS.",
+    "marketCountry": "United States",
+    "servingSize": 7,
+    "servingSizeUnit": "g",
+    "packageWeight": "1 OZ/28.3 g",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2018086,
+        "description": "PAD THAI SEASONING MIX, PAD THAI",
+        "publicationDate": "10/28/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "1/7/2021",
+        "availableDate": "1/7/2021",
+        "brandOwner": "Kikkoman Sales USA, Inc.",
+        "brandName": "KIKKOMAN",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Seasoning Mixes, Salts, Marinades & Tenderizers",
+        "gtinUpc": "041390042164",
+        "householdServingFullText": "1 Tbsp",
+        "ingredients": "MALTODEXTRIN, DEHYDRATED SOY SAUCE (SOY SAUCE (WHEAT, SOYBEANS, SALT), MALTODEXTRIN, SALT), SALT, DEXTROSE, TOMATO POWDER, SUGAR, MODIFIED CORN STARCH, SPICES, DEHYDRATED ONION, SHRIMP POWDER, VINEGAR, OYSTER EXTRACT (MOLLUSCAN SHELLFISH), NATURAL FLAVORS.",
+        "marketCountry": "United States",
+        "servingSize": 7,
+        "servingSizeUnit": "g",
+        "packageWeight": "1 OZ/28.3 g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1478998,
+        "description": "PAD THAI SEASONING MIX, PAD THAI",
+        "publicationDate": "3/19/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "1/7/2021",
+        "availableDate": "1/7/2021",
+        "brandOwner": "Kikkoman Sales USA, Inc.",
+        "brandName": "KIKKOMAN",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Seasoning Mixes, Salts, Marinades & Tenderizers",
+        "gtinUpc": "041390042164",
+        "householdServingFullText": "1 Tbsp",
+        "ingredients": "MALTODEXTRIN, DEHYDRATED SOY SAUCE (SOY SAUCE (WHEAT, SOYBEANS, SALT), MALTODEXTRIN, SALT), SALT, DEXTROSE, TOMATO POWDER, SUGAR, MODIFIED CORN STARCH, SPICES, DEHYDRATED ONION, SHRIMP POWDER, VINEGAR, OYSTER EXTRACT (MOLLUSCAN SHELLFISH), NATURAL FLAVORS.",
+        "marketCountry": "United States",
+        "servingSize": 7,
+        "servingSizeUnit": "g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1186961,
+        "description": "PAD THAI SEASONING MIX, PAD THAI",
+        "publicationDate": "2/26/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "1/7/2021",
+        "availableDate": "1/7/2021",
+        "brandOwner": "Kikkoman Sales USA, Inc.",
+        "brandName": "KIKKOMAN",
+        "subbrandName": "",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Seasoning Mixes, Salts, Marinades & Tenderizers",
+        "gtinUpc": "041390042164",
+        "householdServingFullText": "1 Tbsp",
+        "ingredients": "MALTODEXTRIN, DEHYDRATED SOY SAUCE (SOY SAUCE (WHEAT, SOYBEANS, SALT), MALTODEXTRIN, SALT), SALT, DEXTROSE, TOMATO POWDER, SUGAR, MODIFIED CORN STARCH, SPICES, DEHYDRATED ONION, SHRIMP POWDER, VINEGAR, OYSTER EXTRACT (MOLLUSCAN SHELLFISH), NATURAL FLAVORS.",
+        "marketCountry": "United States",
+        "servingSize": 7,
+        "servingSizeUnit": "g",
+        "packageWeight": "",
+        "notaSignificantSourceOf": ""
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "modifiedDate": "7/24/2018",
+        "availableDate": "7/24/2018",
+        "brandOwner": "Kikkoman Sales USA, Inc.",
+        "dataSource": "LI",
+        "gpcCategoryGroup": "Herbs & Spices",
+        "gtinUpc": "041390042164",
+        "householdServingFullText": "2.33 tsp",
+        "ingredients": "MALTODEXTRIN, DEHYDRATED SOY SAUCE (SOY SAUCE [WHEAT, SOYBEANS, SALT], MALTODEXTRIN, SALT), SALT, DEXTROSE, TOMATO POWDER, SUGAR, MODIFIED CORN STARCH, SPICES, DEHYDRATED ONION, SHRIMP POWDER, VINEGAR, OYSTER EXTRACT (MOLLUSCAN SHELLFISH), NATURAL FLAVORS.",
+        "marketCountry": "United States",
+        "servingSize": 7,
+        "servingSizeUnit": "g",
+        "fdcId": 374687,
+        "description": "PAD THAI SEASONING MIX",
+        "publicationDate": "4/1/2019",
+        "workingFoodId": 45037269,
+        "dataType": "Branded",
+        "foodClass": "Branded"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 0
+      },
+      "sodium": {
+        "value": 510
+      },
+      "carbohydrates": {
+        "value": 5
+      },
+      "sugars": {
+        "value": 1
+      },
+      "protein": {
+        "value": 0
+      },
+      "addedSugar": {
+        "value": 1
+      },
+      "calories": {
+        "value": 20
+      }
+    }
+  }
+}

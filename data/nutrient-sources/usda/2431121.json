@@ -1,0 +1,463 @@
+{
+  "retrievedAt": "2026-11-28T03:51:08.534Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [
+      {
+        "id": 2758389,
+        "value": 4,
+        "name": "Nutrient Updated",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      },
+      {
+        "id": 2758388,
+        "value": 6,
+        "name": "Nutrient Removed",
+        "foodAttributeType": {
+          "id": 998,
+          "name": "Update Log",
+          "description": "Changes that were made to this food"
+        }
+      }
+    ],
+    "foodPortions": [],
+    "fdcId": 2431121,
+    "description": "BREAD",
+    "publicationDate": "12/22/2022",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 29997042,
+        "amount": 247
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1087,
+          "number": "301",
+          "name": "Calcium, Ca",
+          "rank": 5300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 29997040,
+        "amount": 24
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1258,
+          "number": "606",
+          "name": "Fatty acids, total saturated",
+          "rank": 9700,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 29997046,
+        "amount": 3.53
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 29997034,
+        "amount": 5.88
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1253,
+          "number": "601",
+          "name": "Cholesterol",
+          "rank": 15700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 29997045,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 29997038,
+        "amount": 15.29
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1162,
+          "number": "401",
+          "name": "Vitamin C, total ascorbic acid",
+          "rank": 6300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 29997044,
+        "amount": 1.4
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 29997035,
+        "amount": 7.06
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1104,
+          "number": "318",
+          "name": "Vitamin A, IU",
+          "rank": 7500,
+          "unitName": "IU"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 29997043,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1089,
+          "number": "303",
+          "name": "Iron, Fe",
+          "rank": 5400,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 75,
+          "code": "LCCD",
+          "description": "Calculated from a daily value percentage per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 29997041,
+        "amount": 2.12
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 29997037,
+        "amount": 306
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1079,
+          "number": "291",
+          "name": "Fiber, total dietary",
+          "rank": 1200,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 29997039,
+        "amount": 1.2
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 29997036,
+        "amount": 51.76
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "shortDescription": "",
+    "modifiedDate": "6/14/2018",
+    "availableDate": "6/14/2018",
+    "brandOwner": "The Bread Factory Inc.",
+    "brandName": "CONCHAS",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Cookies & Biscuits",
+    "gtinUpc": "896911002031",
+    "householdServingFullText": "3 ONZ",
+    "ingredients": "ENRICHED WHEAT FLOUR(MALTED BARLEY FLOUR, NIACIN, IRON, THIAMINE MONOITRATE, RIBOFLAVIN, FOLIC ACID.), PALM OIL RBD, GRANULATED SUGAR, POWDERED SUGAR(CORN STARCH), EGGS(FROZEN), SALT, BUTTER (ARTIFICIAL FLAVOR WATER, COTTONSEED OIL, TRAGACANTH GUM, CITRIC ACID, SODIUM BENZOATE, VITAMIN E.), DRY YEAST(SOBITIAN MONOSTEARATE, ASCORBIC ACID), CRUSHED CINNAMON, COLOR(EGG SHADE), CALCIUM PROPIONATE.",
+    "marketCountry": "United States",
+    "servingSize": 85,
+    "servingSizeUnit": "g",
+    "packageWeight": "1 lbs/16 oz/454 g",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2431121,
+        "description": "BREAD",
+        "publicationDate": "12/22/2022",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "shortDescription": "",
+        "modifiedDate": "6/14/2018",
+        "availableDate": "6/14/2018",
+        "brandOwner": "The Bread Factory Inc.",
+        "brandName": "CONCHAS",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Cookies & Biscuits",
+        "gtinUpc": "896911002031",
+        "householdServingFullText": "3 ONZ",
+        "ingredients": "ENRICHED WHEAT FLOUR(MALTED BARLEY FLOUR, NIACIN, IRON, THIAMINE MONOITRATE, RIBOFLAVIN, FOLIC ACID.), PALM OIL RBD, GRANULATED SUGAR, POWDERED SUGAR(CORN STARCH), EGGS(FROZEN), SALT, BUTTER (ARTIFICIAL FLAVOR WATER, COTTONSEED OIL, TRAGACANTH GUM, CITRIC ACID, SODIUM BENZOATE, VITAMIN E.), DRY YEAST(SOBITIAN MONOSTEARATE, ASCORBIC ACID), CRUSHED CINNAMON, COLOR(EGG SHADE), CALCIUM PROPIONATE.",
+        "marketCountry": "United States",
+        "servingSize": 85,
+        "servingSizeUnit": "g",
+        "packageWeight": "1 lbs/16 oz/454 g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1950222,
+        "description": "BREAD",
+        "publicationDate": "7/29/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "6/14/2018",
+        "availableDate": "6/14/2018",
+        "brandOwner": "The Bread Factory Inc.",
+        "brandName": "CONCHAS",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Cookies & Biscuits",
+        "gtinUpc": "896911002031",
+        "householdServingFullText": "3 ONZ",
+        "ingredients": "ENRICHED WHEAT FLOUR(MALTED BARLEY FLOUR, NIACIN, IRON, THIAMINE MONOITRATE, RIBOFLAVIN, FOLIC ACID.), PALM OIL RBD, GRANULATED SUGAR, POWDERED SUGAR(CORN STARCH), EGGS(FROZEN), SALT, BUTTER (ARTIFICIAL FLAVOR WATER, COTTONSEED OIL, TRAGACANTH GUM, CITRIC ACID, SODIUM BENZOATE, VITAMIN E.), DRY YEAST(SOBITIAN MONOSTEARATE, ASCORBIC ACID), CRUSHED CINNAMON, COLOR(EGG SHADE), CALCIUM PROPIONATE.",
+        "marketCountry": "United States",
+        "servingSize": 85,
+        "servingSizeUnit": "g",
+        "packageWeight": "1 lbs/16 oz/454 g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 1811838,
+        "description": "BREAD",
+        "publicationDate": "6/17/2021",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "modifiedDate": "6/14/2018",
+        "availableDate": "6/14/2018",
+        "brandOwner": "The Bread Factory Inc.",
+        "brandName": "CONCHAS",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Cookies & Biscuits",
+        "gtinUpc": "896911002031",
+        "householdServingFullText": "3 ONZ",
+        "ingredients": "ENRICHED WHEAT FLOUR(MALTED BARLEY FLOUR, NIACIN, IRON, THIAMINE MONOITRATE, RIBOFLAVIN, FOLIC ACID.), PALM OIL RBD, GRANULATED SUGAR, POWDERED SUGAR(CORN STARCH), EGGS(FROZEN), SALT, BUTTER (ARTIFICIAL FLAVOR WATER, COTTONSEED OIL, TRAGACANTH GUM, CITRIC ACID, SODIUM BENZOATE, VITAMIN E.), DRY YEAST(SOBITIAN MONOSTEARATE, ASCORBIC ACID), CRUSHED CINNAMON, COLOR(EGG SHADE), CALCIUM PROPIONATE.",
+        "marketCountry": "United States",
+        "servingSize": 85,
+        "servingSizeUnit": "g",
+        "packageWeight": "454 g"
+      },
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "modifiedDate": "6/14/2018",
+        "availableDate": "6/14/2018",
+        "brandOwner": "CONCHAS",
+        "dataSource": "LI",
+        "gpcCategoryGroup": "Cookies & Biscuits",
+        "gtinUpc": "896911002031",
+        "householdServingFullText": "3 ONZ",
+        "ingredients": "ENRICHED WHEAT FLOUR(MALTED BARLEY FLOUR, NIACIN, IRON, THIAMINE MONOITRATE, RIBOFLAVIN, FOLIC ACID.), PALM OIL RBD, GRANULATED SUGAR, POWDERED SUGAR(CORN STARCH), EGGS(FROZEN), SALT, BUTTER (ARTIFICIAL FLAVOR WATER, COTTONSEED OIL, TRAGACANTH GUM, CITRIC ACID, SODIUM BENZOATE, VITAMIN E.), DRY YEAST(SOBITIAN MONOSTEARATE, ASCORBIC ACID), CRUSHED CINNAMON, COLOR(EGG SHADE), CALCIUM PROPIONATE.",
+        "marketCountry": "United States",
+        "servingSize": 85,
+        "servingSizeUnit": "g",
+        "fdcId": 583950,
+        "description": "BREAD",
+        "publicationDate": "4/1/2019",
+        "workingFoodId": 45374615,
+        "dataType": "Branded",
+        "foodClass": "Branded"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 6
+      },
+      "saturatedFat": {
+        "value": 3
+      },
+      "cholesterol": {
+        "value": 0
+      },
+      "sodium": {
+        "value": 210
+      },
+      "carbohydrates": {
+        "value": 44
+      },
+      "fiber": {
+        "value": 1.02
+      },
+      "sugars": {
+        "value": 13
+      },
+      "protein": {
+        "value": 5
+      },
+      "calcium": {
+        "value": 20.4
+      },
+      "iron": {
+        "value": 1.8
+      },
+      "calories": {
+        "value": 260
+      }
+    }
+  }
+}

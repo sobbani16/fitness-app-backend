@@ -1,0 +1,433 @@
+{
+  "retrievedAt": "2026-11-28T03:50:59.293Z",
+  "endpoint": "https://api.nal.usda.gov/fdc/v1/foods",
+  "food": {
+    "discontinuedDate": "",
+    "foodComponents": [],
+    "foodAttributes": [],
+    "foodPortions": [],
+    "fdcId": 2630139,
+    "description": "PAD THAI",
+    "publicationDate": "8/31/2023",
+    "foodNutrients": [
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1253,
+          "number": "601",
+          "name": "Cholesterol",
+          "rank": 15700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32778853,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1092,
+          "number": "306",
+          "name": "Potassium, K",
+          "rank": 5700,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32778849,
+        "amount": 135
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1004,
+          "number": "204",
+          "name": "Total lipid (fat)",
+          "rank": 800,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32778842,
+        "amount": 4
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1235,
+          "number": "539",
+          "name": "Sugars, added",
+          "rank": 1540,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32778852,
+        "amount": 8
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1079,
+          "number": "291",
+          "name": "Fiber, total dietary",
+          "rank": 1200,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32778846,
+        "amount": 1
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1093,
+          "number": "307",
+          "name": "Sodium, Na",
+          "rank": 5800,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32778850,
+        "amount": 295
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 2000,
+          "number": "269",
+          "name": "Total Sugars",
+          "rank": 1510,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32778845,
+        "amount": 9
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1087,
+          "number": "301",
+          "name": "Calcium, Ca",
+          "rank": 5300,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32778847,
+        "amount": 35
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1257,
+          "number": "605",
+          "name": "Fatty acids, total trans",
+          "rank": 15400,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32778854,
+        "amount": 0
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1003,
+          "number": "203",
+          "name": "Protein",
+          "rank": 600,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32778841,
+        "amount": 4
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1258,
+          "number": "606",
+          "name": "Fatty acids, total saturated",
+          "rank": 9700,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32778855,
+        "amount": 0.5
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1005,
+          "number": "205",
+          "name": "Carbohydrate, by difference",
+          "rank": 1110,
+          "unitName": "g"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32778843,
+        "amount": 26
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1008,
+          "number": "208",
+          "name": "Energy",
+          "rank": 300,
+          "unitName": "kcal"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32778844,
+        "amount": 155
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1089,
+          "number": "303",
+          "name": "Iron, Fe",
+          "rank": 5400,
+          "unitName": "mg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32778848,
+        "amount": 1.7
+      },
+      {
+        "type": "FoodNutrient",
+        "nutrient": {
+          "id": 1114,
+          "number": "328",
+          "name": "Vitamin D (D2 + D3)",
+          "rank": 8700,
+          "unitName": "µg"
+        },
+        "foodNutrientDerivation": {
+          "id": 70,
+          "code": "LCCS",
+          "description": "Calculated from value per serving size measure",
+          "foodNutrientSource": {
+            "id": 9,
+            "code": "12",
+            "description": "Manufacturer's analytical; partial documentation"
+          }
+        },
+        "id": 32778851,
+        "amount": 0
+      }
+    ],
+    "dataType": "Branded",
+    "foodClass": "Branded",
+    "shortDescription": "",
+    "modifiedDate": "7/5/2023",
+    "availableDate": "7/5/2023",
+    "brandOwner": "Amy's Kitchen Inc.",
+    "brandName": "AMY'S",
+    "dataSource": "LI",
+    "brandedFoodCategory": "Frozen Dinners & Entrees",
+    "gtinUpc": "042272013944",
+    "householdServingFullText": "1 cup",
+    "ingredients": "ORGANIC RICE NOODLES (ORGANIC RICE, FILTERED WATER, ORGANIC TAPIOCA STARCH), ORGANIC BROCCOLI, ORGANIC CANE SUGAR, ORGANIC TOFU (FILTERED WATER, ORGANIC SOYBEANS, MAGNESIUM CHLORIDE), ORGANIC CARROTS, FILTERED WATER, ORGANIC GREEN ONIONS, ORGANIC TAMARI (WATER, ORGANIC SOYBEANS, SALT, ORGANIC ALCOHOL [TO PRESERVE FRESHNESS]), ORGANIC BROWN RICE VINEGAR (WATER, ORGANIC BROWN RICE), ORGANIC CASHEWS, EXPELLER PRESSED HIGH OLEIC SAFFLOWER AND/OR SUNFLOWER OIL, ORGANIC RED ONIONS, PAPRIKA, TAMARIND EXTRACT, SEA SALT, ORGANIC GARLIC, ORGANIC DISTILLED VINEGAR, BLACK PEPPER.",
+    "marketCountry": "United States",
+    "servingSize": 200,
+    "servingSizeUnit": "GRM",
+    "packageWeight": "28.2 oz/800 g",
+    "foodUpdateLog": [
+      {
+        "discontinuedDate": "",
+        "foodAttributes": [],
+        "fdcId": 2630139,
+        "description": "PAD THAI",
+        "publicationDate": "8/31/2023",
+        "dataType": "Branded",
+        "foodClass": "Branded",
+        "shortDescription": "",
+        "modifiedDate": "7/5/2023",
+        "availableDate": "7/5/2023",
+        "brandOwner": "Amy's Kitchen Inc.",
+        "brandName": "AMY'S",
+        "dataSource": "LI",
+        "brandedFoodCategory": "Frozen Dinners & Entrees",
+        "gtinUpc": "042272013944",
+        "householdServingFullText": "1 cup",
+        "ingredients": "ORGANIC RICE NOODLES (ORGANIC RICE, FILTERED WATER, ORGANIC TAPIOCA STARCH), ORGANIC BROCCOLI, ORGANIC CANE SUGAR, ORGANIC TOFU (FILTERED WATER, ORGANIC SOYBEANS, MAGNESIUM CHLORIDE), ORGANIC CARROTS, FILTERED WATER, ORGANIC GREEN ONIONS, ORGANIC TAMARI (WATER, ORGANIC SOYBEANS, SALT, ORGANIC ALCOHOL [TO PRESERVE FRESHNESS]), ORGANIC BROWN RICE VINEGAR (WATER, ORGANIC BROWN RICE), ORGANIC CASHEWS, EXPELLER PRESSED HIGH OLEIC SAFFLOWER AND/OR SUNFLOWER OIL, ORGANIC RED ONIONS, PAPRIKA, TAMARIND EXTRACT, SEA SALT, ORGANIC GARLIC, ORGANIC DISTILLED VINEGAR, BLACK PEPPER.",
+        "marketCountry": "United States",
+        "servingSize": 200,
+        "servingSizeUnit": "GRM",
+        "packageWeight": "28.2 oz/800 g"
+      }
+    ],
+    "labelNutrients": {
+      "fat": {
+        "value": 8
+      },
+      "saturatedFat": {
+        "value": 1
+      },
+      "transFat": {
+        "value": 0
+      },
+      "cholesterol": {
+        "value": 0
+      },
+      "sodium": {
+        "value": 590
+      },
+      "carbohydrates": {
+        "value": 52
+      },
+      "fiber": {
+        "value": 2
+      },
+      "sugars": {
+        "value": 18
+      },
+      "protein": {
+        "value": 8
+      },
+      "vitaminD": {
+        "value": 0
+      },
+      "calcium": {
+        "value": 70
+      },
+      "iron": {
+        "value": 3.4
+      },
+      "potassium": {
+        "value": 270
+      },
+      "addedSugar": {
+        "value": 16
+      },
+      "calories": {
+        "value": 310
+      }
+    }
+  }
+}

@@ -26,6 +26,7 @@
     "nutrients:import": "node scripts/import-nutrients.js",
     "nutrients:fetch": "node scripts/fetch-nutrient-sources.js",
     "nutrients:populate": "node scripts/populate-nutrients.js",
+    "nutrients:coverage": "node scripts/nutrient-coverage-report.js",
     "conditions:import": "node scripts/import-condition-rules.js"
   },
   "prisma": {

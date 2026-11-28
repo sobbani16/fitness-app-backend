@@ -1,0 +1,2295 @@
+{
+  "generatedAt": "2026-11-28T04:07:44.421Z",
+  "database": {
+    "provider": "postgres",
+    "database": "fitness_app",
+    "note": "Read-only report. No secrets or connection credentials are emitted."
+  },
+  "counts": {
+    "uniqueIngredients": 427,
+    "ingredientCatalogEntries": 228,
+    "usableCatalogEntries": 228,
+    "brandedFormulations": 0,
+    "nutritionProfiles": 143,
+    "verifiedProfiles": 143,
+    "numericProfiles": 143,
+    "verifiedNumericProfiles": 143,
+    "emptyProfiles": 0,
+    "allNullProfiles": 0,
+    "ingredientNutrientRows": 3861,
+    "numericNutrientObservations": 3380,
+    "unknownNutrientObservations": 481,
+    "nutrientDefinitions": 27,
+    "recipeComponents": 1714,
+    "linkedRecipeComponents": 1659,
+    "unlinkedRecipeComponents": 55,
+    "recipeComponentsLinkedToNumericIngredient": 28,
+    "recipeComponentsLinkedButUnresolved": 1631,
+    "recipeComponentsWithSnapshot": 38,
+    "servingRows": 422,
+    "foodLogRows": 323,
+    "foodLogsWithIngredientLink": 19,
+    "foodLogsWithNutritionSnapshot": 63,
+    "foodLogsWithMicronutrients": 0,
+    "userIngredientLinks": 1824,
+    "uniqueUserLinkedIngredients": 193,
+    "evidenceProfiles": 10
+  },
+  "coverage": {
+    "ingredientsWithAnyProfile": {
+      "count": 143,
+      "pct": 33.5
+    },
+    "ingredientsWithNumericProfile": {
+      "count": 143,
+      "pct": 33.5
+    },
+    "unresolvedIngredients": {
+      "count": 284,
+      "pct": 66.5,
+      "definition": "Ingredient with no IngredientNutritionProfile containing a numeric amountPer100g"
+    },
+    "usableCatalogLinkedToNumericIngredient": {
+      "count": 7,
+      "pct": 3.1,
+      "definition": "usable catalog entry whose linked ingredient has at least one numeric nutrient profile"
+    },
+    "usableCatalogUnresolved": {
+      "count": 221,
+      "pct": 96.9
+    },
+    "recipeComponentsLinkedToNumericIngredient": {
+      "count": 28,
+      "pct": 1.6
+    },
+    "servingCoverageIngredients": {
+      "count": 190,
+      "pct": 44.5
+    }
+  },
+  "distributions": {
+    "ingredientSources": {
+      "usda": 179,
+      "seed": 10,
+      "test-fixture": 10,
+      "humai-catalog": 228
+    },
+    "catalogStatus": {
+      "GENERIC_COMPOSITION": 228
+    },
+    "catalogVerificationLevels": {
+      "GENERIC_COMPOSITION": 228
+    },
+    "profileSources": {
+      "USDA": 143
+    },
+    "profilePreparations": {
+      "OTHER": 139,
+      "RAW": 3,
+      "ROASTED": 1
+    },
+    "nutrientCategories": {
+      "OTHER": 2,
+      "MACRO": 8,
+      "MINERAL": 9,
+      "VITAMIN": 8
+    },
+    "evidenceStatuses": {
+      "NEEDS_REVIEW": 10
+    },
+    "amountPer100gStates": {
+      "numeric": 3380,
+      "unknown": 481
+    }
+  },
+  "nutrientCoverage": [
+    {
+      "code": "CARBOHYDRATE_TOTAL",
+      "name": "Total Carbohydrates",
+      "unit": "g",
+      "category": "MACRO",
+      "profilesWithNumeric": 143,
+      "numericObservations": 143,
+      "unknownObservations": 0,
+      "ingredientsWithNumeric": 143
+    },
+    {
+      "code": "FAT_SATURATED",
+      "name": "Saturated Fat",
+      "unit": "g",
+      "category": "MACRO",
+      "profilesWithNumeric": 142,
+      "numericObservations": 142,
+      "unknownObservations": 1,
+      "ingredientsWithNumeric": 142
+    },
+    {
+      "code": "FAT_TOTAL",
+      "name": "Total Fat",
+      "unit": "g",
+      "category": "MACRO",
+      "profilesWithNumeric": 143,
+      "numericObservations": 143,
+      "unknownObservations": 0,
+      "ingredientsWithNumeric": 143
+    },
+    {
+      "code": "FAT_TRANS",
+      "name": "Trans Fat",
+      "unit": "g",
+      "category": "MACRO",
+      "profilesWithNumeric": 18,
+      "numericObservations": 18,
+      "unknownObservations": 125,
+      "ingredientsWithNumeric": 18
+    },
+    {
+      "code": "FIBER",
+      "name": "Fiber",
+      "unit": "g",
+      "category": "MACRO",
+      "profilesWithNumeric": 142,
+      "numericObservations": 142,
+      "unknownObservations": 1,
+      "ingredientsWithNumeric": 142
+    },
+    {
+      "code": "PROTEIN",
+      "name": "Protein",
+      "unit": "g",
+      "category": "MACRO",
+      "profilesWithNumeric": 143,
+      "numericObservations": 143,
+      "unknownObservations": 0,
+      "ingredientsWithNumeric": 143
+    },
+    {
+      "code": "SUGAR_ADDED",
+      "name": "Added Sugar",
+      "unit": "g",
+      "category": "MACRO",
+      "profilesWithNumeric": 0,
+      "numericObservations": 0,
+      "unknownObservations": 143,
+      "ingredientsWithNumeric": 0
+    },
+    {
+      "code": "SUGAR_TOTAL",
+      "name": "Total Sugar",
+      "unit": "g",
+      "category": "MACRO",
+      "profilesWithNumeric": 136,
+      "numericObservations": 136,
+      "unknownObservations": 7,
+      "ingredientsWithNumeric": 136
+    },
+    {
+      "code": "CALCIUM",
+      "name": "Calcium",
+      "unit": "mg",
+      "category": "MINERAL",
+      "profilesWithNumeric": 143,
+      "numericObservations": 143,
+      "unknownObservations": 0,
+      "ingredientsWithNumeric": 143
+    },
+    {
+      "code": "IODINE",
+      "name": "Iodine",
+      "unit": "mcg",
+      "category": "MINERAL",
+      "profilesWithNumeric": 0,
+      "numericObservations": 0,
+      "unknownObservations": 143,
+      "ingredientsWithNumeric": 0
+    },
+    {
+      "code": "IRON",
+      "name": "Iron",
+      "unit": "mg",
+      "category": "MINERAL",
+      "profilesWithNumeric": 143,
+      "numericObservations": 143,
+      "unknownObservations": 0,
+      "ingredientsWithNumeric": 143
+    },
+    {
+      "code": "MAGNESIUM",
+      "name": "Magnesium",
+      "unit": "mg",
+      "category": "MINERAL",
+      "profilesWithNumeric": 141,
+      "numericObservations": 141,
+      "unknownObservations": 2,
+      "ingredientsWithNumeric": 141
+    },
+    {
+      "code": "PHOSPHORUS",
+      "name": "Phosphorus",
+      "unit": "mg",
+      "category": "MINERAL",
+      "profilesWithNumeric": 141,
+      "numericObservations": 141,
+      "unknownObservations": 2,
+      "ingredientsWithNumeric": 141
+    },
+    {
+      "code": "POTASSIUM",
+      "name": "Potassium",
+      "unit": "mg",
+      "category": "MINERAL",
+      "profilesWithNumeric": 141,
+      "numericObservations": 141,
+      "unknownObservations": 2,
+      "ingredientsWithNumeric": 141
+    },
+    {
+      "code": "SELENIUM",
+      "name": "Selenium",
+      "unit": "mcg",
+      "category": "MINERAL",
+      "profilesWithNumeric": 140,
+      "numericObservations": 140,
+      "unknownObservations": 3,
+      "ingredientsWithNumeric": 140
+    },
+    {
+      "code": "SODIUM",
+      "name": "Sodium",
+      "unit": "mg",
+      "category": "MINERAL",
+      "profilesWithNumeric": 143,
+      "numericObservations": 143,
+      "unknownObservations": 0,
+      "ingredientsWithNumeric": 143
+    },
+    {
+      "code": "ZINC",
+      "name": "Zinc",
+      "unit": "mg",
+      "category": "MINERAL",
+      "profilesWithNumeric": 141,
+      "numericObservations": 141,
+      "unknownObservations": 2,
+      "ingredientsWithNumeric": 141
+    },
+    {
+      "code": "FOLATE_TOTAL",
+      "name": "Folate (total)",
+      "unit": "mcg",
+      "category": "VITAMIN",
+      "profilesWithNumeric": 140,
+      "numericObservations": 140,
+      "unknownObservations": 3,
+      "ingredientsWithNumeric": 140
+    },
+    {
+      "code": "VITAMIN_A_RAE",
+      "name": "Vitamin A (RAE)",
+      "unit": "mcg",
+      "category": "VITAMIN",
+      "profilesWithNumeric": 140,
+      "numericObservations": 140,
+      "unknownObservations": 3,
+      "ingredientsWithNumeric": 140
+    },
+    {
+      "code": "VITAMIN_B12",
+      "name": "Vitamin B12",
+      "unit": "mcg",
+      "category": "VITAMIN",
+      "profilesWithNumeric": 139,
+      "numericObservations": 139,
+      "unknownObservations": 4,
+      "ingredientsWithNumeric": 139
+    },
+    {
+      "code": "VITAMIN_B6",
+      "name": "Vitamin B6",
+      "unit": "mg",
+      "category": "VITAMIN",
+      "profilesWithNumeric": 141,
+      "numericObservations": 141,
+      "unknownObservations": 2,
+      "ingredientsWithNumeric": 141
+    },
+    {
+      "code": "VITAMIN_C",
+      "name": "Vitamin C",
+      "unit": "mg",
+      "category": "VITAMIN",
+      "profilesWithNumeric": 140,
+      "numericObservations": 140,
+      "unknownObservations": 3,
+      "ingredientsWithNumeric": 140
+    },
+    {
+      "code": "VITAMIN_D",
+      "name": "Vitamin D (D2 + D3)",
+      "unit": "mcg",
+      "category": "VITAMIN",
+      "profilesWithNumeric": 126,
+      "numericObservations": 126,
+      "unknownObservations": 17,
+      "ingredientsWithNumeric": 126
+    },
+    {
+      "code": "VITAMIN_E_ALPHA_TOCOPHEROL",
+      "name": "Vitamin E (alpha-tocopherol)",
+      "unit": "mg",
+      "category": "VITAMIN",
+      "profilesWithNumeric": 136,
+      "numericObservations": 136,
+      "unknownObservations": 7,
+      "ingredientsWithNumeric": 136
+    },
+    {
+      "code": "VITAMIN_K",
+      "name": "Vitamin K (phylloquinone)",
+      "unit": "mcg",
+      "category": "VITAMIN",
+      "profilesWithNumeric": 134,
+      "numericObservations": 134,
+      "unknownObservations": 9,
+      "ingredientsWithNumeric": 134
+    },
+    {
+      "code": "CHOLESTEROL",
+      "name": "Cholesterol",
+      "unit": "mg",
+      "category": "OTHER",
+      "profilesWithNumeric": 142,
+      "numericObservations": 142,
+      "unknownObservations": 1,
+      "ingredientsWithNumeric": 142
+    },
+    {
+      "code": "ENERGY_KCAL",
+      "name": "Calories",
+      "unit": "kcal",
+      "category": "OTHER",
+      "profilesWithNumeric": 142,
+      "numericObservations": 142,
+      "unknownObservations": 1,
+      "ingredientsWithNumeric": 142
+    }
+  ],
+  "reportedCountReconciliation": {
+    "reported": {
+      "ingredients": 426,
+      "verifiedProfiles": 142,
+      "originalProfiles": 18,
+      "updatedProfiles": 42,
+      "unresolvedOriginal": 283,
+      "unresolvedUpdated": 284,
+      "nutrientDefinitions": 27
+    },
+    "actual": {
+      "ingredients": 427,
+      "verifiedProfiles": 143,
+      "profiles": 143,
+      "numericProfiles": 143,
+      "unresolvedIngredients": 284,
+      "nutrientDefinitions": 27
+    },
+    "note": "A nutrition profile is not an ingredient. A profile containing only null nutrient amounts is still unresolved. An empty profile is not numerical enrichment."
+  },
+  "priorityFoodCoverage": [
+    {
+      "term": "idli",
+      "catalog": true,
+      "ingredient": true,
+      "recipeComponent": true
+    },
+    {
+      "term": "dosa",
+      "catalog": true,
+      "ingredient": false,
+      "recipeComponent": false
+    },
+    {
+      "term": "pesarattu",
+      "catalog": true,
+      "ingredient": false,
+      "recipeComponent": false
+    },
+    {
+      "term": "upma",
+      "catalog": true,
+      "ingredient": false,
+      "recipeComponent": false
+    },
+    {
+      "term": "poha",
+      "catalog": true,
+      "ingredient": true,
+      "recipeComponent": true
+    },
+    {
+      "term": "chapati",
+      "catalog": true,
+      "ingredient": true,
+      "recipeComponent": false
+    },
+    {
+      "term": "rice",
+      "catalog": true,
+      "ingredient": true,
+      "recipeComponent": true
+    },
+    {
+      "term": "dal",
+      "catalog": true,
+      "ingredient": true,
+      "recipeComponent": true
+    },
+    {
+      "term": "sambar",
+      "catalog": true,
+      "ingredient": true,
+      "recipeComponent": false
+    },
+    {
+      "term": "rasam",
+      "catalog": true,
+      "ingredient": false,
+      "recipeComponent": false
+    },
+    {
+      "term": "curd",
+      "catalog": true,
+      "ingredient": true,
+      "recipeComponent": true
+    },
+    {
+      "term": "buttermilk",
+      "catalog": true,
+      "ingredient": false,
+      "recipeComponent": true
+    },
+    {
+      "term": "paneer",
+      "catalog": true,
+      "ingredient": true,
+      "recipeComponent": true
+    },
+    {
+      "term": "biryani",
+      "catalog": true,
+      "ingredient": true,
+      "recipeComponent": false
+    },
+    {
+      "term": "chicken curry",
+      "catalog": true,
+      "ingredient": true,
+      "recipeComponent": true
+    },
+    {
+      "term": "egg curry",
+      "catalog": true,
+      "ingredient": false,
+      "recipeComponent": true
+    },
+    {
+      "term": "vegetables",
+      "catalog": true,
+      "ingredient": true,
+      "recipeComponent": true
+    },
+    {
+      "term": "lentils",
+      "catalog": true,
+      "ingredient": true,
+      "recipeComponent": true
+    },
+    {
+      "term": "millets",
+      "catalog": true,
+      "ingredient": false,
+      "recipeComponent": false
+    },
+    {
+      "term": "guava",
+      "catalog": true,
+      "ingredient": false,
+      "recipeComponent": false
+    },
+    {
+      "term": "mango",
+      "catalog": true,
+      "ingredient": true,
+      "recipeComponent": true
+    },
+    {
+      "term": "banana",
+      "catalog": true,
+      "ingredient": true,
+      "recipeComponent": true
+    },
+    {
+      "term": "jamun",
+      "catalog": true,
+      "ingredient": false,
+      "recipeComponent": false
+    },
+    {
+      "term": "ice apple",
+      "catalog": true,
+      "ingredient": false,
+      "recipeComponent": true
+    },
+    {
+      "term": "street food",
+      "catalog": true,
+      "ingredient": false,
+      "recipeComponent": false
+    },
+    {
+      "term": "beverages",
+      "catalog": true,
+      "ingredient": false,
+      "recipeComponent": false
+    },
+    {
+      "term": "biscuits",
+      "catalog": true,
+      "ingredient": true,
+      "recipeComponent": true
+    },
+    {
+      "term": "packaged",
+      "catalog": true,
+      "ingredient": true,
+      "recipeComponent": false
+    }
+  ],
+  "unresolvedSamples": {
+    "ingredients": [
+      {
+        "id": "24cbd3c2-2c33-4c29-bee9-fea72ccc50b4",
+        "name": "GLUCOSE TABLETS, GRAPE",
+        "source": "usda",
+        "fdcId": "2126795",
+        "catalogId": null,
+        "noProfile": true
+      },
+      {
+        "id": "8db0ee9f-4874-4957-9148-15f36e8168c2",
+        "name": "Banana",
+        "source": "seed",
+        "fdcId": null,
+        "catalogId": null,
+        "noProfile": true
+      },
+      {
+        "id": "dabd5215-1c11-4287-a98e-5fc758c5c600",
+        "name": "PAD THAI NOODLE KIT, PAD THAI",
+        "source": "usda",
+        "fdcId": "2608332",
+        "catalogId": null,
+        "noProfile": true
+      },
+      {
+        "id": "909e3592-4f00-4e2c-b62d-fdc42d129818",
+        "name": "PAD THAI NOODLES IN NO TIME, PAD THAI",
+        "source": "usda",
+        "fdcId": "2090653",
+        "catalogId": null,
+        "noProfile": true
+      },
+      {
+        "id": "7c05a0cc-c9ce-4741-885a-5ca96dd47216",
+        "name": "PAD THAI RICE NOODLES, PAD THAI",
+        "source": "usda",
+        "fdcId": "2666497",
+        "catalogId": null,
+        "noProfile": true
+      },
+      {
+        "id": "humai-test-rice-ing",
+        "name": "Humai Test Rice",
+        "source": "test-fixture",
+        "fdcId": null,
+        "catalogId": null,
+        "noProfile": true
+      },
+      {
+        "id": "dcd92e1f-a277-4c45-aa4a-1b4185874f0a",
+        "name": "PAD THAI RICE NOODLES, PAD THAI",
+        "source": "usda",
+        "fdcId": "2423456",
+        "catalogId": null,
+        "noProfile": true
+      },
+      {
+        "id": "54366e99-8991-47b5-b512-f95a5c012e43",
+        "name": "PAD THAI SEASONING MIX, PAD THAI",
+        "source": "usda",
+        "fdcId": "1042649",
+        "catalogId": null,
+        "noProfile": true
+      },
+      {
+        "id": "b90e2995-169a-48aa-9725-a03d314a39e9",
+        "name": "PAD THAI SEASONING MIX, PAD THAI",
+        "source": "usda",
+        "fdcId": "2018086",
+        "catalogId": null,
+        "noProfile": true
+      },
+      {
+        "id": "99abc58e-7d65-4a7c-a775-c476192290cf",
+        "name": "CHICKEN TERIYAKI",
+        "source": "usda",
+        "fdcId": "1923067",
+        "catalogId": null,
+        "noProfile": true
+      },
+      {
+        "id": "3dcd40ec-9dcb-452b-90b2-920ca53fc9e0",
+        "name": "GLUCOSE TABLETS, GRAPE",
+        "source": "usda",
+        "fdcId": "2284435",
+        "catalogId": null,
+        "noProfile": true
+      },
+      {
+        "id": "b6af75af-81bd-4253-ba5a-536fb2d32160",
+        "name": "Greek yogurt, plain",
+        "source": "seed",
+        "fdcId": null,
+        "catalogId": null,
+        "noProfile": true
+      },
+      {
+        "id": "6c3eefe9-d65b-4926-a9c9-ec9689c82578",
+        "name": "GLUCOSE TABLETS, GRAPE",
+        "source": "usda",
+        "fdcId": "1842504",
+        "catalogId": null,
+        "noProfile": true
+      },
+      {
+        "id": "a9815756-1e10-4911-880c-433c7bf1a544",
+        "name": "GLUCOSE TABLETS, ORANGE",
+        "source": "usda",
+        "fdcId": "2100015",
+        "catalogId": null,
+        "noProfile": true
+      },
+      {
+        "id": "35e3a36c-5d52-4312-b86b-a63649f68aea",
+        "name": "Rice, white, dry",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "rice_white_dry",
+        "noProfile": true
+      },
+      {
+        "id": "e84dd509-5ad8-4cdb-98e7-83f9133486d5",
+        "name": "Rice, white, cooked",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "rice_white_cooked",
+        "noProfile": true
+      },
+      {
+        "id": "048a2c43-ba09-4e01-96e9-3800a929343c",
+        "name": "Rice, basmati, cooked",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "rice_basmati_cooked",
+        "noProfile": true
+      },
+      {
+        "id": "b8ad820a-4248-4bb5-a95d-53851996abb9",
+        "name": "Rice, brown, cooked",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "rice_brown_cooked",
+        "noProfile": true
+      },
+      {
+        "id": "0854fa6f-2415-450a-a85f-8adc4a4a33fb",
+        "name": "Whole-wheat atta flour, dry",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "atta",
+        "noProfile": true
+      },
+      {
+        "id": "77903a84-95b2-4aec-b1d3-442738e09d93",
+        "name": "Chapati/roti, cooked without oil",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "aata_roti",
+        "noProfile": true
+      },
+      {
+        "id": "8e6ac8aa-043e-4f07-923b-928681b66121",
+        "name": "Maida refined wheat flour",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "maida",
+        "noProfile": true
+      },
+      {
+        "id": "1dab8e60-cff7-4508-9f34-86543a43bf9e",
+        "name": "Semolina, dry",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "semolina",
+        "noProfile": true
+      },
+      {
+        "id": "ccde34b2-fea6-4aff-a5ce-3bf512f38593",
+        "name": "Flattened rice poha, dry",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "poha_dry",
+        "noProfile": true
+      },
+      {
+        "id": "5b80a111-ee87-4188-8f1e-e96c8a0e1835",
+        "name": "Vermicelli, wheat, dry",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "vermicelli_dry",
+        "noProfile": true
+      },
+      {
+        "id": "3663c4dd-a159-40b6-9146-5aa1b29e42bf",
+        "name": "Rolled oats, dry",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "oats_dry",
+        "noProfile": true
+      },
+      {
+        "id": "6c1a3e50-daa5-4b94-ae78-637d0463c529",
+        "name": "Finger millet ragi flour, dry",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "ragi_flour",
+        "noProfile": true
+      },
+      {
+        "id": "c24a4986-1a33-4558-b91c-f06dfb7e5495",
+        "name": "Sorghum jowar flour, dry",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "jowar_flour",
+        "noProfile": true
+      },
+      {
+        "id": "baa60fd9-fc4e-4424-85b8-4efaadb9962f",
+        "name": "Pearl millet bajra flour, dry",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "bajra_flour",
+        "noProfile": true
+      },
+      {
+        "id": "1899040f-c4cf-4889-9ba9-c915fa6449d4",
+        "name": "Idli/parboiled rice, dry",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "idli_rice_dry",
+        "noProfile": true
+      },
+      {
+        "id": "e5c26054-9e6a-4d9e-9486-b2e2cb2f372a",
+        "name": "Urad dal split, dry",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "urad_dal_dry",
+        "noProfile": true
+      },
+      {
+        "id": "0432e413-66f4-4cd3-a249-59fa4ff18343",
+        "name": "Toor/arhar dal, dry",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "toor_dal_dry",
+        "noProfile": true
+      },
+      {
+        "id": "f34e35e8-c982-45c6-953a-83b9563ed116",
+        "name": "Moong dal yellow, dry",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "moong_dal_dry",
+        "noProfile": true
+      },
+      {
+        "id": "349ae6b1-c7fa-4718-926c-1fbc909c7ecd",
+        "name": "Whole green gram moong, dry",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "moong_whole_dry",
+        "noProfile": true
+      },
+      {
+        "id": "8e76d979-cd67-4484-96ee-09a52ac8577d",
+        "name": "Masoor dal red, dry",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "masoor_dal_dry",
+        "noProfile": true
+      },
+      {
+        "id": "926de76b-405b-428a-836a-e26a2e42fd12",
+        "name": "Chana dal split chickpea, dry",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "chana_dal_dry",
+        "noProfile": true
+      },
+      {
+        "id": "1bf964c8-c6e6-4fbd-a5cd-33edbfabc83a",
+        "name": "Chickpeas, boiled",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "chickpea_cooked",
+        "noProfile": true
+      },
+      {
+        "id": "68de6f26-5f10-4ca1-8533-d93e9bb61e09",
+        "name": "Rajma kidney beans, cooked",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "kidneybeans_cooked",
+        "noProfile": true
+      },
+      {
+        "id": "18e220ab-e7ca-4b5d-a1bb-f5813f2070db",
+        "name": "Kala chana, boiled",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "blackchana_cooked",
+        "noProfile": true
+      },
+      {
+        "id": "5a138723-e4f4-4b27-94d1-e69b9c2158ca",
+        "name": "Green peas, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "peas_green",
+        "noProfile": true
+      },
+      {
+        "id": "3789c6e0-91ff-4c8e-82bf-7712ec4c2d10",
+        "name": "Soy chunks, dry, unbranded",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "soy_chunks_dry",
+        "noProfile": true
+      },
+      {
+        "id": "c2e3af49-3fa4-4d6c-a1e9-972b6e926b75",
+        "name": "Tofu, firm plain",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "tofu_firm",
+        "noProfile": true
+      },
+      {
+        "id": "b7966a4c-152c-489f-843b-3905b2bf053a",
+        "name": "Paneer, full-fat plain",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "paneer_fullfat",
+        "noProfile": true
+      },
+      {
+        "id": "b3070b17-b6ec-4d3a-aeb0-a958404e9b28",
+        "name": "Paneer, reduced-fat plain",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "paneer_lowfat",
+        "noProfile": true
+      },
+      {
+        "id": "94899d0b-eebe-415b-b5ed-6666ddc6befa",
+        "name": "Plain yogurt curd",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "yogurt_plain",
+        "noProfile": true
+      },
+      {
+        "id": "210731da-6176-4762-bda2-b8c695a424eb",
+        "name": "Greek yogurt plain, nonfat",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "yogurt_greek",
+        "noProfile": true
+      },
+      {
+        "id": "ff44fe74-1375-4173-baaf-c2341bc7fafb",
+        "name": "Ghee clarified butter",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "ghee",
+        "noProfile": true
+      },
+      {
+        "id": "1fe9e9d9-8e52-41f4-831b-c1bce4b1a220",
+        "name": "Butter unsalted",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "butter",
+        "noProfile": true
+      },
+      {
+        "id": "6cfb5c69-6467-486e-8c6a-fdf3cb0eba33",
+        "name": "Onion, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "onion_raw",
+        "noProfile": true
+      },
+      {
+        "id": "ee804d45-6eca-41d9-ae83-d52e2b61c93d",
+        "name": "Tomato, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "tomato_raw",
+        "noProfile": true
+      },
+      {
+        "id": "8e8f9c95-f882-4e51-8321-4d7b34059138",
+        "name": "Potato, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "potato_raw",
+        "noProfile": true
+      },
+      {
+        "id": "c87aa218-88f9-40c9-b6d9-d0613a774f87",
+        "name": "Sweet potato, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "sweetpotato_raw",
+        "noProfile": true
+      },
+      {
+        "id": "eab2891c-c325-4efb-924e-ed2cc40a79b1",
+        "name": "Carrot, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "carrot_raw",
+        "noProfile": true
+      },
+      {
+        "id": "b934be71-a513-4b03-b421-1ff928ea0509",
+        "name": "Capsicum bell pepper, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "capsicum_raw",
+        "noProfile": true
+      },
+      {
+        "id": "c4770ef5-2bfb-4836-ade9-18b68a5d3791",
+        "name": "Gongura sorrel leaves, raw — proxy",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "gongura_raw",
+        "noProfile": true
+      },
+      {
+        "id": "18eb5052-f65a-439b-b4f0-0aaabec09cf9",
+        "name": "Amaranth leaves thotakura, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "amaranth_raw",
+        "noProfile": true
+      },
+      {
+        "id": "acac309d-e859-475c-84c3-b7579ae913b3",
+        "name": "Fenugreek leaves methi, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "methi_raw",
+        "noProfile": true
+      },
+      {
+        "id": "6629871d-18fc-41e6-a5ab-907e5e4b3092",
+        "name": "Coriander cilantro leaves, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "coriander_raw",
+        "noProfile": true
+      },
+      {
+        "id": "deee5dc9-2640-4f54-b20d-91e0b225f43e",
+        "name": "Curry leaves fresh — proxy",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "curry_leaves",
+        "noProfile": true
+      },
+      {
+        "id": "118f014d-a545-412e-8de1-0439c3714a99",
+        "name": "Okra bhindi, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "okra_raw",
+        "noProfile": true
+      },
+      {
+        "id": "9b8bdb9d-785d-4dce-9ae6-89e36dd694ea",
+        "name": "Eggplant brinjal, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "eggplant_raw",
+        "noProfile": true
+      },
+      {
+        "id": "7e6adfe7-4a3a-43b7-9db5-936e305e45c5",
+        "name": "Bottle gourd lauki sorakaya, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "bottlegourd_raw",
+        "noProfile": true
+      },
+      {
+        "id": "03fe635f-4bb6-49b6-ac4b-66c61b3aa6d0",
+        "name": "Ridge gourd beerakaya, raw — proxy",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "ridgegourd_raw",
+        "noProfile": true
+      },
+      {
+        "id": "faa4103e-93b5-422a-8eed-96ba00cc1257",
+        "name": "Vegetable cooking oil",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "oil_generic",
+        "noProfile": true
+      },
+      {
+        "id": "cccfdd41-a28c-4778-be11-effec5d920fa",
+        "name": "Coconut oil",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "oil_coconut",
+        "noProfile": true
+      },
+      {
+        "id": "468107a3-6b88-40a7-ad89-9d4ba78cc7c3",
+        "name": "Sesame oil",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "oil_sesame",
+        "noProfile": true
+      },
+      {
+        "id": "a6c14f20-9f4a-40cd-87da-a4bec69f0118",
+        "name": "Bitter gourd karela kakarakaya, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "bittergourd_raw",
+        "noProfile": true
+      },
+      {
+        "id": "6c67d66b-5472-45ea-b8fa-1a710d54ea29",
+        "name": "Ivy gourd dondakaya, raw — proxy",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "tindora_raw",
+        "noProfile": true
+      },
+      {
+        "id": "a29adb45-fca1-43eb-a925-1fc29e76667f",
+        "name": "Cauliflower, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "cauliflower_raw",
+        "noProfile": true
+      },
+      {
+        "id": "c53a473a-fac2-4afd-b94d-af9235e6217c",
+        "name": "Cabbage, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "cabbage_raw",
+        "noProfile": true
+      },
+      {
+        "id": "78271bae-3fcc-4bf1-a520-6b1f04147b33",
+        "name": "Beetroot, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "beetroot_raw",
+        "noProfile": true
+      },
+      {
+        "id": "6309eddf-6cbc-494f-bb02-f48b3a3c874f",
+        "name": "Mushrooms button, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "mushroom_raw",
+        "noProfile": true
+      },
+      {
+        "id": "af776291-f9e9-4c53-970a-87e7348632d1",
+        "name": "Cucumber, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "cucumber_raw",
+        "noProfile": true
+      },
+      {
+        "id": "caf3469a-157a-42d1-8fd8-f745c2c2ceae",
+        "name": "Green beans, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "beans_green",
+        "noProfile": true
+      },
+      {
+        "id": "285d4b0c-e32f-4ea0-9cfb-30f04381b3dc",
+        "name": "Pumpkin, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "pumpkin_raw",
+        "noProfile": true
+      },
+      {
+        "id": "73d598ab-0769-480d-9d1d-d9a2b5bb260b",
+        "name": "Moringa drumstick pods, raw — proxy",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "drumstick_raw",
+        "noProfile": true
+      },
+      {
+        "id": "295d802f-fcb9-46eb-ad59-bc8eedaf4ded",
+        "name": "Mango unripe, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "raw_mango",
+        "noProfile": true
+      },
+      {
+        "id": "1fe4a370-902a-42f0-851e-61a4ba1da065",
+        "name": "Coconut flesh, fresh",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "coconut_fresh",
+        "noProfile": true
+      },
+      {
+        "id": "29f74f94-9aa1-4c12-9c3d-e78c7cdff686",
+        "name": "Tamarind pulp, unsweetened",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "tamarind_pulp",
+        "noProfile": true
+      },
+      {
+        "id": "ce7024af-beb1-405d-8467-fb2e9bdd8cf3",
+        "name": "Ginger root, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "ginger_raw",
+        "noProfile": true
+      },
+      {
+        "id": "37dbfee2-eb49-469a-be9d-9b94cfc49717",
+        "name": "Garlic, raw",
+        "source": "humai-catalog",
+        "fdcId": null,
+        "catalogId": "garlic_raw",
+        "noProfile": true
+      }
+    ],
+    "catalog": [
+      {
+        "id": "rice_white_dry",
+        "name": "Rice, white, dry",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "35e3a36c-5d52-4312-b86b-a63649f68aea"
+      },
+      {
+        "id": "rice_white_cooked",
+        "name": "Rice, white, cooked",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "e84dd509-5ad8-4cdb-98e7-83f9133486d5"
+      },
+      {
+        "id": "rice_basmati_cooked",
+        "name": "Rice, basmati, cooked",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "048a2c43-ba09-4e01-96e9-3800a929343c"
+      },
+      {
+        "id": "rice_brown_cooked",
+        "name": "Rice, brown, cooked",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "b8ad820a-4248-4bb5-a95d-53851996abb9"
+      },
+      {
+        "id": "maida",
+        "name": "Maida refined wheat flour",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "8e6ac8aa-043e-4f07-923b-928681b66121"
+      },
+      {
+        "id": "semolina",
+        "name": "Semolina, dry",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "1dab8e60-cff7-4508-9f34-86543a43bf9e"
+      },
+      {
+        "id": "aata_roti",
+        "name": "Chapati/roti, cooked without oil",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "77903a84-95b2-4aec-b1d3-442738e09d93"
+      },
+      {
+        "id": "poha_dry",
+        "name": "Flattened rice poha, dry",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "ccde34b2-fea6-4aff-a5ce-3bf512f38593"
+      },
+      {
+        "id": "oats_dry",
+        "name": "Rolled oats, dry",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "3663c4dd-a159-40b6-9146-5aa1b29e42bf"
+      },
+      {
+        "id": "ragi_flour",
+        "name": "Finger millet ragi flour, dry",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "6c1a3e50-daa5-4b94-ae78-637d0463c529"
+      },
+      {
+        "id": "jowar_flour",
+        "name": "Sorghum jowar flour, dry",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "c24a4986-1a33-4558-b91c-f06dfb7e5495"
+      },
+      {
+        "id": "bajra_flour",
+        "name": "Pearl millet bajra flour, dry",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "baa60fd9-fc4e-4424-85b8-4efaadb9962f"
+      },
+      {
+        "id": "idli_rice_dry",
+        "name": "Idli/parboiled rice, dry",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "1899040f-c4cf-4889-9ba9-c915fa6449d4"
+      },
+      {
+        "id": "urad_dal_dry",
+        "name": "Urad dal split, dry",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "e5c26054-9e6a-4d9e-9486-b2e2cb2f372a"
+      },
+      {
+        "id": "toor_dal_dry",
+        "name": "Toor/arhar dal, dry",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "0432e413-66f4-4cd3-a249-59fa4ff18343"
+      },
+      {
+        "id": "moong_dal_dry",
+        "name": "Moong dal yellow, dry",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "f34e35e8-c982-45c6-953a-83b9563ed116"
+      },
+      {
+        "id": "moong_whole_dry",
+        "name": "Whole green gram moong, dry",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "349ae6b1-c7fa-4718-926c-1fbc909c7ecd"
+      },
+      {
+        "id": "masoor_dal_dry",
+        "name": "Masoor dal red, dry",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "8e76d979-cd67-4484-96ee-09a52ac8577d"
+      },
+      {
+        "id": "chana_dal_dry",
+        "name": "Chana dal split chickpea, dry",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "926de76b-405b-428a-836a-e26a2e42fd12"
+      },
+      {
+        "id": "chickpea_cooked",
+        "name": "Chickpeas, boiled",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "1bf964c8-c6e6-4fbd-a5cd-33edbfabc83a"
+      },
+      {
+        "id": "kidneybeans_cooked",
+        "name": "Rajma kidney beans, cooked",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "68de6f26-5f10-4ca1-8533-d93e9bb61e09"
+      },
+      {
+        "id": "blackchana_cooked",
+        "name": "Kala chana, boiled",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "18e220ab-e7ca-4b5d-a1bb-f5813f2070db"
+      },
+      {
+        "id": "peas_green",
+        "name": "Green peas, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "5a138723-e4f4-4b27-94d1-e69b9c2158ca"
+      },
+      {
+        "id": "milk_lowfat",
+        "name": "Milk, low-fat",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "efd99809-27d2-4198-8d6d-dd0243c7aeae"
+      },
+      {
+        "id": "soy_chunks_dry",
+        "name": "Soy chunks, dry, unbranded",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "3789c6e0-91ff-4c8e-82bf-7712ec4c2d10"
+      },
+      {
+        "id": "tofu_firm",
+        "name": "Tofu, firm plain",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "c2e3af49-3fa4-4d6c-a1e9-972b6e926b75"
+      },
+      {
+        "id": "paneer_fullfat",
+        "name": "Paneer, full-fat plain",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "b7966a4c-152c-489f-843b-3905b2bf053a"
+      },
+      {
+        "id": "paneer_lowfat",
+        "name": "Paneer, reduced-fat plain",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "b3070b17-b6ec-4d3a-aeb0-a958404e9b28"
+      },
+      {
+        "id": "oil_generic",
+        "name": "Vegetable cooking oil",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "faa4103e-93b5-422a-8eed-96ba00cc1257"
+      },
+      {
+        "id": "oil_mustard",
+        "name": "Mustard oil",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "478a747f-e9b6-4833-9e5d-b0d454a20cd2"
+      },
+      {
+        "id": "oil_coconut",
+        "name": "Coconut oil",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "cccfdd41-a28c-4778-be11-effec5d920fa"
+      },
+      {
+        "id": "ghee",
+        "name": "Ghee clarified butter",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "ff44fe74-1375-4173-baaf-c2341bc7fafb"
+      },
+      {
+        "id": "butter",
+        "name": "Butter unsalted",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "1fe9e9d9-8e52-41f4-831b-c1bce4b1a220"
+      },
+      {
+        "id": "oil_sesame",
+        "name": "Sesame oil",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "468107a3-6b88-40a7-ad89-9d4ba78cc7c3"
+      },
+      {
+        "id": "yogurt_plain",
+        "name": "Plain yogurt curd",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "94899d0b-eebe-415b-b5ed-6666ddc6befa"
+      },
+      {
+        "id": "oil_olive",
+        "name": "Olive oil",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "ac1c5573-1ee3-4ad0-a1e4-f2060142aeb6"
+      },
+      {
+        "id": "onion_raw",
+        "name": "Onion, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "6cfb5c69-6467-486e-8c6a-fdf3cb0eba33"
+      },
+      {
+        "id": "tomato_raw",
+        "name": "Tomato, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "ee804d45-6eca-41d9-ae83-d52e2b61c93d"
+      },
+      {
+        "id": "potato_raw",
+        "name": "Potato, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "8e8f9c95-f882-4e51-8321-4d7b34059138"
+      },
+      {
+        "id": "sweetpotato_raw",
+        "name": "Sweet potato, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "c87aa218-88f9-40c9-b6d9-d0613a774f87"
+      },
+      {
+        "id": "carrot_raw",
+        "name": "Carrot, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "eab2891c-c325-4efb-924e-ed2cc40a79b1"
+      },
+      {
+        "id": "capsicum_raw",
+        "name": "Capsicum bell pepper, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "b934be71-a513-4b03-b421-1ff928ea0509"
+      },
+      {
+        "id": "gongura_raw",
+        "name": "Gongura sorrel leaves, raw — proxy",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "c4770ef5-2bfb-4836-ade9-18b68a5d3791"
+      },
+      {
+        "id": "amaranth_raw",
+        "name": "Amaranth leaves thotakura, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "18eb5052-f65a-439b-b4f0-0aaabec09cf9"
+      },
+      {
+        "id": "methi_raw",
+        "name": "Fenugreek leaves methi, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "acac309d-e859-475c-84c3-b7579ae913b3"
+      },
+      {
+        "id": "coriander_raw",
+        "name": "Coriander cilantro leaves, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "6629871d-18fc-41e6-a5ab-907e5e4b3092"
+      },
+      {
+        "id": "curry_leaves",
+        "name": "Curry leaves fresh — proxy",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "deee5dc9-2640-4f54-b20d-91e0b225f43e"
+      },
+      {
+        "id": "okra_raw",
+        "name": "Okra bhindi, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "118f014d-a545-412e-8de1-0439c3714a99"
+      },
+      {
+        "id": "eggplant_raw",
+        "name": "Eggplant brinjal, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "9b8bdb9d-785d-4dce-9ae6-89e36dd694ea"
+      },
+      {
+        "id": "bottlegourd_raw",
+        "name": "Bottle gourd lauki sorakaya, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "7e6adfe7-4a3a-43b7-9db5-936e305e45c5"
+      },
+      {
+        "id": "ridgegourd_raw",
+        "name": "Ridge gourd beerakaya, raw — proxy",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "03fe635f-4bb6-49b6-ac4b-66c61b3aa6d0"
+      },
+      {
+        "id": "bittergourd_raw",
+        "name": "Bitter gourd karela kakarakaya, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "a6c14f20-9f4a-40cd-87da-a4bec69f0118"
+      },
+      {
+        "id": "tindora_raw",
+        "name": "Ivy gourd dondakaya, raw — proxy",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "6c67d66b-5472-45ea-b8fa-1a710d54ea29"
+      },
+      {
+        "id": "cauliflower_raw",
+        "name": "Cauliflower, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "a29adb45-fca1-43eb-a925-1fc29e76667f"
+      },
+      {
+        "id": "cabbage_raw",
+        "name": "Cabbage, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "c53a473a-fac2-4afd-b94d-af9235e6217c"
+      },
+      {
+        "id": "broccoli_raw",
+        "name": "Broccoli, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "3d7789df-9bc9-4440-9143-8eeff37f4cf9"
+      },
+      {
+        "id": "beetroot_raw",
+        "name": "Beetroot, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "78271bae-3fcc-4bf1-a520-6b1f04147b33"
+      },
+      {
+        "id": "mushroom_raw",
+        "name": "Mushrooms button, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "6309eddf-6cbc-494f-bb02-f48b3a3c874f"
+      },
+      {
+        "id": "cucumber_raw",
+        "name": "Cucumber, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "af776291-f9e9-4c53-970a-87e7348632d1"
+      },
+      {
+        "id": "beans_green",
+        "name": "Green beans, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "caf3469a-157a-42d1-8fd8-f745c2c2ceae"
+      },
+      {
+        "id": "pumpkin_raw",
+        "name": "Pumpkin, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "285d4b0c-e32f-4ea0-9cfb-30f04381b3dc"
+      },
+      {
+        "id": "drumstick_raw",
+        "name": "Moringa drumstick pods, raw — proxy",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "73d598ab-0769-480d-9d1d-d9a2b5bb260b"
+      },
+      {
+        "id": "raw_mango",
+        "name": "Mango unripe, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "295d802f-fcb9-46eb-ad59-bc8eedaf4ded"
+      },
+      {
+        "id": "coconut_fresh",
+        "name": "Coconut flesh, fresh",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "1fe4a370-902a-42f0-851e-61a4ba1da065"
+      },
+      {
+        "id": "lemon_juice",
+        "name": "Lemon juice",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "91072480-ed70-41c4-b9dd-f5b2fb054731"
+      },
+      {
+        "id": "tamarind_pulp",
+        "name": "Tamarind pulp, unsweetened",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "29f74f94-9aa1-4c12-9c3d-e78c7cdff686"
+      },
+      {
+        "id": "ginger_raw",
+        "name": "Ginger root, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "ce7024af-beb1-405d-8467-fb2e9bdd8cf3"
+      },
+      {
+        "id": "garlic_raw",
+        "name": "Garlic, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "37dbfee2-eb49-469a-be9d-9b94cfc49717"
+      },
+      {
+        "id": "green_chili",
+        "name": "Green chili, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "51916c0a-0694-42f1-b111-8990fd06bc43"
+      },
+      {
+        "id": "red_chili_dry",
+        "name": "Red chili powder, dry",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "8ffd19f2-0b23-4ff0-9502-b7a61be200dd"
+      },
+      {
+        "id": "turmeric_powder",
+        "name": "Turmeric powder",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "1421086c-a8b8-4bba-853b-804af85eeb40"
+      },
+      {
+        "id": "cumin_seeds",
+        "name": "Cumin seeds",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "5a2fe5bc-15ef-4726-946a-f9d73646c3cb"
+      },
+      {
+        "id": "coriander_powder",
+        "name": "Coriander seed powder",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "1ca7d93b-e1fc-4298-ba99-a2b9b22acc0e"
+      },
+      {
+        "id": "mustard_seeds",
+        "name": "Mustard seeds",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "1e9a0a5c-44ac-4419-ad22-f87f5e121252"
+      },
+      {
+        "id": "fenugreek_seeds",
+        "name": "Fenugreek seeds",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "b5fd3226-7f2e-4edf-9fe0-bad29c1fd632"
+      },
+      {
+        "id": "black_pepper",
+        "name": "Black pepper",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "e69f5051-e383-44fa-a75d-3bc37a54c181"
+      },
+      {
+        "id": "cinnamon",
+        "name": "Cinnamon powder",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "03863b68-3fc7-4f86-b1cd-1dd684b89475"
+      },
+      {
+        "id": "cardamom",
+        "name": "Cardamom ground",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "96b825fb-60e5-4328-ae91-e88af57eecb8"
+      },
+      {
+        "id": "clove",
+        "name": "Cloves ground",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "3f5157a0-ced4-4dd4-b61d-15b40542bcf5"
+      },
+      {
+        "id": "cashew",
+        "name": "Cashew nuts, raw",
+        "status": "GENERIC_COMPOSITION",
+        "reviewRequired": false,
+        "linkedIngredient": "126f90d9-591a-4ca7-a4ee-d4af41dd1e38"
+      }
+    ],
+    "recipeComponents": [
+      {
+        "id": "ef60414b-8cd5-4462-81da-6d127cd3d49f",
+        "recipeId": "6fc980b6-4ec9-4738-b2f9-baf1dab39387",
+        "ingredientName": "apple",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "49bb1491-467b-48e2-8dfa-ceb53f39e0b9",
+        "recipeId": "6fc980b6-4ec9-4738-b2f9-baf1dab39387",
+        "ingredientName": "peanut butter",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "78ffe3e7-f33e-42c4-a7bf-4d64bce383d4",
+        "recipeId": "94766b52-deb7-42cb-ac8e-a7c7f5944a97",
+        "ingredientName": "eggs",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "dab269ab-d2f6-4554-9788-ef2851da3f75",
+        "recipeId": "29b4b2da-a1a7-46ac-ac6e-daecf768487b",
+        "ingredientName": "salmon",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "b37de9b4-d5f2-4954-9519-da106e50b098",
+        "recipeId": "4ba22a37-b73e-4ec0-8c88-bf3f6fd4f8ca",
+        "ingredientName": "chicken breast",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "3e51b285-8ca6-4b64-9560-6d448c28e89c",
+        "recipeId": "a1ccb6b5-fef5-4bd1-b51b-11438e51edee",
+        "ingredientName": "chicken thigh",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "1b2349a1-6803-4086-9a50-716b00d125bb",
+        "recipeId": "4b455e40-e25e-463d-8831-7b0a5e361a50",
+        "ingredientName": "whole wheat bread",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "76c97def-29f0-4b0e-9bfe-e8e15544e509",
+        "recipeId": "41e32cbd-1615-4106-9972-8616e1c0c645",
+        "ingredientName": "greek yogurt",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "3968876e-207e-45d2-b3ee-ddb2dd58ac06",
+        "recipeId": "5a9501f7-79a3-402f-85cc-2ff5a4646395",
+        "ingredientName": "white fish",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "b111d474-0f55-4db3-88f6-2aeb64a4b1a5",
+        "recipeId": "85e6954b-9394-450a-b33d-4b1ace578612",
+        "ingredientName": "lean beef",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "8cb18c0b-0949-4464-8f5b-0f4e3bb01c63",
+        "recipeId": "55f8f4b3-55db-4d58-b4e3-cef9538d0a66",
+        "ingredientName": "milk",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "934d3cb4-3e7a-4443-bf3f-1ca313d25773",
+        "recipeId": "c83d71b1-2b86-4992-82f5-b229ca256f69",
+        "ingredientName": "protein powder",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "d3486784-5352-4ebd-b189-2200c316736b",
+        "recipeId": "7a4c7b51-baf0-4c01-94af-4eb474da800c",
+        "ingredientName": "salmon",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "67d596cc-3d27-49e6-94db-126864968a18",
+        "recipeId": "61919d59-d716-4439-b4c1-5f02304dbd37",
+        "ingredientName": "rice",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "787267f3-3248-42b3-a955-3c7f79c2ebf4",
+        "recipeId": "4ba22a37-b73e-4ec0-8c88-bf3f6fd4f8ca",
+        "ingredientName": "vegetables",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "aca3a97e-ba56-471e-be71-eff634eb361c",
+        "recipeId": "f12c8383-640b-4b3e-b3c1-53968f12c62e",
+        "ingredientName": "cottage cheese",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "7c04089c-1b0a-48da-9acc-e1dea3c9e129",
+        "recipeId": "f12c8383-640b-4b3e-b3c1-53968f12c62e",
+        "ingredientName": "mixed fruit",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "cf280272-9082-430f-9e0f-b3bb195b2736",
+        "recipeId": "4c6fd751-1e41-4ea4-bd76-d9db4f59a0d1",
+        "ingredientName": "vegetables",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "bd1b87ca-2064-471d-819e-ed373cb842ee",
+        "recipeId": "88732173-6726-4fa2-be06-78f124ba6b2a",
+        "ingredientName": "mixed greens",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "d0eb0943-8457-48a2-b5e1-22313204140e",
+        "recipeId": "5a9501f7-79a3-402f-85cc-2ff5a4646395",
+        "ingredientName": "vegetables",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "432b75f1-4506-408d-8722-0a5d47a097c8",
+        "recipeId": "2739310e-7098-497d-9193-dea988134d7c",
+        "ingredientName": "vegetables",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "6761f76c-abc4-46f8-8d6e-32c7a29a7c09",
+        "recipeId": "85e6954b-9394-450a-b33d-4b1ace578612",
+        "ingredientName": "mixed vegetables",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "06ee22a9-339e-45ec-9168-3a45c581c337",
+        "recipeId": "55f8f4b3-55db-4d58-b4e3-cef9538d0a66",
+        "ingredientName": "mixed berries",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "b9960eae-ffaf-46f6-9f4f-2a9fd7936373",
+        "recipeId": "a83d5fce-ce6f-47fa-aa1e-07fa5a069cbc",
+        "ingredientName": "protein bar",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "c23e1590-9c3c-40f5-8ab6-50a76f065936",
+        "recipeId": "c83d71b1-2b86-4992-82f5-b229ca256f69",
+        "ingredientName": "almond milk",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "fa54cf77-2326-4824-a74d-56b14415be2c",
+        "recipeId": "c0054bda-683e-437e-b91d-2ef39fb5d9b7",
+        "ingredientName": "vegetables",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "37441ddd-3ea6-40ed-9d92-843b96cacbc9",
+        "recipeId": "61919d59-d716-4439-b4c1-5f02304dbd37",
+        "ingredientName": "tuna",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "37863a22-aa65-43dd-ab05-02c8d2561820",
+        "recipeId": "61919d59-d716-4439-b4c1-5f02304dbd37",
+        "ingredientName": "vegetables",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "8357682c-fc6c-44b1-8115-ef4b86538c59",
+        "recipeId": "ebee2b64-99ba-4864-ace9-fd875b98ddce",
+        "ingredientName": "turkey meatballs",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "5134ce88-0f67-47c4-9566-11abbee8c22a",
+        "recipeId": "a193a982-a3c7-43c2-9954-5c09658a03b2",
+        "ingredientName": "vegetables",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "6480bd2f-0550-44e5-944a-401646e57704",
+        "recipeId": "a193a982-a3c7-43c2-9954-5c09658a03b2",
+        "ingredientName": "wrap",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "966dd92f-d3c3-4da3-b66c-15e8d58f2af7",
+        "recipeId": "47be2897-1e58-46d1-b80f-c71a4460ebe6",
+        "ingredientName": "almonds",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "37f479fe-0466-4010-bf96-36e04f2181f2",
+        "recipeId": "94766b52-deb7-42cb-ac8e-a7c7f5944a97",
+        "ingredientName": "whole wheat bread",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "03be00ca-9221-477e-9d44-6ddb1a37a7c7",
+        "recipeId": "29b4b2da-a1a7-46ac-ac6e-daecf768487b",
+        "ingredientName": "asparagus",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "684a9df4-d50d-4cc6-9285-8cd414394381",
+        "recipeId": "9205bf14-9746-4cc0-921b-53f2e6cbb6d2",
+        "ingredientName": "chicken breast",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "d5dee013-5054-49e6-a30e-b3e4a751e22e",
+        "recipeId": "9205bf14-9746-4cc0-921b-53f2e6cbb6d2",
+        "ingredientName": "sweet potato",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "a9ccdf8b-a897-484f-a744-27033233e20f",
+        "recipeId": "4ba22a37-b73e-4ec0-8c88-bf3f6fd4f8ca",
+        "ingredientName": "rice",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "11b06674-7666-4955-9da9-6b6a395d2a9a",
+        "recipeId": "a1ccb6b5-fef5-4bd1-b51b-11438e51edee",
+        "ingredientName": "brown rice",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "ef20bcd5-373b-41c2-992e-df9af757e9cc",
+        "recipeId": "efb0f5bc-0ed1-4347-8495-1978a83fc737",
+        "ingredientName": "milk",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "a30476b5-36a6-411e-b848-bd3031b28c49",
+        "recipeId": "4c6fd751-1e41-4ea4-bd76-d9db4f59a0d1",
+        "ingredientName": "eggs",
+        "reason": "missing ingredientId"
+      },
+      {
+        "id": "f6703fac-7dd1-4c9a-a3aa-35e873aff755",
+        "recipeId": "a0c8e10b-337a-48f6-beda-c8049f2860a6",
+        "ingredientName": "Idli/parboiled rice, dry",
+        "ingredientId": "1899040f-c4cf-4889-9ba9-c915fa6449d4",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "b4d67b33-b6b6-434f-abca-597099634ffd",
+        "recipeId": "a0c8e10b-337a-48f6-beda-c8049f2860a6",
+        "ingredientName": "Urad dal split, dry",
+        "ingredientId": "e5c26054-9e6a-4d9e-9486-b2e2cb2f372a",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "6197eac3-0753-4fdc-8fc0-0d42475d3245",
+        "recipeId": "a0c8e10b-337a-48f6-beda-c8049f2860a6",
+        "ingredientName": "Water",
+        "ingredientId": "acc9f6c4-fb6a-42ab-a4d9-dfb0477f2d6d",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "8aea5877-27f4-44da-b79b-986be46b7fd1",
+        "recipeId": "8550eeaf-1fbc-4ec5-94c9-aa9bca48458f",
+        "ingredientName": "Idli/parboiled rice, dry",
+        "ingredientId": "1899040f-c4cf-4889-9ba9-c915fa6449d4",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "c688effa-ecb6-487c-b600-cac1f649a542",
+        "recipeId": "8550eeaf-1fbc-4ec5-94c9-aa9bca48458f",
+        "ingredientName": "Urad dal split, dry",
+        "ingredientId": "e5c26054-9e6a-4d9e-9486-b2e2cb2f372a",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "498a93db-a181-49c9-8d78-cdb62bb14145",
+        "recipeId": "8550eeaf-1fbc-4ec5-94c9-aa9bca48458f",
+        "ingredientName": "Vegetable cooking oil",
+        "ingredientId": "faa4103e-93b5-422a-8eed-96ba00cc1257",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "f10f56cd-7d36-4a50-bcda-d8f47c705a96",
+        "recipeId": "8550eeaf-1fbc-4ec5-94c9-aa9bca48458f",
+        "ingredientName": "Water",
+        "ingredientId": "acc9f6c4-fb6a-42ab-a4d9-dfb0477f2d6d",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "d2e2c0ea-aaef-4c6e-b49b-e26ab9ec13ca",
+        "recipeId": "5b07478a-03b4-4b5a-ab2e-20931436a442",
+        "ingredientName": "Idli/parboiled rice, dry",
+        "ingredientId": "1899040f-c4cf-4889-9ba9-c915fa6449d4",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "d7aba8cf-109e-4d9c-8e9b-611c26968566",
+        "recipeId": "5b07478a-03b4-4b5a-ab2e-20931436a442",
+        "ingredientName": "Urad dal split, dry",
+        "ingredientId": "e5c26054-9e6a-4d9e-9486-b2e2cb2f372a",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "8631f8f2-7bff-4e66-afe6-22bdb6fcca55",
+        "recipeId": "5b07478a-03b4-4b5a-ab2e-20931436a442",
+        "ingredientName": "Potato, raw",
+        "ingredientId": "8e8f9c95-f882-4e51-8321-4d7b34059138",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "8e7df03f-a97b-44d0-aa17-7160165d23e0",
+        "recipeId": "5b07478a-03b4-4b5a-ab2e-20931436a442",
+        "ingredientName": "Onion, raw",
+        "ingredientId": "6cfb5c69-6467-486e-8c6a-fdf3cb0eba33",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "38f3de32-b8b7-4102-be52-e2e26620df24",
+        "recipeId": "5b07478a-03b4-4b5a-ab2e-20931436a442",
+        "ingredientName": "Vegetable cooking oil",
+        "ingredientId": "faa4103e-93b5-422a-8eed-96ba00cc1257",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "f5934539-5e82-4f73-9bbf-2327d2c1d65b",
+        "recipeId": "5b07478a-03b4-4b5a-ab2e-20931436a442",
+        "ingredientName": "Mustard seeds",
+        "ingredientId": "1e9a0a5c-44ac-4419-ad22-f87f5e121252",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "ebeb1f0c-b794-4387-aa36-c06467aa89f9",
+        "recipeId": "5b07478a-03b4-4b5a-ab2e-20931436a442",
+        "ingredientName": "Water",
+        "ingredientId": "acc9f6c4-fb6a-42ab-a4d9-dfb0477f2d6d",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "996d31be-8038-49e6-8ecc-3e179821f550",
+        "recipeId": "ca432924-282b-4bb0-b6fa-114587e66547",
+        "ingredientName": "Whole green gram moong, dry",
+        "ingredientId": "349ae6b1-c7fa-4718-926c-1fbc909c7ecd",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "5581b1ce-b2a6-4e0d-b274-080cb0a6309b",
+        "recipeId": "ca432924-282b-4bb0-b6fa-114587e66547",
+        "ingredientName": "Onion, raw",
+        "ingredientId": "6cfb5c69-6467-486e-8c6a-fdf3cb0eba33",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "189b574d-05fe-4d23-98e4-91f789a51359",
+        "recipeId": "ca432924-282b-4bb0-b6fa-114587e66547",
+        "ingredientName": "Green chili, raw",
+        "ingredientId": "51916c0a-0694-42f1-b111-8990fd06bc43",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "aac306f2-3833-40e4-9b17-234b948564af",
+        "recipeId": "ca432924-282b-4bb0-b6fa-114587e66547",
+        "ingredientName": "Ginger root, raw",
+        "ingredientId": "ce7024af-beb1-405d-8467-fb2e9bdd8cf3",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "3473fa00-994d-4b99-89a3-92eef25c07af",
+        "recipeId": "ca432924-282b-4bb0-b6fa-114587e66547",
+        "ingredientName": "Vegetable cooking oil",
+        "ingredientId": "faa4103e-93b5-422a-8eed-96ba00cc1257",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "b7c67153-9ad3-4da8-b962-ac0be1a4bf8f",
+        "recipeId": "ca432924-282b-4bb0-b6fa-114587e66547",
+        "ingredientName": "Water",
+        "ingredientId": "acc9f6c4-fb6a-42ab-a4d9-dfb0477f2d6d",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "a61823dd-3a29-465a-9807-929246181c8d",
+        "recipeId": "27a9b9e8-1140-4c0f-9783-0da14fe7f5ff",
+        "ingredientName": "Whole green gram moong, dry",
+        "ingredientId": "349ae6b1-c7fa-4718-926c-1fbc909c7ecd",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "5413b5e4-4283-4bd0-97f0-c2ca0c383260",
+        "recipeId": "27a9b9e8-1140-4c0f-9783-0da14fe7f5ff",
+        "ingredientName": "Semolina, dry",
+        "ingredientId": "1dab8e60-cff7-4508-9f34-86543a43bf9e",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "e9083fcf-be9b-41db-96ce-326c6e3baaed",
+        "recipeId": "27a9b9e8-1140-4c0f-9783-0da14fe7f5ff",
+        "ingredientName": "Onion, raw",
+        "ingredientId": "6cfb5c69-6467-486e-8c6a-fdf3cb0eba33",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "b2ca83d7-80be-4810-acaf-9b5b2266a35d",
+        "recipeId": "27a9b9e8-1140-4c0f-9783-0da14fe7f5ff",
+        "ingredientName": "Green chili, raw",
+        "ingredientId": "51916c0a-0694-42f1-b111-8990fd06bc43",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "755f13ec-c3ee-4283-b947-e0e31070f27f",
+        "recipeId": "27a9b9e8-1140-4c0f-9783-0da14fe7f5ff",
+        "ingredientName": "Vegetable cooking oil",
+        "ingredientId": "faa4103e-93b5-422a-8eed-96ba00cc1257",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "1833463f-90d3-441d-961d-121256ad4ed7",
+        "recipeId": "27a9b9e8-1140-4c0f-9783-0da14fe7f5ff",
+        "ingredientName": "Water",
+        "ingredientId": "acc9f6c4-fb6a-42ab-a4d9-dfb0477f2d6d",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "816fd84c-01c9-42c0-9a43-869ffd670dce",
+        "recipeId": "cb26474d-b188-43d1-bea9-bd11a30b6758",
+        "ingredientName": "Urad dal split, dry",
+        "ingredientId": "e5c26054-9e6a-4d9e-9486-b2e2cb2f372a",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "50e97bf2-8fe6-461f-8213-9443b25176c9",
+        "recipeId": "cb26474d-b188-43d1-bea9-bd11a30b6758",
+        "ingredientName": "Onion, raw",
+        "ingredientId": "6cfb5c69-6467-486e-8c6a-fdf3cb0eba33",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "c4a9b987-fda6-4a44-9055-f5a2f445f4f1",
+        "recipeId": "cb26474d-b188-43d1-bea9-bd11a30b6758",
+        "ingredientName": "Green chili, raw",
+        "ingredientId": "51916c0a-0694-42f1-b111-8990fd06bc43",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "06217158-aa30-4150-a1d1-ba97d557e9f1",
+        "recipeId": "cb26474d-b188-43d1-bea9-bd11a30b6758",
+        "ingredientName": "Vegetable cooking oil",
+        "ingredientId": "faa4103e-93b5-422a-8eed-96ba00cc1257",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "39b62f17-f493-4590-a5e2-ae61517df77a",
+        "recipeId": "cb26474d-b188-43d1-bea9-bd11a30b6758",
+        "ingredientName": "Water",
+        "ingredientId": "acc9f6c4-fb6a-42ab-a4d9-dfb0477f2d6d",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "d78fce24-dad9-47cf-b160-b69fd7e24e99",
+        "recipeId": "dbd4a6bb-8a88-4476-a3e4-42aea587dd4f",
+        "ingredientName": "Semolina, dry",
+        "ingredientId": "1dab8e60-cff7-4508-9f34-86543a43bf9e",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "51a3c6d1-4cd6-4f6e-8760-7ceaffb7e531",
+        "recipeId": "dbd4a6bb-8a88-4476-a3e4-42aea587dd4f",
+        "ingredientName": "Onion, raw",
+        "ingredientId": "6cfb5c69-6467-486e-8c6a-fdf3cb0eba33",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "e69fea2d-c630-43f6-9efd-8dbf759cf3d3",
+        "recipeId": "dbd4a6bb-8a88-4476-a3e4-42aea587dd4f",
+        "ingredientName": "Carrot, raw",
+        "ingredientId": "eab2891c-c325-4efb-924e-ed2cc40a79b1",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "118b8bcb-b79b-412c-a084-2f1c3c3bdf9d",
+        "recipeId": "dbd4a6bb-8a88-4476-a3e4-42aea587dd4f",
+        "ingredientName": "Green peas, raw",
+        "ingredientId": "5a138723-e4f4-4b27-94d1-e69b9c2158ca",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "d347da7d-a9c6-4064-9ba6-db325a21b5ed",
+        "recipeId": "dbd4a6bb-8a88-4476-a3e4-42aea587dd4f",
+        "ingredientName": "Vegetable cooking oil",
+        "ingredientId": "faa4103e-93b5-422a-8eed-96ba00cc1257",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "0dbb5d15-d7c0-49c3-9e88-9533a42b82fc",
+        "recipeId": "801465c9-3e59-4425-8ace-70a51db4409b",
+        "ingredientName": "banana",
+        "ingredientId": "8db0ee9f-4874-4957-9148-15f36e8168c2",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "80559a43-dfc1-45c6-b3eb-0729cca93e78",
+        "recipeId": "2bfd72dd-6afb-4cd2-9e5e-8263dcb736e5",
+        "ingredientName": "bread",
+        "ingredientId": "6f9ce881-73b9-43c6-ba0f-7192709e5da3",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "4d722add-c7bc-4c40-ae0d-5ce694f4c00f",
+        "recipeId": "c83d71b1-2b86-4992-82f5-b229ca256f69",
+        "ingredientName": "banana",
+        "ingredientId": "8db0ee9f-4874-4957-9148-15f36e8168c2",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      },
+      {
+        "id": "92f473d9-4b1f-4c2e-be90-ad8ac68758ff",
+        "recipeId": "dbd4a6bb-8a88-4476-a3e4-42aea587dd4f",
+        "ingredientName": "Water",
+        "ingredientId": "acc9f6c4-fb6a-42ab-a4d9-dfb0477f2d6d",
+        "reason": "linked ingredient has no numeric nutrient profile"
+      }
+    ]
+  }
+}
