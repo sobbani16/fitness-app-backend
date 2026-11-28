@@ -154,25 +154,39 @@ async function getGutHealthSummary(userId, { tz } = {}) {
   const daySet = new Set(days);
   const windowLogs = logs.filter((l) => daySet.has(dayKey(new Date(l.loggedAt), zone)));
 
+  // Today's incomplete log must not distort completed-day averages: split the
+  // window into the (possibly partial) current day and completed local days.
+  const completedDays = new Set(days.slice(0, -1));
   const loggedDays = new Set();
+  const loggedCompletedDays = new Set();
   let confirmedG = 0, estimatedG = 0, unknownMeals = 0;
+  let todayConfirmedG = 0, todayEstimatedG = 0;
+  let completedConfirmedG = 0, completedEstimatedG = 0;
   for (const log of windowLogs) {
-    loggedDays.add(dayKey(new Date(log.loggedAt), zone));
+    const dk = dayKey(new Date(log.loggedAt), zone);
+    loggedDays.add(dk);
+    const isToday = dk === today;
+    if (!isToday) loggedCompletedDays.add(dk);
     const state = fiberStateOf(log);
-    if (state === 'confirmed') confirmedG += log.fiberG;
-    else if (state === 'estimated') estimatedG += log.fiberG;
+    if (state === 'confirmed') { confirmedG += log.fiberG; if (isToday) todayConfirmedG += log.fiberG; else completedConfirmedG += log.fiberG; }
+    else if (state === 'estimated') { estimatedG += log.fiberG; if (isToday) todayEstimatedG += log.fiberG; else completedEstimatedG += log.fiberG; }
     else unknownMeals += 1;
   }
   const daysLogged = loggedDays.size;
-  // Average over days that actually logged food — dividing by the whole
-  // window would read skipped logging days as low intake.
+  const completedDaysLogged = loggedCompletedDays.size;
+  // Averages use the days that actually logged food — dividing by the whole
+  // window would read skipped logging days as low intake. Completed-day
+  // averages exclude today (in progress); today gets its own progress field.
   const avgConfirmed = daysLogged ? confirmedG / daysLogged : null;
+  const avgConfirmedCompleted = completedDaysLogged ? completedConfirmedG / completedDaysLogged : null;
   // Known-and-estimated subtotal: estimated fiber is real information about
   // intake (a review-marked estimate is not unknown) — it must count toward
   // any "is intake low" judgment, while staying clearly separated from the
   // confirmed figure. Confirmed 8 g + estimated 24 g is NOT a low-fiber week.
   const combinedG = confirmedG + estimatedG;
+  const combinedCompletedG = completedConfirmedG + completedEstimatedG;
   const avgCombined = daysLogged ? combinedG / daysLogged : null;
+  const avgCombinedCompleted = completedDaysLogged ? combinedCompletedG / completedDaysLogged : null;
 
   // --- Weekly plant diversity -------------------------------------------------
   const ingredientIds = [...new Set(windowLogs.map((l) => l.ingredientId).filter(Boolean))];
@@ -264,9 +278,18 @@ async function getGutHealthSummary(userId, { tz } = {}) {
   // are never read as low intake: the combined known+estimated subtotal is
   // the comparison basis, labeled by what fed it.
   const signals = [];
-  if (daysLogged >= 3 && unknownShare <= 0.5 && target.targetG != null && avgCombined < target.targetG * 0.6) {
+  // Review-required targets (restricted-condition or clinician-directed)
+  // suppress personalized nudges entirely — an intake nudge against a target
+  // awaiting clinical review could contradict medical guidance.
+  const targetNeedsReview = Boolean(target.reviewRequired);
+  if (targetNeedsReview) {
+    signals.push({ key: 'target_review_required', kind: 'data_quality', detail: 'Your fiber target comes from a restricted-condition or clinician-directed source awaiting review — intake nudges are withheld.' });
+  }
+  // Trend basis is completed days only — a partially logged current day must
+  // not pull the average down and fabricate a low-intake conclusion.
+  if (!targetNeedsReview && completedDaysLogged >= 3 && unknownShare <= 0.5 && target.targetG != null && avgCombinedCompleted < target.targetG * 0.6) {
     const basis = estimatedG > 0 ? 'confirmed_plus_estimated' : 'confirmed';
-    signals.push({ key: 'low_fiber', kind: 'intake_opportunity', basis, detail: `Known+estimated fiber averaged ~${round1(avgCombined)} g/day on logged days vs your ${target.targetG} g target.` });
+    signals.push({ key: 'low_fiber', kind: 'intake_opportunity', basis, detail: `Known+estimated fiber averaged ~${round1(avgCombinedCompleted)} g/day across ${completedDaysLogged} completed logged days vs your ${target.targetG} g target.` });
   }
   // Identity coverage: how much of the logged week resolved to a plant-or-
   // animal classification. narrow_variety is suppressed when coverage is
@@ -276,7 +299,7 @@ async function getGutHealthSummary(userId, { tz } = {}) {
   // nudge), never a clinical cutoff.
   const resolvedLogs = countedPlantLogs + animalLogs;
   const resolvedShare = windowLogs.length ? resolvedLogs / windowLogs.length : 0;
-  if (plants.size > 0 && plants.size < 10 && daysLogged >= 3 && resolvedShare >= 0.6) {
+  if (!targetNeedsReview && plants.size > 0 && plants.size < 10 && daysLogged >= 3 && resolvedShare >= 0.6) {
     signals.push({ key: 'narrow_variety', kind: 'intake_opportunity', threshold: 10, detail: `${plants.size} distinct plant foods observed in logged items over the last 7 days — a product-defined flag, not a clinical cutoff.` });
   }
   if (windowLogs.length > 0 && resolvedShare < 0.6) {
@@ -301,7 +324,14 @@ async function getGutHealthSummary(userId, { tz } = {}) {
       avgConfirmedPerLoggedDayG: round1(avgConfirmed),
       avgKnownAndEstimatedPerLoggedDayG: round1(avgCombined),
       daysLogged,
-      note: 'Confirmed, estimated and unknown contributions stay separate — the combined subtotal is the basis for intake signals, never the confirmed figure alone.',
+      today: { day: today, confirmedG: round1(todayConfirmedG), estimatedG: round1(todayEstimatedG), knownAndEstimatedG: round1(todayConfirmedG + todayEstimatedG), inProgress: true },
+      completedDays: {
+        logged: completedDaysLogged,
+        total: completedDays.size,
+        avgConfirmedPerLoggedDayG: round1(avgConfirmedCompleted),
+        avgKnownAndEstimatedPerLoggedDayG: round1(avgCombinedCompleted),
+      },
+      note: 'Confirmed, estimated and unknown contributions stay separate — the combined subtotal is the basis for intake signals, never the confirmed figure alone. Trend averages use completed days only; today is reported as in-progress.',
     },
     plantVariety: {
       windowDays: WINDOW_DAYS,
@@ -320,12 +350,17 @@ async function getGutHealthSummary(userId, { tz } = {}) {
       },
       guide: 'Observational research associates ~30 different plant foods per week with greater gut-microbiome diversity — an association, not a clinical minimum.',
     },
-    gutOccasions: {
+    gutFoodDays: {
+      // DISTINCT FOOD-DAYS, not eating occasions: the same canonical food
+      // logged twice on one day (duplicate row, portion edit, or two genuine
+      // meals) counts once. There is no meal-occasion identity in FoodLog
+      // today, so two real yogurt meals in a day collapse to one food-day —
+      // this metric measures dietary variety coverage, never meal frequency.
       total: gutOccasions.length,
       entries: gutOccasions,
       facets: facetOccasions,
       suspectedFermented,
-      dedup: 'Occasions deduplicate per local day and canonical food identity — repeated logs or portion edits of the same food are one occasion.',
+      dedup: 'Counts deduplicate per local day and canonical food identity — repeated logs or portion edits of the same food are one food-day. Genuine separate eating occasions of the same food also collapse (no occasion identity exists yet).',
       basis: 'Canonical gut taxonomy (ingredient attributes > catalog category > name heuristics). Suspected means preparation-name evidence only; verified live cultures and probiotic status require reviewed metadata — absence of a verified flag is not proof of absence.',
     },
     symptoms: {

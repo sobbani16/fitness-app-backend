@@ -133,6 +133,50 @@ describe('gut health v2 — fiber', () => {
     expect(r.signals.find((s) => s.key === 'thin_fiber_data')).toBeTruthy();
   });
 
+  test('partial current day does not distort completed-day averages or signals', async () => {
+    fakeDb({
+      macroGoal: { fiberTarget: 30, fiberTargetBasis: 'custom' },
+      logs: [
+        // 4 completed days at a healthy 25 g
+        ...Array.from({ length: 4 }, (_, i) => log({ fiberG: 25, loggedAt: day(i + 1) })),
+        // today: only a 1 g breakfast logged so far — incomplete, not low
+        log({ fiberG: 1, loggedAt: new Date() }),
+      ],
+    });
+    const r = await getGutHealthSummary('u1');
+    expect(r.fiber.today.inProgress).toBe(true);
+    expect(r.fiber.today.knownAndEstimatedG).toBe(1);
+    expect(r.fiber.completedDays.logged).toBe(4);
+    expect(r.fiber.completedDays.avgKnownAndEstimatedPerLoggedDayG).toBe(25);
+    expect(r.signals.find((s) => s.key === 'low_fiber')).toBeFalsy();
+  });
+
+  test('backdated log lands on its local day, never on today', async () => {
+    fakeDb({ logs: [log({ fiberG: 20, loggedAt: day(3) }), log({ fiberG: 5, loggedAt: new Date() })] });
+    const r = await getGutHealthSummary('u1');
+    expect(r.fiber.today.confirmedG).toBe(5);
+    expect(r.fiber.completedDays.logged).toBe(1);
+  });
+
+  test('future-dated logs fall outside the window and never enter today', async () => {
+    fakeDb({ logs: [log({ fiberG: 40, loggedAt: new Date(Date.now() + 86400000) })] });
+    const r = await getGutHealthSummary('u1');
+    expect(r.fiber.confirmedG).toBe(0);
+    expect(r.fiber.today.confirmedG).toBe(0);
+  });
+
+  test('review-required target suppresses intake nudges → target_review_required only', async () => {
+    fakeDb({
+      conditions: [{ condition: { name: 'Crohn disease' } }],
+      logs: Array.from({ length: 5 }, (_, i) => log({ fiberG: 2, loggedAt: day(i + 1) })),
+    });
+    const r = await getGutHealthSummary('u1');
+    expect(r.fiber.target.reviewRequired).toBe(true);
+    expect(r.signals.find((s) => s.key === 'low_fiber')).toBeFalsy();
+    expect(r.signals.find((s) => s.key === 'narrow_variety')).toBeFalsy();
+    expect(r.signals.find((s) => s.key === 'target_review_required')).toBeTruthy();
+  });
+
   test('restricted-condition target reaches the summary via resolveFiberTarget', async () => {
     fakeDb({ conditions: [{ condition: { name: 'Crohn disease' } }] });
     const r = await getGutHealthSummary('u1');
@@ -239,17 +283,17 @@ describe('gut health v2 — gut-taxonomy occasions + symptoms', () => {
       ],
     });
     const r = await getGutHealthSummary('u1');
-    expect(r.gutOccasions.facets.fermented).toBe(2);
-    expect(r.gutOccasions.entries.find((e) => /kimchi/i.test(e.food)).fermentation).toBe('verified');
-    expect(r.gutOccasions.entries.find((e) => /idli/i.test(e.food)).fermentation).toBe('suspected');
-    expect(r.gutOccasions.suspectedFermented).toBe(1);
-    expect(r.gutOccasions.facets.live_culture).toBe(0); // never verified by name alone
+    expect(r.gutFoodDays.facets.fermented).toBe(2);
+    expect(r.gutFoodDays.entries.find((e) => /kimchi/i.test(e.food)).fermentation).toBe('verified');
+    expect(r.gutFoodDays.entries.find((e) => /idli/i.test(e.food)).fermentation).toBe('suspected');
+    expect(r.gutFoodDays.suspectedFermented).toBe(1);
+    expect(r.gutFoodDays.facets.live_culture).toBe(0); // never verified by name alone
   });
 
   test('non-fermented dosa variant is not classified fermented', async () => {
     fakeDb({ logs: [log({ foodName: 'Instant dosa mix' })] });
     const r = await getGutHealthSummary('u1');
-    expect(r.gutOccasions.facets.fermented).toBe(0);
+    expect(r.gutFoodDays.facets.fermented).toBe(0);
   });
 
   test('duplicate logs of the same food on one day count as a single occasion', async () => {
@@ -258,8 +302,8 @@ describe('gut health v2 — gut-taxonomy occasions + symptoms', () => {
       logs: [log({ foodName: 'Kimchi', ingredientId: 31 }), log({ foodName: 'Kimchi', ingredientId: 31, quantityG: 50 })],
     });
     const r = await getGutHealthSummary('u1');
-    expect(r.gutOccasions.facets.fermented).toBe(1);
-    expect(r.gutOccasions.total).toBe(1);
+    expect(r.gutFoodDays.facets.fermented).toBe(1);
+    expect(r.gutFoodDays.total).toBe(1);
   });
 
   test('live_culture attribute surfaces verified live cultures; Unicode names preserved', async () => {
@@ -269,10 +313,10 @@ describe('gut health v2 — gut-taxonomy occasions + symptoms', () => {
       logs: [log({ foodName: 'పెరుగు', ingredientId: 33 })],
     });
     const r = await getGutHealthSummary('u1');
-    const e = r.gutOccasions.entries[0];
+    const e = r.gutFoodDays.entries[0];
     expect(e.liveCultures).toBe('verified');
     expect(e.food).toBe('పెరుగు');
-    expect(r.gutOccasions.facets.live_culture).toBe(1);
+    expect(r.gutFoodDays.facets.live_culture).toBe(1);
   });
 
   test('unresolved identity coverage is a data-quality signal, not a variety verdict', async () => {

@@ -105,7 +105,13 @@ d('golden path — Food Intelligence', () => {
     const suit = await post(who, '/food-intel/suitability', { ingredientText: 'oats, peanut-e2e butter' }).expect(200);
     expect(suit.body.verdict).toBe('conflict');
 
-    // evidence: approved only + alias resolution
+    // evidence governance: seeds land NEEDS_REVIEW — never auto-served
+    const unreviewed = await get(who, '/food-intel/evidence/cinnamon').expect(200);
+    expect(unreviewed.body.found).toBe(false);
+    const seeded = await prisma.ingredientEvidenceProfile.findFirst({ where: { ingredientKey: 'cinnamon' } });
+    expect(seeded?.status).toBe('NEEDS_REVIEW');
+    // editorial approval (what /super-admin/ingredient-evidence does) then serves it
+    await prisma.ingredientEvidenceProfile.updateMany({ data: { status: 'APPROVED', reviewedAt: new Date() } });
     const ev = await get(who, '/food-intel/evidence/cinnamon').expect(200);
     expect(ev.body.found).toBe(true);
     const aliased = await get(who, '/food-intel/evidence/dalchini').expect(200);
