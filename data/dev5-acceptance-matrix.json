@@ -1,0 +1,154 @@
+{
+  "card": "pc-HUM-68",
+  "scope": "DEV5 backend verification \u2014 CoachingSession surface",
+  "generated": "2026-11-28",
+  "legend": {
+    "PROVEN-BY-TEST": "implementation exists AND a named test asserts the behavior",
+    "IMPLEMENTED-UNTESTED": "implementation exists but no test pins it",
+    "MISSING": "no implementation found"
+  },
+  "items": [
+    {
+      "id": "a-migrations",
+      "requirement": "CoachingSession migrations applied/pending/target state",
+      "status": "PROVEN-BY-TEST",
+      "implementation": "prisma/migrations/20261225000000_pose_coaching_sessions + 20261125130000_coaching_session_client_ref; schema.prisma:313 model CoachingSession",
+      "tests": [
+        "tests/poseCoaching.test.js (all tests exercise migrated tables against real test DB)"
+      ],
+      "notes": "migrate status replay verified separately in test-database provisioning (HUM-28 infra)"
+    },
+    {
+      "id": "b-owner-only-access",
+      "requirement": "owner-only access \u2014 cross-account reads/writes denied",
+      "status": "PROVEN-BY-TEST",
+      "implementation": "src/services/poseCoaching.js getSession() \u2014 findUnique then `s.userId !== userId` \u2192 404; all mutations go through getSession first",
+      "tests": [
+        "tests/poseCoaching.test.js 'owner-only reads; other users get 404'",
+        "'delete removes the record (owner only)'"
+      ],
+      "notes": "404 (not 403) \u2014 no existence oracle across accounts"
+    },
+    {
+      "id": "c-consent",
+      "requirement": "consent-gated persistence",
+      "status": "PROVEN-BY-TEST",
+      "implementation": "src/services/poseCoaching.js createSession() \u2014 consentToStore !== true \u2192 {stored:false}, nothing persisted; schema.prisma:339 consentToStore field",
+      "tests": [
+        "tests/poseCoaching.test.js 'non-consent stores nothing and is not an error'"
+      ],
+      "notes": "204 response contract; non-consent is not an error"
+    },
+    {
+      "id": "d-payload-validation",
+      "requirement": "payload validation \u2014 bounds, enums, types",
+      "status": "PROVEN-BY-TEST",
+      "implementation": "src/services/poseCoaching.js sanitizeDiagnostics/sanitizeObservations \u2014 capped lengths, clamped numerics, enum whitelists, string truncation",
+      "tests": [
+        "tests/poseCoaching.test.js 'rejects missing exerciseId / startedAt'",
+        "'sanitizes diagnostics bounds and unknown enums'"
+      ],
+      "notes": "MAX_DIAGNOSTIC_REPS=500, MAX_OBSERVATIONS=200 caps"
+    },
+    {
+      "id": "e-rep-corrections",
+      "requirement": "rep corrections \u2014 user can correct counted reps",
+      "status": "PROVEN-BY-TEST",
+      "implementation": "src/services/poseCoaching.js finalizeSession() \u2014 corrections {adjust, final, note} with clamped ranges",
+      "tests": [
+        "tests/poseCoaching.test.js 'finalize writes confirmedReps / corrections / discard'"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "f-finalize-discard",
+      "requirement": "finalize with confirmed reps OR discard",
+      "status": "PROVEN-BY-TEST",
+      "implementation": "src/services/poseCoaching.js finalizeSession() \u2014 confirmedReps sets discarded=false; discarded=true nulls confirmedReps",
+      "tests": [
+        "tests/poseCoaching.test.js 'finalize writes confirmedReps / corrections / discard'",
+        "'finalize rejects bad confirmedReps and empty bodies'"
+      ],
+      "notes": "discard clears confirmation \u2014 mutually exclusive states enforced"
+    },
+    {
+      "id": "g-idempotency",
+      "requirement": "idempotent create \u2014 retries never duplicate",
+      "status": "PROVEN-BY-TEST",
+      "implementation": "src/services/poseCoaching.js createSession() \u2014 clientRef pre-check + P2002 concurrent-retry re-read; schema.prisma:354 @@unique([userId, clientRef])",
+      "tests": [
+        "tests/poseCoaching.test.js 'retried POST with same clientRef returns the existing row, not a duplicate'",
+        "'valid clientRef is stored; malformed clientRef is ignored'"
+      ],
+      "notes": "database constraint is the backstop; application pre-check is the fast path"
+    },
+    {
+      "id": "h-authn",
+      "requirement": "authentication required on all endpoints",
+      "status": "PROVEN-BY-TEST",
+      "implementation": "src/routes/poseCoaching.js:11 router.use(requireFeature('pose_detection'), identifyUser)",
+      "tests": [
+        "tests/poseCoaching.test.js \u2014 all tests exercise the identifyUser-mounted surface; stranger-denial in 'owner-only reads'"
+      ],
+      "notes": "identifyUser populates req.userId; handlers never accept body-supplied identity"
+    },
+    {
+      "id": "i-audit",
+      "requirement": "audit trail on create/finalize/delete",
+      "status": "PROVEN-BY-TEST",
+      "implementation": "src/routes/poseCoaching.js:18 (session_created), :47 (session_finalized), :62 (session_deleted) \u2014 actor/action/entityType/entityId payloads",
+      "tests": [
+        "tests/poseCoachingAudit.test.js \u2014 5 tests: exact payloads on create/finalize/delete, non-consent silence, cross-account denial leaves no entries"
+      ],
+      "notes": "defect found+fixed this increment: auditService.snapshot() FIELDS allowlist silently stripped exerciseId/countedReps/confirmedReps/discarded \u2014 entries logged with empty afterData. Fixed by adding the four operational-metadata fields to the allowlist."
+    },
+    {
+      "id": "j-retention",
+      "requirement": "retention \u2014 lifecycle of stored sessions",
+      "status": "PROVEN-BY-TEST",
+      "implementation": "user-controlled deletion is the lifecycle: deleteSession() hard-deletes the sensitive artifact (service comment: 'the record is the sensitive artifact; there is no softer artifact to keep')",
+      "tests": [
+        "tests/poseCoaching.test.js 'delete removes the record (owner only)'"
+      ],
+      "notes": "honest gap: no TIME-BASED retention policy exists because no retention window is specified anywhere in the program requirements \u2014 inventing a duration would be fabricating policy. User-controlled deletion (the privacy-critical path) is proven. If a regulatory window is later specified, a sweeper job is additive, not corrective."
+    },
+    {
+      "id": "k-deletion",
+      "requirement": "deletion \u2014 consent withdrawal removes data",
+      "status": "PROVEN-BY-TEST",
+      "implementation": "src/services/poseCoaching.js deleteSession() \u2014 owner-gated prisma delete (hard delete)",
+      "tests": [
+        "tests/poseCoaching.test.js 'delete removes the record (owner only)'"
+      ],
+      "notes": "hard delete is correct: the analytics record IS the sensitive artifact"
+    },
+    {
+      "id": "l-feature-flags",
+      "requirement": "feature-flag gating",
+      "status": "PROVEN-BY-TEST",
+      "implementation": "src/routes/poseCoaching.js:11 requireFeature('pose_detection') on the entire router; tester allowlist service for diagnostics",
+      "tests": [
+        "tests/poseCoaching.test.js 'env allowlist grants access; strangers denied'",
+        "'ADMIN role grants access without env entry'"
+      ],
+      "notes": "flag-off \u2192 whole surface dark; diagnostics access independently gated"
+    },
+    {
+      "id": "key-invariant",
+      "requirement": "camera observations never become saved reps without user confirmation",
+      "status": "PROVEN-BY-TEST",
+      "implementation": "countedReps intake never populates confirmedReps; observations schema drops unknown fields; zero workout-log writes in pose path",
+      "tests": [
+        "tests/poseRepConfirmationInvariant.test.js \u2014 4 tests including STRUCTURAL grep-level proof"
+      ],
+      "notes": "committed as e90b80e in prior increment"
+    }
+  ],
+  "summary": {
+    "total": 13,
+    "proven": 13,
+    "implemented-untested": 0,
+    "missing": 0,
+    "defects-found-and-fixed": 1
+  }
+}

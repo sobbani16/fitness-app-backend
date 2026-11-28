@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "pose-dataset-annotation-v1",
+  "title": "Pose dataset clip annotation",
+  "type": "object",
+  "required": ["schemaVersion", "clipId", "exercise", "view", "subjectPseudonym", "fps", "reps", "labels", "annotator"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "clipId": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "exercise": { "enum": ["squat", "push_up", "lunge", "deadlift", "shoulder_press"] },
+    "variation": { "type": "string", "maxLength": 60, "description": "e.g. goblet, sumo, wide-grip, single-leg — free text, versioned via schemaVersion" },
+    "view": { "enum": ["front", "side", "front_45", "rear_45", "rear", "unknown"] },
+    "subjectPseudonym": { "type": "string", "minLength": 4, "maxLength": 80, "description": "pseudonymous subject key — never a name/email/user id" },
+    "fps": { "type": "number", "exclusiveMinimum": 0, "maximum": 240 },
+    "durationS": { "type": "number", "exclusiveMinimum": 0, "maximum": 3600 },
+    "reps": {
+      "type": "array",
+      "description": "rep boundaries in frame indices — empty allowed for clips with zero clean reps",
+      "items": {
+        "type": "object",
+        "required": ["repIndex", "startFrame", "endFrame"],
+        "additionalProperties": false,
+        "properties": {
+          "repIndex": { "type": "integer", "minimum": 0 },
+          "startFrame": { "type": "integer", "minimum": 0 },
+          "endFrame": { "type": "integer", "minimum": 0 },
+          "phases": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["phase", "startFrame", "endFrame"],
+              "additionalProperties": false,
+              "properties": {
+                "phase": { "enum": ["descent", "bottom", "ascent", "top", "setup", "lockout", "other"] },
+                "startFrame": { "type": "integer", "minimum": 0 },
+                "endFrame": { "type": "integer", "minimum": 0 }
+              }
+            }
+          },
+          "uncertain": { "type": "boolean", "description": "annotator flags this boundary as uncertain — downstream may abstain" },
+          "occluded": { "type": "boolean", "description": "joint(s) not visible for part of the rep" }
+        }
+      }
+    },
+    "labels": {
+      "type": "object",
+      "required": ["technique"],
+      "additionalProperties": false,
+      "properties": {
+        "form": { "enum": ["acceptable", "minor_deviation", "major_deviation", "unsafe"] },
+        "technique": {
+          "type": "array",
+          "items": { "type": "string", "maxLength": 60 },
+          "description": "deviation codes from the exercise rubric, e.g. knee_valgus, lumbar_flexion, elbow_flare"
+        },
+        "notes": { "type": "string", "maxLength": 2000 }
+      }
+    },
+    "annotator": {
+      "type": "object",
+      "required": ["id", "annotatedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "annotatedAt": { "type": "string", "format": "date-time" },
+        "reviewedBy": { "type": "string", "maxLength": 80 },
+        "reviewedAt": { "type": "string", "format": "date-time" },
+        "agreement": { "type": "number", "minimum": 0, "maximum": 1, "description": "inter-annotator agreement where double-labeled" },
+        "rubricVersion": { "type": "string", "maxLength": 40 }
+      }
+    }
+  }
+}
