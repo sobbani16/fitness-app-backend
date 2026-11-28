@@ -31,6 +31,11 @@ beforeAll(async () => {
     where: { id: 'humai-test-rice-ing' }, update: {},
     create: { id: 'humai-test-rice-ing', normalizedName: 'humai test rice', name: 'Humai Test Rice', caloriesPer100g: 130, proteinPer100g: 2.7, carbsPer100g: 28, fatPer100g: 0.3, source: 'test' },
   });
+  // catalog serving so count-based voice items resolve to verified grams
+  await prisma.ingredientServing.deleteMany({ where: { ingredientId: 'humai-test-rice-ing' } }).catch(() => {});
+  await prisma.ingredientServing.create({ data: {
+    id: 'humai-test-rice-piece-serving', ingredientId: 'humai-test-rice-ing', label: 'piece', grams: 50, estimated: false, sourceRecord: { test: true },
+  } }).catch(() => {});
   await prisma.exercise.upsert({
     where: { normalizedName: 'humai-test-curl' }, update: {},
     create: { id: 'humai-test-curl', normalizedName: 'humai-test-curl', name: 'Humai Test Curl', equipment: 'dumbbell', appEquipment: ['dumbbell'], level: 'beginner', force: 'pull', mechanic: 'isolation', instructions: ['curl'], source: 'test',
@@ -180,5 +185,39 @@ describe('voice endpoints', () => {
   it('rejects unauthenticated execute', async () => {
     const res = await request(app).post('/voice/commands/execute').send({ commandId: 'vc-x', actions: [{ intent: 'LOG_WATER' }] });
     expect(res.status).toBe(401);
+  });
+it('dayOffset -1 back-dates loggedAt to yesterday, never silently today', async () => {
+    const res = await request(app).post('/voice/commands/execute').set(H).send({
+      commandId: 'vc-food-yday', transcript: 'log humai test rice yesterday',
+      actions: [{ intent: 'LOG_FOOD', entities: { items: [{ name: 'humai test rice', grams: 100 }], mealType: 'meal', dayOffset: -1 }, status: 'ready' }],
+    });
+    expect(res.status).toBe(201);
+    const log = await prisma.foodLog.findFirst({ where: { id: 'voice-vc-food-yday-0' } });
+    expect(log).toBeTruthy();
+    const ageHours = (Date.now() - log.loggedAt.getTime()) / 3600000;
+    expect(ageHours).toBeGreaterThan(20);
+    expect(ageHours).toBeLessThan(28);
+  });
+
+  it('count-based items resolve to verified serving grams — never fabricated', async () => {
+    const res = await request(app).post('/voice/commands/execute').set(H).send({
+      commandId: 'vc-food-count', transcript: 'log 2 pieces humai test rice',
+      actions: [{ intent: 'LOG_FOOD', entities: { items: [{ name: 'humai test rice', quantity: 2, unit: 'piece', grams: null }] }, status: 'ready' }],
+    });
+    expect(res.status).toBe(201);
+    const log = await prisma.foodLog.findFirst({ where: { id: 'voice-vc-food-count-0' } });
+    expect(log).toBeTruthy();
+    expect(log.quantityG).toBe(100); // 2 × 50g piece — verified serving math
+    expect(log.calories).toBeCloseTo(130, 0);
+    expect(log.nutritionSnapshot.selectedServing).toBe('piece');
+  });
+
+  it('implausible quantity (>10000g) is rejected, never persisted', async () => {
+    const res = await request(app).post('/voice/commands/execute').set(H).send({
+      commandId: 'vc-food-huge', transcript: 'log humai test rice',
+      actions: [{ intent: 'LOG_FOOD', entities: { items: [{ name: 'humai test rice', grams: 99999 }] }, status: 'ready' }],
+    });
+    expect(res.body.result[0].status).toBe('skipped');
+    expect(await prisma.foodLog.count({ where: { id: 'voice-vc-food-huge-0' } })).toBe(0);
   });
 });

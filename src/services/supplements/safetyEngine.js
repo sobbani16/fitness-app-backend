@@ -28,6 +28,61 @@ const CONDITION_MATCH = [
   { key: /anticoag|blood thinner|warfarin|aspirin/i, attributes: ['BLOOD_THINNER_INTERACTION'] },
 ];
 
+// --- Published-rule trigger evaluation -------------------------------------
+// A published rule must NEVER silently pass or silently drop. Each trigger
+// type has an explicit evaluator; a type with no evaluator reports
+// 'unevaluatable' so the caller can surface "this rule was not checked"
+// instead of pretending a negative result.
+// Generic tail tokens that must never match a condition on their own —
+// 'LIVER_DISEASE' must not fire on 'heart disease'.
+const GENERIC_TOKENS = new Set(['disease', 'disorder', 'syndrome', 'deficiency', 'overload', 'significant', 'chronic', 'condition', 'risk', 'exposure']);
+
+// Trigger value conventions in the rules corpus:
+//   X_OR_Y         — explicit alternatives ('HEMOCHROMATOSIS_OR_IRON_OVERLOAD')
+//   X_Y_Z          — qualifier+core ('SIGNIFICANT_KIDNEY_DISEASE') or a flat
+//                    term list ('PREGNANCY_THYROID_LIVER'). Handled by matching
+//                    every contiguous n-gram, excluding generic single tokens.
+function triggerNgrams(triggerValue) {
+  const out = new Set();
+  for (const alt of String(triggerValue || '').split('_OR_')) {
+    const toks = alt.toLowerCase().split('_').map(t => t.trim()).filter(Boolean);
+    for (let i = 0; i < toks.length; i++) {
+      for (let j = i + 1; j <= toks.length; j++) {
+        const gram = toks.slice(i, j).join(' ');
+        if (j - i === 1 && GENERIC_TOKENS.has(gram)) continue;
+        out.add(gram);
+      }
+    }
+  }
+  return [...out];
+}
+
+const LIFE_STAGE_RE = /pregnan|prenatal|expecting|lactat|breastfeed|nursing|postpartum|trying to conceive/i;
+const LIFE_STAGE_SUPPORTED = /pregnan|lactat|breastfeed|nursing|trying/i;
+
+// Returns true (fires), false (evaluated, no match), or null (trigger type
+// has no evaluator — the rule cannot be checked with loaded data).
+function evalRuleTrigger(rule, { conditionNames, allergyNames }) {
+  const conds = conditionNames.map(c => String(c).toLowerCase());
+  switch (rule.triggerType) {
+    case 'CONDITION':
+      return triggerNgrams(rule.triggerValue).some(g => conds.some(c => c.includes(g)));
+    case 'LIFE_STAGE': {
+      if (!LIFE_STAGE_SUPPORTED.test(String(rule.triggerValue || ''))) return null;
+      return conds.some(c => LIFE_STAGE_RE.test(c));
+    }
+    case 'ALLERGY': {
+      const terms = String(rule.triggerValue || '').toLowerCase().split('_').filter(t => t && !GENERIC_TOKENS.has(t));
+      return terms.some(t => allergyNames.some(a => a.includes(t)));
+    }
+    // MEDICATION / DOSE_TOTAL / OTHER_SUPPLEMENT / LIFESTYLE / FOOD /
+    // LAB_TEST / ADMINISTRATION / PRODUCT_QUALITY / PRODUCT_COMPOSITION /
+    // AGE_GROUP — require data sources this check does not load.
+    default:
+      return null;
+  }
+}
+
 const DISCLAIMER = 'This check uses only reviewed rules and your recorded information. No interaction found here does not mean a supplement is safe for you — consult a clinician or pharmacist about your medicines and health conditions.';
 
 async function evaluateUserSupplements(prisma, userId) {
@@ -52,21 +107,35 @@ async function evaluateUserSupplements(prisma, userId) {
   const exposure = { duplicates: [], cannotVerify: [] };
 
   // 1. Published interaction rules — none exist until reviewer sign-off.
+  const ctx = { conditionNames, allergyNames };
+  const unevaluatable = new Map();
   for (const link of links) {
     const slug = link.supplement?.ingredient?.slug;
     const family = link.supplement?.ingredient?.parentFamily;
     for (const rule of publishedRules) {
       if (rule.ingredientSlug !== slug && rule.ingredientSlug !== family) continue;
-      const matched =
-        (rule.triggerType === 'CONDITION' && conditionNames.some(c => c.toUpperCase().includes(rule.triggerValue.split('_')[0]))) ||
-        (rule.triggerType === 'LIFE_STAGE' && conditionNames.some(c => /pregnan/i.test(c)) && /PREGNANT/i.test(rule.triggerValue));
-      if (matched) {
+      const verdict = evalRuleTrigger(rule, ctx);
+      if (verdict === null) {
+        // Explicit non-result: the rule cannot be checked with the data this
+        // evaluation loads — surfaced below, never treated as "no interaction".
+        unevaluatable.set(rule.id, rule);
+        continue;
+      }
+      if (verdict) {
         warnings.push({
           kind: 'rule', severity: rule.severity, supplement: link.supplement.name,
           message: rule.consumerWarning, action: rule.ruleAction, evidence: rule.sourceUrl, version: rule.version,
         });
       }
     }
+  }
+  if (unevaluatable.size) {
+    const list = [...unevaluatable.values()];
+    const severities = [...new Set(list.map(r => r.severity))];
+    infos.push({
+      kind: 'rules_not_evaluatable', count: list.length, severities,
+      message: `${list.length} published interaction rule(s) could not be checked (trigger types this evaluation does not support). Their absence from warnings means 'not checked', not 'safe' — review with a clinician or pharmacist.`,
+    });
   }
 
   // 2. Legacy attribute flags matched to recorded conditions.
@@ -147,6 +216,7 @@ async function evaluateUserSupplements(prisma, userId) {
   return {
     disclaimers: [DISCLAIMER],
     approvedRulesEvaluated: publishedRules.length,
+    rulesNotEvaluatable: unevaluatable.size,
     personalizedChecksPossible: publishedRules.length > 0,
     warnings,
     infos,
@@ -155,4 +225,4 @@ async function evaluateUserSupplements(prisma, userId) {
   };
 }
 
-module.exports = { evaluateUserSupplements, DISCLAIMER };
+module.exports = { evaluateUserSupplements, evalRuleTrigger, DISCLAIMER };
