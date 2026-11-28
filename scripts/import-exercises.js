@@ -64,6 +64,16 @@ async function main() {
     imported++;
   }
   console.log(`Imported ${imported} exercises (${skipped} duplicates/invalid skipped)`);
+
+  // Auto-onboarding (pc-HUM-101): every catalog write regenerates the versioned
+  // profile artifact so newly imported exercises immediately carry draft
+  // intelligence profiles (auto_generated_unreviewed) in the CI-audited snapshot.
+  // Skip with --no-onboard for partial/dev imports where regen is handled separately.
+  if (!process.argv.includes('--no-onboard')) {
+    const { regenerateProfileArtifacts } = require('../src/services/exercise/onboarding');
+    const summary = await regenerateProfileArtifacts();
+    console.log(`Auto-onboarding: profile artifact regenerated — ${summary.profiles} draft profiles cover ${summary.exercises} exercises`);
+  }
 }
 
 main().catch(e => { console.error(e); process.exit(1); }).finally(() => prisma.$disconnect());
